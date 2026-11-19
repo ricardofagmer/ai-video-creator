@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Headers, HttpCode, Param, Post, Query, Res, StreamableFile } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Query, Res, StreamableFile } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { CreateRunDraftCommand, ListRunsQuery, MarkRunPendingCommand } from '@studio/core/runs';
+import { CreateRunDraftCommand, ListRunsQuery, MarkRunPendingCommand, type RunDraftResult, type RunIndexPage } from '@studio/core/runs';
 import {
   CreateRunRequestSchema,
   ListRunsQuerySchema,
@@ -27,9 +27,20 @@ import { RunArtifactAccessService } from './run-artifact-access.service';
 import { RunArtifactReader } from './run-artifact.reader';
 import { RunCursorReader } from './run-cursor.reader';
 import { RunIndexSync } from './run-index-sync.service';
+import { RunScheduleLinkReader } from './run-schedule-link.reader';
 import { RunStateReader } from './run-state.reader';
 
 type RunParams = z.output<typeof RunParamsSchema>;
+
+/** The two run commands this controller dispatches (the command bus satisfies it). */
+export interface RunCommandPort {
+  execute(command: CreateRunDraftCommand | MarkRunPendingCommand): Promise<RunDraftResult>;
+}
+
+/** The one query this controller dispatches (the query bus satisfies it). */
+export interface RunListQueryPort {
+  execute(query: ListRunsQuery): Promise<RunIndexPage>;
+}
 
 /**
  * Runs (PRD 6-7). Writes are limited to the draft run.json and `draft` -> `pending` through the
@@ -38,24 +49,31 @@ type RunParams = z.output<typeof RunParamsSchema>;
  */
 @Controller(apiRouteSegments.runs)
 export class RunsController {
+  // Collaborators the routes only call are typed by the slice they use (ports), so the list route
+  // can be exercised with the real fired-run sync and readers (R3-AC-22); Nest injects the classes.
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus,
+    @Inject(CommandBus) private readonly commandBus: RunCommandPort,
+    @Inject(QueryBus) private readonly queryBus: RunListQueryPort,
     private readonly context: RequestContext,
-    private readonly states: RunStateReader,
-    private readonly artifacts: RunArtifactReader,
-    private readonly indexSync: RunIndexSync,
+    @Inject(RunStateReader) private readonly states: Pick<RunStateReader, 'readState' | 'readEvents'>,
+    @Inject(RunArtifactReader) private readonly artifacts: Pick<RunArtifactReader, 'open'>,
+    @Inject(RunIndexSync) private readonly indexSync: Pick<RunIndexSync, 'observe'>,
     private readonly cursors: RunCursorReader,
-    private readonly artifactAccess: RunArtifactAccessService,
+    @Inject(RunArtifactAccessService) private readonly artifactAccess: Pick<RunArtifactAccessService, 'forArtifactRoute'>,
     private readonly firedRuns: FiredRunIndexSync,
+    private readonly scheduleLinks: RunScheduleLinkReader,
   ) {}
 
-  /** Runs a schedule fired since the last look are indexed first (SPEC 0006 section 5.7, R3-AC-22). */
+  /**
+   * Runs a schedule fired since the last look are indexed first (SPEC 0006 section 5.7, R3-AC-22).
+   * Each row carries its A22 `cursor` and, for a watcher-created run, its rev 5 `schedule` link.
+   */
   @Get()
   async list(@Query(new ZodValidationPipe(ListRunsQuerySchema)) query: z.output<typeof ListRunsQuerySchema>): Promise<RunIndexPageView> {
     await this.firedRuns.syncFiredRuns();
     const page = await this.queryBus.execute(new ListRunsQuery(query));
-    return { items: await this.cursors.withCursors(page.items), total: page.total, nextCursor: page.nextCursor };
+    const items = await this.scheduleLinks.withScheduleLinks(await this.cursors.withCursors(page.items));
+    return { items, total: page.total, nextCursor: page.nextCursor };
   }
 
   @Post()

@@ -14,10 +14,14 @@ const MULTIPART_OVERHEAD_BYTES = 64 * 1024;
  * SPEC 0006 section 5.3 receive stage: one file of at most 2 MiB and at most four text fields. The
  * contract has two fields (`platform`, `asOfDate`); a third or fourth name is refused by the strict
  * schema, a fifth by the parser.
+ *
+ * The parser's file limit is one byte above the 5.3 bound: busboy emits `limit` when a part REACHES
+ * its `fileSize`, and 5.3 refuses only a file OVER 2 MiB, so an exactly-2-MiB export (which the
+ * shared reader accepts) must pass. `collectFile` keeps the exact `> 2 MiB` check.
  */
 const metricImportLimits: MultipartLimits = {
   maxFiles: 1,
-  maxFileBytes: metricsBounds.maxFileBytes,
+  maxFileBytes: metricsBounds.maxFileBytes + 1,
   maxFieldBytes: 256,
   maxFields: 4,
 };

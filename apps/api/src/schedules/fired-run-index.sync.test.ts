@@ -68,7 +68,10 @@ describe('fired-run index sync (SPEC 0006 section 5.7, R3-AC-22)', () => {
   let runIndex: InMemoryRunIndex;
   let sync: FiredRunIndexSync;
 
-  /** What `GET /runs` does (runs.controller.ts `list`): sync fired runs, then read the index. */
+  /**
+   * The sync step alone, then the index. The routes themselves (`RunsController.list`,
+   * `SchedulesController.list`) are exercised in runs/runs.controller.test.ts.
+   */
   async function getRuns(): Promise<string[]> {
     await sync.syncFiredRuns();
     return [...runIndex.indexed];

@@ -11,6 +11,7 @@ import { RunCursorReader } from './run-cursor.reader';
 import { RunDecisionsController } from './run-decisions.controller';
 import { RunIndexSync } from './run-index-sync.service';
 import { RunLearningsController } from './run-learnings.controller';
+import { RunScheduleLinkReader } from './run-schedule-link.reader';
 import { RunStateReader } from './run-state.reader';
 import { RunsController } from './runs.controller';
 
@@ -25,7 +26,7 @@ import { RunsController } from './runs.controller';
 @Module({
   imports: [CqrsModule, PathsModule, CostsModule, EmbeddingsApiModule, SchedulesApiModule],
   controllers: [RunsController, RunDecisionsController, RunLearningsController],
-  providers: [RunStateReader, RunArtifactReader, RunArtifactAccessService, RunCursorReader, MonthSpendReader, RunIndexSync],
+  providers: [RunStateReader, RunArtifactReader, RunArtifactAccessService, RunCursorReader, RunScheduleLinkReader, MonthSpendReader, RunIndexSync],
   exports: [RunArtifactAccessService],
 })
 export class RunsApiModule {}

@@ -117,6 +117,28 @@ describe('POST /metrics/imports receive stage (SPEC 0006 section 5.3)', () => {
     assert.equal(commands.received.length, 0);
   });
 
+  it('accepts a file of exactly 2 MiB with its true Content-Length and hands every byte to core', async () => {
+    const { commands, submit } = harness();
+    const atLimit = Buffer.alloc(metricsBounds.maxFileBytes, 0x61);
+    assert.equal(atLimit.length, 2 * 1024 * 1024);
+    const body = multipartBody(fieldsThen({ name: 'file', filename: 'export.csv', content: atLimit }));
+    await submit(uploadRequest(body, { 'content-length': String(body.length) }), 'true');
+    assert.equal(commands.received.length, 1);
+    const [command] = commands.received;
+    assert.ok(command !== undefined);
+    assert.equal(command.input.file.length, metricsBounds.maxFileBytes);
+  });
+
+  it('refuses a file of 2 MiB + 1 with 413 even when its true Content-Length passes the declared precheck', async () => {
+    const { commands, submit } = harness();
+    const overByOne = Buffer.alloc(metricsBounds.maxFileBytes + 1, 0x61);
+    const body = multipartBody(fieldsThen({ name: 'file', filename: 'export.csv', content: overByOne }));
+    const error = await refusal(submit(uploadRequest(body, { 'content-length': String(body.length) })));
+    assert.ok(error instanceof MetricsFileTooLargeError);
+    assert.equal(mapError(error).statusCode, 413);
+    assert.equal(commands.received.length, 0);
+  });
+
   it('refuses a declared body over the limit before reading it', async () => {
     const { commands, submit } = harness();
     const body = multipartBody(fieldsThen({ name: 'file', filename: 'export.csv', content: Buffer.from('Content,Views\n') }));
