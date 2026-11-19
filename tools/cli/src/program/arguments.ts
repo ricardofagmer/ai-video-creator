@@ -2,12 +2,15 @@ import { z } from 'zod';
 import { type EmbedScope } from '@studio/core/embeddings';
 import { SEMANTIC_SEARCH_DEFAULT_LIMIT } from '@studio/shared/api';
 import { SEMANTIC_SEARCH_QUERY_MAX_CHARS } from '@studio/shared/catalog';
+import { IsoDateSchema, PlatformSchema } from '@studio/shared/metrics';
 import { RunIdSchema, type RunId } from '@studio/shared/run-format';
+import { ScheduleIdSchema, type ScheduleId } from '@studio/shared/schedules';
 import { CliUsageError } from '../errors/cli.errors.js';
 import { type ServiceName } from '../errors/service.errors.js';
 import { type CatalogImportOptions } from '../commands/catalog-import.command.js';
 import { type SemanticSearchOptions } from '../commands/catalog-search.command.js';
 import { type DoctorOptions } from '../commands/doctor.command.js';
+import { type MetricsImportOptions } from '../commands/metrics-import.command.js';
 import { type RunCommandOptions } from '../commands/run.command.js';
 
 /**
@@ -144,4 +147,34 @@ export function parseSemanticSearchOptions(options: unknown): SemanticSearchOpti
     throw usage(`Informe em --semantic um texto de 1 a ${SEMANTIC_SEARCH_QUERY_MAX_CHARS} caracteres.`);
   }
   return { query: parsed.data.semantic, limit: parsed.data.limit ?? SEMANTIC_SEARCH_DEFAULT_LIMIT };
+}
+
+export function parseScheduleId(value: unknown): ScheduleId {
+  const parsed = ScheduleIdSchema.safeParse(value);
+  if (!parsed.success) throw usage('Id de agendamento inválido; use o id mostrado por "studio schedules list".');
+  return parsed.data;
+}
+
+const MetricsImportFlagsSchema = z.object({
+  platform: PlatformSchema,
+  asOf: IsoDateSchema,
+  dryRun: z.boolean().default(false),
+});
+
+/**
+ * `metrics import <file> --platform <p> --as-of <yyyy-mm-dd> [--dry-run]`. The platform is the
+ * allowlist of `PlatformSchema`; the date is checked again (not in the future) by the core handler.
+ * Messages name the option, never echo the value or the path.
+ */
+export function parseMetricsImportOptions(file: unknown, options: unknown): MetricsImportOptions {
+  const parsedFile = PathArgumentSchema.safeParse(file);
+  if (!parsedFile.success) throw usage('Informe o arquivo CSV exportado pela plataforma.');
+  const parsed = MetricsImportFlagsSchema.safeParse(options);
+  if (!parsed.success) {
+    const fields = new Set(parsed.error.issues.map((issue) => String(issue.path[0] ?? '')));
+    if (fields.has('platform')) throw usage(`Use --platform ${PlatformSchema.options.join(', ')}.`);
+    if (fields.has('asOf')) throw usage('Use --as-of com a data dos números, no formato AAAA-MM-DD.');
+    throw usage('Opção inválida em --dry-run.');
+  }
+  return { file: parsedFile.data, platform: parsed.data.platform, asOfDate: parsed.data.asOf, dryRun: parsed.data.dryRun };
 }

@@ -2,11 +2,13 @@ import { AssetStoreError } from '@studio/core/asset-store';
 import { CatalogError } from '@studio/core/catalog';
 import { CostsError } from '@studio/core/costs';
 import { EmbeddingsError } from '@studio/core/embeddings';
+import { MetricsError } from '@studio/core/metrics';
 import { InvalidDataHomeError } from '@studio/core/paths';
 import { QualityError } from '@studio/core/quality';
 import { RecipesError } from '@studio/core/recipes';
 import { ReviewError } from '@studio/core/review';
 import { RunsError } from '@studio/core/runs';
+import { ScheduleError } from '@studio/core/schedules';
 import { SecretsError } from '@studio/core/secrets';
 import { SeedError } from '@studio/core/seed';
 import { RunFileError, UnsupportedRunFormatError } from '@studio/shared/run-files';
@@ -58,7 +60,9 @@ function hasSafeMessage(error: unknown): error is Error {
     error instanceof SecretsError ||
     error instanceof AssetStoreError ||
     error instanceof EmbeddingsError ||
-    error instanceof QualityError
+    error instanceof QualityError ||
+    error instanceof ScheduleError ||
+    error instanceof MetricsError
   );
 }
 

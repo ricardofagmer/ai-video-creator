@@ -1,11 +1,13 @@
 import { ExitCode } from '../errors/exit-codes.js';
 import { toErrorReport } from '../errors/error-report.js';
 import { checkCurations } from '../doctor/curation-checks.js';
+import { scheduleChecks } from '../doctor/schedule-checks.js';
 import { checkCostIndex, checkDatabase, checkReferences, checkStoreSize, rebuildRunIndex } from '../doctor/data-checks.js';
 import { checkLine, hasFailure, type DoctorCheck } from '../doctor/doctor-check.js';
 import { INDEX_CHECK_LABEL, MODEL_CHECK_LABEL, checkSearch } from '../doctor/search-checks.js';
 import { checkApi, checkTool, checkWatcher, checkWeb } from '../doctor/service-checks.js';
 import { withSearchContext, type CliSearchContext } from '../nest/cli-context.js';
+import { scanSchedules } from '../schedules/schedule-scan.js';
 import { type CommandDependencies } from './command-dependencies.js';
 
 export interface DoctorOptions {
@@ -75,7 +77,9 @@ async function dataSections(options: DoctorOptions, dependencies: CommandDepende
 
 /**
  * `studio doctor [--rebuild-index]`: web, api, watcher, ffmpeg/ffprobe, database, store size and
- * unreachable references, curations that failed before any model call, then cost indexing of settled runs (SPEC 0002 rev 2), then the search
+ * unreachable references, curations that failed before any model call, schedule files, fired run
+ * folders and active schedules without a running watcher (SPEC 0006 section 5.7), then cost
+ * indexing of settled runs (SPEC 0002 rev 2), then the search
  * model and index lines (SPEC 0003 section 7). Read-only apart from the index tables (cost_entries,
  * run index) and stale pid records; it never downloads the model nor embeds. Exit 6 when any check
  * fails; the search model lines are at most warnings, so a missing model never fails it (R2-AC-27).
@@ -85,10 +89,15 @@ export async function doctorCommand(options: DoctorOptions, dependencies: Comman
   const sections: DoctorSection[] = [];
   sections.push(await guarded('web', async () => only(await checkWeb(settings)), signal));
   sections.push(await guarded('api', async () => only(await checkApi(settings)), signal));
-  sections.push(await guarded('watcher', async () => only(await checkWatcher(settings)), signal));
+  const watcher = await guarded('watcher', async () => only(await checkWatcher(settings)), signal);
+  sections.push(watcher);
   sections.push(await guarded('ffmpeg', async () => only(await checkTool('ffmpeg', settings)), signal));
   sections.push(await guarded('ffprobe', async () => only(await checkTool('ffprobe', settings)), signal));
   sections.push(await guarded('curadorias', () => checkCurations(settings.dataHome.curations, { now: new Date(), signal }), signal));
+  // The watcher line is `ok` exactly when the launchd agent has a running process.
+  const watcherRunning = watcher.check.status === 'ok';
+  const scheduleRoots = { schedulesRoot: settings.dataHome.schedules, runsRoot: settings.dataHome.runs };
+  sections.push(await guarded('agendamentos', async () => scheduleChecks(await scanSchedules(scheduleRoots, signal), watcherRunning), signal));
   sections.push(...(await dataSections(options, dependencies)));
 
   dependencies.printer.line(`Diagnóstico do studio (dados em ${settings.dataHome.root})`);

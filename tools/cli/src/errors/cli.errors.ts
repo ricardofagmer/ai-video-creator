@@ -1,3 +1,4 @@
+import { formatBytes } from '../output/format.js';
 import { type ErrorCategory } from './exit-codes.js';
 
 /**
@@ -48,6 +49,22 @@ export class InputFileError extends CliError {
   ) {
     super(`O arquivo de ${option} ${inputFileMessages[problem]}.`);
     this.name = 'InputFileError';
+  }
+}
+
+/**
+ * An input file read under a byte cap (`metrics import`) is over the cap: refused from its size,
+ * before or while reading, so the rest is never read. The file name is never echoed (SPEC 0006 K7).
+ */
+export class InputFileTooLargeError extends CliError {
+  override readonly category = 'validation';
+
+  constructor(
+    readonly option: string,
+    readonly limitBytes: number,
+  ) {
+    super(`O arquivo de ${option} passa do limite de ${formatBytes(limitBytes)}; nada foi importado.`);
+    this.name = 'InputFileTooLargeError';
   }
 }
 

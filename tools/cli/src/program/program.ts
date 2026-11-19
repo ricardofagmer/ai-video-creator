@@ -29,6 +29,7 @@ import {
   parseServiceName,
   parseStopTarget,
 } from './arguments.js';
+import { addOutsideSignalCommands } from './outside-signal-commands.js';
 
 type ExitCodeSink = (code: number) => void;
 
@@ -82,7 +83,7 @@ function addServiceCommands(program: Command, dependencies: CommandDependencies,
     });
   program
     .command('doctor')
-    .description('verifica web, api, watcher, ffmpeg, banco, armazenamento, referências e o modelo e o índice de busca')
+    .description('verifica web, api, watcher, ffmpeg, curadorias, agendamentos, banco, armazenamento, referências e o modelo e o índice de busca')
     .option('--rebuild-index', 'reconstrói o índice de execuções a partir das pastas')
     .action(async (options: unknown) => report(await doctorCommand(parseDoctorOptions(options), dependencies)));
 }
@@ -180,6 +181,7 @@ function buildProgram(dependencies: CommandDependencies, report: ExitCodeSink): 
   addServiceCommands(program, dependencies, report);
   addSetupCommands(program, dependencies, report);
   addModelCommands(program, dependencies, report);
+  addOutsideSignalCommands(program, dependencies, report);
   return program;
 }
 
