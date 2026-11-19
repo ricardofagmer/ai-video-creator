@@ -24,6 +24,11 @@ export type StoredSchedule = { scheduleId: ScheduleId; state: 'readable'; file: 
 @Injectable()
 export class ScheduleStore {
   private readonly logger = new Logger(ScheduleStore.name);
+  /**
+   * Schedules already reported unreadable. The watcher lists every idle second and the api on every
+   * runs or schedules list, so a corrupt file is logged when it turns unreadable, not on each call.
+   */
+  private reportedUnreadable = new Set<ScheduleId>();
 
   constructor(private readonly dataHome: DataHome) {}
 
@@ -48,21 +53,27 @@ export class ScheduleStore {
 
   /**
    * Every schedule folder, oldest first (ULID order). An absent `schedule.json` (a folder being
-   * created) is left out; a corrupt one is listed as `unreadable` and logged by id, so the watcher
-   * can skip it with `schedule-unreadable` and the limit still counts it.
+   * created) is left out; a corrupt one is listed as `unreadable` and logged by id once per episode
+   * (again after it was readable or gone), so the watcher can skip it with `schedule-unreadable`
+   * and the limit still counts it.
    */
   async listAll(): Promise<StoredSchedule[]> {
     const stored: StoredSchedule[] = [];
+    const unreadableNow = new Set<ScheduleId>();
     for (const scheduleId of await listScheduleIds(this.dataHome.schedules)) {
       try {
         const file = await this.read(scheduleId);
         if (file !== null) stored.push({ scheduleId, state: 'readable', file });
       } catch (error) {
         if (!(error instanceof ScheduleFileCorruptError)) throw error;
-        this.logger.warn({ event: 'schedule.list-unreadable', scheduleId, errorName: error.name });
+        unreadableNow.add(scheduleId);
+        if (!this.reportedUnreadable.has(scheduleId)) {
+          this.logger.warn({ event: 'schedule.list-unreadable', scheduleId, errorName: error.name });
+        }
         stored.push({ scheduleId, state: 'unreadable' });
       }
     }
+    this.reportedUnreadable = unreadableNow;
     return stored;
   }
 
