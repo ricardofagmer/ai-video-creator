@@ -23,11 +23,12 @@ export const ScheduleBriefInputSchema = ScheduleBriefSchema.omit({ briefId: true
 export type ScheduleBriefInput = z.infer<typeof ScheduleBriefInputSchema>;
 
 /**
- * `POST /schedules` (201 `ScheduleView`). Refusals in order: 422 `schedule-time-invalid` (zone or
- * a `once` slot not in the future), 422 `schedule-limit-reached` (10 not `deleted`), 422
- * `schedule-recipe-not-runnable`, 409 `schedule-estimate-changed` when
+ * `POST /schedules` (201 `ScheduleView`). Refusals in order (SPEC 0006 section 5.5): the body,
+ * including an unknown zone; 422 `schedule-limit-reached` (10 not `deleted`); 422
+ * `schedule-recipe-not-runnable`; 409 `schedule-estimate-changed` when
  * `acceptedWorstCasePerRunUsd` differs from the pinned recipe's resolved `costPerRunUsd` by a cent
- * or more. `briefMode` is `queue` only (Q5).
+ * or more; then 422 `schedule-time-invalid` when no slot is in the future. `briefMode` is `queue`
+ * only (Q5).
  */
 export const CreateScheduleRequestSchema = z
   .object({
