@@ -30,6 +30,7 @@ import {
   parseStopTarget,
 } from './arguments.js';
 import { addOutsideSignalCommands } from './outside-signal-commands.js';
+import { addTraceCommands } from '../traces/trace-commands.js';
 
 type ExitCodeSink = (code: number) => void;
 
@@ -182,6 +183,7 @@ function buildProgram(dependencies: CommandDependencies, report: ExitCodeSink): 
   addSetupCommands(program, dependencies, report);
   addModelCommands(program, dependencies, report);
   addOutsideSignalCommands(program, dependencies, report);
+  addTraceCommands(program, dependencies, report);
   return program;
 }
 

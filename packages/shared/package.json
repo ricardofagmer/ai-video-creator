@@ -56,6 +56,10 @@
     "./schedules/files": {
       "types": "./src/schedules/files/index.ts",
       "node": "./dist/schedules/files/index.js"
+    },
+    "./telemetry": {
+      "types": "./src/telemetry/index.ts",
+      "default": "./dist/telemetry/index.js"
     }
   },
   "typesVersions": {
