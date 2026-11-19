@@ -44,11 +44,13 @@ limit (`JSON_BODY_LIMIT` 1mb, apps/api/src/platform/api-config.ts) and the loopb
 - [x] Owner approved manifest edits, worktree branch and install
 - [x] Lockfile resolved with --lockfile-only --ignore-scripts; diff reviewed (72 removed, 146 added, all from remotion 4.0.541 manifests and the overrides)
 - [x] `pnpm install --frozen-lockfile` in the worktree
-- [ ] `pnpm audit --prod` — skipped by the owner, pending
-- [ ] `turbo run typecheck lint test build --filter='@studio/*'` — skipped by the owner, pending
+- [x] `pnpm audit --prod` after the merge into feat/r3-outside-signals (`e256e3e`): 1 high left (zod, accepted residual), down from 33
+- [x] `turbo run typecheck lint test build --filter='@studio/*'` on `e256e3e`: all pass (386 of 386 tests)
 - [ ] `turbo run typecheck build --filter='@ace/*'` — skipped by the owner, pending
-- [ ] Commit on chore/deps-audit-fixes — awaiting approval
+- [x] Committed on chore/deps-audit-fixes as `2d744ec`; merged into feat/r3-outside-signals as `e256e3e`
 
 ## Human decisions
 - 2026-11-19 Ricardo Fagmer: approved manifest edits as shown; zod handled as explained residual plus later migration; worktree branch from feat/r3-outside-signals; install after lockfile diff review.
 - 2026-11-19 Ricardo Fagmer: final checks — Skip for now. [validation] pending — final-stage user approval required.
+- 2026-11-19 Ricardo Fagmer: merge into feat/r3-outside-signals (--no-ff), frozen install, `@studio/*` checks and `pnpm audit --prod` — approved; run from the R3 session.
+- 2026-11-19: zod residual (GHSA-mrhx-c7xc-m3w5) resolved by the zod 4 migration (`b5ff010`), merged into feat/r3-outside-signals as `6f286b0`; `pnpm audit --prod` clean.
