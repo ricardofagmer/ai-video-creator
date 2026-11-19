@@ -31,7 +31,10 @@ function createParser(request: MultipartSource, limits: MultipartLimits): busboy
         fields: maxFields,
         fieldSize: limits.maxFieldBytes,
         files: limits.maxFiles,
-        parts: limits.maxFiles + maxFields,
+        // busboy emits `partsLimit` when the count reaches this value, not when it is exceeded, so
+        // a full request of `maxFiles` files and `maxFields` fields needs one more; the files and
+        // fields limits still refuse the first extra part.
+        parts: limits.maxFiles + maxFields + 1,
         fileSize: limits.maxFileBytes,
         headerPairs: 20,
       },
