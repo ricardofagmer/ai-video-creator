@@ -84,10 +84,7 @@ function collectFile(stream: Readable, maxBytes: number): Promise<Uint8Array<Arr
       }
       chunks.push(chunk);
     });
-    stream.on('error', (error: unknown) => {
-      const tooLarge = error instanceof UploadRejectedError && error.rejection === 'file-too-large';
-      settle({ error: tooLarge ? new MetricsFileTooLargeError() : error });
-    });
+    stream.on('error', (error: unknown) => settle({ error }));
     stream.once('end', () => settle({ bytes: joinChunks(chunks, state.total) }));
     stream.once('close', () => settle({ error: new UploadRejectedError('malformed') }));
   });
@@ -102,6 +99,17 @@ function collectFile(stream: Readable, maxBytes: number): Promise<Uint8Array<Arr
  */
 export async function receiveMetricImport(source: MultipartSource): Promise<ReceivedMetricImport> {
   assertDeclaredSize(source);
+  try {
+    return await receiveParts(source);
+  } catch (error) {
+    // The parser refuses an oversize part with the catalog's generic rejection, either from the
+    // loop (limit reached before the part was yielded) or from the part stream; both are 5.3's 413.
+    if (error instanceof UploadRejectedError && error.rejection === 'file-too-large') throw new MetricsFileTooLargeError();
+    throw error;
+  }
+}
+
+async function receiveParts(source: MultipartSource): Promise<ReceivedMetricImport> {
   const values = new Map<string, string>();
   const received: { fields: MetricImportFields | null; file: Uint8Array<ArrayBuffer> | null } = { fields: null, file: null };
   for await (const part of multipartParts(source, metricImportLimits)) {

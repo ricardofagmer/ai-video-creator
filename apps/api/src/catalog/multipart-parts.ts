@@ -63,8 +63,8 @@ export async function* multipartParts(request: MultipartSource, limits: Multipar
     state.wake = null;
     resolve?.();
   };
-  const fail = (rejection: UploadRejection): void => {
-    state.failure ??= new UploadRejectedError(rejection);
+  const fail = (rejection: UploadRejection | UploadRejectedError): void => {
+    state.failure ??= rejection instanceof UploadRejectedError ? rejection : new UploadRejectedError(rejection);
     notify();
   };
 
@@ -74,7 +74,16 @@ export async function* multipartParts(request: MultipartSource, limits: Multipar
     notify();
   });
   parser.on('file', (name, stream, info) => {
-    stream.on('limit', () => stream.destroy(new UploadRejectedError('file-too-large')));
+    stream.on('limit', () => {
+      const tooLarge = new UploadRejectedError('file-too-large');
+      fail(tooLarge);
+      stream.destroy(tooLarge);
+    });
+    // A part can be destroyed (limit, unexpected end) before its consumer attaches a listener, when
+    // its bytes arrive in the same chunk as its headers. The destroy emits `error` on a later tick;
+    // without this listener that is an unhandled `error` event that crashes the process. The failure
+    // ends the loop; a consumer's own listeners still receive the error.
+    stream.on('error', (error: unknown) => fail(error instanceof UploadRejectedError ? error : 'malformed'));
     // busboy gives no filename for a bare `application/octet-stream` part. The empty text is
     // refused by every consumer that reads a filename (`RelativePathSchema` needs at least one
     // character), exactly as the missing value was.
