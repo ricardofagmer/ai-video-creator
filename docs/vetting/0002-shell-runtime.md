@@ -1,7 +1,7 @@
 # Vetting 0002: menu-bar shell runtime and packager (SPEC 0006 R3-08, ADR 0005)
 
 Date: 2026-11-19. Author: backend-coordinator (R3-08 part 1, ticket `07-shell-runtime-vetting`).
-Status: **awaiting owner decision**.
+Status: **approved, option P** (owner, 2026-11-19: "Approve option P (Recommended)"). Phase 2 checks (section 11) still to run, each with its own owner approval.
 
 Sources: `npm view` read-only registry lookups made on 2026-11-19 (results quoted below), SPEC 0006
 section 9 R3-08 and section 15 (Q1 answer: "Electron menu-bar (Recommended)"), ADR 0005, ADR 0001,
@@ -280,3 +280,7 @@ Approve `electron` **45.4.1**, `@electron/packager` **20.3.0** and `@electron/fu
 entry, and the framework fetched by one explicit step from GitHub releases of `electron/electron`.
 Choosing option B instead means `electron-builder` 26.18.0 with `publish: null` and its larger
 tree. Rejecting both returns R3-08 `BLOCKED` and reopens ADR 0005 B1 versus B3 (native Swift).
+
+## Owner decision
+
+2026-11-19, Ricardo Fagmer: **approved option P**: `electron` 45.4.1, `@electron/packager` 20.3.0, `@electron/fuses` 2.1.3, exact pins in `apps/shell` `devDependencies`, no `onlyBuiltDependencies` entry, framework fetched by one explicit step from GitHub releases of `electron/electron`. Nothing installed or downloaded by this decision; phase 2 checks each need their own approval.
