@@ -9,6 +9,7 @@ import { SaveMetricSnapshotHandler } from './commands/save-metric-snapshot.handl
 import { MetricImportRepository } from './metric-import.repository';
 import { PrismaMetricImportStore } from './metric-import.store';
 import { MetricSnapshotRepository } from './metric-snapshot.repository';
+import { CountRunPublicationsHandler } from './queries/count-run-publications.handler';
 import { GetRunPublicationsHandler } from './queries/get-run-publications.handler';
 import { ListMetricImportsHandler } from './queries/list-metric-imports.handler';
 import { RunPublicationRepository } from './run-publication.repository';
@@ -33,6 +34,7 @@ import { RunPublicationRepository } from './run-publication.repository';
     SaveMetricSnapshotHandler,
     ImportMetricsHandler,
     GetRunPublicationsHandler,
+    CountRunPublicationsHandler,
     ListMetricImportsHandler,
   ],
 })

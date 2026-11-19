@@ -45,6 +45,20 @@ export class RunPublicationRepository {
     return db.runPublication.count({ where: { runId } });
   }
 
+  /**
+   * Publication counts for a page of runs in one grouped query (`GROUP BY run_id`), so a run list
+   * never issues one count per row. Runs without publications are absent from the answer.
+   */
+  async countByRuns(runIds: readonly string[], db: PrismaTransaction = this.prisma): Promise<Map<string, number>> {
+    if (runIds.length === 0) return new Map();
+    const rows = await db.runPublication.groupBy({
+      by: ['runId'],
+      where: { runId: { in: [...runIds] } },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((row) => [row.runId, row._count._all]));
+  }
+
   /** The run a platform video is linked to, if any; the unique index allows at most one. */
   async findLinkedRunId(platform: Platform, platformVideoId: string, db: PrismaTransaction = this.prisma): Promise<string | null> {
     const row = await db.runPublication.findUnique({

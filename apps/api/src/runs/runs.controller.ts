@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Query, Res, StreamableFile } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { CountRunPublicationsQuery, type RunPublicationCounts } from '@studio/core/metrics';
 import { CreateRunDraftCommand, ListRunsQuery, MarkRunPendingCommand, type RunDraftResult, type RunIndexPage } from '@studio/core/runs';
 import {
   CreateRunRequestSchema,
@@ -42,6 +43,11 @@ export interface RunListQueryPort {
   execute(query: ListRunsQuery): Promise<RunIndexPage>;
 }
 
+/** The grouped publication count of a listed page (the query bus satisfies it). */
+export interface PublicationCountPort {
+  execute(query: CountRunPublicationsQuery): Promise<RunPublicationCounts>;
+}
+
 /**
  * Runs (PRD 6-7). Writes are limited to the draft run.json and `draft` -> `pending` through the
  * core runs module (ADR 0003 "Who writes what"); everything else here reads the run folder.
@@ -62,17 +68,21 @@ export class RunsController {
     @Inject(RunArtifactAccessService) private readonly artifactAccess: Pick<RunArtifactAccessService, 'forArtifactRoute'>,
     private readonly firedRuns: FiredRunIndexSync,
     private readonly scheduleLinks: RunScheduleLinkReader,
+    @Inject(QueryBus) private readonly publicationCounts: PublicationCountPort,
   ) {}
 
   /**
    * Runs a schedule fired since the last look are indexed first (SPEC 0006 section 5.7, R3-AC-22).
-   * Each row carries its A22 `cursor` and, for a watcher-created run, its rev 5 `schedule` link.
+   * Each row carries its A22 `cursor`, its rev 5 `publicationCount` (one grouped query per page)
+   * and, for a watcher-created run, its rev 5 `schedule` link.
    */
   @Get()
   async list(@Query(new ZodValidationPipe(ListRunsQuerySchema)) query: z.output<typeof ListRunsQuerySchema>): Promise<RunIndexPageView> {
     await this.firedRuns.syncFiredRuns();
     const page = await this.queryBus.execute(new ListRunsQuery(query));
-    const items = await this.scheduleLinks.withScheduleLinks(await this.cursors.withCursors(page.items));
+    const counts = await this.publicationCounts.execute(new CountRunPublicationsQuery(page.items.map((item) => item.runId)));
+    const linked = await this.scheduleLinks.withScheduleLinks(await this.cursors.withCursors(page.items));
+    const items = linked.map((item) => ({ ...item, publicationCount: counts[item.runId] ?? 0 }));
     return { items, total: page.total, nextCursor: page.nextCursor };
   }
 

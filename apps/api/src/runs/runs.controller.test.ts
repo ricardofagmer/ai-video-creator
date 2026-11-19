@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
+import { CountRunPublicationsQuery, type RunPublicationCounts } from '@studio/core/metrics';
 import { DataHome } from '@studio/core/paths';
 import { ListRunsQuery, SyncRunIndexCommand, type RunIndexEntry, type RunIndexPage } from '@studio/core/runs';
 import { GetScheduleQuery, ListSchedulesQuery } from '@studio/core/schedules';
@@ -16,7 +17,7 @@ import { SchedulesController, type ScheduleCommandPort, type ScheduleQueryPort }
 import { SlotTailReader, type SlotLogSource } from '../schedules/slot-tail.reader';
 import { RunCursorReader } from './run-cursor.reader';
 import { RunScheduleLinkReader } from './run-schedule-link.reader';
-import { RunsController, type RunCommandPort, type RunListQueryPort } from './runs.controller';
+import { RunsController, type PublicationCountPort, type RunCommandPort, type RunListQueryPort } from './runs.controller';
 
 /** A valid run.json shared with the watcher's tests; each case rewrites the identity fields. */
 const FIXTURE_RUN = resolve(__dirname, '../../../watcher/fixtures/product-tour-16x9/run.json');
@@ -101,6 +102,17 @@ class InMemoryRunIndex implements RunIndexCommandPort, RunListQueryPort {
   }
 }
 
+/** `run_publications` counts in memory; records each grouped query so a test can count them. */
+class InMemoryPublicationCounts implements PublicationCountPort {
+  readonly counts = new Map<string, number>();
+  readonly queries: string[][] = [];
+
+  async execute(query: CountRunPublicationsQuery): Promise<RunPublicationCounts> {
+    this.queries.push([...query.runIds]);
+    return Object.fromEntries(query.runIds.map((runId) => [runId, this.counts.get(runId) ?? 0]));
+  }
+}
+
 const noRunCommands: RunCommandPort = { execute: () => Promise.reject(new Error('no run command is expected')) };
 const notExpected = (): Promise<never> => Promise.reject(new Error('not expected on GET /runs'));
 
@@ -120,6 +132,7 @@ interface Harness {
   dataHome: DataHome;
   slotLogs: InMemorySlotLogs;
   runIndex: InMemoryRunIndex;
+  publicationCounts: InMemoryPublicationCounts;
   runs: RunsController;
   schedules: SchedulesController;
   fixture: RunFile;
@@ -136,6 +149,7 @@ async function createHarness(): Promise<Harness> {
   const slotLogs = new InMemorySlotLogs();
   const runIndex = new InMemoryRunIndex(dataHome);
   const firedRuns = new FiredRunIndexSync(new SlotTailReader(slotLogs), runIndex);
+  const publicationCounts = new InMemoryPublicationCounts();
   const runs = new RunsController(
     noRunCommands,
     runIndex,
@@ -147,10 +161,11 @@ async function createHarness(): Promise<Harness> {
     { forArtifactRoute: notExpected },
     firedRuns,
     new RunScheduleLinkReader(dataHome),
+    publicationCounts,
   );
   const schedules = new SchedulesController(noScheduleCommands, new EmptyScheduleQueries(), new RequestContext(), firedRuns);
   const fixture = RunFileSchema.parse(JSON.parse(await readFile(FIXTURE_RUN, 'utf8')));
-  return { root, dataHome, slotLogs, runIndex, runs, schedules, fixture };
+  return { root, dataHome, slotLogs, runIndex, publicationCounts, runs, schedules, fixture };
 }
 
 function scheduleLink(): RunScheduleLink {
@@ -223,5 +238,25 @@ describe('GET /runs lists schedule-fired runs (SPEC 0006 sections 4.4, 5.7, R3-A
     const page = RunIndexPageSchema.parse(await harness.runs.list({}));
     assert.deepEqual(page.items.map((item) => item.runId).sort(), [RUN_BY_CLI, RUN_WITHOUT_FILE]);
     for (const item of page.items) assert.equal('schedule' in item, false);
+  });
+
+  it('fills publicationCount on every row from one grouped query per page, 0 when none is recorded', async () => {
+    const byCli = { ...harness.fixture, runId: RUN_BY_CLI };
+    await writeRun(harness, byCli);
+    harness.runIndex.put(entryOf(byCli));
+    await writeRun(harness, watcherRun(harness.fixture, RUN_FIRED));
+    harness.slotLogs.append(SCHEDULE_A, firedLine(RUN_FIRED));
+    harness.publicationCounts.counts.set(RUN_BY_CLI, 3);
+
+    const page = RunIndexPageSchema.parse(await harness.runs.list({}));
+    const countOf = new Map(page.items.map((item) => [item.runId, item.publicationCount]));
+    assert.deepEqual(Object.fromEntries(countOf), { [RUN_BY_CLI]: 3, [RUN_FIRED]: 0 });
+    assert.equal(harness.publicationCounts.queries.length, 1);
+    assert.deepEqual([...(harness.publicationCounts.queries[0] ?? [])].sort(), [RUN_BY_CLI, RUN_FIRED].sort());
+  });
+
+  it('asks for no count beyond the page it lists', async () => {
+    assert.deepEqual((await harness.runs.list({})).items, []);
+    assert.deepEqual(harness.publicationCounts.queries, [[]]);
   });
 });

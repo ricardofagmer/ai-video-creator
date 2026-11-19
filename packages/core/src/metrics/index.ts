@@ -31,5 +31,6 @@ export {
   type SaveMetricSnapshotInput,
 } from './metrics.input';
 export { MetricsModule } from './metrics.module';
+export { CountRunPublicationsQuery, type RunPublicationCounts } from './queries/count-run-publications.query';
 export { GetRunPublicationsQuery } from './queries/get-run-publications.query';
 export { ListMetricImportsQuery } from './queries/list-metric-imports.query';
