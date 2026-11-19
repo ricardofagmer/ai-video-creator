@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { type ScheduleView } from '@studio/shared/api';
 import { newUlid } from '@studio/shared/run-files';
@@ -16,9 +16,11 @@ import { parseCreateScheduleInput, type CreateScheduleFields } from '../schedule
 import { CreateScheduleCommand } from './create-schedule.command';
 
 /**
- * SPEC 0006 section 5.5. Refusal order follows the frozen C10 contract (`CreateScheduleRequestSchema`):
- * time, limit, recipe, consent; then step 6 writes `schedule.json` exclusively at `active`. Runs only
- * in the api or the CLI; the watcher's graph has no command handler.
+ * SPEC 0006 section 5.5, first failure refuses: (1) the body, with an unknown zone or a malformed
+ * recurrence as `schedule-time-invalid`; (2) the 10-schedule limit; (3) the pinned recipe; (4) the
+ * cost consent to the cent; (5) a `once` slot in the future; then (6) `schedule.json` is written
+ * exclusively at `active`. Runs only in the api or the CLI; the watcher's graph has no command
+ * handler.
  */
 @CommandHandler(CreateScheduleCommand)
 export class CreateScheduleHandler implements ICommandHandler<CreateScheduleCommand, ScheduleView> {
@@ -27,7 +29,7 @@ export class CreateScheduleHandler implements ICommandHandler<CreateScheduleComm
   constructor(
     private readonly store: ScheduleStore,
     private readonly writer: ScheduleWriter,
-    private readonly recipes: ScheduleRecipeGate,
+    @Inject(ScheduleRecipeGate) private readonly recipes: Pick<ScheduleRecipeGate, 'runnableVersion'>,
     private readonly assembler: ScheduleViewAssembler,
   ) {}
 
@@ -47,17 +49,20 @@ export class CreateScheduleHandler implements ICommandHandler<CreateScheduleComm
   private async create(fields: CreateScheduleFields): Promise<ScheduleView> {
     const { request } = fields;
     const now = new Date();
-    if (!hasFutureSlot(request, now)) throw new ScheduleTimeInvalidError('no-future-slot');
 
-    // An unreadable schedule still holds its place: the limit fails closed.
+    // Step 2. An unreadable schedule still holds its place: the limit fails closed.
     const existing = (await this.store.listAll()).filter((stored) => stored.state === 'unreadable' || stored.file.status !== 'deleted').length;
     if (existing >= scheduleBounds.maxSchedules) throw new ScheduleLimitReachedError(existing);
 
+    // Steps 3 and 4.
     const version = await this.recipes.runnableVersion(request.recipeRef, request.briefs);
     const { costPerRunUsd } = resolveLimits(version.recipe.limits);
     if (!consentMatches(request.acceptedWorstCasePerRunUsd, costPerRunUsd)) {
       throw new ScheduleEstimateChangedError(request.acceptedWorstCasePerRunUsd, costPerRunUsd);
     }
+
+    // Step 5.
+    if (!hasFutureSlot(request, now)) throw new ScheduleTimeInvalidError('no-future-slot');
 
     const timestamp = now.toISOString();
     const file: ScheduleFile = ScheduleFileSchema.parse({

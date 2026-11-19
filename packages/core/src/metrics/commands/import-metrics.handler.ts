@@ -1,25 +1,18 @@
 import { createHash } from 'node:crypto';
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { type MetricImportReport } from '@studio/shared/api';
 import { type MetricImportRefusedReason, type Platform } from '@studio/shared/metrics';
 import { newUlid } from '@studio/shared/run-files';
-import { PrismaService, type PrismaTransaction } from '../../prisma';
 import { QualityScoreService } from '../../quality';
 import { readMetricFile } from '../metric-file.reader';
 import { planMetricImport, type MetricImportPlan } from '../metric-import.planner';
 import { buildMetricImportReport } from '../metric-import.report';
-import { MetricImportRepository } from '../metric-import.repository';
+import { PrismaMetricImportStore, type MetricImportReads, type MetricImportStore, type MetricImportWrites } from '../metric-import.store';
 import { type ParsedMetricRows } from '../metric-rows.parser';
-import { MetricSnapshotRepository } from '../metric-snapshot.repository';
 import { MetricImportRefusedError } from '../metrics.errors';
 import { ImportMetricsInputSchema, isAfterLocalToday, parseMetricsInput } from '../metrics.input';
-import { RunPublicationRepository } from '../run-publication.repository';
 import { ImportMetricsCommand } from './import-metrics.command';
-
-/** One import of up to 5,000 rows holds the SQLite write lock for this long at most. */
-const IMPORT_TRANSACTION_TIMEOUT_MS = 30_000;
-const IMPORT_TRANSACTION_MAX_WAIT_MS = 10_000;
 
 /** The validated facts of one import, after the pure stages passed. */
 interface ImportContext {
@@ -60,11 +53,8 @@ export class ImportMetricsHandler implements ICommandHandler<ImportMetricsComman
   private tail: Promise<unknown> = Promise.resolve();
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly publications: RunPublicationRepository,
-    private readonly snapshots: MetricSnapshotRepository,
-    private readonly imports: MetricImportRepository,
-    private readonly quality: QualityScoreService,
+    @Inject(PrismaMetricImportStore) private readonly store: MetricImportStore,
+    @Inject(QualityScoreService) private readonly quality: Pick<QualityScoreService, 'recomputeAfterMetrics'>,
   ) {}
 
   async execute(command: ImportMetricsCommand): Promise<MetricImportReport> {
@@ -133,61 +123,51 @@ export class ImportMetricsHandler implements ICommandHandler<ImportMetricsComman
   }
 
   private async apply(context: ImportContext): Promise<AppliedImport> {
-    if (context.dryRun) return { ...(await this.plan(context, this.prisma)), importId: null, wroteSnapshots: false };
-    return this.prisma.$transaction((transaction) => this.write(context, transaction), {
-      maxWait: IMPORT_TRANSACTION_MAX_WAIT_MS,
-      timeout: IMPORT_TRANSACTION_TIMEOUT_MS,
-    });
+    // A dry run gets the read side only: it has no method that writes (R3-AC-08).
+    if (context.dryRun) return { ...(await this.store.read((reads) => this.plan(context, reads))), importId: null, wroteSnapshots: false };
+    return this.store.transaction((writes) => this.write(context, writes));
   }
 
-  private async plan(context: ImportContext, db: PrismaTransaction): Promise<PlannedImport> {
-    const publications = await this.publications.findByVideoIds(
+  private async plan(context: ImportContext, reads: MetricImportReads): Promise<PlannedImport> {
+    const publications = await reads.findPublications(
       context.platform,
       context.parsed.rows.map((row) => row.platformVideoId),
-      db,
     );
-    const existing = await this.snapshots.findCsvOn(
+    const existing = await reads.findCsvSnapshots(
       publications.map((publication) => publication.publicationId),
       context.asOfDate,
-      db,
     );
-    const duplicateFile = await this.imports.hasSameFile({ fileSha256: context.fileSha256, platform: context.platform, asOfDate: context.asOfDate }, db);
+    const duplicateFile = await reads.hasSameFile({ fileSha256: context.fileSha256, platform: context.platform, asOfDate: context.asOfDate });
     return { plan: planMetricImport(context.parsed.rows, publications, existing), duplicateFile };
   }
 
-  private async write(context: ImportContext, transaction: PrismaTransaction): Promise<AppliedImport> {
-    const planned = await this.plan(context, transaction);
+  private async write(context: ImportContext, writes: MetricImportWrites): Promise<AppliedImport> {
+    const planned = await this.plan(context, writes);
     const { plan } = planned;
     const changed = plan.created + plan.updated;
     if (planned.duplicateFile && changed === 0) return { ...planned, importId: null, wroteSnapshots: false };
     const importId = newUlid(context.now.getTime());
-    await this.imports.insert(
-      {
-        importId,
-        platform: context.platform,
-        asOfDate: context.asOfDate,
-        fileSha256: context.fileSha256,
-        fileBytes: context.fileBytes,
-        counts: {
-          rows: context.parsed.dataRows,
-          matched: plan.matched,
-          created: plan.created,
-          updated: plan.updated,
-          unchanged: plan.unchanged,
-          unmatched: plan.unmatchedIds.length,
-          issues: context.parsed.issues.length + plan.duplicateIssues.length,
-        },
-        importedBy: context.importedBy,
-        correlationId: context.correlationId,
-        importedAt: context.now,
+    await writes.insertImport({
+      importId,
+      platform: context.platform,
+      asOfDate: context.asOfDate,
+      fileSha256: context.fileSha256,
+      fileBytes: context.fileBytes,
+      counts: {
+        rows: context.parsed.dataRows,
+        matched: plan.matched,
+        created: plan.created,
+        updated: plan.updated,
+        unchanged: plan.unchanged,
+        unmatched: plan.unmatchedIds.length,
+        issues: context.parsed.issues.length + plan.duplicateIssues.length,
       },
-      transaction,
-    );
+      importedBy: context.importedBy,
+      correlationId: context.correlationId,
+      importedAt: context.now,
+    });
     for (const write of plan.writes) {
-      await this.snapshots.upsert(
-        { publicationId: write.publicationId, asOfDate: context.asOfDate, source: 'csv', importId, metrics: write.metrics, recordedAt: context.now },
-        transaction,
-      );
+      await writes.upsertCsvSnapshot({ publicationId: write.publicationId, asOfDate: context.asOfDate, importId, metrics: write.metrics, recordedAt: context.now });
     }
     return { ...planned, importId, wroteSnapshots: changed > 0 };
   }

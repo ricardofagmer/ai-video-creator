@@ -7,6 +7,7 @@ import { RecordPublicationHandler } from './commands/record-publication.handler'
 import { RemovePublicationHandler } from './commands/remove-publication.handler';
 import { SaveMetricSnapshotHandler } from './commands/save-metric-snapshot.handler';
 import { MetricImportRepository } from './metric-import.repository';
+import { PrismaMetricImportStore } from './metric-import.store';
 import { MetricSnapshotRepository } from './metric-snapshot.repository';
 import { GetRunPublicationsHandler } from './queries/get-run-publications.handler';
 import { ListMetricImportsHandler } from './queries/list-metric-imports.handler';
@@ -26,6 +27,7 @@ import { RunPublicationRepository } from './run-publication.repository';
     RunPublicationRepository,
     MetricSnapshotRepository,
     MetricImportRepository,
+    PrismaMetricImportStore,
     RecordPublicationHandler,
     RemovePublicationHandler,
     SaveMetricSnapshotHandler,

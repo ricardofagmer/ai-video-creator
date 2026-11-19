@@ -28,7 +28,8 @@ interface MappedColumn {
 }
 
 export type ColumnMapping =
-  | { status: 'mapped'; idIndex: number; columns: MappedColumn[]; ignoredColumns: number }
+  /** `headerColumns`: the header's field count, which every data row must repeat (RFC 4180). */
+  | { status: 'mapped'; idIndex: number; columns: MappedColumn[]; ignoredColumns: number; headerColumns: number }
   | { status: 'refused'; reason: 'required-column-missing' };
 
 export type MappedColumns = Extract<ColumnMapping, { status: 'mapped' }>;
@@ -82,7 +83,7 @@ export function mapMetricColumns(header: readonly string[], profile: PlatformPro
   }
   const mappedMetrics = new Set(columns.map((column) => column.metric));
   if (!profile.required.every((metric) => mappedMetrics.has(metric))) return { status: 'refused', reason: 'required-column-missing' };
-  return { status: 'mapped', idIndex, columns, ignoredColumns: header.length - taken.size };
+  return { status: 'mapped', idIndex, columns, ignoredColumns: header.length - taken.size, headerColumns: header.length };
 }
 
 type IdResult = { status: 'id'; platformVideoId: string } | { status: 'issue'; issue: MetricRowIssue };
@@ -128,7 +129,11 @@ function readMetrics(cells: readonly string[], columns: readonly MappedColumn[])
 /**
  * Parses each data row: a summary row is skipped silently; any other failure is one row issue,
  * the row is skipped and the import continues. A row with a cell cut at `maxCellChars` is an
- * issue, because the reader cannot say which cell was cut.
+ * issue, because the reader cannot say which cell was cut. A row whose field count differs from
+ * the header's is `number-invalid`: RFC 4180 (section 5.3) requires equal counts, and an unquoted
+ * `4,000` splits into two fields that would shift every later number into the wrong column. The
+ * frozen `MetricRowIssueSchema` has no field-count code, and the numbers of such a row are exactly
+ * what cannot be read, so `number-invalid` carries it without a contract change.
  */
 export function parseMetricRows(csvRows: readonly CsvRow[], mapping: MappedColumns, profile: PlatformProfile): ParsedMetricRows {
   const result: ParsedMetricRows = { rows: [], issues: [], dataRows: 0 };
@@ -138,6 +143,10 @@ export function parseMetricRows(csvRows: readonly CsvRow[], mapping: MappedColum
     result.dataRows += 1;
     if (row.cellTooLong) {
       result.issues.push({ line: row.line, issue: 'cell-too-long' });
+      continue;
+    }
+    if (row.cells.length !== mapping.headerColumns) {
+      result.issues.push({ line: row.line, issue: 'number-invalid' });
       continue;
     }
     const id = readVideoId(idCell, profile.platform);

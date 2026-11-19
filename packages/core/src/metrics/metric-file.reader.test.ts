@@ -233,6 +233,25 @@ describe('readMetricFile: a bad cell skips its row, reported by line number (R3-
     assert.deepEqual(result.parsed.rows, []);
   });
 
+  it('reports a row with more fields than the header (an unquoted 4,000) as number-invalid, never shifted numbers', () => {
+    // Raw text, not `csvBytes`, so the unquoted thousands separator splits the cell as a real export would.
+    const text = 'Content,Views,Likes,Comments\ndQw4w9WgXcQ,4,000,200,20\naaaaaaaaaaa,"4,000",200,20\n';
+    const result = readOrFail(new TextEncoder().encode(text), 'youtube');
+    assert.deepEqual(result.parsed.issues, [{ line: 2, issue: 'number-invalid' }]);
+    assert.deepEqual(result.parsed.rows, [{ line: 3, platformVideoId: 'aaaaaaaaaaa', metrics: { ...emptyMetrics, views: 4000, likes: 200 } }]);
+    assert.equal(result.parsed.dataRows, 2);
+  });
+
+  it('reports a row with fewer fields than the header as number-invalid and keeps reading', () => {
+    const text = 'Content,Views,Likes,Comments\ndQw4w9WgXcQ,100,5\naaaaaaaaaaa,300,7,1\n';
+    const result = readOrFail(new TextEncoder().encode(text), 'youtube');
+    assert.deepEqual(result.parsed.issues, [{ line: 2, issue: 'number-invalid' }]);
+    assert.deepEqual(
+      result.parsed.rows.map((row) => ({ line: row.line, id: row.platformVideoId, views: row.metrics.views, likes: row.metrics.likes })),
+      [{ line: 3, id: 'aaaaaaaaaaa', views: 300, likes: 7 }],
+    );
+  });
+
   it('reports the physical line after a quoted multi-line cell', () => {
     const result = readOrFail(csvBytes([['Content', 'Video title', 'Views'], ['dQw4w9WgXcQ', '"two\nlines"', '10'], ['aaaaaaaaaaa', 't', 'bad']]), 'youtube');
     assert.deepEqual(result.parsed.issues, [{ line: 4, issue: 'number-invalid' }]);
