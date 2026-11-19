@@ -44,7 +44,7 @@ export class ApiConfig {
   }
 }
 
-function readOptional<Output>(schema: z.ZodType<Output, z.ZodTypeDef, string>, value: string | undefined, variable: string): Output | undefined {
+function readOptional<Output>(schema: z.ZodType<Output, string>, value: string | undefined, variable: string): Output | undefined {
   if (value === undefined || value.trim() === '') return undefined;
   const parsed = schema.safeParse(value.trim());
   if (!parsed.success) throw new InvalidApiConfigError(variable);

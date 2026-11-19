@@ -20,7 +20,7 @@ import {
 } from '@studio/shared/agents';
 import { type z } from 'zod';
 
-type Parsed<T> = z.SafeParseReturnType<unknown, T>;
+type Parsed<T> = z.ZodSafeParseResult<T>;
 
 type PacketParsers = { [Role in ModelRoleName]: (value: unknown) => Parsed<AgentPacket<Role>> };
 type OutputParsers = { [Role in ModelRoleName]: (value: unknown) => Parsed<AgentOutput<Role>> };

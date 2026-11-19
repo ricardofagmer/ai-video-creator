@@ -143,7 +143,7 @@ export const API_DEFAULT_PAGE_LIMIT = 20;
 export const API_MAX_PAGE_LIMIT = 100;
 
 /** A decimal query-string integer in `[min, max]`; query values always arrive as text. */
-export function queryInteger(min: number, max: number): z.ZodType<number, z.ZodTypeDef, string> {
+export function queryInteger(min: number, max: number): z.ZodType<number, string> {
   return z
     .string()
     .regex(/^[0-9]{1,16}$/, 'expected a decimal integer')
@@ -152,12 +152,13 @@ export function queryInteger(min: number, max: number): z.ZodType<number, z.ZodT
 }
 
 /** A comma-separated query list whose items each satisfy `item` (e.g. `statuses=draft,active`). */
-export function queryList<Item extends z.ZodTypeAny>(item: Item, maxItems: number): z.ZodType<z.output<Item>[], z.ZodTypeDef, string> {
+export function queryList<Item extends z.ZodType<unknown, string>>(item: Item, maxItems: number): z.ZodType<z.output<Item>[], string> {
+  const items: z.ZodType<z.output<Item>[], string[]> = z.array(item).min(1).max(maxItems);
   return z
     .string()
     .max(1000)
     .transform((value) => value.split(',').map((part) => part.trim()))
-    .pipe(z.array(item).min(1).max(maxItems));
+    .pipe(items);
 }
 
 export const PageLimitQuerySchema = queryInteger(1, API_MAX_PAGE_LIMIT);
@@ -170,7 +171,7 @@ export interface Page<Item> {
   nextCursor: string | null;
 }
 
-export function pageOf<Item extends z.ZodTypeAny>(item: Item): z.ZodType<Page<z.output<Item>>, z.ZodTypeDef, unknown> {
+export function pageOf<Item extends z.ZodTypeAny>(item: Item): z.ZodType<Page<z.output<Item>>, unknown> {
   return z
     .object({
       items: z.array(item).max(API_MAX_PAGE_LIMIT),

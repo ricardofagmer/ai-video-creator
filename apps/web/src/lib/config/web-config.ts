@@ -49,7 +49,7 @@ export interface WebConfig {
 
 type Environment = Readonly<Record<string, string | undefined>>;
 
-function readOptional<Output>(schema: z.ZodType<Output, z.ZodTypeDef, string>, environment: Environment, variable: string): Output | undefined {
+function readOptional<Output>(schema: z.ZodType<Output, string>, environment: Environment, variable: string): Output | undefined {
   const value = environment[variable];
   if (value === undefined || value.trim() === '') return undefined;
   const parsed = schema.safeParse(value.trim());

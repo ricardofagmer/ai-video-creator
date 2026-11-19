@@ -28,7 +28,8 @@ export type ScheduleBrief = z.infer<typeof ScheduleBriefSchema>;
  * watcher only reads it. `recipeRef` is pinned `id@version` (B6). `costConsent.perRunUsd` is the
  * per-run ceiling the owner accepted at creation. Rule: `briefId`s are unique.
  */
-export const ScheduleFileSchema = z
+/** The schedule fields without the cross-field rules; derive views (`omit`, `extend`) from this. */
+export const ScheduleFileBaseSchema = z
   .object({
     format: z.literal(SCHEDULE_FORMAT_VERSION),
     scheduleId: ScheduleIdSchema,
@@ -52,14 +53,15 @@ export const ScheduleFileSchema = z
       })
       .strict(),
   })
-  .strict()
-  .superRefine((schedule, context) => {
-    const seen = new Set<string>();
-    schedule.briefs.forEach((brief, index) => {
-      if (seen.has(brief.briefId)) {
-        context.addIssue({ code: z.ZodIssueCode.custom, path: ['briefs', index, 'briefId'], message: 'briefId is repeated' });
-      }
-      seen.add(brief.briefId);
-    });
+  .strict();
+
+export const ScheduleFileSchema = ScheduleFileBaseSchema.superRefine((schedule, context) => {
+  const seen = new Set<string>();
+  schedule.briefs.forEach((brief, index) => {
+    if (seen.has(brief.briefId)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['briefs', index, 'briefId'], message: 'briefId is repeated' });
+    }
+    seen.add(brief.briefId);
   });
+});
 export type ScheduleFile = z.infer<typeof ScheduleFileSchema>;

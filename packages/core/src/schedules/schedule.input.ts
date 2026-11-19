@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { CreateScheduleRequestSchema, PatchScheduleRequestSchema } from '@studio/shared/api';
 import { CorrelationIdSchema } from '@studio/shared/run-format';
-import { ScheduleFileSchema, ScheduleIdSchema } from '@studio/shared/schedules';
+import { ScheduleFileBaseSchema, ScheduleIdSchema } from '@studio/shared/schedules';
 import { type InputIssue } from '../catalog';
 import { InvalidScheduleInputError, ScheduleTimeInvalidError } from './schedules.errors';
 
@@ -14,7 +14,7 @@ function refuseRepeatedReferences(briefs: readonly { references: readonly string
 }
 
 /** `schedule.json` `createdBy`: only the api and the CLI write a schedule (SPEC 0006 K2). */
-const ScheduleWriterSchema = ScheduleFileSchema.innerType().shape.createdBy;
+const ScheduleWriterSchema = ScheduleFileBaseSchema.shape.createdBy;
 
 /**
  * `POST /schedules` as core takes it: the C10 request plus who asked and the `x-request-id` the api

@@ -23,7 +23,7 @@
     "playwright": "^1.56.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@studio/eslint-config": "workspace:*",

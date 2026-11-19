@@ -52,7 +52,7 @@ export function stageOutput(location: StageLocation, name: string, file: string,
 }
 
 /** JSON written through C5 with its schema, so a mock never leaves an invalid artifact behind. */
-export function jsonWrite<T>(name: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>, value: T): MockOutputWrite {
+export function jsonWrite<T>(name: string, schema: z.ZodType<T, unknown>, value: T): MockOutputWrite {
   return { name, write: async (absolutePath) => writeJsonAtomic(absolutePath, schema, value) };
 }
 
