@@ -64,13 +64,13 @@ export function ActivationSummary({ approval, showScore }: ActivationSummaryProp
       ? [
           {
             term: 'Nota na aprovação',
-            // The C10 approval freezes the score and the run count only (SPEC 0003); no platform count exists to show.
+            // Rev 5 freezes the platform count too (R3-AC-07); an approval recorded before that has none (null).
             description: (
               <QualityScore
                 label="Nota"
                 qualityScore={approval.qualityScoreAtApproval}
                 qualitySampleSize={approval.sampleSizeAtApproval}
-                qualityPlatformSampleSize={null}
+                qualityPlatformSampleSize={approval.platformSampleSizeAtApproval ?? null}
               />
             ),
           },

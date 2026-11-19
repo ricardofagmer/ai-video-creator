@@ -10,6 +10,7 @@ import {
   comparedRefOf,
   comparisonStatusOf,
   toArmDetail,
+  toComparedVersionScore,
   type ComparedVersionScore,
   type ComparisonArmDetail,
   type ComparisonDetail,
@@ -59,7 +60,7 @@ export class ComparisonViewAssembler {
   private async versionScore(ref: string): Promise<ComparedVersionScore> {
     try {
       const version = await this.queryBus.execute(new GetAssetVersionQuery(ref));
-      return { qualityScore: version.qualityScore, qualitySampleSize: version.qualitySampleSize };
+      return toComparedVersionScore(version);
     } catch (error) {
       if (error instanceof AssetVersionNotFoundError) return null;
       throw error;

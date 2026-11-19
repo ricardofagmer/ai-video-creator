@@ -85,6 +85,8 @@ export const ComparisonArmViewSchema = z
       .object({
         qualityScore: z.number().finite().min(1).max(5).nullable(),
         qualitySampleSize: z.number().int().nonnegative(),
+        /** Rev 5 (SPEC 0006 section 4.4, R3-AC-07): the compared version's platform sample size; absent from a rev 4 producer. */
+        qualityPlatformSampleSize: z.number().int().nonnegative().optional(),
       })
       .strict()
       .nullable(),

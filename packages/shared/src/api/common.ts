@@ -10,8 +10,8 @@ import { CorrelationIdSchema } from '../common/ids';
  * change: `PUT .../status` refuses `active` with 422 `promotion-approval-required`. Revision 4
  * (SPEC 0005 section 4.4, owner C5-01) adds the four curation routes; every addition is additive.
  * Revision 5 (SPEC 0006 section 4.4, owner R3-01) adds the publication, metrics and schedule routes
- * and the fields `qualityPlatformSampleSize`, `schedule` and `publicationCount`; every addition is
- * additive.
+ * and the fields `qualityPlatformSampleSize` (also on a comparison's `comparedVersionScore`),
+ * `platformSampleSizeAtApproval`, `schedule` and `publicationCount`; every addition is additive.
  */
 export const API_CONTRACT_REVISION = 5;
 

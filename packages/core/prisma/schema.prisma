@@ -284,6 +284,9 @@ model PromotionApproval {
   replacedVersion        Int?           @map("replaced_version")
   qualityScoreAtApproval Float?         @map("quality_score_at_approval")
   sampleSizeAtApproval   Int            @default(0) @map("sample_size_at_approval")
+  /// SPEC 0006 R3-AC-07: the version's `qualityPlatformSampleSize` at approval. NULL for approvals
+  /// recorded before the column existed and for recipe versions, which carry no platform figure.
+  platformSampleSizeAtApproval Int?   @map("platform_sample_size_at_approval")
   correlationId          String?        @map("correlation_id")
   assetVersion           AssetVersion?  @relation(fields: [assetVersionId], references: [id], onDelete: Restrict)
   recipeVersion          RecipeVersion? @relation(fields: [recipeVersionId], references: [id], onDelete: Restrict)

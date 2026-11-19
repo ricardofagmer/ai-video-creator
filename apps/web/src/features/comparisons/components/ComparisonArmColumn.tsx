@@ -51,11 +51,14 @@ function runItems(arm: ComparisonArmView): DescriptionItem[] {
     { term: 'Receita executada', description: arm.recipe.ref, mono: true },
     {
       term: 'Nota da versão comparada',
-      // C10 `comparedVersionScore` carries no platform count (rev 3 shape), so none is shown.
+      // A rev 4 producer omits the platform count (R3-AC-07); it then reads as unknown.
       description:
         arm.comparedVersionScore === null
           ? 'sem nota (sem execuções)'
-          : qualityScoreText({ ...arm.comparedVersionScore, qualityPlatformSampleSize: null }),
+          : qualityScoreText({
+              ...arm.comparedVersionScore,
+              qualityPlatformSampleSize: arm.comparedVersionScore.qualityPlatformSampleSize ?? null,
+            }),
     },
     { term: 'QA', description: qaText(arm.qa) },
     { term: 'Notas do revisor', description: reviewerScoresText(arm.reviewerScores) },

@@ -14,7 +14,7 @@ import { RecipeVersionRepository } from '../recipes/recipe-version.repository';
 import { RecipeVersionConflictError, RecipeVersionNotFoundError } from '../recipes/recipes.errors';
 import { RedactorService } from '../redaction/redactor.service';
 import { PromoteVersionCommand, type PromoteVersionResult } from './promote-version.command';
-import { toPromotionApprovalView } from './promotion-approval.mapper';
+import { assetApprovalScores, RECIPE_APPROVAL_SCORES, toPromotionApprovalView } from './promotion-approval.mapper';
 import { PromotionApprovalRepository } from './promotion-approval.repository';
 import { parsePromotionInput, type ParsedPromotionInput } from './promotion-input';
 import { InvalidPromotionInputError, PromotionRefMismatchError, PromotionSecretScanUnavailableError } from './promotion.errors';
@@ -82,8 +82,7 @@ export class PromoteVersionHandler implements ICommandHandler<PromoteVersionComm
             reason: input.reason,
             evidence: input.evidence,
             replacedVersion: active?.version ?? null,
-            qualityScoreAtApproval: row.qualityScore,
-            sampleSizeAtApproval: row.qualitySampleSize,
+            ...assetApprovalScores(row),
             correlationId: input.correlationId,
           },
           transaction,
@@ -123,9 +122,7 @@ export class PromoteVersionHandler implements ICommandHandler<PromoteVersionComm
             reason: input.reason,
             evidence: input.evidence,
             replacedVersion: active?.version ?? null,
-            // Recipes carry no quality score (section 5.1 scores asset versions only).
-            qualityScoreAtApproval: null,
-            sampleSizeAtApproval: 0,
+            ...RECIPE_APPROVAL_SCORES,
             correlationId: input.correlationId,
           },
           transaction,
