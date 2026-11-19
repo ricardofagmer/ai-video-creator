@@ -4,6 +4,8 @@ import { CurationStep } from '../curation/curation-step';
 import { EngineError } from '../engine/engine.errors';
 import { errorName } from '../platform/error-name';
 import { RunEngine } from '../engine/run-engine';
+import { BusyIntervalTracker } from '../schedules/busy-interval.tracker';
+import { ScheduleStep } from '../schedules/schedule-step';
 import { DaemonLoopAlreadyRunningError } from './daemon.errors';
 import { DAEMON_SHUTDOWN, MAX_CONSECUTIVE_RUN_FAILURES, RUN_SCAN_INTERVAL_MS } from './daemon.settings';
 import { interruptibleDelay } from './interruptible-delay';
@@ -29,6 +31,12 @@ type NextRun = { kind: 'none' } | { kind: 'scan-failed' } | { kind: 'candidate';
  * startable run (a failed `runs/` scan claims nothing), and is awaited to its final write before
  * the next scan, so a run and a curation never overlap and a run that arrives meanwhile waits at
  * most the 300 s curation bound.
+ *
+ * Schedules (SPEC 0006 section 5.6, B5): on the same `none` answer the schedule step is evaluated
+ * first, because a slot has a deadline and a curation does not. A fired slot wrote one `pending`
+ * run, so the loop scans again at once and executes it. A failed scan evaluates nothing. Each run
+ * execution and each curation that ran is recorded in `BusyIntervalTracker`, so a slot that fell
+ * due meanwhile and is evaluated more than `lateGraceMs` late is `missed` / `watcher-busy`.
  */
 @Injectable()
 export class DaemonLoop {
@@ -41,6 +49,8 @@ export class DaemonLoop {
     @Inject(RunEngine) private readonly engine: RunEngine,
     @Inject(RunScanner) private readonly scanner: RunScanner,
     @Inject(CurationStep) private readonly curations: CurationStep,
+    @Inject(ScheduleStep) private readonly schedules: ScheduleStep,
+    @Inject(BusyIntervalTracker) private readonly busy: BusyIntervalTracker,
     @Inject(DAEMON_SHUTDOWN) private readonly shutdown: AbortSignal,
   ) {}
 
@@ -54,18 +64,25 @@ export class DaemonLoop {
         const next = await this.nextRun();
         if (next.kind === 'candidate') {
           // A8: awaited to the end before the next scan; further startable runs wait in runs/ as the queue.
-          await this.execute(next.candidate);
+          const { candidate } = next;
+          await this.busy.track(() => this.execute(candidate));
           continue;
         }
-        // Between runs only, and only when the scan proved none is startable; true means a curation
-        // ran to its end, so runs are scanned again at once.
-        if (next.kind === 'none' && (await this.curations.claimNext())) continue;
+        // Between runs only, and only when the scan proved none is startable; true means a slot
+        // fired a run or a curation ran to its end, so runs are scanned again at once.
+        if (next.kind === 'none' && (await this.idleWork())) continue;
         await interruptibleDelay(RUN_SCAN_INTERVAL_MS, this.shutdown);
       }
     } finally {
       this.active = false;
     }
     this.logger.log({ event: 'watcher.loop-stopped', reason: 'shutdown' });
+  }
+
+  /** Schedules before curations (B5); a curation that found nothing to claim was not busy. */
+  private async idleWork(): Promise<boolean> {
+    if (await this.schedules.evaluate()) return true;
+    return this.busy.track(() => this.curations.claimNext(), (ran) => ran);
   }
 
   private async nextRun(): Promise<NextRun> {

@@ -97,6 +97,35 @@ export class UploadRejectedError extends ApiError {
   }
 }
 
+/**
+ * C10 rev 5 413 `metrics-file-too-large` (SPEC 0006 section 5.3, receive stage): the CSV part, or
+ * the declared body, is over 2 MiB. Raised while receiving, before any byte reaches core; the
+ * name gives the reason, and the message carries no file name.
+ */
+export class MetricsFileTooLargeError extends ApiError {
+  readonly statusCode = 413;
+  readonly code = 'validation';
+
+  constructor() {
+    super('The metrics file is larger than 2 MiB');
+    this.name = 'MetricsFileTooLargeError';
+  }
+}
+
+/**
+ * An answer core produced does not match the frozen C10 schema of its route. Refused instead of
+ * sent, so no unvetted field (a cell, a URL fragment) can leave the api; the detail stays server-side.
+ */
+export class ResponseContractViolationError extends ApiError {
+  readonly statusCode = 500;
+  readonly code = 'internal';
+
+  constructor(readonly view: string) {
+    super('The answer does not match the api contract');
+    this.name = 'ResponseContractViolationError';
+  }
+}
+
 /** Unknown, not allowlisted, outside the run folder or not a regular file: all read as absent. */
 export class ArtifactNotFoundError extends ApiError {
   readonly statusCode = 404;

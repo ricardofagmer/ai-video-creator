@@ -1,0 +1,1317 @@
+{
+  "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+  "conventions": [
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "id": "eslint",
+      "source": "apps/api/eslint.config.mjs"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "id": "nestjs-modules",
+      "source": "apps/api/src/app.module.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "id": "pnpm-workspace",
+      "source": "pnpm-workspace.yaml"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "id": "prisma",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "id": "turborepo",
+      "source": "turbo.json"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "id": "typescript",
+      "source": "apps/api/tsconfig.build.json"
+    }
+  ],
+  "docs": [
+    "docs/RUN-FORMAT.md",
+    "docs/adr/",
+    "docs/prds/",
+    "docs/specs/"
+  ],
+  "envNames": [
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "name": "VIDEO_STUDIO_API_ORIGIN",
+      "source": "apps/web/.env.example"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "name": "VIDEO_STUDIO_WEB_ORIGIN",
+      "source": "apps/web/.env.example"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "name": "VIDEO_STUDIO_WEB_PORT",
+      "source": "apps/web/.env.example"
+    }
+  ],
+  "generatedAt": "2026-11-19T16:44:48.499Z",
+  "models": [
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "migration",
+      "name": "migration",
+      "source": "packages/core/prisma/migrations/20261118000000_init/migration.sql"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "migration",
+      "name": "migration",
+      "source": "packages/core/prisma/migrations/20261118120000_r2_improvement_loop/migration.sql"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "migration",
+      "name": "migration",
+      "source": "packages/core/prisma/migrations/20261118180000_curator/migration.sql"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "migration",
+      "name": "migration",
+      "source": "packages/core/prisma/migrations/20261119120000_r3_outside_signals/migration.sql"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "Asset",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "AssetLearningNote",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "AssetVersion",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "Comparison",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "CostEntry",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "CurationDecision",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "MetricImport",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "PlatformMetricSnapshot",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "PromotionApproval",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "Recipe",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "RecipeVersion",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "RunIndexEntry",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "RunOutcome",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "RunOutcomeAsset",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "RunPublication",
+      "source": "packages/core/prisma/schema.prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "kind": "schema",
+      "name": "Setting",
+      "source": "packages/core/prisma/schema.prisma"
+    }
+  ],
+  "modules": [
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps",
+      "purpose": "",
+      "source": "apps"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/auth",
+      "purpose": "",
+      "source": "apps/api/src/auth"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/catalog",
+      "purpose": "",
+      "source": "apps/api/src/catalog"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/comparisons",
+      "purpose": "",
+      "source": "apps/api/src/comparisons"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/curations",
+      "purpose": "",
+      "source": "apps/api/src/curations"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/health",
+      "purpose": "",
+      "source": "apps/api/src/health"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/logging",
+      "purpose": "",
+      "source": "apps/api/src/logging"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/platform",
+      "purpose": "",
+      "source": "apps/api/src/platform"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/recipes",
+      "purpose": "",
+      "source": "apps/api/src/recipes"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/search",
+      "purpose": "",
+      "source": "apps/api/src/search"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/api/src/watcher",
+      "purpose": "",
+      "source": "apps/api/src/watcher"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/watcher/src/adapters",
+      "purpose": "",
+      "source": "apps/watcher/src/adapters"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/watcher/src/curation",
+      "purpose": "",
+      "source": "apps/watcher/src/curation"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/watcher/src/daemon",
+      "purpose": "Error taxonomy category (rules/observability.md), as in `engine.errors.ts`.",
+      "source": "apps/watcher/src/daemon/daemon.errors.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/watcher/src/dev",
+      "purpose": "",
+      "source": "apps/watcher/src/dev"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/watcher/src/engine",
+      "purpose": "Injected time source (rules/architecture.md: inject the clock), so tests can fix instants.",
+      "source": "apps/watcher/src/engine/clock.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/watcher/src/mocks",
+      "purpose": "",
+      "source": "apps/watcher/src/mocks"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/watcher/src/platform",
+      "purpose": "The error's class name for a log field.",
+      "source": "apps/watcher/src/platform/error-name.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/watcher/src/stages",
+      "purpose": "",
+      "source": "apps/watcher/src/stages"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/web/src/app",
+      "purpose": "",
+      "source": "apps/web/src/app"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/web/src/features",
+      "purpose": "",
+      "source": "apps/web/src/features"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "apps/web/src/lib",
+      "purpose": "",
+      "source": "apps/web/src/lib"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "design",
+      "purpose": "Referência de design do Video Studio",
+      "source": "design/README.md"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "docs",
+      "purpose": "",
+      "source": "docs"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages",
+      "purpose": "",
+      "source": "packages"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/agents",
+      "purpose": "",
+      "source": "packages/core/src/agents"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/asset-store",
+      "purpose": "Error taxonomy category (rules/observability.md); the api maps it to a status code.",
+      "source": "packages/core/src/asset-store/asset-store.errors.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/catalog",
+      "purpose": "",
+      "source": "packages/core/src/catalog"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/comparisons",
+      "purpose": "",
+      "source": "packages/core/src/comparisons"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/costs",
+      "purpose": "",
+      "source": "packages/core/src/costs"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/curation",
+      "purpose": "",
+      "source": "packages/core/src/curation"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/embeddings",
+      "purpose": "",
+      "source": "packages/core/src/embeddings"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/learnings",
+      "purpose": "",
+      "source": "packages/core/src/learnings"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/metrics",
+      "purpose": "",
+      "source": "packages/core/src/metrics"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/outcomes",
+      "purpose": "",
+      "source": "packages/core/src/outcomes"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/paths",
+      "purpose": "",
+      "source": "packages/core/src/paths"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/prisma",
+      "purpose": "",
+      "source": "packages/core/src/prisma"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/promotion",
+      "purpose": "",
+      "source": "packages/core/src/promotion"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/providers",
+      "purpose": "",
+      "source": "packages/core/src/providers"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/quality",
+      "purpose": "",
+      "source": "packages/core/src/quality"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/recipes",
+      "purpose": "",
+      "source": "packages/core/src/recipes"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/redaction",
+      "purpose": "",
+      "source": "packages/core/src/redaction"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/review",
+      "purpose": "",
+      "source": "packages/core/src/review"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/schedules",
+      "purpose": "",
+      "source": "packages/core/src/schedules"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/secrets",
+      "purpose": "",
+      "source": "packages/core/src/secrets"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/core/src/seed",
+      "purpose": "",
+      "source": "packages/core/src/seed"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/ace",
+      "purpose": "",
+      "source": "packages/shared/src/ace"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/agents",
+      "purpose": "",
+      "source": "packages/shared/src/agents"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/api",
+      "purpose": "",
+      "source": "packages/shared/src/api"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/catalog",
+      "purpose": "",
+      "source": "packages/shared/src/catalog"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/common",
+      "purpose": "",
+      "source": "packages/shared/src/common"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/curation",
+      "purpose": "Curation protocol (SPEC 0005 sections 4.2 and 4.3, `@studio/shared/curation`): constants, enums and zod schemas only, browser-safe.",
+      "source": "packages/shared/src/curation/index.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/metrics",
+      "purpose": "Metrics protocol (SPEC 0006 sections 4.2, 4.3, 5.1 to 5.4, `@studio/shared/metrics`): constants, enums, zod schemas and pure functions only, browser-safe.",
+      "source": "packages/shared/src/metrics/index.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/ports",
+      "purpose": "",
+      "source": "packages/shared/src/ports"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/recipes",
+      "purpose": "",
+      "source": "packages/shared/src/recipes"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/run-files",
+      "purpose": "",
+      "source": "packages/shared/src/run-files"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/run-format",
+      "purpose": "",
+      "source": "packages/shared/src/run-format"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/shared/src/schedules",
+      "purpose": "Schedule protocol (SPEC 0006 sections 4.2, 4.3, 5.5 and 5.6, `@studio/shared/schedules`): constants, enums, zod schemas and the pure slot functions only, bro...",
+      "source": "packages/shared/src/schedules/index.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/cli",
+      "purpose": "",
+      "source": "packages/toolbox/src/cli"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/commands",
+      "purpose": "",
+      "source": "packages/toolbox/src/commands"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/config",
+      "purpose": "",
+      "source": "packages/toolbox/src/config"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/encoding",
+      "purpose": "",
+      "source": "packages/toolbox/src/encoding"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/hooks",
+      "purpose": "",
+      "source": "packages/toolbox/src/hooks"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/media",
+      "purpose": "",
+      "source": "packages/toolbox/src/media"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/narration",
+      "purpose": "",
+      "source": "packages/toolbox/src/narration"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/providers",
+      "purpose": "",
+      "source": "packages/toolbox/src/providers"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/qa",
+      "purpose": "",
+      "source": "packages/toolbox/src/qa"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/render",
+      "purpose": "",
+      "source": "packages/toolbox/src/render"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/run",
+      "purpose": "",
+      "source": "packages/toolbox/src/run"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/toolbox/src/validation",
+      "purpose": "",
+      "source": "packages/toolbox/src/validation"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/ui/src/components",
+      "purpose": "",
+      "source": "packages/ui/src/components"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/ui/src/styles",
+      "purpose": "",
+      "source": "packages/ui/src/styles"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/ui/src/utils",
+      "purpose": "Joins class names, skipping falsy values.",
+      "source": "packages/ui/src/utils/class-names.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/video/src/captions",
+      "purpose": "",
+      "source": "packages/video/src/captions"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/video/src/components",
+      "purpose": "",
+      "source": "packages/video/src/components"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/video/src/hooks",
+      "purpose": "",
+      "source": "packages/video/src/hooks"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/video/src/render",
+      "purpose": "",
+      "source": "packages/video/src/render"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/video/src/sample",
+      "purpose": "",
+      "source": "packages/video/src/sample"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "packages/video/src/templates",
+      "purpose": "",
+      "source": "packages/video/src/templates"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "scripts",
+      "purpose": "",
+      "source": "scripts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "seeds",
+      "purpose": "Seed input",
+      "source": "seeds/README.md"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools",
+      "purpose": "",
+      "source": "tools"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/catalog",
+      "purpose": "",
+      "source": "tools/cli/src/catalog"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/commands",
+      "purpose": "",
+      "source": "tools/cli/src/commands"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/curations",
+      "purpose": "",
+      "source": "tools/cli/src/curations"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/doctor",
+      "purpose": "`warning` is shown but does not fail `doctor`; `failed` makes it exit 6.",
+      "source": "tools/cli/src/doctor/doctor-check.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/errors",
+      "purpose": "",
+      "source": "tools/cli/src/errors"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/logging",
+      "purpose": "",
+      "source": "tools/cli/src/logging"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/models",
+      "purpose": "",
+      "source": "tools/cli/src/models"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/nest",
+      "purpose": "",
+      "source": "tools/cli/src/nest"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/output",
+      "purpose": "Where command output goes.",
+      "source": "tools/cli/src/output/printer.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/passphrase",
+      "purpose": "",
+      "source": "tools/cli/src/passphrase"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/program",
+      "purpose": "",
+      "source": "tools/cli/src/program"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/services",
+      "purpose": "",
+      "source": "tools/cli/src/services"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/settings",
+      "purpose": "",
+      "source": "tools/cli/src/settings"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/terminal",
+      "purpose": "",
+      "source": "tools/cli/src/terminal"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "path": "tools/cli/src/ui",
+      "purpose": "xterm alternate screen: the dashboard draws on its own screen and the shell comes back intact.",
+      "source": "tools/cli/src/ui/full-screen.ts"
+    }
+  ],
+  "packages": [
+    {
+      "commands": {
+        "ace": "pnpm --filter @ace/toolbox exec tsx src/cli.ts",
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint",
+        "test": "turbo run test",
+        "typecheck": "turbo run typecheck"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": ".",
+      "entryPoints": [],
+      "framework": null,
+      "language": "node",
+      "source": "package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "build": "tsc -p tsconfig.build.json",
+        "lint": "eslint .",
+        "start": "node dist/main.js",
+        "test": "node --import tsx --test \"src/**/*.test.ts\"",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "apps/api",
+      "entryPoints": [
+        "apps/api/src/main.ts"
+      ],
+      "framework": "nestjs",
+      "language": "node",
+      "source": "apps/api/package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "build": "tsc -p tsconfig.build.json",
+        "dev:fixture": "tsx src/dev/run-fixture.ts",
+        "lint": "eslint .",
+        "start": "node dist/main.js",
+        "test": "node --import tsx --test \"src/**/*.test.ts\"",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "apps/watcher",
+      "entryPoints": [
+        "apps/watcher/src/main.ts"
+      ],
+      "framework": "nestjs",
+      "language": "node",
+      "source": "apps/watcher/package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "build": "next build",
+        "dev": "next dev -H 127.0.0.1 -p ${VIDEO_STUDIO_WEB_PORT:-4310}",
+        "lint": "eslint .",
+        "start": "next start -H 127.0.0.1 -p ${VIDEO_STUDIO_WEB_PORT:-4310}",
+        "typecheck": "tsc --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "apps/web",
+      "entryPoints": [
+        "apps/web/src/app/layout.tsx",
+        "apps/web/src/app/page.tsx"
+      ],
+      "framework": "next",
+      "language": "node",
+      "source": "apps/web/package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "build": "prisma generate && tsc -p tsconfig.build.json",
+        "lint": "eslint .",
+        "prisma:generate": "prisma generate",
+        "prisma:migrate:deploy": "prisma migrate deploy",
+        "test": "node --import tsx --test \"src/**/*.test.ts\"",
+        "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "packages/core",
+      "entryPoints": [],
+      "framework": "nestjs",
+      "language": "node",
+      "source": "packages/core/package.json",
+      "tests": []
+    },
+    {
+      "commands": {},
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "packages/eslint-config",
+      "entryPoints": [],
+      "framework": null,
+      "language": "node",
+      "source": "packages/eslint-config/package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "build": "tsc -p tsconfig.build.json",
+        "lint": "eslint .",
+        "test": "node --import tsx --test \"src/**/*.test.ts\"",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "packages/shared",
+      "entryPoints": [],
+      "framework": null,
+      "language": "node",
+      "source": "packages/shared/package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "ace": "tsx src/cli.ts",
+        "build": "tsc -p tsconfig.json",
+        "typecheck": "tsc --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "packages/toolbox",
+      "entryPoints": [
+        "packages/toolbox/dist/cli.js",
+        "packages/toolbox/src/cli.ts"
+      ],
+      "framework": null,
+      "language": "node",
+      "source": "packages/toolbox/package.json",
+      "tests": []
+    },
+    {
+      "commands": {},
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "packages/tsconfig",
+      "entryPoints": [],
+      "framework": null,
+      "language": "node",
+      "source": "packages/tsconfig/package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "build": "tsc --noEmit",
+        "lint": "eslint .",
+        "typecheck": "tsc --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "packages/ui",
+      "entryPoints": [
+        "packages/ui/src/index.ts"
+      ],
+      "framework": "react",
+      "language": "node",
+      "source": "packages/ui/package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "build": "tsc -p tsconfig.build.json",
+        "studio": "remotion studio src/index.ts",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "packages/video",
+      "entryPoints": [
+        "packages/video/dist/render/index.js",
+        "packages/video/src/index.ts"
+      ],
+      "framework": "react",
+      "language": "node",
+      "source": "packages/video/package.json",
+      "tests": []
+    },
+    {
+      "commands": {
+        "build": "tsc -p tsconfig.build.json && chmod 755 dist/main.js",
+        "lint": "eslint .",
+        "test": "node --import tsx --test \"src/**/*.test.ts\"",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+      },
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "dir": "tools/cli",
+      "entryPoints": [
+        "tools/cli/dist/main.js",
+        "tools/cli/src/main.ts"
+      ],
+      "framework": "nestjs",
+      "language": "node",
+      "source": "tools/cli/package.json",
+      "tests": []
+    }
+  ],
+  "routes": [
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/comparisons/comparisons.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/curations/curations.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/health/health.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/watcher/watcher.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/",
+      "source": "apps/web/src/app/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/",
+      "source": "apps/api/src/comparisons/comparisons.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/",
+      "source": "apps/api/src/curations/curations.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/",
+      "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/",
+      "source": "apps/api/src/search/search.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/:assetId/versions",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/:assetId/versions",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/:assetId/versions/${apiRouteSegments.byReference}",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/:assetId/versions/:version",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PUT",
+      "path": "/:assetId/versions/:version/${apiRouteSegments.learnings}/:noteId/status",
+      "source": "apps/api/src/catalog/catalog-version-decisions.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/:assetId/versions/:version/${apiRouteSegments.promotion}",
+      "source": "apps/api/src/catalog/catalog-version-decisions.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PUT",
+      "path": "/:assetId/versions/:version/status",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/:assetId/versions/from-previous",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/:comparisonId",
+      "source": "apps/api/src/comparisons/comparisons.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/:comparisonId/start",
+      "source": "apps/api/src/comparisons/comparisons.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/:curationId",
+      "source": "apps/api/src/curations/curations.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/:curationId/${apiRouteSegments.curationDecision}",
+      "source": "apps/api/src/curations/curations.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/:recipeId/versions",
+      "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/:recipeId/versions/:version",
+      "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/:recipeId/versions/:version/${apiRouteSegments.promotion}",
+      "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PUT",
+      "path": "/:recipeId/versions/:version/status",
+      "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/agendamentos",
+      "source": "apps/web/src/app/(studio)/agendamentos/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/agendamentos/[scheduleId]",
+      "source": "apps/web/src/app/(studio)/agendamentos/[scheduleId]/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "DELETE",
+      "path": "/api/studio/[...path]",
+      "source": "apps/web/src/app/api/studio/[...path]/route.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "GET",
+      "path": "/api/studio/[...path]",
+      "source": "apps/web/src/app/api/studio/[...path]/route.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PATCH",
+      "path": "/api/studio/[...path]",
+      "source": "apps/web/src/app/api/studio/[...path]/route.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "POST",
+      "path": "/api/studio/[...path]",
+      "source": "apps/web/src/app/api/studio/[...path]/route.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PUT",
+      "path": "/api/studio/[...path]",
+      "source": "apps/web/src/app/api/studio/[...path]/route.ts"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/catalogo",
+      "source": "apps/web/src/app/(studio)/catalogo/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/catalogo/[assetId]",
+      "source": "apps/web/src/app/(studio)/catalogo/[assetId]/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/catalogo/novo",
+      "source": "apps/web/src/app/(studio)/catalogo/novo/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/comparacoes",
+      "source": "apps/web/src/app/(studio)/comparacoes/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/comparacoes/[comparisonId]",
+      "source": "apps/web/src/app/(studio)/comparacoes/[comparisonId]/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/comparacoes/nova",
+      "source": "apps/web/src/app/(studio)/comparacoes/nova/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/curadorias/[curationId]",
+      "source": "apps/web/src/app/(studio)/curadorias/[curationId]/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/execucoes",
+      "source": "apps/web/src/app/(studio)/execucoes/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/execucoes/[runId]",
+      "source": "apps/web/src/app/(studio)/execucoes/[runId]/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/execucoes/[runId]/revisao",
+      "source": "apps/web/src/app/(studio)/execucoes/[runId]/revisao/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/execucoes/nova",
+      "source": "apps/web/src/app/(studio)/execucoes/nova/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/login",
+      "source": "apps/web/src/app/login/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/metricas/importar",
+      "source": "apps/web/src/app/(studio)/metricas/importar/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/receitas",
+      "source": "apps/web/src/app/(studio)/receitas/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/receitas/[recipeId]",
+      "source": "apps/web/src/app/(studio)/receitas/[recipeId]/page.tsx"
+    },
+    {
+      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "method": "PAGE",
+      "path": "/receitas/nova",
+      "source": "apps/web/src/app/(studio)/receitas/nova/page.tsx"
+    }
+  ],
+  "startHere": [
+    {
+      "paths": [
+        "apps/api/src/catalog",
+        "apps/api/src/comparisons",
+        "apps/api/src/curations",
+        "apps/api/src/health",
+        "apps/api/src/recipes"
+      ],
+      "task": "add or change an HTTP route or page"
+    },
+    {
+      "paths": [
+        "apps/api/eslint.config.mjs",
+        "apps/api/src/app.module.ts",
+        "apps/api/tsconfig.build.json",
+        "packages/core/prisma/schema.prisma",
+        "pnpm-workspace.yaml"
+      ],
+      "task": "change CI or build conventions"
+    },
+    {
+      "paths": [
+        "packages/core/prisma",
+        "packages/core/prisma/migrations/20261118000000_init",
+        "packages/core/prisma/migrations/20261118120000_r2_improvement_loop",
+        "packages/core/prisma/migrations/20261118180000_curator",
+        "packages/core/prisma/migrations/20261119120000_r3_outside_signals"
+      ],
+      "task": "change a data model or migration"
+    },
+    {
+      "paths": [
+        "apps/api/package.json",
+        "apps/watcher/package.json",
+        "apps/web/package.json",
+        "package.json",
+        "packages/core/package.json"
+      ],
+      "task": "change a package command or entry point"
+    },
+    {
+      "paths": [
+        "apps/web/.env.example"
+      ],
+      "task": "change environment configuration"
+    }
+  ],
+  "version": 1
+}

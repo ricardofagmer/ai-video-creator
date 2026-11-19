@@ -16,7 +16,7 @@ coverage/
 credentials*
 
 # Runtime data lives in ~/Library/Application Support/VideoStudio/ (D5); never in the repo
-runs/
+/runs/
 *.sqlite
 *.sqlite-journal
 *.db

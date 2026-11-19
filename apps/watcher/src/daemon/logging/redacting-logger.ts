@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { type LoggerService } from '@nestjs/common';
 import { type RedactionResult } from '@studio/core/redaction';
 import { type JsonObject, type JsonValue } from '@studio/shared/run-format';
-import { pino, type Logger as PinoLogger } from 'pino';
+import { destination as pinoDestination, pino, type Logger as PinoLogger } from 'pino';
 import { DAEMON_LOG_FILE_MODE, DAEMON_LOG_FILE_NAME } from '../daemon.settings';
 import {
   redactionFailureNotice,
@@ -26,7 +26,7 @@ export interface LogSinkOptions {
   logsDirectory: string;
 }
 
-type Destination = ReturnType<typeof pino.destination>;
+type Destination = ReturnType<typeof pinoDestination>;
 
 interface Sink {
   redactor: LineRedactor;
@@ -84,7 +84,7 @@ export class RedactingLogger implements LoggerService {
     // Creates the file with the mode when absent; pino would create it with the process umask.
     await appendFile(file, '', { mode: DAEMON_LOG_FILE_MODE });
     // Synchronous writes: the daemon logs a few lines per run, and a forced exit must not lose them.
-    const destination = pino.destination({ dest: file, sync: true });
+    const destination = pinoDestination({ dest: file, sync: true });
     const sink: Sink = {
       redactor: options.redactor,
       destination,

@@ -1,0 +1,144 @@
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.phase {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.phaseTitle {
+  margin: 0;
+}
+
+.stages,
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stages {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+.stage {
+  border-bottom: 1px solid var(--color-border);
+  /* Marker colour per status; the text badge carries the meaning. */
+  --marker-color: var(--color-status-neutral);
+}
+
+.stage:last-child {
+  border-bottom: 0;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-lg);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+
+.summary:hover {
+  background-color: var(--color-surface-muted);
+}
+
+.stageLabel {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.cost {
+  font-variant-numeric: tabular-nums;
+}
+
+.marker,
+.stepMarker {
+  flex-shrink: 0;
+  width: var(--size-status-dot);
+  height: var(--size-status-dot);
+  border-radius: var(--radius-full);
+  background-color: var(--marker-color);
+}
+
+.steps {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-4) var(--space-3) var(--space-8);
+}
+
+/* Vertical connector between the step markers. */
+.steps::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: var(--space-3);
+  left: calc(var(--space-8) + var(--size-status-dot) / 2);
+  border-left: 1px solid var(--color-timeline-line);
+}
+
+.step {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) 0;
+  font-size: var(--font-size-sm);
+  --marker-color: var(--color-status-neutral);
+}
+
+.stepLabel {
+  min-width: calc(var(--space-16) * 2);
+}
+
+.stepDetail {
+  flex-basis: 100%;
+  padding-left: calc(var(--size-status-dot) + var(--space-3));
+}
+
+.currentStep {
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--color-primary-soft);
+  border-radius: var(--radius-sm);
+}
+
+.pending,
+.skipped {
+  --marker-color: var(--color-status-neutral);
+}
+
+.running {
+  --marker-color: var(--color-status-active);
+}
+
+.ok {
+  --marker-color: var(--color-success);
+}
+
+.warning {
+  --marker-color: var(--color-warning);
+}
+
+.failed {
+  --marker-color: var(--color-danger);
+}
+
+.skipped .stepLabel,
+.skipped > .details > .summary .stageLabel {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}

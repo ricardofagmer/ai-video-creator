@@ -100,7 +100,7 @@ export class StageRunner {
     const limit = active.snapshot.limits.attemptsPerStep;
     // Also bounds a step that keeps killing the watcher: a crash resume takes no budget baseline.
     if (active.budget.attemptsUsed(stageNumber, record) >= limit) {
-      const stepKey = formatStepKey({ stageNumber, stageId, step, attempt: Math.max(1, record.attempts) });
+      const stepKey = formatStepKey({ stageId, step, attempt: Math.max(1, record.attempts) });
       const reason = ownerTexts.stepFailed(stageNumber, stageId, step, ownerTexts.attemptsExhausted(limit));
       await active.setState({ status: 'failed', since: this.now(), reason: clip(reason, textLimits.ownerText), stepKey }, stepKey);
       return { kind: 'held', status: 'failed' };
