@@ -1,0 +1,36 @@
+{
+  "name": "@studio/watcher",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Run executor: a standalone Nest application context with the graph engine (SPEC 0002 R1-04, ADR 0001, D17); no HTTP listener",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "dev:fixture": "tsx src/dev/run-fixture.ts"
+  },
+  "dependencies": {
+    "@ace/toolbox": "workspace:*",
+    "@ace/video": "workspace:*",
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/cqrs": "^11.0.0",
+    "@studio/core": "workspace:*",
+    "@studio/shared": "workspace:*",
+    "pino": "^9.7.0",
+    "playwright": "^1.56.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@studio/eslint-config": "workspace:*",
+    "@studio/tsconfig": "workspace:*",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3"
+  }
+}

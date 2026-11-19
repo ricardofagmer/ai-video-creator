@@ -1,0 +1,18 @@
+/* Promotion dialog and approval summary (SPEC 0003 section 5.4). Spacing from @studio/ui tokens only. */
+
+/* Owner-typed reasons keep their line breaks; they render as text, never as markup. */
+.ownerText {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.plainList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.refLine {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

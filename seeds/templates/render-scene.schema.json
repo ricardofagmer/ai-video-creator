@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RenderScene",
+  "description": "One scene of the TOOL_DEMO, AI_BATTLE and AUTOMATION_BLUEPRINT compositions. Mirrors RenderSceneSchema in packages/shared/src/ace/render.ts (@studio/shared/ace); keep both in step.",
+  "type": "object",
+  "required": ["id", "kind", "startS", "endS", "onScreenText", "asset"],
+  "properties": {
+    "id": { "type": "string" },
+    "kind": {
+      "enum": ["hook", "problem", "rubric", "overview", "step", "evidence", "result", "analysis", "verdict", "cta"]
+    },
+    "startS": { "type": "number", "minimum": 0 },
+    "endS": { "type": "number", "exclusiveMinimum": 0 },
+    "onScreenText": { "type": "string" },
+    "asset": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": ["url", "kind"],
+          "properties": {
+            "url": { "type": "string", "format": "uri" },
+            "kind": { "enum": ["image", "video"] }
+          }
+        },
+        { "type": "null" }
+      ]
+    }
+  }
+}

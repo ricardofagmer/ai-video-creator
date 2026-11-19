@@ -1,0 +1,204 @@
+{
+  "name": "@studio/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared NestJS modules (SPEC 0002 A2): data home, Prisma SQLite (C8), asset store, catalog and the modules later tickets add; one subpath per module",
+  "exports": {
+    "./paths": {
+      "types": "./src/paths/index.ts",
+      "default": "./dist/paths/index.js"
+    },
+    "./prisma": {
+      "types": "./src/prisma/index.ts",
+      "default": "./dist/prisma/index.js"
+    },
+    "./asset-store": {
+      "types": "./src/asset-store/index.ts",
+      "default": "./dist/asset-store/index.js"
+    },
+    "./catalog": {
+      "types": "./src/catalog/index.ts",
+      "default": "./dist/catalog/index.js"
+    },
+    "./recipes": {
+      "types": "./src/recipes/index.ts",
+      "default": "./dist/recipes/index.js"
+    },
+    "./runs": {
+      "types": "./src/runs/index.ts",
+      "default": "./dist/runs/index.js"
+    },
+    "./seed": {
+      "types": "./src/seed/index.ts",
+      "default": "./dist/seed/index.js"
+    },
+    "./providers": {
+      "types": "./src/providers/index.ts",
+      "default": "./dist/providers/index.js"
+    },
+    "./secrets": {
+      "types": "./src/secrets/index.ts",
+      "default": "./dist/secrets/index.js"
+    },
+    "./costs": {
+      "types": "./src/costs/index.ts",
+      "default": "./dist/costs/index.js"
+    },
+    "./redaction": {
+      "types": "./src/redaction/index.ts",
+      "default": "./dist/redaction/index.js"
+    },
+    "./agents": {
+      "types": "./src/agents/index.ts",
+      "default": "./dist/agents/index.js"
+    },
+    "./agents/tools": {
+      "types": "./src/agents/tools/index.ts",
+      "default": "./dist/agents/tools/index.js"
+    },
+    "./review": {
+      "types": "./src/review/index.ts",
+      "default": "./dist/review/index.js"
+    },
+    "./outcomes": {
+      "types": "./src/outcomes/index.ts",
+      "default": "./dist/outcomes/index.js"
+    },
+    "./quality": {
+      "types": "./src/quality/index.ts",
+      "default": "./dist/quality/index.js"
+    },
+    "./promotion": {
+      "types": "./src/promotion/index.ts",
+      "default": "./dist/promotion/index.js"
+    },
+    "./learnings": {
+      "types": "./src/learnings/index.ts",
+      "default": "./dist/learnings/index.js"
+    },
+    "./embeddings": {
+      "types": "./src/embeddings/index.ts",
+      "default": "./dist/embeddings/index.js"
+    },
+    "./comparisons": {
+      "types": "./src/comparisons/index.ts",
+      "default": "./dist/comparisons/index.js"
+    },
+    "./curation": {
+      "types": "./src/curation/index.ts",
+      "default": "./dist/curation/index.js"
+    },
+    "./metrics": {
+      "types": "./src/metrics/index.ts",
+      "default": "./dist/metrics/index.js"
+    },
+    "./schedules": {
+      "types": "./src/schedules/index.ts",
+      "default": "./dist/schedules/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "paths": [
+        "./src/paths/index.ts"
+      ],
+      "prisma": [
+        "./src/prisma/index.ts"
+      ],
+      "asset-store": [
+        "./src/asset-store/index.ts"
+      ],
+      "catalog": [
+        "./src/catalog/index.ts"
+      ],
+      "recipes": [
+        "./src/recipes/index.ts"
+      ],
+      "runs": [
+        "./src/runs/index.ts"
+      ],
+      "seed": [
+        "./src/seed/index.ts"
+      ],
+      "providers": [
+        "./src/providers/index.ts"
+      ],
+      "secrets": [
+        "./src/secrets/index.ts"
+      ],
+      "costs": [
+        "./src/costs/index.ts"
+      ],
+      "redaction": [
+        "./src/redaction/index.ts"
+      ],
+      "agents": [
+        "./src/agents/index.ts"
+      ],
+      "agents/tools": [
+        "./src/agents/tools/index.ts"
+      ],
+      "review": [
+        "./src/review/index.ts"
+      ],
+      "outcomes": [
+        "./src/outcomes/index.ts"
+      ],
+      "quality": [
+        "./src/quality/index.ts"
+      ],
+      "promotion": [
+        "./src/promotion/index.ts"
+      ],
+      "learnings": [
+        "./src/learnings/index.ts"
+      ],
+      "embeddings": [
+        "./src/embeddings/index.ts"
+      ],
+      "comparisons": [
+        "./src/comparisons/index.ts"
+      ],
+      "curation": [
+        "./src/curation/index.ts"
+      ],
+      "metrics": [
+        "./src/metrics/index.ts"
+      ],
+      "schedules": [
+        "./src/schedules/index.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@huggingface/tokenizers": "0.2.0",
+    "@mastra/core": "^1.0.0",
+    "@nestjs/common": "^11.1.0",
+    "@nestjs/core": "^11.1.0",
+    "@nestjs/cqrs": "^11.0.0",
+    "@prisma/client": "^6.16.0",
+    "@studio/shared": "workspace:*",
+    "onnxruntime-node": "1.31.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@studio/eslint-config": "workspace:*",
+    "@studio/tsconfig": "workspace:*",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.0.0",
+    "prisma": "^6.16.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3"
+  }
+}

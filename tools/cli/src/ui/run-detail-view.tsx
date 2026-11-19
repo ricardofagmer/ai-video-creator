@@ -1,0 +1,21 @@
+import { Box, Text } from 'ink';
+import { type ReactElement } from 'react';
+import { runDetailLines } from '../output/run-text.js';
+import { type RunSnapshot } from '../runs/run-reader.js';
+
+export interface RunDetailViewProps {
+  snapshot: RunSnapshot | null;
+}
+
+/** The selected run, with the same lines `studio status <runId>` prints. */
+export function RunDetailView({ snapshot }: RunDetailViewProps): ReactElement {
+  if (snapshot === null) return <Text dimColor>Selecione uma execução legível para ver os detalhes.</Text>;
+  return (
+    <Box flexDirection="column">
+      {runDetailLines(snapshot).map((line, index) => (
+        // Lines are positional output of one snapshot; the index is their stable identity here.
+        <Text key={index}>{line}</Text>
+      ))}
+    </Box>
+  );
+}

@@ -1,0 +1,33 @@
+# Dependencies and build output
+node_modules/
+dist/
+.next/
+out/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Secrets never enter the repository (rules/security.md, ADR 0002)
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+credentials*
+
+# Runtime data lives in ~/Library/Application Support/VideoStudio/ (D5); never in the repo
+runs/
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Biometric material is referenced by path only, never copied (PRD 12, criterion 22)
+ricardo-clone/
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
+
+# super-dev run state stays local (super-dev skill, references/state.md)
+.engineos/super-dev/

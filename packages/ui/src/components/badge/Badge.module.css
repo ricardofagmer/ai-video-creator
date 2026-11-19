@@ -1,0 +1,72 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: calc(var(--space-1) / 2) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  white-space: nowrap;
+}
+
+.neutral {
+  color: var(--color-status-neutral);
+  background-color: var(--color-status-neutral-soft);
+  border-color: var(--color-border);
+}
+
+.active {
+  color: var(--color-primary-soft-text);
+  background-color: var(--color-status-active-soft);
+}
+
+.info {
+  color: var(--color-info);
+  background-color: var(--color-info-soft);
+  border-color: var(--color-info-border);
+}
+
+.success {
+  color: var(--color-success);
+  background-color: var(--color-success-soft);
+  border-color: var(--color-success-border);
+}
+
+.warning {
+  color: var(--color-warning);
+  background-color: var(--color-warning-soft);
+  border-color: var(--color-warning-border);
+}
+
+.danger {
+  color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+  border-color: var(--color-danger-border);
+}
+
+.dot {
+  width: var(--size-status-dot);
+  height: var(--size-status-dot);
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}
+
+.live {
+  animation: pulse var(--duration-pulse) var(--ease-standard) infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* The text already says "Em execução"; the pulse is decoration and stops. */
+@media (prefers-reduced-motion: reduce) {
+  .live {
+    animation: none;
+  }
+}

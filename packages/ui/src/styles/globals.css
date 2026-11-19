@@ -1,0 +1,4 @@
+/* Entry point of the global styles (`@studio/ui/styles.css`). */
+@import './tokens.css';
+@import './base.css';
+@import './utilities.css';

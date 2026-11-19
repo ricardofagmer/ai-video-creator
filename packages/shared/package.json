@@ -1,0 +1,95 @@
+{
+  "name": "@studio/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Frozen zod contracts shared by web, api, watcher and CLI (SPEC 0002 C1-C7, C10), plus the absorbed ace contracts (R1-23), the curation protocol (SPEC 0005) and the metrics and schedule protocols (SPEC 0006); run-files, curation/files and schedules/files are Node-only",
+  "sideEffects": false,
+  "exports": {
+    "./catalog": {
+      "types": "./src/catalog/index.ts",
+      "default": "./dist/catalog/index.js"
+    },
+    "./recipes": {
+      "types": "./src/recipes/index.ts",
+      "default": "./dist/recipes/index.js"
+    },
+    "./run-format": {
+      "types": "./src/run-format/index.ts",
+      "default": "./dist/run-format/index.js"
+    },
+    "./run-files": {
+      "types": "./src/run-files/index.ts",
+      "node": "./dist/run-files/index.js"
+    },
+    "./ports": {
+      "types": "./src/ports/index.ts",
+      "default": "./dist/ports/index.js"
+    },
+    "./agents": {
+      "types": "./src/agents/index.ts",
+      "default": "./dist/agents/index.js"
+    },
+    "./api": {
+      "types": "./src/api/index.ts",
+      "default": "./dist/api/index.js"
+    },
+    "./ace": {
+      "types": "./src/ace/index.ts",
+      "default": "./dist/ace/index.js"
+    },
+    "./curation": {
+      "types": "./src/curation/index.ts",
+      "default": "./dist/curation/index.js"
+    },
+    "./curation/files": {
+      "types": "./src/curation/files/index.ts",
+      "node": "./dist/curation/files/index.js"
+    },
+    "./metrics": {
+      "types": "./src/metrics/index.ts",
+      "default": "./dist/metrics/index.js"
+    },
+    "./schedules": {
+      "types": "./src/schedules/index.ts",
+      "default": "./dist/schedules/index.js"
+    },
+    "./schedules/files": {
+      "types": "./src/schedules/files/index.ts",
+      "node": "./dist/schedules/files/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "catalog": ["./src/catalog/index.ts"],
+      "recipes": ["./src/recipes/index.ts"],
+      "run-format": ["./src/run-format/index.ts"],
+      "run-files": ["./src/run-files/index.ts"],
+      "ports": ["./src/ports/index.ts"],
+      "agents": ["./src/agents/index.ts"],
+      "api": ["./src/api/index.ts"],
+      "ace": ["./src/ace/index.ts"],
+      "curation": ["./src/curation/index.ts"],
+      "curation/files": ["./src/curation/files/index.ts"],
+      "metrics": ["./src/metrics/index.ts"],
+      "schedules": ["./src/schedules/index.ts"],
+      "schedules/files": ["./src/schedules/files/index.ts"]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@studio/eslint-config": "workspace:*",
+    "@studio/tsconfig": "workspace:*",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3"
+  }
+}

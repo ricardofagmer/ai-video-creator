@@ -1,0 +1,493 @@
+// Contract C8 (SPEC 0002, owner ticket R1-05): the SQLite schema of Video Studio.
+// Consumers: R1-06 (recipes, runs), R1-07 (seed), R1-11 (cost ledger), R1-16 (settings), R1-17
+// (outcomes). A change after freeze goes back to R1-05 and bumps the spec revision.
+// SPEC 0003 (R2-02, migration `20261118120000_r2_improvement_loop`) adds the quality, embedding and
+// activation columns, `asset_learning_notes`, `promotion_approvals` and `comparisons`, by
+// `ADD COLUMN` and `CREATE TABLE` only; its triggers are listed in that migration.
+// SPEC 0005 (C5-02, migration `20261118180000_curator`) adds `curation_decisions` and
+// `cost_entries.source_kind`, again by `CREATE TABLE` and `ADD COLUMN` only.
+// SPEC 0006 (R3-02, migration `20261119120000_r3_outside_signals`) adds `run_publications`,
+// `metric_imports`, `platform_metric_snapshots` and `asset_versions.quality_platform_sample_size`,
+// again by `CREATE TABLE`, `CREATE INDEX` and `ADD COLUMN` only.
+//
+// Conventions: TypeScript model names, snake_case plural tables (@@map) and snake_case columns
+// (@map). Enumerations are TEXT columns validated by the zod contracts of `@studio/shared` and by
+// CHECK constraints in the migration SQL. JSON-valued fields are TEXT holding JSON, parsed with
+// the C1/C2/C3 schemas on read, so the schema does not depend on Prisma's SQLite Json support.
+//
+// Guards that Prisma cannot express live only in migration SQL (see the init migration footer):
+// CHECK constraints, the partial unique index "one active version per asset/recipe", and the
+// triggers that keep versions immutable and undeletable. Prisma's SQLite "redefine table"
+// migrations drop them silently: any later migration that recreates `asset_versions`,
+// `recipe_versions`, `run_index_entries`, `run_outcomes` or `cost_entries` must re-create them.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// The CLI (migrate deploy) reads VIDEO_STUDIO_DATABASE_URL; the application never does. At runtime
+// PrismaService passes `datasourceUrl` built from the data-home paths module, so no absolute user
+// path is written here.
+datasource db {
+  provider = "sqlite"
+  url      = env("VIDEO_STUDIO_DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Catalog (PRD 5, C1)
+// ---------------------------------------------------------------------------------------------
+
+/// One catalog item; its kind never changes. Metadata lives on the immutable versions.
+model Asset {
+  /// C1 `AssetId`: lowercase kebab slug, max 64.
+  id        String         @id
+  /// C1 `AssetKind`.
+  kind      String
+  createdAt DateTime       @default(now()) @map("created_at")
+  versions  AssetVersion[]
+
+  @@index([kind])
+  @@map("assets")
+}
+
+/// One immutable asset version (PRD 5.2, 5.4). Only `status`, `usageCount`, `qualityScore`,
+/// `notes`, `embedding` and `updatedAt` change after insert (enforced by trigger); rows are never
+/// deleted (deprecation changes `status` only). R2 adds the score, embedding and activation
+/// columns, which are writable; `status` becomes `active` only with a fresh approval (trigger).
+model AssetVersion {
+  id               Int                 @id @default(autoincrement())
+  assetId          String              @map("asset_id")
+  version          Int
+  name             String
+  summary          String              @default("")
+  /// C1 `AssetStatus`: draft | active | deprecated. At most one `active` per asset.
+  status           String              @default("draft")
+  /// JSON array of C1 `Tag`.
+  tagsJson         String              @default("[]") @map("tags_json")
+  owner            String
+  /// sha-256 of the bytes (file) or of the canonical folder manifest (folder).
+  contentHash      String              @map("content_hash")
+  sizeBytes        BigInt              @map("size_bytes")
+  mimeType         String              @map("mime_type")
+  /// C1 `AssetLayout`: file | folder.
+  layout           String
+  /// C1 `AssetStorage.mode`: store | reference.
+  storageMode      String              @map("storage_mode")
+  /// Absolute path for `reference` rows; null for `store` rows. Never logged for biometric rows.
+  referencePath    String?             @map("reference_path")
+  /// C1 `Provenance` JSON; null only while a draft is incomplete.
+  provenanceJson   String?             @map("provenance_json")
+  /// C1 `License` JSON; null only while a draft is incomplete.
+  licenseJson      String?             @map("license_json")
+  /// C1 `Sensitivity`: normal | biometric | third-party. Biometric rows are `reference` only.
+  sensitivity      String
+  /// Kind-specific fields of PRD 5.2 as C1 `*Details` JSON.
+  detailsJson      String              @map("details_json")
+  usageCount       Int                 @default(0) @map("usage_count")
+  /// SPEC 0003 section 5.1, 1..5; null exactly when `qualitySampleSize` is 0 (trigger).
+  qualityScore         Float?              @map("quality_score")
+  /// Reviewed runs the score is based on (R2).
+  qualitySampleSize    Int                 @default(0) @map("quality_sample_size")
+  /// When the stored score was last computed; null before the first computation (R2).
+  qualityScoredAt      DateTime?           @map("quality_scored_at")
+  /// SPEC 0006 section 5.4: reviewed runs of the score that carried a platform signal; at most
+  /// `qualitySampleSize`, written together with it by the quality service only (R3).
+  qualityPlatformSampleSize Int            @default(0) @map("quality_platform_sample_size")
+  notes                String              @default("")
+  /// JSON array of numbers from the local model (D10, ADR 0004). Never in the default read
+  /// projection of the catalog: only the search scan of R2-03 selects it.
+  embeddingJson        String?             @map("embedding_json")
+  /// The `modelRef` that produced `embeddingJson` (R2).
+  embeddingModel       String?             @map("embedding_model")
+  /// sha-256 of the embedding document (R2).
+  embeddingInputHash   String?             @map("embedding_input_hash")
+  embeddedAt           DateTime?           @map("embedded_at")
+  /// The `promotion_approvals` row that made this version `active` (R2); not a relation, the
+  /// activation trigger checks it names an approval of this row.
+  activationApprovalId Int?                @map("activation_approval_id")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  asset                Asset               @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  outcomeUsages        RunOutcomeAsset[]
+  learningNotes        AssetLearningNote[]
+  promotionApprovals   PromotionApproval[]
+
+  @@unique([assetId, version])
+  @@index([contentHash])
+  @@index([status])
+  @@index([qualityScore, id])
+  @@map("asset_versions")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Recipes (PRD 6, C2)
+// ---------------------------------------------------------------------------------------------
+
+model Recipe {
+  /// C2 `RecipeId`: lowercase kebab slug, max 64.
+  id        String          @id
+  createdAt DateTime        @default(now()) @map("created_at")
+  versions  RecipeVersion[]
+
+  @@map("recipes")
+}
+
+/// One immutable recipe version; same versioning rules as assets (PRD 6, 5.4). Only `status` and
+/// `updatedAt` change after insert (enforced by trigger); rows are never deleted.
+model RecipeVersion {
+  id             Int      @id @default(autoincrement())
+  recipeId       String   @map("recipe_id")
+  version        Int
+  name           String
+  /// C1 `AssetStatus` vocabulary: draft | active | deprecated. At most one `active` per recipe.
+  status         String   @default("draft")
+  owner          String
+  /// sha-256 of `definitionJson`: the definition only, without `status` and the timestamps
+  /// (SPEC 0002 rev 2, C2 `recipeContentHashInput`), so a status change never changes it.
+  contentHash    String   @map("content_hash")
+  /// The C2 recipe definition as canonical JSON, exactly as saved.
+  definitionJson       String              @map("definition_json")
+  /// The `promotion_approvals` row that made this version `active` (R2); see AssetVersion.
+  activationApprovalId Int?                @map("activation_approval_id")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  recipe               Recipe              @relation(fields: [recipeId], references: [id], onDelete: Restrict)
+  promotionApprovals   PromotionApproval[]
+
+  @@unique([recipeId, version])
+  @@index([status])
+  @@map("recipe_versions")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Run index (ADR 0003 decision 3): a rebuildable, queryable mirror of `runs/<id>/run.json`.
+// The run folders are the source of truth; on disagreement the files win.
+// ---------------------------------------------------------------------------------------------
+
+model RunIndexEntry {
+  /// C3 `RunId` (ULID); also the run folder name.
+  id                String       @id
+  title             String
+  /// C3 `RunStatus` as recorded in run.json (`running` is mirrored as recorded).
+  status            String
+  statusSince       DateTime     @map("status_since")
+  /// `api` | `cli`, from run.json `createdBy`.
+  createdBy         String       @map("created_by")
+  /// C2 `RecipeRef` pin: id, version and hash; not a foreign key, so a rebuild never fails.
+  recipeId          String       @map("recipe_id")
+  recipeVersion     Int          @map("recipe_version")
+  recipeContentHash String       @map("recipe_content_hash")
+  costUsd           Float        @default(0) @map("cost_usd")
+  durationMs        BigInt       @default(0) @map("duration_ms")
+  /// C3 `Totals` JSON, mirrored whole.
+  totalsJson        String       @map("totals_json")
+  createdAt         DateTime     @map("created_at")
+  updatedAt         DateTime     @map("updated_at")
+  /// When this row was last mirrored from the run folder.
+  indexedAt         DateTime     @default(now()) @map("indexed_at")
+  /// C3 `ComparisonId` of the A/B comparison this run is an arm of; null on ordinary runs (R2).
+  comparisonId      String?      @map("comparison_id")
+  /// `a` | `b`; null on ordinary runs (R2).
+  comparisonArm     String?      @map("comparison_arm")
+  outcome           RunOutcome?
+
+  @@index([status])
+  @@index([recipeId, recipeVersion])
+  @@index([createdAt])
+  @@map("run_index_entries")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Outcomes (PRD 8 item 1, R1-17): the improvement-loop record of a reviewed run.
+// ---------------------------------------------------------------------------------------------
+
+/// One row per reviewed run, written with the human decision.
+model RunOutcome {
+  runId              String            @id @map("run_id")
+  /// `approved` | `rejected`.
+  decision           String
+  decidedBy          String            @map("decided_by")
+  decidedAt          DateTime          @map("decided_at")
+  /// 1-5 (D14).
+  rating             Int
+  notes              String            @default("")
+  /// Reviewer-agent scores as JSON (topology ReviewVerdict scores, per subject).
+  reviewerScoresJson String            @default("{}") @map("reviewer_scores_json")
+  /// QA metrics as JSON (media review results of `qa/`).
+  qaMetricsJson      String            @default("{}") @map("qa_metrics_json")
+  recoveries         Int               @default(0)
+  costUsd            Float             @default(0) @map("cost_usd")
+  durationMs         BigInt            @default(0) @map("duration_ms")
+  recordedAt         DateTime          @default(now()) @map("recorded_at")
+  run                RunIndexEntry     @relation(fields: [runId], references: [id], onDelete: Restrict)
+  assets             RunOutcomeAsset[]
+  publications       RunPublication[]
+
+  @@index([decision])
+  @@map("run_outcomes")
+}
+
+/// Asset versions a reviewed run used. The composite key makes the `usageCount` increment
+/// idempotent per run: R1-17 increments only when this row is newly inserted.
+model RunOutcomeAsset {
+  runId          String       @map("run_id")
+  assetVersionId Int          @map("asset_version_id")
+  /// The `contentHash` the run's manifest pinned.
+  contentHash    String       @map("content_hash")
+  outcome        RunOutcome   @relation(fields: [runId], references: [runId], onDelete: Restrict)
+  assetVersion   AssetVersion @relation(fields: [assetVersionId], references: [id], onDelete: Restrict)
+
+  @@id([runId, assetVersionId])
+  @@index([assetVersionId])
+  @@map("run_outcome_assets")
+}
+
+// ---------------------------------------------------------------------------------------------
+// The improvement loop (SPEC 0003, R2): learnings, promotion approvals and comparisons.
+// ---------------------------------------------------------------------------------------------
+
+/// A learning written back from a reviewed run onto an asset version (SPEC 0003 section 5.5).
+/// Never deleted; the only change is `active` -> `retired` once (trigger).
+model AssetLearningNote {
+  /// C1 `LearningNoteId` (ULID).
+  id             String       @id
+  assetVersionId Int          @map("asset_version_id")
+  /// Normalized note text, 1..500 characters. Untrusted data wherever it is rendered.
+  text           String
+  /// C3 `RunId`; not a foreign key, the run index is rebuildable.
+  sourceRunId    String       @map("source_run_id")
+  createdBy      String       @map("created_by")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  /// `active` | `retired`.
+  status         String       @default("active")
+  retiredAt      DateTime?    @map("retired_at")
+  assetVersion   AssetVersion @relation(fields: [assetVersionId], references: [id], onDelete: Restrict)
+
+  @@index([assetVersionId, status])
+  @@map("asset_learning_notes")
+}
+
+/// One recorded owner approval that activated exactly one asset or recipe version (SPEC 0003
+/// section 5.4, criterion 35). Append-only (triggers).
+model PromotionApproval {
+  id                     Int            @id @default(autoincrement())
+  /// `asset-version` | `recipe-version`; exactly the matching target id is set (CHECK).
+  targetKind             String         @map("target_kind")
+  assetVersionId         Int?           @map("asset_version_id")
+  recipeVersionId        Int?           @map("recipe_version_id")
+  /// From the session, never from a request body.
+  decidedBy              String         @map("decided_by")
+  decidedAt              DateTime       @map("decided_at")
+  reason                 String         @default("")
+  /// `{ comparisonId: ComparisonId | null, runIds: RunId[] }` as JSON.
+  evidenceJson           String         @map("evidence_json")
+  replacedVersion        Int?           @map("replaced_version")
+  qualityScoreAtApproval Float?         @map("quality_score_at_approval")
+  sampleSizeAtApproval   Int            @default(0) @map("sample_size_at_approval")
+  correlationId          String?        @map("correlation_id")
+  assetVersion           AssetVersion?  @relation(fields: [assetVersionId], references: [id], onDelete: Restrict)
+  recipeVersion          RecipeVersion? @relation(fields: [recipeVersionId], references: [id], onDelete: Restrict)
+
+  @@index([assetVersionId])
+  @@index([recipeVersionId])
+  @@map("promotion_approvals")
+}
+
+/// A rebuildable index of A/B comparisons (SPEC 0003 section 5.3); the two run.json files are the
+/// source of truth.
+model Comparison {
+  /// C3 `ComparisonId` (ULID).
+  id          String    @id
+  title       String
+  createdBy   String    @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  /// C3 `ComparisonSubject` as JSON.
+  subjectJson String    @map("subject_json")
+  briefHash   String    @map("brief_hash")
+  runAId      String    @map("run_a_id")
+  runBId      String    @map("run_b_id")
+  startedAt   DateTime? @map("started_at")
+
+  @@index([createdAt])
+  @@map("comparisons")
+}
+
+// ---------------------------------------------------------------------------------------------
+// The Curator (SPEC 0005): the owner's decisions on proposals. The proposal files under
+// `curations/<id>/` stay the watcher's single-writer output; this table is the api's.
+// ---------------------------------------------------------------------------------------------
+
+/// One owner decision on a Curator proposal (SPEC 0005 section 4.5, topology 0004 section 6).
+/// Written by the api only; the watcher's evidence collector reads the declined rows.
+model CurationDecision {
+  /// `CurationId` (ULID); also the `curations/<id>/` folder name.
+  curationId    String   @id @map("curation_id")
+  /// `prompt` | `skill` | `recipe` (CHECK).
+  subjectKind   String   @map("subject_kind")
+  /// `AssetRef` or `RecipeRef`; read together with `subjectKind` (SPEC 0005 L7).
+  subjectRef    String   @map("subject_ref")
+  /// `saved` | `declined` (CHECK).
+  decision      String
+  /// The owner's optional decline reason, at most 300 characters; null unless `declined` (CHECK).
+  /// Untrusted data wherever it is rendered; never logged.
+  ownerReason   String?  @map("owner_reason")
+  /// The draft saved from the proposal; set exactly when `saved` (CHECK).
+  savedRef      String?  @map("saved_ref")
+  /// The comparison created with the saved draft as arm B; null unless `saved` (CHECK).
+  comparisonId  String?  @map("comparison_id")
+  /// From the session, never from a request body.
+  decidedBy     String   @map("decided_by")
+  /// From `x-request-id`.
+  correlationId String   @map("correlation_id")
+  decidedAt     DateTime @map("decided_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([subjectRef, decidedAt])
+  @@map("curation_decisions")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Outside signals (SPEC 0006 sections 4.5, 5.1 to 5.3): where an approved run was published and
+// the platform metrics the owner typed or imported. Written only by the api/CLI command handlers
+// of the core `metrics` module; the watcher neither reads nor writes these tables (ADR 0003).
+// No URL is ever fetched; no CSV file, title or caption is stored.
+// ---------------------------------------------------------------------------------------------
+
+/// One published video of an approved run (section 5.1). The run must have an `approved`
+/// outcome row (handler rule, L4); a video id is linked to at most one run (unique index).
+model RunPublication {
+  /// `PublicationId` (ULID).
+  id              String                   @id
+  runId           String                   @map("run_id")
+  /// `youtube` | `instagram` | `tiktok` (CHECK).
+  platform        String
+  /// Stored only after it matched `platformVideoIdPatterns[platform]`; at most 40 characters.
+  platformVideoId String                   @map("platform_video_id")
+  /// The canonical `https` URL rebuilt by `parsePublicationUrl`, never the raw input. Never logged.
+  url             String
+  /// Owner-entered `yyyy-mm-dd`, optional.
+  publishedOn     String?                  @map("published_on")
+  /// From the session, never from a request body.
+  recordedBy      String                   @map("recorded_by")
+  /// From `x-request-id`; null when the CLI wrote the row without one.
+  correlationId   String?                  @map("correlation_id")
+  recordedAt      DateTime                 @map("recorded_at")
+  outcome         RunOutcome               @relation(fields: [runId], references: [runId], onDelete: Restrict)
+  snapshots       PlatformMetricSnapshot[]
+
+  @@unique([platform, platformVideoId])
+  @@index([runId])
+  @@map("run_publications")
+}
+
+/// One applied CSV import (section 5.3): its hash, size and counts only. The file itself, its name
+/// and its cells are never stored (B12).
+model MetricImport {
+  /// `MetricImportId` (ULID).
+  id            String   @id
+  /// `youtube` | `instagram` | `tiktok` (CHECK).
+  platform      String
+  /// `yyyy-mm-dd` the numbers describe, stated by the owner (B11).
+  asOfDate      String   @map("as_of_date")
+  /// Lowercase hex sha-256 of the uploaded bytes; marks a repeated file (`duplicateFile`).
+  fileSha256    String   @map("file_sha256")
+  fileBytes     Int      @map("file_bytes")
+  rows          Int
+  matched       Int
+  created       Int
+  updated       Int
+  unchanged     Int
+  unmatched     Int
+  issues        Int
+  /// From the session, never from a request body.
+  importedBy    String   @map("imported_by")
+  correlationId String?  @map("correlation_id")
+  importedAt    DateTime @map("imported_at")
+
+  @@index([fileSha256])
+  @@map("metric_imports")
+}
+
+/// One snapshot of a publication's cumulative metrics as of `asOfDate` (section 5.2). Keyed
+/// `(publication, asOfDate, source)`, so a repeated import or form save replaces its own row.
+/// `importId` is set exactly when `source` is `csv` (CHECK); it is not a relation, as in the SQL.
+/// Counts are `BigInt` because the shared bound is 10^12, above a 32-bit `Int`.
+model PlatformMetricSnapshot {
+  publicationId              String         @map("publication_id")
+  asOfDate                   String         @map("as_of_date")
+  /// `csv` | `form` (CHECK).
+  source                     String
+  importId                   String?        @map("import_id")
+  views                      BigInt
+  likes                      BigInt?
+  comments                   BigInt?
+  shares                     BigInt?
+  saves                      BigInt?
+  impressions                BigInt?
+  reach                      BigInt?
+  followersGained            BigInt?        @map("followers_gained")
+  watchTimeSeconds           BigInt?        @map("watch_time_seconds")
+  averageViewDurationSeconds Float?         @map("average_view_duration_seconds")
+  averageViewPercent         Float?         @map("average_view_percent")
+  recordedAt                 DateTime       @map("recorded_at")
+  publication                RunPublication @relation(fields: [publicationId], references: [id], onDelete: Restrict)
+
+  @@id([publicationId, asOfDate, source])
+  @@map("platform_metric_snapshots")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Cost ledger (ADR 0002 "Cost", C3 `CostSession`, R1-11): month-to-date spend across runs.
+// `cost.json` in the run folder stays the per-run source of truth.
+// ---------------------------------------------------------------------------------------------
+
+/// One billed unit, mirroring one C3 `CostSession`. Not a foreign key to `run_index_entries`, because the
+/// index may lag the run files.
+model CostEntry {
+  id                Int      @id @default(autoincrement())
+  runId             String   @map("run_id")
+  /// C3 `SessionId` (ULID).
+  sessionId         String   @map("session_id")
+  /// C3 `callIndex` for `model` entries; 1 for `tts` and `render`.
+  callIndex         Int      @default(1) @map("call_index")
+  /// `model` | `tts` | `render`.
+  kind              String
+  /// C3 `StepKey`.
+  stepKey           String   @map("step_key")
+  /// C3 `ModelRole`; null for `tts` and `render`.
+  role              String?
+  /// `claude` | `elevenlabs` | `local-voice` | `render`.
+  provider          String
+  /// C3 `ModelId`; null for `tts` and `render`.
+  modelId           String?  @map("model_id")
+  inputTokens       Int?     @map("input_tokens")
+  outputTokens      Int?     @map("output_tokens")
+  cacheReadTokens   Int?     @map("cache_read_tokens")
+  cacheWriteTokens  Int?     @map("cache_write_tokens")
+  ttsCharacters     Int?     @map("tts_characters")
+  renderSeconds     Float?   @map("render_seconds")
+  usd               Float
+  priceTableVersion String   @map("price_table_version")
+  occurredAt        DateTime @map("occurred_at")
+  recordedAt        DateTime @default(now()) @map("recorded_at")
+  /// `run` | `curation` (SPEC 0005 B1, CHECK). For `curation`, `runId` holds the curation id and
+  /// `stepKey` holds `curation:call:<attempt>`.
+  sourceKind        String   @default("run") @map("source_kind")
+
+  @@unique([runId, sessionId, callIndex])
+  @@index([occurredAt])
+  @@map("cost_entries")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Settings (A13): key/value rows. The passphrase argon2id hash is one row; the hashing code and
+// the key name belong to R1-16. Never a secret value other than that hash.
+// ---------------------------------------------------------------------------------------------
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}

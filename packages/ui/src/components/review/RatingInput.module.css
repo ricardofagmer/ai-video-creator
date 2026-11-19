@@ -1,0 +1,95 @@
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldset legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: var(--space-16);
+  cursor: pointer;
+}
+
+/* The native radio stays focusable and checkable; the pill is its visual. */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.option:hover .pill {
+  background-color: var(--color-surface-muted);
+}
+
+.input:checked + .pill {
+  color: var(--color-text-on-primary);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.input:focus-visible + .pill {
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.fieldset[aria-invalid='true'] .pill {
+  border-color: var(--color-danger);
+}
+
+.fieldset:disabled .option {
+  cursor: not-allowed;
+}
+
+.fieldset:disabled .pill {
+  color: var(--color-text-disabled);
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-text-disabled);
+}
+
+.optionLabel {
+  text-align: center;
+}
+
+.error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}

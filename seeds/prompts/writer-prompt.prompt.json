@@ -1,0 +1,21 @@
+{
+  "assetId": "writer-prompt",
+  "name": "Prompt do roteirista",
+  "summary": "Guia de estilo do Roteirista: gancho em uma frase, uma ideia por cena, toda afirmação citando um claimId verificado.",
+  "tags": ["prompt", "writer", "script"],
+  "textFile": "writer-prompt.md",
+  "mimeType": "text/markdown",
+  "variables": [
+    { "name": "topic", "type": "string", "description": "WriterPacket.inputs.brief.topic: what the video is about.", "required": true, "default": null },
+    { "name": "sourceUrl", "type": "string", "description": "WriterPacket.inputs.brief.sourceUrl: the page the research stage captured; absent when the brief has none.", "required": false, "default": null },
+    { "name": "keyMessages", "type": "string-list", "description": "WriterPacket.inputs.brief.keyMessages: the messages the scenes follow, in order.", "required": true, "default": null },
+    { "name": "language", "type": "string", "description": "WriterPacket.inputs.language: pt-BR or en-US.", "required": true, "default": null },
+    { "name": "targetDurationSec", "type": "number", "description": "WriterPacket.inputs.targetDurationSec: total narration target in seconds.", "required": true, "default": null },
+    { "name": "verifiedClaimIds", "type": "string-list", "description": "claimId of each WriterPacket.inputs.verifiedClaims entry; the only facts the script may state.", "required": true, "default": null },
+    { "name": "maxWordsPerSecond", "type": "number", "description": "WriterPacket.constraints.maxWordsPerSecond, from recipe format.narration.", "required": true, "default": null },
+    { "name": "sceneCountMin", "type": "number", "description": "WriterPacket.constraints.sceneCount.min, from recipe format.sceneCount.", "required": true, "default": null },
+    { "name": "sceneCountMax", "type": "number", "description": "WriterPacket.constraints.sceneCount.max, from recipe format.sceneCount.", "required": true, "default": null },
+    { "name": "retryInstruction", "type": "string", "description": "WriterPacket.inputs.retryInstruction: the Reviewer's instruction, on a revision only.", "required": false, "default": null }
+  ],
+  "notes": "Bound to slot prompt:writer. The engine places this text, delimited as catalog data, in WriterPacket.inputs.promptText (the cacheable style block); the variables name packet fields the text refers to and are not substituted. Output contract: ScriptOutput (C7)."
+}

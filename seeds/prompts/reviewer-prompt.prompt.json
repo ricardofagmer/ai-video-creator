@@ -1,0 +1,16 @@
+{
+  "assetId": "reviewer-prompt",
+  "name": "Prompt do revisor",
+  "summary": "Guia de estilo do Revisor: nota 1-5 por critério da rubrica, sempre com evidência; o motor decide aprovar ou não.",
+  "tags": ["prompt", "evaluator", "review"],
+  "textFile": "reviewer-prompt.md",
+  "mimeType": "text/markdown",
+  "variables": [
+    { "name": "subject", "type": "string", "description": "ReviewPacket.inputs.subject: script, scenes or render.", "required": true, "default": null },
+    { "name": "rubricCriterionIds", "type": "string-list", "description": "criterionId of each ReviewPacket.inputs.rubric entry, from the recipe rubric filtered by subject.", "required": true, "default": null },
+    { "name": "briefSummary", "type": "string", "description": "ReviewPacket.inputs.briefSummary: the brief in at most 1000 characters.", "required": true, "default": null },
+    { "name": "artifactIds", "type": "string-list", "description": "ReviewPacket.inputs.artifactIds: the run artifacts to read with RunArtifactReadTool.", "required": true, "default": null },
+    { "name": "hasQaMetrics", "type": "boolean", "description": "True when ReviewPacket.inputs.qaMetrics is present (render subject only).", "required": false, "default": false }
+  ],
+  "notes": "Bound to slot prompt:evaluator (the Reviewer's model role). Topology v1 ReviewPacket has no prompt field, so in R1 the engine records this version for prompt-version metering only (topology section 10); the role's built-in prompt evaluator@1 drives the call. Output contract: ReviewVerdict (C7)."
+}

@@ -1,0 +1,37 @@
+.wrapper {
+  display: inline-flex;
+  color: var(--color-primary);
+}
+
+.spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  /* Track: the current colour at 25 %; the top arc is solid. */
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: var(--radius-full);
+  animation: spin var(--duration-spin) linear infinite;
+}
+
+.sm {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.md {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Rotation communicates loading, so it slows down instead of stopping (tokens.md, section 10). */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: calc(var(--duration-spin) * 2);
+  }
+}

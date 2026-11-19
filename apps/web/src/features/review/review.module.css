@@ -1,0 +1,132 @@
+/* Review screen layout (design/telas/09). Spacing comes from @studio/ui tokens only. */
+
+/* Below lg: Vídeo, Sua revisão, Checagens, Custo, Manifesto, Aprendizados, Promover (one column). */
+.reviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'video'
+    'review'
+    'qa'
+    'cost'
+    'manifest'
+    'learnings'
+    'promote';
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.video {
+  grid-area: video;
+}
+
+.review {
+  grid-area: review;
+}
+
+.qa {
+  grid-area: qa;
+}
+
+.cost {
+  grid-area: cost;
+}
+
+.manifest {
+  grid-area: manifest;
+}
+
+.learnings {
+  grid-area: learnings;
+}
+
+.promote {
+  grid-area: promote;
+}
+
+.promote:empty {
+  display: none;
+}
+
+/* lg and up: main column 7/12, review column 5/12, sticky below the top bar. */
+@media (min-width: 1024px) {
+  .reviewGrid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas:
+      'video review'
+      'qa review'
+      'cost review'
+      'manifest review'
+      'learnings review'
+      'promote review';
+  }
+
+  .review {
+    position: sticky;
+    top: calc(var(--layout-topbar-height) + var(--space-6));
+    align-self: start;
+  }
+}
+
+/* Owner notes keep their line breaks; they render as text, never as markup. */
+.notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.checklistSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checklistSummary li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/*
+ * Player of a `playable-biometric` run (BiometricVideoPlayer, SPEC 0002 rev 4 section 13.5). Same
+ * frame as the shared VideoPlayer, from the same tokens; it exists only because that player renders
+ * a fallback link to the artifact and has no `controlsList` option.
+ */
+.playerFigure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.playerFrame {
+  overflow: hidden;
+  background-color: var(--color-media-bg);
+  border-radius: var(--radius-lg);
+}
+
+.playerLandscape .playerFrame {
+  aspect-ratio: 16 / 9;
+}
+
+/* Portrait videos are capped in height so the review form stays in view. */
+.playerPortrait .playerFrame {
+  aspect-ratio: 9 / 16;
+  max-height: calc(100vh - var(--layout-topbar-height) - var(--space-16));
+  margin: 0 auto;
+}
+
+.playerVideo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.playerCaption {
+  margin: 0;
+}

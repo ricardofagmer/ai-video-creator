@@ -1,0 +1,116 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.skipLink {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--z-overlay);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text-on-primary);
+  background-color: var(--color-primary);
+  border-radius: var(--radius-md);
+  transform: translateY(calc(-100% - var(--space-4)));
+}
+
+.skipLink:focus-visible {
+  transform: none;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.topbarInner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'brand end'
+    'nav nav';
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: var(--space-3) var(--layout-gutter-mobile);
+}
+
+@media (min-width: 768px) {
+  .topbarInner {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 'brand nav end';
+    min-height: var(--layout-topbar-height);
+    padding: 0 var(--layout-gutter-desktop);
+  }
+}
+
+.brand {
+  grid-area: brand;
+}
+
+.nav {
+  grid-area: nav;
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+}
+
+.end {
+  grid-area: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.navLink:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface-muted);
+}
+
+.navLinkActive,
+.navLinkActive:hover {
+  color: var(--color-primary-soft-text);
+  background-color: var(--color-primary-soft);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--layout-gutter-mobile) var(--space-12);
+}
+
+.main:focus {
+  outline: none;
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: var(--space-8) var(--layout-gutter-desktop) var(--space-16);
+  }
+}

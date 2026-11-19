@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HookRenderInput",
+  "description": "Props of the hook compositions HookC01 and HookIntro in packages/video (a beat-grid HookTimeline plus audioUrl and slide). Mirrors HookRenderInputSchema in packages/shared/src/ace/hooks.ts (@studio/shared/ace); keep both in step.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "videoId",
+    "lang",
+    "voice",
+    "bpm",
+    "fps",
+    "beatS",
+    "totalBeats",
+    "durationS",
+    "shots",
+    "marks",
+    "lines",
+    "copy",
+    "audioUrl"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "videoId": { "$ref": "#/$defs/SafeId" },
+    "lang": { "enum": ["pt", "en"] },
+    "voice": { "enum": ["draft", "live"] },
+    "bpm": { "type": "number", "minimum": 60, "maximum": 180 },
+    "fps": { "const": 30 },
+    "beatS": { "type": "number", "exclusiveMinimum": 0 },
+    "totalBeats": { "type": "integer", "exclusiveMinimum": 0 },
+    "durationS": { "type": "number", "minimum": 20, "maximum": 45 },
+    "shots": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/HookShotTiming" }
+    },
+    "marks": {
+      "description": "Absolute beats (fractional allowed), keyed \"<shotId>.<event>\".",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/MarkName" },
+      "additionalProperties": { "type": "number", "minimum": 0 }
+    },
+    "lines": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/HookLine" }
+    },
+    "copy": {
+      "description": "Language-specific on-screen copy (hook text, CTA, carousel slides), keyed by name.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/MarkName" },
+      "additionalProperties": { "type": "string", "maxLength": 400 }
+    },
+    "audioUrl": {
+      "description": "Null for silent previews and stills.",
+      "anyOf": [{ "type": "string", "format": "uri" }, { "type": "null" }]
+    },
+    "slide": {
+      "description": "Carousel only: 1-based slide number.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6,
+      "default": 1
+    }
+  },
+  "$defs": {
+    "SafeId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,40}$" },
+    "MarkName": { "type": "string", "pattern": "^[A-Za-z0-9_.-]{1,60}$" },
+    "HookShotTiming": {
+      "type": "object",
+      "required": ["id", "section", "startBeat", "beats", "startS", "endS"],
+      "properties": {
+        "id": { "$ref": "#/$defs/SafeId" },
+        "section": { "enum": ["intro", "silence", "drop", "groove", "full", "tension", "warm", "resolve"] },
+        "startBeat": { "type": "integer", "minimum": 0 },
+        "beats": { "type": "integer", "exclusiveMinimum": 0 },
+        "startS": { "type": "number", "minimum": 0 },
+        "endS": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "HookLine": {
+      "type": "object",
+      "required": ["shotId", "text", "highlight", "startS", "endS", "words"],
+      "properties": {
+        "shotId": { "$ref": "#/$defs/SafeId" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 400 },
+        "highlight": {
+          "description": "The one word shown in the accent colour, as spoken (case-insensitive match).",
+          "anyOf": [{ "type": "string", "maxLength": 40 }, { "type": "null" }]
+        },
+        "startS": { "type": "number", "minimum": 0 },
+        "endS": { "type": "number", "exclusiveMinimum": 0 },
+        "words": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/WordTiming" }
+        }
+      }
+    },
+    "WordTiming": {
+      "type": "object",
+      "required": ["text", "startS", "endS"],
+      "properties": {
+        "text": { "type": "string" },
+        "startS": { "type": "number", "minimum": 0 },
+        "endS": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

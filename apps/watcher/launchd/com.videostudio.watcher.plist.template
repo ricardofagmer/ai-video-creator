@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd user agent of the Video Studio watcher (SPEC 0002 R1-09, PRD D9; label per A9).
+
+  Template only: scripts/install.sh (R1-22) substitutes the placeholders, writes the result to
+  ~/Library/LaunchAgents/com.videostudio.watcher.plist and registers it. Nothing here is loaded by
+  the watcher itself.
+
+    __NODE_BIN__      absolute path of the node binary (Node 22+)
+    __WATCHER_MAIN__  absolute path of apps/watcher/dist/main.js
+    __WORKING_DIR__   absolute path of apps/watcher
+    __LOGS_DIR__      absolute path of <data home>/logs (D5, owner-only)
+
+  PRD section 12: this file holds no secret. There is no API key, no passphrase and no provider
+  setting in it; provider keys are read by the watcher from the macOS Keychain (R1-11), and the
+  environment below is limited to PATH and NODE_ENV. Keep it that way: an EnvironmentVariables
+  entry for a key would be readable by any process of the user.
+
+  Restart policy: RunAtLoad starts the agent at login and KeepAlive restarts it after any exit,
+  graceful SIGTERM included, so a killed watcher comes back and crash-resumes the run it left
+  running (criterion 13). ThrottleInterval spaces restarts; `launchctl bootout` (uninstall, logout)
+  stops it for good. ExitTimeOut leaves the watcher 30 s to abort the in-flight step before SIGKILL.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.videostudio.watcher</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE_BIN__</string>
+    <string>__WATCHER_MAIN__</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>__WORKING_DIR__</string>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+
+  <key>ExitTimeOut</key>
+  <integer>30</integer>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+
+  <key>Umask</key>
+  <integer>63</integer>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>NODE_ENV</key>
+    <string>production</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>__LOGS_DIR__/watcher.launchd.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>__LOGS_DIR__/watcher.launchd.log</string>
+</dict>
+</plist>

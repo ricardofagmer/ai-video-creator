@@ -1,0 +1,28 @@
+{
+  "name": "@ace/toolbox",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ace CLI: run folders, manifest validation, capture, narration, render, QA and review for the AI Creator Engine",
+  "main": "dist/cli.js",
+  "bin": {
+    "ace": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "ace": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@ace/video": "workspace:*",
+    "@studio/shared": "workspace:*",
+    "commander": "^14.0.0",
+    "dotenv": "^17.2.0",
+    "playwright": "^1.56.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3"
+  }
+}

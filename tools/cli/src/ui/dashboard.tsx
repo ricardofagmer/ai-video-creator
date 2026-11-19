@@ -1,0 +1,49 @@
+import { Box, Text, useApp, useInput } from 'ink';
+import { type ReactElement } from 'react';
+import { RunDetailView } from './run-detail-view.js';
+import { RunListView } from './run-list-view.js';
+import { useDashboardState, type ControlRequester } from './use-dashboard-state.js';
+
+export interface DashboardProps {
+  runsRoot: string;
+  dataHomeRoot: string;
+  requestControl: ControlRequester;
+}
+
+const KEY_HELP = 'setas: escolher   p: pausar   s: parar   r: retomar   q: sair';
+
+/**
+ * Full-screen dashboard (R1-21): the newest runs, the selected run's stages and live activity,
+ * and pause/stop/resume of the selected run. Reading needs only the run folders.
+ */
+export function Dashboard({ runsRoot, dataHomeRoot, requestControl }: DashboardProps): ReactElement {
+  const { exit } = useApp();
+  const model = useDashboardState(runsRoot, requestControl);
+
+  useInput((input, key) => {
+    if (input === 'q' || key.escape) exit();
+    else if (key.upArrow) model.moveSelection(-1);
+    else if (key.downArrow) model.moveSelection(1);
+    else if (input === 'p') model.requestControl('pause');
+    else if (input === 's') model.requestControl('stop');
+    else if (input === 'r') model.requestControl('resume');
+  });
+
+  return (
+    <Box flexDirection="column" paddingX={1}>
+      <Box justifyContent="space-between">
+        <Text bold>Video Studio</Text>
+        <Text dimColor>{dataHomeRoot}</Text>
+      </Box>
+      {model.loadError === null ? null : <Text color="red">{model.loadError}</Text>}
+      <Box marginTop={1}>
+        <RunListView recent={model.recent} selectedIndex={model.selectedIndex} />
+      </Box>
+      <Box marginTop={1} borderStyle="single" paddingX={1}>
+        <RunDetailView snapshot={model.selected} />
+      </Box>
+      {model.notice === null ? null : <Text color={model.notice.tone === 'error' ? 'red' : 'green'}>{model.notice.text}</Text>}
+      <Text dimColor>{KEY_HELP}</Text>
+    </Box>
+  );
+}

@@ -1,0 +1,17 @@
+{
+  "assetId": "recovery-prompt",
+  "name": "Prompt da recuperação",
+  "summary": "Guia de estilo da Recuperação: uma causa, uma ação da lista permitida, nunca repetir trabalho biométrico.",
+  "tags": ["prompt", "recovery"],
+  "textFile": "recovery-prompt.md",
+  "mimeType": "text/markdown",
+  "variables": [
+    { "name": "failedStageId", "type": "string", "description": "RecoveryPacket.inputs.failedStep.stageId: the stage of the failed step (A5 stage id).", "required": true, "default": null },
+    { "name": "failedStep", "type": "string", "description": "RecoveryPacket.inputs.failedStep.step: one of brief, preflight, snapshot, execute, verify, archive, record.", "required": true, "default": null },
+    { "name": "attempt", "type": "number", "description": "RecoveryPacket.inputs.failedStep.attempt: the failed attempt number.", "required": true, "default": null },
+    { "name": "postcondition", "type": "string", "description": "RecoveryPacket.inputs.failedStep.postcondition: what the engine expected.", "required": true, "default": null },
+    { "name": "failureReason", "type": "string", "description": "RecoveryPacket.inputs.failedStep.failureReason: redacted, delimited data, at most 2000 characters.", "required": true, "default": null },
+    { "name": "allowedActions", "type": "string-list", "description": "RecoveryPacket.inputs.allowedActions: the action kinds the engine accepts for this step.", "required": true, "default": null }
+  ],
+  "notes": "Bound to slot prompt:recovery. Topology v1 RecoveryPacket has no prompt field, so in R1 the engine records this version for prompt-version metering only (topology section 10); the role's built-in prompt recovery@1 drives the call. Output contract: RecoveryAction (C7)."
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@studio/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Next.js web in pt-BR (SPEC 0002 R1-19, R1-20): catalog, recipes, runs and review; bound to 127.0.0.1 only (A9)",
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1 -p ${VIDEO_STUDIO_WEB_PORT:-4310}",
+    "build": "next build",
+    "start": "next start -H 127.0.0.1 -p ${VIDEO_STUDIO_WEB_PORT:-4310}",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@studio/shared": "workspace:*",
+    "@studio/ui": "workspace:*",
+    "next": "^15.3.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "server-only": "^0.0.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@studio/eslint-config": "workspace:*",
+    "@studio/tsconfig": "workspace:*",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "eslint": "^9.0.0",
+    "typescript": "^5.8.3"
+  }
+}

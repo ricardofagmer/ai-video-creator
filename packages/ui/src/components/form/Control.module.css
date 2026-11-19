@@ -1,0 +1,73 @@
+/* Shared look of text controls: Input, Textarea and Select. */
+.control {
+  display: block;
+  width: 100%;
+  margin: 0;
+  min-height: var(--control-height-md);
+  padding: var(--space-2) var(--space-4);
+  /* Inputs never go below 16 px (avoids automatic zoom on iOS). */
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.control::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.control:focus-visible {
+  border-color: var(--color-focus-ring);
+}
+
+.control[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.control:disabled {
+  color: var(--color-text-disabled);
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.control[readonly] {
+  background-color: var(--color-surface-muted);
+}
+
+.textarea {
+  min-height: calc(var(--control-height-md) * 3);
+  resize: vertical;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.selectWrapper {
+  position: relative;
+  display: block;
+}
+
+.select {
+  appearance: none;
+  padding-right: var(--space-10);
+  cursor: pointer;
+}
+
+/* Chevron drawn with borders in the current text colour; no image file. */
+.selectWrapper::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  width: var(--space-2);
+  height: var(--space-2);
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: translateY(-75%) rotate(45deg);
+  pointer-events: none;
+}

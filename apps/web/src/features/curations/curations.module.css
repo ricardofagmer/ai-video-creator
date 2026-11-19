@@ -1,0 +1,64 @@
+/* Curator proposal screens (SPEC 0005 section 5.9). Spacing and colours from @studio/ui tokens only. */
+
+/* Model-written and owner-typed text keeps its line breaks; it renders as text, never as markup. */
+.plainText {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.fields dt {
+  font-weight: 600;
+}
+
+.fields dd {
+  margin: var(--space-1) 0 0;
+}
+
+/* The unified diff: monospace, scrollable on its own, focusable so a keyboard can scroll it. */
+.diff {
+  margin: 0;
+  max-height: 32rem;
+  overflow: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.diff:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.runLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.consent {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}

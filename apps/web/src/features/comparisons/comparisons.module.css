@@ -1,0 +1,25 @@
+/* A/B comparison screens (SPEC 0003 section 5.3). Spacing and widths from @studio/ui tokens only. */
+
+/* The two arms side by side from `lg` up; stacked, A first, below it. */
+.arms {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .arms {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.refLine {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.warningList {
+  margin: 0;
+  padding-left: var(--space-5);
+}

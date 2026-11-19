@@ -1,0 +1,33 @@
+{
+  "name": "@ace/video",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/render/index.js",
+  "types": "dist/render/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "remotion.config.ts",
+    "tsconfig.json"
+  ],
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.300",
+    "@remotion/cli": "4.0.300",
+    "@remotion/renderer": "4.0.300",
+    "@studio/shared": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.300",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.8",
+    "typescript": "^5.8.3"
+  }
+}

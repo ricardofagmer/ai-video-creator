@@ -1,0 +1,116 @@
+{
+  "recipeId": "product-tour-16x9",
+  "definition": {
+    "name": "Tour de produto 16:9",
+    "description": "Tour narrado de um app web em 16:9 e pt-BR: gancho, uma cena por mensagem-chave sobre a captura do app, encerramento; legendas numa faixa abaixo do app, trilha sob a narração, -16 LUFS.",
+    "owner": "Ricardo Fagmer",
+    "provenance": { "source": { "type": "seed", "origin": "spesia-run" }, "author": "Ricardo Fagmer", "capturedAt": null },
+    "notes": "SPEC 0002 R1-15. Derived from the Spesia tour (SpesiaDemo.tsx, RELATORIO.md): 1920x1080, captions in a band below the app (the fixed 74% anchor covered app buttons), -16 LUFS +-1, true peak <= -1 dBFS. Voice is the ElevenLabs provider model (mock in mock mode); the biometric local voice is never bound here. Binding hashes are pinned by the seed from the catalog versions the refs name.",
+    "graph": {
+      "stages": [
+        { "stageId": "plan", "enabled": true, "checks": ["output-schema"], "timeoutMs": null, "params": {} },
+        { "stageId": "research", "enabled": true, "checks": ["outputs-present"], "timeoutMs": null, "params": {} },
+        { "stageId": "verify", "enabled": true, "checks": ["outputs-present", "claims-evidence"], "timeoutMs": null, "params": {} },
+        { "stageId": "script", "enabled": true, "checks": ["output-schema", "claims-evidence", "reviewer-score"], "timeoutMs": null, "params": {} },
+        { "stageId": "capture", "enabled": true, "checks": ["outputs-present"], "timeoutMs": null, "params": {} },
+        { "stageId": "scenes", "enabled": true, "checks": ["output-schema", "refs-resolve", "reviewer-score"], "timeoutMs": null, "params": {} },
+        { "stageId": "narration", "enabled": true, "checks": ["outputs-present"], "timeoutMs": null, "params": {} },
+        { "stageId": "composition", "enabled": true, "checks": ["outputs-present"], "timeoutMs": null, "params": {} },
+        { "stageId": "captions", "enabled": true, "checks": ["outputs-present", "caption-timing"], "timeoutMs": null, "params": {} },
+        { "stageId": "fades", "enabled": true, "checks": ["outputs-present"], "timeoutMs": null, "params": {} },
+        { "stageId": "music", "enabled": true, "checks": ["outputs-present"], "timeoutMs": null, "params": {} },
+        {
+          "stageId": "qa",
+          "enabled": true,
+          "checks": ["container", "codec", "resolution", "fps", "duration", "loudness", "true-peak", "audio-present", "black-frames", "caption-timing", "output-schema"],
+          "timeoutMs": null,
+          "params": {}
+        },
+        { "stageId": "agent-review", "enabled": true, "checks": ["reviewer-score", "output-schema"], "timeoutMs": null, "params": {} },
+        { "stageId": "package", "enabled": true, "checks": ["outputs-present", "output-schema"], "timeoutMs": null, "params": {} }
+      ]
+    },
+    "bindings": [
+      { "slot": "template", "ref": "product-tour-template@1" },
+      { "slot": "brand-kit", "ref": "fagmer-brand@1" },
+      { "slot": "prompt:writer", "ref": "writer-prompt@1" },
+      { "slot": "prompt:director", "ref": "director-prompt@1" },
+      { "slot": "prompt:evaluator", "ref": "reviewer-prompt@1" },
+      { "slot": "prompt:recovery", "ref": "recovery-prompt@1" },
+      { "slot": "voice", "ref": "elevenlabs-voice@1" },
+      { "slot": "music", "ref": "spesia-music-683@1" }
+    ],
+    "format": {
+      "canvas": { "width": 1920, "height": 1080 },
+      "aspect": "16:9",
+      "fps": 30,
+      "duration": { "minSec": 45, "maxSec": 90 },
+      "language": "pt-BR",
+      "loudness": { "integratedLufs": -16, "truePeakDbtp": -1, "toleranceLu": 1 },
+      "captions": { "yPercent": 93, "maxLines": 1 },
+      "narration": { "maxWordsPerSecond": 2.8 },
+      "sceneCount": { "min": 3, "max": 12 }
+    },
+    "gates": [],
+    "inputs": { "required": ["sourceUrl", "keyMessages"], "keyMessages": { "min": 3, "max": 10 } },
+    "checks": [
+      { "id": "output-schema" },
+      { "id": "refs-resolve" },
+      { "id": "claims-evidence" },
+      { "id": "container", "formats": ["mp4"] },
+      { "id": "codec", "video": "h264", "audio": "aac" },
+      { "id": "resolution" },
+      { "id": "fps" },
+      { "id": "duration" },
+      { "id": "loudness" },
+      { "id": "true-peak" },
+      { "id": "audio-present" },
+      { "id": "black-frames", "maxRunMs": 500 },
+      { "id": "caption-timing", "maxDriftMs": 200 },
+      { "id": "reviewer-score", "minOverall": 3.5 },
+      { "id": "outputs-present" }
+    ],
+    "limits": {},
+    "rubric": [
+      {
+        "criterionId": "clareza",
+        "description": "A mensagem principal fica clara para quem não conhece o app, em pt-BR natural.",
+        "weight": 35,
+        "threshold": 3,
+        "subjects": ["script", "scenes", "render"]
+      },
+      {
+        "criterionId": "fidelidade",
+        "description": "Toda afirmação do roteiro cita um claimId verificado e aparece nas capturas do app.",
+        "weight": 35,
+        "threshold": 4,
+        "subjects": ["script", "scenes"]
+      },
+      {
+        "criterionId": "ritmo",
+        "description": "Cortes e narração no mesmo tempo, sem trechos parados nem cena longa demais.",
+        "weight": 20,
+        "threshold": 3,
+        "subjects": ["scenes", "render"]
+      },
+      {
+        "criterionId": "legibilidade",
+        "description": "Textos na tela curtos e legíveis; as legendas ficam na faixa abaixo do app e não cobrem botões.",
+        "weight": 10,
+        "threshold": 3,
+        "subjects": ["render"]
+      }
+    ],
+    "checklist": [
+      { "id": "claimsVerified", "label": "Afirmações conferidas com as fontes ou com um teste reproduzível", "required": true },
+      { "id": "toolFactsCurrent", "label": "Nome, telas, preços e disponibilidade do app atuais na data da revisão", "required": true },
+      { "id": "mediaLicensesDocumented", "label": "Licenças de mídia e direitos de voz documentados", "required": true },
+      { "id": "noPersonalOrConfidentialData", "label": "Nenhum dado pessoal, chave, conta de cliente ou tela confidencial", "required": true },
+      { "id": "technicalSpecOk", "label": "1920x1080 em 16:9, -16 LUFS, narração inteligível, legendas na faixa abaixo do app", "required": true },
+      { "id": "metadataAndDisclosuresAccurate", "label": "Miniatura, título, hashtags, afiliação e avisos de IA corretos", "required": true },
+      { "id": "previewWatchedFully", "label": "Assisti ao vídeo do início ao fim", "required": true },
+      { "id": "accountAndPermissionConfirmed", "label": "Conta certa, visibilidade definida e permissão explícita registrada", "required": true }
+    ],
+    "allowedKinds": ["template", "prompt", "brand-kit", "music", "reference", "image", "sfx"]
+  }
+}

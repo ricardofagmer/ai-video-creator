@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RenderInput",
+  "description": "Props of the TOOL_DEMO, AI_BATTLE, AUTOMATION_BLUEPRINT and PRODUCT_TOUR_16X9 compositions in packages/video. Mirrors RenderInputSchema in packages/shared/src/ace/render.ts (@studio/shared/ace); keep both in step.",
+  "type": "object",
+  "required": ["template", "title", "durationS", "audioUrl", "scenes", "captions", "disclosure"],
+  "properties": {
+    "template": { "enum": ["TOOL_DEMO", "AI_BATTLE", "AUTOMATION_BLUEPRINT", "PRODUCT_TOUR_16X9"] },
+    "title": { "type": "string" },
+    "durationS": { "type": "number", "exclusiveMinimum": 0 },
+    "audioUrl": { "type": "string", "format": "uri" },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/RenderScene" }
+    },
+    "captions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/WordTiming" }
+    },
+    "disclosure": {
+      "type": "string",
+      "description": "Shown small on the final scene, e.g. \"AI voice. Links may be affiliate.\""
+    }
+  },
+  "$defs": {
+    "RenderScene": {
+      "type": "object",
+      "required": ["id", "kind", "startS", "endS", "onScreenText", "asset"],
+      "properties": {
+        "id": { "type": "string" },
+        "kind": {
+          "enum": ["hook", "problem", "rubric", "overview", "step", "evidence", "result", "analysis", "verdict", "cta"]
+        },
+        "startS": { "type": "number", "minimum": 0 },
+        "endS": { "type": "number", "exclusiveMinimum": 0 },
+        "onScreenText": { "type": "string" },
+        "asset": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": ["url", "kind"],
+              "properties": {
+                "url": { "type": "string", "format": "uri" },
+                "kind": { "enum": ["image", "video"] }
+              }
+            },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "WordTiming": {
+      "type": "object",
+      "required": ["text", "startS", "endS"],
+      "properties": {
+        "text": { "type": "string" },
+        "startS": { "type": "number", "minimum": 0 },
+        "endS": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

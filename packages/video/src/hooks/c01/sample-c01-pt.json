@@ -1,0 +1,505 @@
+{
+  "schemaVersion": 1,
+  "videoId": "c01",
+  "lang": "pt",
+  "voice": "draft",
+  "bpm": 100,
+  "fps": 30,
+  "beatS": 0.6,
+  "totalBeats": 70,
+  "durationS": 42,
+  "shots": [
+    {
+      "id": "hook",
+      "section": "intro",
+      "startBeat": 0,
+      "beats": 6,
+      "startS": 0,
+      "endS": 3.6
+    },
+    {
+      "id": "freeze",
+      "section": "silence",
+      "startBeat": 6,
+      "beats": 2,
+      "startS": 3.6,
+      "endS": 4.8
+    },
+    {
+      "id": "prompt",
+      "section": "drop",
+      "startBeat": 8,
+      "beats": 6,
+      "startS": 4.8,
+      "endS": 8.4
+    },
+    {
+      "id": "writes",
+      "section": "groove",
+      "startBeat": 14,
+      "beats": 16,
+      "startS": 8.4,
+      "endS": 18
+    },
+    {
+      "id": "approve",
+      "section": "full",
+      "startBeat": 30,
+      "beats": 8,
+      "startS": 18,
+      "endS": 22.8
+    },
+    {
+      "id": "again",
+      "section": "tension",
+      "startBeat": 38,
+      "beats": 8,
+      "startS": 22.8,
+      "endS": 27.6
+    },
+    {
+      "id": "rule",
+      "section": "warm",
+      "startBeat": 46,
+      "beats": 14,
+      "startS": 27.6,
+      "endS": 36
+    },
+    {
+      "id": "cta",
+      "section": "resolve",
+      "startBeat": 60,
+      "beats": 10,
+      "startS": 36,
+      "endS": 42
+    }
+  ],
+  "marks": {
+    "hook.title": 0,
+    "hook.ping1": 0.5,
+    "hook.ping2": 1,
+    "hook.ping3": 1.5,
+    "hook.ping4": 2,
+    "hook.typeStart": 1,
+    "hook.typeEnd": 4.5,
+    "freeze.enter": 6,
+    "prompt.alarm": 8,
+    "prompt.card": 8.25,
+    "writes.pillCommit": 23.066666666666666,
+    "writes.pillPush": 24.008333333333333,
+    "writes.pillMerge": 24.766666666666666,
+    "writes.pillPr": 26.675,
+    "approve.cursorMove": 30,
+    "approve.click": 32,
+    "approve.commitDone": 32.5,
+    "again.pushTyped": 38,
+    "again.alarm": 41.416666666666664,
+    "again.card": 41.666666666666664,
+    "rule.pullBack": 46,
+    "rule.highlightRule": 49.875,
+    "cta.breath": 60,
+    "cta.dots": 60.5,
+    "cta.logo": 62,
+    "cta.cta": 63
+  },
+  "lines": [
+    {
+      "shotId": "prompt",
+      "text": "A minha não consegue.",
+      "highlight": "consegue",
+      "startS": 5.3999999999999995,
+      "endS": 7.05,
+      "words": [
+        {
+          "text": "A",
+          "startS": 5.3999999999999995,
+          "endS": 5.574999999999999
+        },
+        {
+          "text": "minha",
+          "startS": 5.635,
+          "endS": 6.029999999999999
+        },
+        {
+          "text": "não",
+          "startS": 6.09,
+          "endS": 6.375
+        },
+        {
+          "text": "consegue.",
+          "startS": 6.435,
+          "endS": 7.05
+        }
+      ]
+    },
+    {
+      "shotId": "writes",
+      "text": "Qualquer comando que escreve no git vira uma pergunta pra mim: commit, push, merge, até um gh pr create.",
+      "highlight": "pergunta",
+      "startS": 9,
+      "endS": 17.09,
+      "words": [
+        {
+          "text": "Qualquer",
+          "startS": 9,
+          "endS": 9.559999999999999
+        },
+        {
+          "text": "comando",
+          "startS": 9.62,
+          "endS": 10.125
+        },
+        {
+          "text": "que",
+          "startS": 10.184999999999999,
+          "endS": 10.469999999999999
+        },
+        {
+          "text": "escreve",
+          "startS": 10.53,
+          "endS": 11.035
+        },
+        {
+          "text": "no",
+          "startS": 11.094999999999999,
+          "endS": 11.325
+        },
+        {
+          "text": "git",
+          "startS": 11.385,
+          "endS": 11.67
+        },
+        {
+          "text": "vira",
+          "startS": 11.73,
+          "endS": 12.07
+        },
+        {
+          "text": "uma",
+          "startS": 12.129999999999999,
+          "endS": 12.415
+        },
+        {
+          "text": "pergunta",
+          "startS": 12.475,
+          "endS": 13.035
+        },
+        {
+          "text": "pra",
+          "startS": 13.094999999999999,
+          "endS": 13.379999999999999
+        },
+        {
+          "text": "mim:",
+          "startS": 13.44,
+          "endS": 13.78
+        },
+        {
+          "text": "commit,",
+          "startS": 13.84,
+          "endS": 14.344999999999999
+        },
+        {
+          "text": "push,",
+          "startS": 14.405,
+          "endS": 14.799999999999999
+        },
+        {
+          "text": "merge,",
+          "startS": 14.86,
+          "endS": 15.309999999999999
+        },
+        {
+          "text": "até",
+          "startS": 15.37,
+          "endS": 15.655
+        },
+        {
+          "text": "um",
+          "startS": 15.715,
+          "endS": 15.944999999999999
+        },
+        {
+          "text": "gh",
+          "startS": 16.005,
+          "endS": 16.235
+        },
+        {
+          "text": "pr",
+          "startS": 16.294999999999998,
+          "endS": 16.525
+        },
+        {
+          "text": "create.",
+          "startS": 16.585,
+          "endS": 17.09
+        }
+      ]
+    },
+    {
+      "shotId": "approve",
+      "text": "E uma aprovação vale pra uma ação.",
+      "highlight": "ação",
+      "startS": 18.599999999999998,
+      "endS": 21.339999999999996,
+      "words": [
+        {
+          "text": "E",
+          "startS": 18.599999999999998,
+          "endS": 18.775
+        },
+        {
+          "text": "uma",
+          "startS": 18.834999999999997,
+          "endS": 19.119999999999997
+        },
+        {
+          "text": "aprovação",
+          "startS": 19.179999999999996,
+          "endS": 19.794999999999998
+        },
+        {
+          "text": "vale",
+          "startS": 19.854999999999997,
+          "endS": 20.194999999999997
+        },
+        {
+          "text": "pra",
+          "startS": 20.254999999999995,
+          "endS": 20.54
+        },
+        {
+          "text": "uma",
+          "startS": 20.599999999999998,
+          "endS": 20.884999999999998
+        },
+        {
+          "text": "ação.",
+          "startS": 20.944999999999997,
+          "endS": 21.339999999999996
+        }
+      ]
+    },
+    {
+      "shotId": "again",
+      "text": "Aprovei o commit? O push pergunta de novo.",
+      "highlight": "novo",
+      "startS": 23.4,
+      "endS": 26.705,
+      "words": [
+        {
+          "text": "Aprovei",
+          "startS": 23.4,
+          "endS": 23.904999999999998
+        },
+        {
+          "text": "o",
+          "startS": 23.964999999999996,
+          "endS": 24.139999999999997
+        },
+        {
+          "text": "commit?",
+          "startS": 24.2,
+          "endS": 24.705
+        },
+        {
+          "text": "O",
+          "startS": 24.764999999999997,
+          "endS": 24.939999999999998
+        },
+        {
+          "text": "push",
+          "startS": 24.999999999999996,
+          "endS": 25.339999999999996
+        },
+        {
+          "text": "pergunta",
+          "startS": 25.4,
+          "endS": 25.959999999999997
+        },
+        {
+          "text": "de",
+          "startS": 26.019999999999996,
+          "endS": 26.249999999999996
+        },
+        {
+          "text": "novo.",
+          "startS": 26.31,
+          "endS": 26.705
+        }
+      ]
+    },
+    {
+      "shotId": "rule",
+      "text": "Isso é uma regra do EngineOS, o framework que eu criei pra usar IA num time de verdade.",
+      "highlight": "EngineOS",
+      "startS": 28.2,
+      "endS": 35.23,
+      "words": [
+        {
+          "text": "Isso",
+          "startS": 28.2,
+          "endS": 28.54
+        },
+        {
+          "text": "é",
+          "startS": 28.599999999999998,
+          "endS": 28.775
+        },
+        {
+          "text": "uma",
+          "startS": 28.834999999999997,
+          "endS": 29.119999999999997
+        },
+        {
+          "text": "regra",
+          "startS": 29.18,
+          "endS": 29.575
+        },
+        {
+          "text": "do",
+          "startS": 29.634999999999998,
+          "endS": 29.865
+        },
+        {
+          "text": "EngineOS,",
+          "startS": 29.924999999999997,
+          "endS": 30.54
+        },
+        {
+          "text": "o",
+          "startS": 30.599999999999998,
+          "endS": 30.775
+        },
+        {
+          "text": "framework",
+          "startS": 30.834999999999997,
+          "endS": 31.45
+        },
+        {
+          "text": "que",
+          "startS": 31.509999999999998,
+          "endS": 31.794999999999998
+        },
+        {
+          "text": "eu",
+          "startS": 31.855,
+          "endS": 32.085
+        },
+        {
+          "text": "criei",
+          "startS": 32.144999999999996,
+          "endS": 32.54
+        },
+        {
+          "text": "pra",
+          "startS": 32.6,
+          "endS": 32.885
+        },
+        {
+          "text": "usar",
+          "startS": 32.945,
+          "endS": 33.285
+        },
+        {
+          "text": "IA",
+          "startS": 33.345,
+          "endS": 33.575
+        },
+        {
+          "text": "num",
+          "startS": 33.635,
+          "endS": 33.92
+        },
+        {
+          "text": "time",
+          "startS": 33.98,
+          "endS": 34.32
+        },
+        {
+          "text": "de",
+          "startS": 34.379999999999995,
+          "endS": 34.61
+        },
+        {
+          "text": "verdade.",
+          "startS": 34.67,
+          "endS": 35.23
+        }
+      ]
+    },
+    {
+      "shotId": "cta",
+      "text": "Link na bio: checklist grátis.",
+      "highlight": "grátis",
+      "startS": 36.6,
+      "endS": 40.01500000000001,
+      "words": [
+        {
+          "text": "Link",
+          "startS": 36.6,
+          "endS": 36.940000000000005
+        },
+        {
+          "text": "na",
+          "startS": 37.00000000000001,
+          "endS": 37.230000000000004
+        },
+        {
+          "text": "bio:",
+          "startS": 37.290000000000006,
+          "endS": 37.63
+        },
+        {
+          "text": "checklist",
+          "startS": 37.690000000000005,
+          "endS": 38.30500000000001
+        },
+        {
+          "text": "grátis",
+          "startS": 38.365,
+          "endS": 38.815000000000005
+        },
+        {
+          "text": "com",
+          "startS": 38.87500000000001,
+          "endS": 39.160000000000004
+        },
+        {
+          "text": "as",
+          "startS": 39.220000000000006,
+          "endS": 39.45
+        },
+        {
+          "text": "regras.",
+          "startS": 39.510000000000005,
+          "endS": 40.01500000000001
+        }
+      ]
+    }
+  ],
+  "copy": {
+    "hook": "Sua IA faz commit sem pedir?",
+    "hookHighlight": "commit",
+    "userPrompt": "corrige o redirect do login e sobe pra main",
+    "claudeSay": "Vou commitar a correção e subir pra main.",
+    "cta": "Link na bio",
+    "ctaSub": "checklist grátis",
+    "ruleCaption": "rules/git.md",
+    "disclosure": "Voz gerada por IA",
+    "approvedLabel": "aprovado",
+    "askedLabel": "pergunta de novo",
+    "slide1.title": "Sua IA faz commit sem pedir?",
+    "slide1.body": "A minha não consegue. Veja como.",
+    "slide2.title": "Todo comando que escreve no git vira uma pergunta",
+    "slide2.body": "commit, push, merge, até gh pr create",
+    "slide3.title": "O guard intercepta antes de rodar",
+    "slide3.body": "[engineos] git write: git push",
+    "slide4.title": "Uma aprovação vale pra uma ação",
+    "slide4.body": "Aprovei o commit? O push pergunta de novo.",
+    "slide5.title": "Não é prompt. É regra.",
+    "slide5.body": "rules/git.md, versionada por PR no EngineOS",
+    "slide6.title": "Link na bio",
+    "slide6.body": "Checklist grátis"
+  }
+}

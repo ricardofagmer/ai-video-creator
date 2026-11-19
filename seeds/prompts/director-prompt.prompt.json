@@ -1,0 +1,18 @@
+{
+  "assetId": "director-prompt",
+  "name": "Prompt do diretor de cenas",
+  "summary": "Guia de estilo do Diretor de cenas: captura primeiro, só refs oferecidas, movimentos e transições da lista do modelo.",
+  "tags": ["prompt", "director", "scenes"],
+  "textFile": "director-prompt.md",
+  "mimeType": "text/markdown",
+  "variables": [
+    { "name": "scriptSceneIds", "type": "string-list", "description": "sceneId of each DirectorPacket.inputs.script.scenes entry; one visual per scene, same order.", "required": true, "default": null },
+    { "name": "captureIds", "type": "string-list", "description": "captureId of each DirectorPacket.inputs.capturesIndex entry; empty when nothing was captured.", "required": true, "default": null },
+    { "name": "offeredRefs", "type": "string-list", "description": "ref (assetId@version) of each DirectorPacket.inputs.offeredRefs entry; the only refs to cite besides own search results.", "required": true, "default": null },
+    { "name": "cameraMoves", "type": "string-list", "description": "DirectorPacket.constraints.cameraMoves, from the bound template's details.cameraMoves.", "required": true, "default": null },
+    { "name": "transitions", "type": "string-list", "description": "DirectorPacket.constraints.transitions, from the bound template's details.transitions.", "required": true, "default": null },
+    { "name": "motionStyle", "type": "string", "description": "DirectorPacket.inputs.brandKit.motionStyle, from the bound brand kit.", "required": true, "default": null },
+    { "name": "retryInstruction", "type": "string", "description": "DirectorPacket.inputs.retryInstruction: the Reviewer's instruction, on a revision only.", "required": false, "default": null }
+  ],
+  "notes": "Bound to slot prompt:director. Topology v1 DirectorPacket has no prompt field, so in R1 the engine records this version for prompt-version metering only (topology section 10); the role's built-in prompt director@1 drives the call. Output contract: ScenesOutput (C7)."
+}

@@ -1,0 +1,16 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tools/*"
+
+# Packages allowed to run install scripts (ADR 0001). Keep this list short; every addition is a
+# supply-chain review (rules/security.md) and a revisit trigger in ADR 0001.
+# onnxruntime-node (ADR 0004, docs/vetting/0001) is deliberately absent, as the owner approved:
+# its postinstall is expected to fetch only Linux GPU providers and the darwin-arm64 CPU binary
+# to ship in the tarball (vetting check 3 confirms both at the first install).
+onlyBuiltDependencies:
+  - esbuild
+  - prisma
+  - "@prisma/client"
+  - "@prisma/engines"
+  - playwright

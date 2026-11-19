@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 1,
+  "videoId": "intro",
+  "lang": "pt",
+  "voice": "draft",
+  "bpm": 100,
+  "fps": 30,
+  "beatS": 0.6,
+  "totalBeats": 56,
+  "durationS": 33.6,
+  "shots": [
+    {
+      "id": "hook",
+      "section": "intro",
+      "startBeat": 0,
+      "beats": 8,
+      "startS": 0,
+      "endS": 4.8
+    },
+    {
+      "id": "who",
+      "section": "groove",
+      "startBeat": 8,
+      "beats": 12,
+      "startS": 4.8,
+      "endS": 12
+    },
+    {
+      "id": "git",
+      "section": "full",
+      "startBeat": 20,
+      "beats": 8,
+      "startS": 12,
+      "endS": 16.8
+    },
+    {
+      "id": "secret",
+      "section": "tension",
+      "startBeat": 28,
+      "beats": 8,
+      "startS": 16.8,
+      "endS": 21.6
+    },
+    {
+      "id": "agents",
+      "section": "warm",
+      "startBeat": 36,
+      "beats": 10,
+      "startS": 21.6,
+      "endS": 27.6
+    },
+    {
+      "id": "cta",
+      "section": "resolve",
+      "startBeat": 46,
+      "beats": 10,
+      "startS": 27.6,
+      "endS": 33.6
+    }
+  ],
+  "marks": {
+    "hook.title": 0,
+    "hook.avatarIn": 0.25,
+    "hook.ping1": 0.5,
+    "hook.ping2": 1,
+    "hook.ping3": 1.5,
+    "hook.ping4": 2,
+    "who.nameTag": 8,
+    "who.pillRules": 12.88,
+    "git.pillGit": 22.348333333333333,
+    "secret.alarm": 32.385,
+    "agents.pillRouter": 37.63666666666667,
+    "agents.pillAgents": 41.07166666666667,
+    "cta.breath": 46,
+    "cta.dots": 46.5,
+    "cta.logo": 48,
+    "cta.cta": 49
+  },
+  "lines": [
+    {
+      "shotId": "hook",
+      "text": "Oi, eu sou o Ricardo.",
+      "highlight": "Ricardo",
+      "startS": 1.5,
+      "endS": 3.2800000000000002,
+      "words": [
+        {
+          "text": "Oi,",
+          "startS": 1.5,
+          "endS": 1.8079999999999998
+        },
+        {
+          "text": "eu",
+          "startS": 1.835,
+          "endS": 2.065
+        },
+        {
+          "text": "sou",
+          "startS": 2.086,
+          "endS": 2.393
+        },
+        {
+          "text": "o",
+          "startS": 2.42,
+          "endS": 2.574
+        },
+        {
+          "text": "Ricardo.",
+          "startS": 2.5869999999999997,
+          "endS": 3.2800000000000002
+        }
+      ]
+    },
+    {
+      "shotId": "who",
+      "text": "Engenheiro de software. Criei o EngineOS: regras pra usar IA num time de verdade.",
+      "highlight": "EngineOS",
+      "startS": 5.3999999999999995,
+      "endS": 11.314,
+      "words": [
+        {
+          "text": "Engenheiro",
+          "startS": 5.3999999999999995,
+          "endS": 6.136
+        },
+        {
+          "text": "de",
+          "startS": 6.2,
+          "endS": 6.401
+        },
+        {
+          "text": "software.",
+          "startS": 6.419,
+          "endS": 7.088
+        },
+        {
+          "text": "Criei",
+          "startS": 7.146,
+          "endS": 7.548
+        },
+        {
+          "text": "o",
+          "startS": 7.583,
+          "endS": 7.717
+        },
+        {
+          "text": "EngineOS:",
+          "startS": 7.728,
+          "endS": 8.398
+        },
+        {
+          "text": "regras",
+          "startS": 8.456,
+          "endS": 8.924
+        },
+        {
+          "text": "pra",
+          "startS": 8.965,
+          "endS": 9.233
+        },
+        {
+          "text": "usar",
+          "startS": 9.256,
+          "endS": 9.591000000000001
+        },
+        {
+          "text": "IA",
+          "startS": 9.620000000000001,
+          "endS": 9.821
+        },
+        {
+          "text": "num",
+          "startS": 9.838000000000001,
+          "endS": 10.106
+        },
+        {
+          "text": "time",
+          "startS": 10.129,
+          "endS": 10.463999999999999
+        },
+        {
+          "text": "de",
+          "startS": 10.492999999999999,
+          "endS": 10.693999999999999
+        },
+        {
+          "text": "verdade.",
+          "startS": 10.711,
+          "endS": 11.314
+        }
+      ]
+    },
+    {
+      "shotId": "git",
+      "text": "Ela não faz commit sem me perguntar.",
+      "highlight": "perguntar",
+      "startS": 12.6,
+      "endS": 15.033999999999999,
+      "words": [
+        {
+          "text": "Ela",
+          "startS": 12.6,
+          "endS": 12.847999999999999
+        },
+        {
+          "text": "não",
+          "startS": 12.87,
+          "endS": 13.117999999999999
+        },
+        {
+          "text": "faz",
+          "startS": 13.139,
+          "endS": 13.386999999999999
+        },
+        {
+          "text": "commit",
+          "startS": 13.408999999999999,
+          "endS": 13.843
+        },
+        {
+          "text": "sem",
+          "startS": 13.879999999999999,
+          "endS": 14.128
+        },
+        {
+          "text": "me",
+          "startS": 14.149999999999999,
+          "endS": 14.335999999999999
+        },
+        {
+          "text": "perguntar.",
+          "startS": 14.351999999999999,
+          "endS": 15.033999999999999
+        }
+      ]
+    },
+    {
+      "shotId": "secret",
+      "text": "Não vaza senha: o commit é negado.",
+      "highlight": "negado",
+      "startS": 17.4,
+      "endS": 20.175,
+      "words": [
+        {
+          "text": "Não",
+          "startS": 17.4,
+          "endS": 17.697
+        },
+        {
+          "text": "vaza",
+          "startS": 17.723,
+          "endS": 18.095
+        },
+        {
+          "text": "senha:",
+          "startS": 18.127,
+          "endS": 18.647
+        },
+        {
+          "text": "o",
+          "startS": 18.692,
+          "endS": 18.841
+        },
+        {
+          "text": "commit",
+          "startS": 18.854,
+          "endS": 19.374
+        },
+        {
+          "text": "é",
+          "startS": 19.419,
+          "endS": 19.568
+        },
+        {
+          "text": "negado.",
+          "startS": 19.581,
+          "endS": 20.175
+        }
+      ]
+    },
+    {
+      "shotId": "agents",
+      "text": "E um supervisor decide qual dos 22 agentes trabalha.",
+      "highlight": "supervisor",
+      "startS": 22.2,
+      "endS": 26.185000000000002,
+      "words": [
+        {
+          "text": "E",
+          "startS": 22.2,
+          "endS": 22.34
+        },
+        {
+          "text": "um",
+          "startS": 22.353,
+          "endS": 22.563
+        },
+        {
+          "text": "supervisor",
+          "startS": 22.582,
+          "endS": 23.354
+        },
+        {
+          "text": "decide",
+          "startS": 23.421,
+          "endS": 23.913
+        },
+        {
+          "text": "qual",
+          "startS": 23.956,
+          "endS": 24.307000000000002
+        },
+        {
+          "text": "dos",
+          "startS": 24.338,
+          "endS": 24.618000000000002
+        },
+        {
+          "text": "22",
+          "startS": 24.643,
+          "endS": 24.854
+        },
+        {
+          "text": "agentes",
+          "startS": 24.872,
+          "endS": 25.434
+        },
+        {
+          "text": "trabalha.",
+          "startS": 25.483,
+          "endS": 26.185000000000002
+        }
+      ]
+    },
+    {
+      "shotId": "cta",
+      "text": "Link na bio: checklist grátis.",
+      "highlight": "grátis",
+      "startS": 28.2,
+      "endS": 30.628,
+      "words": [
+        {
+          "text": "Link",
+          "startS": 28.2,
+          "endS": 28.568
+        },
+        {
+          "text": "na",
+          "startS": 28.6,
+          "endS": 28.82
+        },
+        {
+          "text": "bio:",
+          "startS": 28.84,
+          "endS": 29.207
+        },
+        {
+          "text": "checklist",
+          "startS": 29.239,
+          "endS": 29.975
+        },
+        {
+          "text": "grátis.",
+          "startS": 30.039,
+          "endS": 30.628
+        }
+      ]
+    }
+  ],
+  "copy": {
+    "hook": "Sua IA precisa de regras.",
+    "hookHighlight": "regras",
+    "name": "Ricardo Fagmer",
+    "role": "Engenheiro de software",
+    "handle": "@ricardo.ai.lab",
+    "gitLabel": "pergunta antes",
+    "secretLabel": "negado",
+    "agentsLabel": "22 agentes",
+    "cta": "Link na bio",
+    "ctaSub": "checklist grátis",
+    "disclosure": "Voz gerada por IA",
+    "coverKicker": "Conheça o EngineOS"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "modelRef": "multilingual-e5-small-q8@unpinned",
+  "dimensions": 384,
+  "queryPrefix": "query: ",
+  "passagePrefix": "passage: ",
+  "maxInputTokens": 512,
+  "files": [
+    { "path": "tokenizer.json", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "sizeBytes": 0 },
+    { "path": "tokenizer_config.json", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "sizeBytes": 0 },
+    { "path": "onnx/model_quantized.onnx", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "sizeBytes": 0 }
+  ]
+}

@@ -1,0 +1,122 @@
+import {
+  IsoDateSchema,
+  PlatformMetricsSchema,
+  metricCellParsers,
+  type MetricCellParser,
+  type MetricName,
+  type PlatformMetrics,
+} from '@studio/shared/metrics';
+
+/*
+ * The manual metrics form of the run page (SPEC 0006 section 5.9): one text field per
+ * `PlatformMetrics` value, read with the same cell parsers the CSV import uses, so "4.000", "45%"
+ * and "1:23" mean the same in both. Only `views` is required. The api validates again.
+ */
+
+interface MetricFieldSpec {
+  label: string;
+  help?: string;
+  parser: MetricCellParser;
+}
+
+export const metricFieldSpecs: Readonly<Record<MetricName, MetricFieldSpec>> = {
+  views: { label: 'Visualizações', parser: 'integer' },
+  likes: { label: 'Curtidas', parser: 'integer' },
+  comments: { label: 'Comentários', parser: 'integer' },
+  shares: { label: 'Compartilhamentos', parser: 'integer' },
+  saves: { label: 'Salvamentos', parser: 'integer' },
+  impressions: { label: 'Impressões', parser: 'integer' },
+  reach: { label: 'Alcance', parser: 'integer' },
+  followersGained: { label: 'Seguidores ganhos', parser: 'integer' },
+  watchTimeSeconds: { label: 'Tempo assistido (horas)', help: 'Em horas, como no YouTube Studio. Ex.: 12,5', parser: 'hours' },
+  averageViewDurationSeconds: { label: 'Duração média assistida', help: 'm:ss ou segundos. Ex.: 0:42', parser: 'duration' },
+  averageViewPercent: { label: 'Porcentagem média assistida (%)', help: 'Pode passar de 100 quando o vídeo repete.', parser: 'percent' },
+};
+
+export const metricFieldOrder: readonly MetricName[] = [
+  'views',
+  'likes',
+  'comments',
+  'shares',
+  'saves',
+  'impressions',
+  'reach',
+  'followersGained',
+  'watchTimeSeconds',
+  'averageViewDurationSeconds',
+  'averageViewPercent',
+];
+
+export type MetricFormValues = Readonly<Record<MetricName, string>>;
+
+export type MetricFormErrors = Partial<Record<MetricName | 'asOfDate', string>>;
+
+export function emptyMetricValues(): MetricFormValues {
+  return {
+    views: '',
+    likes: '',
+    comments: '',
+    shares: '',
+    saves: '',
+    impressions: '',
+    reach: '',
+    followersGained: '',
+    watchTimeSeconds: '',
+    averageViewDurationSeconds: '',
+    averageViewPercent: '',
+  };
+}
+
+export type MetricFormResult =
+  | { kind: 'valid'; asOfDate: string; metrics: PlatformMetrics }
+  | { kind: 'invalid'; errors: MetricFormErrors };
+
+/** `null` for an empty field, the parsed number, or `'invalid'`. */
+function readField(name: MetricName, text: string): number | null | 'invalid' {
+  const parsed = metricCellParsers[metricFieldSpecs[name].parser](text);
+  if (parsed.status === 'empty') return null;
+  if (parsed.status === 'invalid') return 'invalid';
+  return parsed.value;
+}
+
+/**
+ * Builds the C10 `SaveMetricSnapshotRequest` and validates the date against `today` (the api
+ * refuses a future `asOfDate`; this only spares the round trip).
+ */
+export function buildMetricSnapshot(options: { asOfDate: string; values: MetricFormValues; today: string }): MetricFormResult {
+  const errors: MetricFormErrors = {};
+  if (!IsoDateSchema.safeParse(options.asOfDate).success) errors.asOfDate = 'Escolha a data dos números.';
+  else if (options.asOfDate > options.today) errors.asOfDate = 'A data das métricas não pode ser no futuro.';
+
+  const read: Partial<Record<MetricName, number | null>> = {};
+  for (const name of metricFieldOrder) {
+    const value = readField(name, options.values[name]);
+    if (value === 'invalid') errors[name] = 'Número não reconhecido.';
+    else read[name] = value;
+  }
+  if (errors.views === undefined && (read.views === null || read.views === undefined)) errors.views = 'Informe as visualizações.';
+
+  const candidate = {
+    views: read.views ?? 0,
+    likes: read.likes ?? null,
+    comments: read.comments ?? null,
+    shares: read.shares ?? null,
+    saves: read.saves ?? null,
+    impressions: read.impressions ?? null,
+    reach: read.reach ?? null,
+    followersGained: read.followersGained ?? null,
+    watchTimeSeconds: read.watchTimeSeconds ?? null,
+    averageViewDurationSeconds: read.averageViewDurationSeconds ?? null,
+    averageViewPercent: read.averageViewPercent ?? null,
+  };
+  const parsed = PlatformMetricsSchema.safeParse(candidate);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      const field = metricFieldOrder.find((name) => name === issue.path[0]);
+      if (field !== undefined && errors[field] === undefined) errors[field] = 'Valor fora do limite aceito.';
+    }
+    if (Object.keys(errors).length === 0) errors.views = 'Valor fora do limite aceito.';
+  }
+  if (Object.keys(errors).length > 0 || !parsed.success) return { kind: 'invalid', errors };
+  return { kind: 'valid', asOfDate: options.asOfDate, metrics: parsed.data };
+}

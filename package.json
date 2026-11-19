@@ -1,0 +1,26 @@
+{
+  "name": "video-studio",
+  "private": true,
+  "description": "Video Studio: local catalog and AI-assisted video pipeline for one Mac (PRD 0001)",
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "ace": "pnpm --filter @ace/toolbox exec tsx src/cli.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@posthog/core": "1.69.1"
+    }
+  }
+}
