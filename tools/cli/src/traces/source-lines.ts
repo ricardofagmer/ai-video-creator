@@ -1,14 +1,11 @@
 import { constants } from 'node:fs';
 import { open, type FileHandle } from 'node:fs/promises';
-import { z } from 'zod';
-import { readJsonLines } from '@studio/shared/run-files';
 import { TraceExportError } from './trace-errors.js';
 
-/** One page of an append-only JSON-lines file; no C3 line comes near it. */
+/** One page of an append-only JSON-lines file; no C3 event line comes near it. */
 const PAGE_BYTES = 1_048_576;
 
-/** Lines are kept raw: the telemetry mapper validates each one and counts what it cannot map. */
-const RawLineSchema = z.unknown();
+const NEWLINE = 0x0a;
 
 function hasErrorCode(error: unknown, code: string): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
@@ -24,23 +21,90 @@ export interface SourceLinesRequest {
   keep?: (line: unknown) => boolean;
 }
 
+/** A complete line of the file, or one longer than a page whose bytes were skipped unread. */
+type RawLine = { status: 'text'; text: string } | { status: 'over-long' };
+
+const OVER_LONG: RawLine = { status: 'over-long' };
+
+async function openForReading(filePath: string): Promise<FileHandle | 'absent'> {
+  try {
+    return await open(filePath, constants.O_RDONLY);
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) return 'absent';
+    throw error;
+  }
+}
+
 /**
- * Complete lines of an append-only JSON-lines file, read page by page through the C5 reader (which
- * ignores a trailing partial line, an append in progress). A missing file reads as no lines. Past
- * `maxBytes` the export stops with `source-too-large` instead of reading the rest.
+ * The complete lines of the file, page by page, holding at most one page of an unfinished line. A
+ * trailing partial line (an append in progress) is not returned. Past `maxBytes` read, the export
+ * stops with `source-too-large` instead of reading the rest.
  */
-export async function readSourceLines(request: SourceLinesRequest): Promise<unknown[]> {
-  const kept: unknown[] = [];
-  let fromByte = 0;
+async function* completeLines(handle: FileHandle, request: SourceLinesRequest): AsyncGenerator<RawLine> {
+  const page = Buffer.alloc(PAGE_BYTES);
+  let pending = Buffer.alloc(0);
+  let skippingOverLongLine = false;
+  let position = 0;
   for (;;) {
     request.signal.throwIfAborted();
-    const page = await readJsonLines(request.filePath, RawLineSchema, fromByte, PAGE_BYTES);
-    for (const line of page.entries) {
-      if (request.keep === undefined || request.keep(line)) kept.push(line);
+    const { bytesRead } = await handle.read(page, 0, PAGE_BYTES, position);
+    if (bytesRead === 0) return;
+    position += bytesRead;
+    if (position > request.maxBytes) throw new TraceExportError('source-too-large', request.targetId);
+    let chunk = page.subarray(0, bytesRead);
+    for (let newline = chunk.indexOf(NEWLINE); newline >= 0; newline = chunk.indexOf(NEWLINE)) {
+      const overLong = skippingOverLongLine || pending.length + newline > PAGE_BYTES;
+      // A newline byte never occurs inside a UTF-8 sequence, so each line decodes on its own.
+      yield overLong ? OVER_LONG : { status: 'text', text: Buffer.concat([pending, chunk.subarray(0, newline)]).toString('utf8') };
+      skippingOverLongLine = false;
+      pending = Buffer.alloc(0);
+      chunk = chunk.subarray(newline + 1);
     }
-    if (page.nextByte === fromByte) return kept;
-    fromByte = page.nextByte;
-    if (fromByte > request.maxBytes) throw new TraceExportError('source-too-large', request.targetId);
+    if (skippingOverLongLine) continue;
+    if (pending.length + chunk.length > PAGE_BYTES) {
+      skippingOverLongLine = true;
+      pending = Buffer.alloc(0);
+    } else {
+      // Copied out: the page buffer is reused by the next read.
+      pending = Buffer.concat([pending, chunk]);
+    }
+  }
+}
+
+/** An unreadable line is handed over as null, which the telemetry mapper counts as unmapped. */
+function parsedLine(text: string): unknown {
+  try {
+    const value: unknown = JSON.parse(text);
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Complete lines of an append-only JSON-lines file, kept raw: the telemetry mapper validates each
+ * one and counts what it cannot map (ADR 0006), so one bad line never aborts the export. A line that
+ * is not JSON is handed over as null. A line longer than a page is skipped unread; it is handed over
+ * as null too unless `keep` is given, because a kept line (a session `end`) is always short while a
+ * session's prompt and output lines may be long. A missing file reads as no lines.
+ */
+export async function readSourceLines(request: SourceLinesRequest): Promise<unknown[]> {
+  const handle = await openForReading(request.filePath);
+  if (handle === 'absent') return [];
+  try {
+    const kept: unknown[] = [];
+    for await (const line of completeLines(handle, request)) {
+      if (line.status === 'over-long') {
+        if (request.keep === undefined) kept.push(null);
+        continue;
+      }
+      if (line.text.trim() === '') continue;
+      const value = parsedLine(line.text);
+      if (value === null || request.keep === undefined || request.keep(value)) kept.push(value);
+    }
+    return kept;
+  } finally {
+    await handle.close();
   }
 }
 

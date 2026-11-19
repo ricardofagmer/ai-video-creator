@@ -94,7 +94,8 @@ async function loadCuration(location: CurationLocation, signal: AbortSignal): Pr
 /**
  * Production `TraceSource`: reads `runs/<id>/events.jsonl` and the end line of each session stream,
  * or `curations/<id>/events.jsonl` and the end lines of `session.jsonl`, through the shared C5 path
- * and read helpers (paths confined to the folder), then maps them. Read-only; no request of any kind.
+ * helpers (paths confined to the folder) and a bounded line reader that hands unreadable lines to the
+ * mapper to count, then maps them. Read-only; no request of any kind.
  */
 export function fileTraceSource(folders: TraceDataFolders): TraceSource {
   return {
