@@ -26,13 +26,21 @@ type RawLine = { status: 'text'; text: string } | { status: 'over-long' };
 
 const OVER_LONG: RawLine = { status: 'over-long' };
 
+/**
+ * A link or non-regular file planted in a run folder reads as absent, as in `readLastLine`: the
+ * export never follows a link out of the data home and never blocks on a FIFO.
+ */
 async function openForReading(filePath: string): Promise<FileHandle | 'absent'> {
+  let handle: FileHandle;
   try {
-    return await open(filePath, constants.O_RDONLY);
+    handle = await open(filePath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   } catch (error) {
-    if (hasErrorCode(error, 'ENOENT')) return 'absent';
+    if (hasErrorCode(error, 'ENOENT') || hasErrorCode(error, 'ELOOP') || hasErrorCode(error, 'ENOTDIR')) return 'absent';
     throw error;
   }
+  if ((await handle.stat()).isFile()) return handle;
+  await handle.close();
+  return 'absent';
 }
 
 /**
@@ -86,7 +94,8 @@ function parsedLine(text: string): unknown {
  * one and counts what it cannot map (ADR 0006), so one bad line never aborts the export. A line that
  * is not JSON is handed over as null. A line longer than a page is skipped unread; it is handed over
  * as null too unless `keep` is given, because a kept line (a session `end`) is always short while a
- * session's prompt and output lines may be long. A missing file reads as no lines.
+ * session's prompt and output lines may be long. A missing file, a link and a non-regular file read
+ * as no lines.
  */
 export async function readSourceLines(request: SourceLinesRequest): Promise<unknown[]> {
   const handle = await openForReading(request.filePath);
