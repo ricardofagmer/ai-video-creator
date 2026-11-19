@@ -46,11 +46,11 @@ export class DaemonLoop {
   private scanFailing = false;
 
   constructor(
-    @Inject(RunEngine) private readonly engine: RunEngine,
-    @Inject(RunScanner) private readonly scanner: RunScanner,
-    @Inject(CurationStep) private readonly curations: CurationStep,
-    @Inject(ScheduleStep) private readonly schedules: ScheduleStep,
-    @Inject(BusyIntervalTracker) private readonly busy: BusyIntervalTracker,
+    @Inject(RunEngine) private readonly engine: Pick<RunEngine, 'execute'>,
+    @Inject(RunScanner) private readonly scanner: Pick<RunScanner, 'scan'>,
+    @Inject(CurationStep) private readonly curations: Pick<CurationStep, 'sweepStale' | 'claimNext'>,
+    @Inject(ScheduleStep) private readonly schedules: Pick<ScheduleStep, 'evaluate'>,
+    @Inject(BusyIntervalTracker) private readonly busy: Pick<BusyIntervalTracker, 'track'>,
     @Inject(DAEMON_SHUTDOWN) private readonly shutdown: AbortSignal,
   ) {}
 

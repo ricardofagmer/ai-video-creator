@@ -133,6 +133,55 @@ describe('ScheduleStep.evaluate: a crash between the run write and the slot line
     assert.equal((await slotLines(harness, schedule.scheduleId)).filter((line) => line.result === 'fired').length, 1);
     assert.equal((await readRun(harness, runId)).schedule?.slotAt, '2026-11-20T12:00:00.000Z');
   });
+
+  it('appends the fired line, never missed, when the restart comes later than lateGraceMs', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    harness.slotLog.failNextFired = true;
+    await harness.step.evaluate();
+    const [runId = ''] = await runFolderIds(harness);
+
+    // Restarted 3 h after the 12:00Z slot: the crashed candidate is now an old slot.
+    const restartedStep = restartStep(harness);
+    harness.clock.set('2026-11-20T15:00:00.000Z');
+    assert.equal(await restartedStep.evaluate(), false);
+
+    assert.deepEqual(await runFolderIds(harness), [runId], 'no second run is written');
+    assert.deepEqual(
+      (await slotLines(harness, schedule.scheduleId)).map((line) => [line.slotAt, line.result, line.reasonId, line.runId, line.briefId]),
+      [['2026-11-20T12:00:00.000Z', 'fired', null, runId, schedule.briefs[0]?.briefId]],
+    );
+    assert.ok(harness.events.events.some((event) => event.type === 'schedule.slot-recovered' && event.runId === runId));
+    assert.equal(harness.facts.requests.length, 1, 'the guards are not asked again for a slot that already has its run');
+    assert.equal((await cursorOf(harness, schedule.scheduleId))?.evaluatedThrough, '2026-11-20T15:00:00.000Z');
+  });
+
+  it('recovers only the crashed slot across a gap: later old slots stay missed and the newest fires', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    harness.slotLog.failNextFired = true;
+    await harness.step.evaluate();
+    const [crashedRunId = ''] = await runFolderIds(harness);
+
+    const restartedStep = restartStep(harness);
+    harness.clock.set('2026-11-23T12:30:00.000Z');
+    assert.equal(await restartedStep.evaluate(), true);
+
+    const lines = await slotLines(harness, schedule.scheduleId);
+    assert.deepEqual(
+      lines.map((line) => [line.slotAt, line.result, line.reasonId]),
+      [
+        ['2026-11-20T12:00:00.000Z', 'fired', null],
+        ['2026-11-21T12:00:00.000Z', 'missed', 'watcher-not-running'],
+        ['2026-11-22T12:00:00.000Z', 'missed', 'watcher-not-running'],
+        ['2026-11-23T12:00:00.000Z', 'fired', null],
+      ],
+    );
+    assert.equal(lines[0]?.runId, crashedRunId);
+    const runIds = await runFolderIds(harness);
+    assert.equal(runIds.length, 2, 'one run for the crashed slot, one for the newest slot');
+    const [newRunId = ''] = runIds.filter((runId) => runId !== crashedRunId);
+    assert.equal(lines[3]?.runId, newRunId);
+    assert.equal((await readRun(harness, newRunId)).schedule?.slotAt, '2026-11-23T12:00:00.000Z');
+  });
 });
 
 describe('ScheduleStep.evaluate: paused, deleted and resumed schedules (R3-AC-20)', () => {

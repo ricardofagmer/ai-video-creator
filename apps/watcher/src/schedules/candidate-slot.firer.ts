@@ -19,12 +19,20 @@ export interface CandidateSlot {
 export type CandidateOutcome = 'fired' | 'decided';
 
 /**
+ * `recovered`: a `run.json` written for the slot before a crash was found and its `fired` line
+ * appended. `none`: no run holds the slot. `unknown`: a candidate folder could not be read.
+ */
+export type SlotRunRecovery = 'recovered' | 'none' | 'unknown';
+
+/**
  * The fire candidate of one schedule (SPEC 0006 section 5.6 "guards", "fire", "Crash safety"):
  *
- * 1. Look for a `run.json` already written for this slot (a crash after the run write and before
- *    the slot line). Found: only the missing `fired` line is appended, with the run's own id and
- *    brief, so `runId` for a slot is decided once (R3-AC-16). Unknown (an unreadable candidate
- *    folder): `skipped` / `internal-error`, never a second run.
+ * 1. `recoverWrittenRun`: look for a `run.json` already written for this slot (a crash after the
+ *    run write and before the slot line). Found: only the missing `fired` line is appended, with
+ *    the run's own id and brief, so `runId` for a slot is decided once (R3-AC-16). Unknown (an
+ *    unreadable candidate folder): `skipped` / `internal-error`, never a second run. The schedule
+ *    step asks the same question for every slot it is about to log `missed`, because a restart
+ *    later than `lateGraceMs` turns the crashed candidate into an old slot.
  * 2. Collect the guard facts (reads only) and apply core `decideSlot`; a skip appends its reason. A
  *    failed collection is `skipped` / `internal-error`.
  * 3. Fire: build the run with core `ScheduledRunFactory` (status `pending`, `createdBy: 'watcher'`,
@@ -47,14 +55,9 @@ export class CandidateSlotFirer {
   async handle(candidate: CandidateSlot): Promise<CandidateOutcome> {
     const { schedule, slotAt, now } = candidate;
     const { scheduleId } = schedule;
-    const existing = await this.runs.findRunForSlot({ scheduleId, slotAt });
-    if (existing.state === 'found') {
-      const link = await this.runFiles.linkOf({ runId: existing.runId, scheduleId, slotAt });
-      await this.slotLog.append(scheduleId, firedSlotLine(slotAt, { runId: existing.runId, briefId: link.briefId }, now));
-      this.events.record({ type: 'schedule.slot-recovered', scheduleId, slotAt: slotAt.toISOString(), runId: existing.runId });
-      return 'decided';
-    }
-    if (existing.state === 'unknown') {
+    const recovery = await this.recoverWrittenRun(candidate);
+    if (recovery === 'recovered') return 'decided';
+    if (recovery === 'unknown') {
       await this.slotLog.append(scheduleId, skippedSlotLine(slotAt, 'internal-error', now));
       return 'decided';
     }
@@ -77,6 +80,21 @@ export class CandidateSlotFirer {
     await this.runFiles.create(run);
     await this.slotLog.append(scheduleId, firedSlotLine(slotAt, { runId, briefId: decision.brief.briefId }, now));
     return 'fired';
+  }
+
+  /**
+   * Appends the missing `fired` line when a run for this slot was written before a crash (R3-AC-16);
+   * writes nothing otherwise. Never writes a run.
+   */
+  async recoverWrittenRun(slot: CandidateSlot): Promise<SlotRunRecovery> {
+    const { schedule, slotAt, now } = slot;
+    const { scheduleId } = schedule;
+    const existing = await this.runs.findRunForSlot({ scheduleId, slotAt });
+    if (existing.state !== 'found') return existing.state;
+    const link = await this.runFiles.linkOf({ runId: existing.runId, scheduleId, slotAt });
+    await this.slotLog.append(scheduleId, firedSlotLine(slotAt, { runId: existing.runId, briefId: link.briefId }, now));
+    this.events.record({ type: 'schedule.slot-recovered', scheduleId, slotAt: slotAt.toISOString(), runId: existing.runId });
+    return 'recovered';
   }
 
   /** Null when a read failed; the error is logged by class name only. */

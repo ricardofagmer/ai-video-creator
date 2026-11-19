@@ -21,7 +21,11 @@ import { SlotLogWriter } from './slot-log.writer';
  * - every slot older than `lateGraceMs`, and every in-grace slot but the newest, is appended as
  *   `missed`: `watcher-busy` when this process was executing a run or curation at that instant
  *   (`BusyIntervalTracker`), else `watcher-not-running` (R3-AC-14, R3-AC-15). Missed slots are
- *   never replayed;
+ *   never replayed. Before that, each such slot is checked for a `run.json` written for it before
+ *   a crash (`CandidateSlotFirer.recoverWrittenRun`): a found run gets its missing `fired` line
+ *   instead, so a restart later than `lateGraceMs` still names the run and never writes a second
+ *   one (R3-AC-16, "Crash safety"). An unreadable candidate folder leaves the slot `missed`: no
+ *   run is written for an old slot either way;
  * - the newest in-grace slot goes to `CandidateSlotFirer`: one evaluation fires at most one run per
  *   schedule;
  * - `cursor.json` is written after the slot lines. An evaluation with no due slot writes nothing:
@@ -108,8 +112,12 @@ export class ScheduleStep {
     if (missed.length === 0 && candidate === null) return false;
 
     for (const slotAt of missed) {
-      const reasonId = this.busy.wasBusyAt(slotAt) ? 'watcher-busy' : 'watcher-not-running';
-      await this.slotLog.append(scheduleId, missedSlotLine(slotAt, reasonId, now));
+      // A slot whose run was written before a crash keeps that run: its `fired` line, not `missed`.
+      const recovery = await this.firer.recoverWrittenRun({ schedule, slotAt, now });
+      if (recovery !== 'recovered') {
+        const reasonId = this.busy.wasBusyAt(slotAt) ? 'watcher-busy' : 'watcher-not-running';
+        await this.slotLog.append(scheduleId, missedSlotLine(slotAt, reasonId, now));
+      }
       this.appendedThroughMs.set(scheduleId, slotAt.getTime());
     }
     let fired = false;
