@@ -110,6 +110,8 @@ Superfície `--color-surface`, borda `--color-border`, raio `--radius-lg`, sombr
 padding `--space-5` (a partir de `md`: `--space-6`), gap interno `--space-4`.
 
 - Cabeçalho: título `heading-3` (nível `h2` a `h4`), descrição `caption`, ações à direita.
+  Exceção: quando o card é o único conteúdo da página (login), o título é `h1` com aparência
+  `heading-3`, para a página manter um único `h1` (decisão do dono, 2026-11-19).
 - Com título, o card é `<section aria-labelledby>`.
 - Rodapé: ações à direita, separadas por uma borda superior `--color-border`.
 
