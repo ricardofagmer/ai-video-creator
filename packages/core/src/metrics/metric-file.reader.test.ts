@@ -64,7 +64,7 @@ describe('readMetricFile: profiles map to the one PlatformMetrics shape (R3-AC-0
       csvBytes([
         youtubeHeader,
         ['Total', '', '9000', '10', '0:40', '41%', '300', '30', '40', '5', '20000'],
-        ['dQw4w9WgXcQ', '"A title, with comma"', '4,000', '1.5', '0:45', '45.5%', '200', '20', '30', '3', '12000'],
+        ['dQw4w9WgXcQ', '"A title, with comma"', '"4,000"', '1.5', '0:45', '45.5%', '200', '20', '30', '3', '12000'],
       ]),
       'youtube',
     );
