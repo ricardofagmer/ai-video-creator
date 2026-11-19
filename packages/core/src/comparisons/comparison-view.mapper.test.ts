@@ -32,6 +32,6 @@ describe('compared version score', () => {
   it('copies only the score columns, so the strict schema accepts it', () => {
     const version = { qualityScore: 4.5, qualitySampleSize: 6, qualityPlatformSampleSize: 6, notes: 'not part of the score' };
 
-    assert.deepEqual(Object.keys(toComparedVersionScore(version)).sort(), ['qualityPlatformSampleSize', 'qualityScore', 'qualitySampleSize']);
+    assert.deepEqual(Object.keys(toComparedVersionScore(version)).sort(), ['qualityPlatformSampleSize', 'qualitySampleSize', 'qualityScore']);
   });
 });
