@@ -65,7 +65,7 @@ function keyMessagesError(recipe: Recipe): string {
 }
 
 /** pt-BR inline errors for the C2 `Brief` schema issues, by form field. */
-function schemaErrors(issues: readonly { path: readonly (string | number)[] }[], recipe: Recipe): NewRunErrors {
+function schemaErrors(issues: readonly { path: readonly PropertyKey[] }[], recipe: Recipe): NewRunErrors {
   const errors: NewRunErrors = {};
   for (const issue of issues) {
     const field = issue.path[0];

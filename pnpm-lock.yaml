@@ -57,8 +57,8 @@ importers:
         specifier: ^7.8.2
         version: 7.8.2
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@studio/eslint-config':
         specifier: workspace:*
@@ -121,8 +121,8 @@ importers:
         specifier: ^7.8.2
         version: 7.8.2
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@studio/eslint-config':
         specifier: workspace:*
@@ -164,8 +164,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@studio/eslint-config':
         specifier: workspace:*
@@ -193,13 +193,13 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: ^2.0.0
-        version: 2.0.115(zod@3.25.76)
+        version: 2.0.115(zod@4.6.7)
       '@huggingface/tokenizers':
         specifier: 0.2.0
         version: 0.2.0
       '@mastra/core':
         specifier: ^1.0.0
-        version: 1.85.0(effect@3.21.0)(express@5.2.1)(rxjs@7.8.2)(zod@3.25.76)
+        version: 1.85.0(effect@3.21.0)(express@5.2.1)(rxjs@7.8.2)(zod@4.6.7)
       '@nestjs/common':
         specifier: ^11.1.0
         version: 11.2.11(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -225,8 +225,8 @@ importers:
         specifier: ^7.8.2
         version: 7.8.2
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@studio/eslint-config':
         specifier: workspace:*
@@ -265,8 +265,8 @@ importers:
   packages/shared:
     dependencies:
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@studio/eslint-config':
         specifier: workspace:*
@@ -305,8 +305,8 @@ importers:
         specifier: ^1.56.0
         version: 1.65.1
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^22
@@ -371,8 +371,8 @@ importers:
         specifier: 4.0.541
         version: 4.0.541(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^22.15.0
@@ -420,8 +420,8 @@ importers:
         specifier: ^7.8.2
         version: 7.8.2
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@studio/eslint-config':
         specifier: workspace:*
@@ -4031,9 +4031,6 @@ packages:
   zod-from-json-schema@0.5.2:
     resolution: {integrity: sha512-/dNaicfdhJTOuUd4RImbLUE2g5yrSzzDjI/S6C2vO2ecAGZzn9UcRVgtyLSnENSmAOBRiSpUdzDS6fDWX3Z35g==}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
@@ -4055,35 +4052,35 @@ snapshots:
     optionalDependencies:
       express: 5.2.1
 
-  '@ai-sdk/anthropic@2.0.115(zod@3.25.76)':
+  '@ai-sdk/anthropic@2.0.115(zod@4.6.7)':
     dependencies:
       '@ai-sdk/provider': 2.0.5
-      '@ai-sdk/provider-utils': 3.0.46(zod@3.25.76)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 3.0.46(zod@4.6.7)
+      zod: 4.6.7
 
-  '@ai-sdk/provider-utils@3.0.46(zod@3.25.76)':
+  '@ai-sdk/provider-utils@3.0.46(zod@4.6.7)':
     dependencies:
       '@ai-sdk/provider': 2.0.5
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.1
       undici: 6.29.1
-      zod: 3.25.76
+      zod: 4.6.7
 
-  '@ai-sdk/provider-utils@4.0.66(zod@3.25.76)':
+  '@ai-sdk/provider-utils@4.0.66(zod@4.6.7)':
     dependencies:
       '@ai-sdk/provider': 3.0.19
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.1
       undici: 6.29.1
-      zod: 3.25.76
+      zod: 4.6.7
 
-  '@ai-sdk/provider-utils@5.0.81(zod@3.25.76)':
+  '@ai-sdk/provider-utils@5.0.81(zod@4.6.7)':
     dependencies:
       '@ai-sdk/provider': 4.0.38
       '@standard-schema/spec': 1.1.0
       '@workflow/serde': 4.1.0
       eventsource-parser: 3.1.1
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@ai-sdk/provider@2.0.5':
     dependencies:
@@ -4598,26 +4595,26 @@ snapshots:
     dependencies:
       '@lukeed/csprng': 1.1.0
 
-  '@mastra/core@1.85.0(effect@3.21.0)(express@5.2.1)(rxjs@7.8.2)(zod@3.25.76)':
+  '@mastra/core@1.85.0(effect@3.21.0)(express@5.2.1)(rxjs@7.8.2)(zod@4.6.7)':
     dependencies:
       '@a2a-js/sdk-v0_3': '@a2a-js/sdk@0.3.14(express@5.2.1)'
       '@a2a-js/sdk-v1': '@a2a-js/sdk@1.0.1(express@5.2.1)'
-      '@ai-sdk/provider-utils-v6': '@ai-sdk/provider-utils@4.0.66(zod@3.25.76)'
-      '@ai-sdk/provider-utils-v7': '@ai-sdk/provider-utils@5.0.81(zod@3.25.76)'
+      '@ai-sdk/provider-utils-v6': '@ai-sdk/provider-utils@4.0.66(zod@4.6.7)'
+      '@ai-sdk/provider-utils-v7': '@ai-sdk/provider-utils@5.0.81(zod@4.6.7)'
       '@ai-sdk/provider-v5': '@ai-sdk/provider@2.0.5'
       '@ai-sdk/provider-v6': '@ai-sdk/provider@3.0.19'
       '@ai-sdk/provider-v7': '@ai-sdk/provider@4.0.38'
       '@isaacs/ttlcache': 2.1.5
       '@lukeed/uuid': 2.0.1
-      '@mastra/schema-compat': 1.4.0(zod@3.25.76)
+      '@mastra/schema-compat': 1.4.0(zod@4.6.7)
       '@standard-schema/spec': 1.1.0
-      chat: 4.45.0(zod@3.25.76)
+      chat: 4.45.0(zod@4.6.7)
       croner: 10.0.1
       dotenv: 17.4.2
       execa: 9.6.1
       fastq: 1.20.3
       hono: 4.13.19
-      hono-openapi: 1.6.0(effect@3.21.0)(hono@4.13.19)(zod@3.25.76)
+      hono-openapi: 1.6.0(effect@3.21.0)(hono@4.13.19)(zod@4.6.7)
       ignore: 7.0.16
       jpeg-js: 0.4.4
       json-schema: 0.4.0
@@ -4630,7 +4627,7 @@ snapshots:
       ws: 8.23.0
       xxhash-wasm: 1.1.0
       yaml: 2.9.1
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - '@bufbuild/protobuf'
       - '@grpc/grpc-js'
@@ -4652,10 +4649,10 @@ snapshots:
       - zod-openapi
       - zod-to-json-schema
 
-  '@mastra/schema-compat@1.4.0(zod@3.25.76)':
+  '@mastra/schema-compat@1.4.0(zod@4.6.7)':
     dependencies:
       json-schema-to-zod: 2.8.1
-      zod: 3.25.76
+      zod: 4.6.7
       zod-from-json-schema: 0.5.2
 
   '@mediabunny/aac-encoder@1.64.0(mediabunny@1.64.0)':
@@ -5219,23 +5216,23 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
-  '@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@3.25.76)':
+  '@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@4.6.7)':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@types/json-schema': 7.0.15
       quansync: 0.2.11
     optionalDependencies:
       effect: 3.21.0
-      zod: 3.25.76
+      zod: 4.6.7
 
-  '@standard-community/standard-openapi@0.2.12(@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@3.25.76))(@standard-schema/spec@1.1.0)(effect@3.21.0)(openapi-types@12.1.3)(zod@3.25.76)':
+  '@standard-community/standard-openapi@0.2.12(@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@4.6.7))(@standard-schema/spec@1.1.0)(effect@3.21.0)(openapi-types@12.1.3)(zod@4.6.7)':
     dependencies:
-      '@standard-community/standard-json': 0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@3.25.76)
+      '@standard-community/standard-json': 0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@4.6.7)
       '@standard-schema/spec': 1.1.0
       openapi-types: 12.1.3
     optionalDependencies:
       effect: 3.21.0
-      zod: 3.25.76
+      zod: 4.6.7
 
   '@standard-schema/spec@1.1.0': {}
 
@@ -5774,7 +5771,7 @@ snapshots:
 
   character-entities@2.0.2: {}
 
-  chat@4.45.0(zod@3.25.76):
+  chat@4.45.0(zod@4.6.7):
     dependencies:
       '@chat-adapter/catalog': 4.45.0
       '@workflow/serde': 4.1.0-beta.2
@@ -5785,7 +5782,7 @@ snapshots:
       remend: 1.5.0
       unified: 11.0.5
     optionalDependencies:
-      zod: 3.25.76
+      zod: 4.6.7
     transitivePeerDependencies:
       - supports-color
 
@@ -6352,11 +6349,11 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono-openapi@1.6.0(effect@3.21.0)(hono@4.13.19)(zod@3.25.76):
+  hono-openapi@1.6.0(effect@3.21.0)(hono@4.13.19)(zod@4.6.7):
     dependencies:
       '@hono/standard-validator': 0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.19)
-      '@standard-community/standard-json': 0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@3.25.76)
-      '@standard-community/standard-openapi': 0.2.12(@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@3.25.76))(@standard-schema/spec@1.1.0)(effect@3.21.0)(openapi-types@12.1.3)(zod@3.25.76)
+      '@standard-community/standard-json': 0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@4.6.7)
+      '@standard-community/standard-openapi': 0.2.12(@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(effect@3.21.0)(zod@4.6.7))(@standard-schema/spec@1.1.0)(effect@3.21.0)(openapi-types@12.1.3)(zod@4.6.7)
       '@standard-schema/spec': 1.1.0
       '@types/json-schema': 7.0.15
       hono: 4.13.19
@@ -7763,8 +7760,6 @@ snapshots:
   zod-from-json-schema@0.5.2:
     dependencies:
       zod: 4.6.7
-
-  zod@3.25.76: {}
 
   zod@4.6.7: {}
 

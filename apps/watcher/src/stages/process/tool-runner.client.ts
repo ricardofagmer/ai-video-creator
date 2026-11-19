@@ -31,7 +31,7 @@ export interface ToolRunOptions {
 export class ToolRunner {
   constructor(private readonly settings: StageSettings) {}
 
-  async run<T>(request: ToolRunnerRequest, resultSchema: z.ZodType<T, z.ZodTypeDef, unknown>, options: ToolRunOptions): Promise<ToolRunOutcome<T>> {
+  async run<T>(request: ToolRunnerRequest, resultSchema: z.ZodType<T, unknown>, options: ToolRunOptions): Promise<ToolRunOutcome<T>> {
     const signal = commandSignal(options.signal, options.timeoutMs);
     const outcome = await spawnBounded({
       command: process.execPath,
@@ -56,7 +56,7 @@ export class ToolRunner {
   }
 }
 
-function parseReply<T>(command: string, stdout: string, resultSchema: z.ZodType<T, z.ZodTypeDef, unknown>): ToolRunOutcome<T> {
+function parseReply<T>(command: string, stdout: string, resultSchema: z.ZodType<T, unknown>): ToolRunOutcome<T> {
   const line = stdout
     .split('\n')
     .reverse()

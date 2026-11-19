@@ -22,13 +22,13 @@ export function refOfRow(row: { assetId: string; version: number }): AssetRef {
   return formatAssetRef({ assetId: row.assetId, version: row.version });
 }
 
-function parseValue<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, candidate: unknown, ref: AssetRef): T {
+function parseValue<T>(schema: z.ZodType<T, unknown>, candidate: unknown, ref: AssetRef): T {
   const parsed = schema.safeParse(candidate);
   if (!parsed.success) throw new EmbeddingSourceCorruptError(ref);
   return parsed.data;
 }
 
-function parseJson<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, text: string, ref: AssetRef): T {
+function parseJson<T>(schema: z.ZodType<T, unknown>, text: string, ref: AssetRef): T {
   let candidate: unknown;
   try {
     candidate = JSON.parse(text);

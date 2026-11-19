@@ -65,7 +65,7 @@ export async function writeFileAtomic(targetPath: string, content: string | Uint
 /** Validates against the contract first, then writes indented JSON with a trailing newline. */
 export async function writeJsonAtomic<T>(
   targetPath: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
   value: T,
 ): Promise<void> {
   const checked = schema.safeParse(value);
@@ -80,7 +80,7 @@ export async function writeJsonAtomic<T>(
  */
 export async function appendJsonLine<T>(
   targetPath: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
   value: T,
 ): Promise<void> {
   const checked = schema.safeParse(value);

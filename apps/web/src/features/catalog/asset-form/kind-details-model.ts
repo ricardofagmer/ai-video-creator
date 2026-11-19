@@ -306,7 +306,7 @@ const detailSchemas: Readonly<Record<AssetKind, z.ZodTypeAny>> = {
 };
 
 /** Which form field a C1 details issue belongs to. */
-function fieldIdOfIssue(kind: AssetKind, path: readonly (string | number)[]): string {
+function fieldIdOfIssue(kind: AssetKind, path: readonly PropertyKey[]): string {
   const [first] = path;
   if (kind === 'prompt') return VARIABLES_FIELD_ID;
   if (kind === 'brand-kit') return detailFieldId('brandKitJson');

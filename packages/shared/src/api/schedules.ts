@@ -6,7 +6,7 @@ import { RecipeRefSchema } from '../recipes/recipe';
 import { scheduleBounds } from '../schedules/constants';
 import { CreatableBriefModeSchema } from '../schedules/enums';
 import { IanaTimeZoneSchema, RecurrenceSchema } from '../schedules/recurrence';
-import { ScheduleBriefSchema, ScheduleFileSchema } from '../schedules/schedule-file';
+import { ScheduleBriefSchema, ScheduleFileBaseSchema } from '../schedules/schedule-file';
 import { SlotLineSchema } from '../schedules/slot-log';
 
 /*
@@ -81,7 +81,7 @@ export type ScheduleBriefView = z.infer<typeof ScheduleBriefViewSchema>;
  * unless `active`), `slots` (newest 20), `missedLast7Days`, `briefsRemaining` (null in `repeat`
  * mode) and `worstCasePerMonthUsd` (slots in the next 31 days times the per-run consent).
  */
-export const ScheduleViewSchema = ScheduleFileSchema.innerType()
+export const ScheduleViewSchema = ScheduleFileBaseSchema
   .omit({ briefs: true })
   .extend({
     briefs: z.array(ScheduleBriefViewSchema).min(1).max(scheduleBounds.maxBriefs),

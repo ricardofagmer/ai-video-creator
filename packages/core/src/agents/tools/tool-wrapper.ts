@@ -42,9 +42,9 @@ export interface GuardedTool<Input, Result, Handoff> {
   readonly name: AgentToolName;
   readonly description: string;
   /** The C7 input schema, unchanged. */
-  readonly inputSchema: z.ZodType<Input, z.ZodTypeDef, unknown>;
+  readonly inputSchema: z.ZodType<Input, unknown>;
   /** The tool's shared envelope (`toolEnvelopeSchema`), checked before anything leaves the wrapper. */
-  readonly envelopeSchema: z.ZodType<unknown, z.ZodTypeDef, unknown>;
+  readonly envelopeSchema: z.ZodType<unknown, unknown>;
   /** Maps schema issues to a code of the tool's own `toolErrorCodes` row. */
   invalidInput(issues: readonly z.ZodIssue[]): ToolFailure;
   run(input: Input, call: ToolCall): Promise<ToolSuccess<Result, Handoff>>;
