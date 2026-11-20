@@ -1,0 +1,27 @@
+{
+  "name": "@studio/shell",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Menu-bar shell: thin Electron tray app over the local services, no window and no listener (SPEC 0006 R3-08, ADR 0005, vetting 0002)",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "package": "node scripts/package-app.mjs"
+  },
+  "devDependencies": {
+    "@electron/fuses": "2.1.3",
+    "@electron/packager": "20.3.0",
+    "@studio/eslint-config": "workspace:*",
+    "@studio/shared": "workspace:*",
+    "@studio/tsconfig": "workspace:*",
+    "@types/node": "^22.15.0",
+    "electron": "45.4.1",
+    "esbuild": "0.28.2",
+    "eslint": "^9.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3"
+  }
+}

@@ -284,3 +284,160 @@ tree. Rejecting both returns R3-08 `BLOCKED` and reopens ADR 0005 B1 versus B3 (
 ## Owner decision
 
 2026-11-19, Ricardo Fagmer: **approved option P**: `electron` 45.4.1, `@electron/packager` 20.3.0, `@electron/fuses` 2.1.3, exact pins in `apps/shell` `devDependencies`, no `onlyBuiltDependencies` entry, framework fetched by one explicit step from GitHub releases of `electron/electron`. Nothing installed or downloaded by this decision; phase 2 checks each need their own approval.
+
+## 12. Phase 2 results (ticket 09-shell-dependencies)
+
+Date: 2026-11-19. Author: backend-coordinator (super-dev run `2026-11-19-r3-outside-signals-3`, ticket
+`09-shell-dependencies`). Owner approvals used: the install command, the protected paths
+`apps/shell/package.json` and `pnpm-lock.yaml`, and the read-only network reads of checks 1, 2 and 6,
+all recorded at the super-dev review. Sections 1 to 11 above are unchanged.
+
+Install, run once from the repository root with pnpm 10.12.1:
+`pnpm add -D --save-exact electron@45.4.1 @electron/packager@20.3.0 @electron/fuses@2.1.3 --filter @studio/shell`,
+exit 0, "Done in 3.6s". The output named no build script, no "Ignored build scripts" notice and no
+download; `node_modules/.modules.yaml` holds `pendingBuilds: []`. `electron` 45.4.1 as installed has
+no `scripts` field at all, so pnpm had nothing to block (section 4 and section 6 predicted this).
+`~/Library/Caches/electron` did not exist before or after, and `node_modules/electron` holds no
+`dist` folder and no `path.txt`: the framework was not downloaded. `install-electron` and `electron`
+were not run.
+
+### Check 1: upstream install commands and repositories (result: pass)
+
+| Source read on 2026-11-19 | Observed |
+|---|---|
+| `https://www.electronjs.org/docs/latest/tutorial/installation` (HTTP 200) | Publishes `npm install electron --save-dev`. "Binary download step": the binary "is downloaded by default the first time you run Electron in development mode", or on demand with `npx install-electron --no` |
+| `https://github.com/electron/packager` (HTTP 200) | README publishes `npm install --save-dev @electron/packager` and `npx @electron/packager` |
+| `https://github.com/electron/fuses` (HTTP 200) | README imports `flipFuses`, `FuseVersion`, `FuseV1Options` from `@electron/fuses`; CLI `npx @electron/fuses read --app` and `write --app` |
+| `npm view <pkg>@<version> repository.url dist.integrity --json` | `electron` 45.4.1: `git+https://github.com/electron/electron.git`; `@electron/packager` 20.3.0: `git+https://github.com/electron/packager.git`; `@electron/fuses` 2.1.3: `git+https://github.com/electron/fuses.git`. The three integrities equal the `resolution.integrity` entries in `pnpm-lock.yaml`; the `electron` integrity equals section 2 |
+
+Package names and repositories match section 2. No stop condition.
+
+### Check 2: signatures, lockfile and lifecycle scripts (result: pass)
+
+- `npm audit signatures`, run once in `apps/shell`: exit 0, "audited 839 packages", "839 packages have
+  verified registry signatures", "202 packages have verified attestations". npm walked the whole
+  workspace tree, which contains the 53 packages below; no invalid or missing signature was reported.
+- Lockfile diff: additions only (370 added lines, 0 removed). One new importer, `apps/shell`; its three
+  Electron specifiers and resolved versions are `45.4.1`, `20.3.0` and `2.1.3`. `esbuild` resolves to
+  the existing `0.28.2`; no new `esbuild` or `@esbuild/*` package version entered the lockfile.
+- `requiresBuild` appears 0 times in the lockfile. The dependency closure of the three roots, walked
+  over the lockfile snapshots, is **53 packages**, the same count as section 4. Every package in it was
+  read from its installed `package.json`: none has a `preinstall`, `install` or `postinstall` script,
+  and none has a `binding.gyp` or `gypfile`.
+- Packages the lockfile gained (38 new `packages` entries, all inside the section 4 trees; 21 new
+  `snapshots` entries for the same packages):
+  `@electron-internal/extract-zip@1.0.8`, `@electron/asar@4.3.2`, `@electron/fuses@2.1.3`,
+  `@electron/get@5.1.0`, `@electron/notarize@3.1.2`, `@electron/osx-sign@2.7.2`,
+  `@electron/packager@20.3.0`, `@electron/universal@3.0.6`, `@electron/windows-sign@2.1.0`,
+  `@malept/cross-spawn-promise@2.0.0`, `@types/node@24.19.2`, `@xmldom/xmldom@0.9.12`,
+  `base64-js@1.5.1`, `commander@9.5.0`, `electron@45.4.1`, `env-paths@3.0.0`, `err-code@2.0.3`,
+  `filename-reserved-regex@3.0.0`, `filenamify@6.0.0`, `flora-colossus@3.0.2`, `galactus@2.0.2`,
+  `glob@14.0.6`, `isbinaryfile@4.0.10`, `junk@4.0.1`, `minipass@7.1.3`, `path-scurry@3.0.0`,
+  `pe-library@1.0.1`, `plist@3.1.1`, `postject@1.0.0-alpha.6`, `progress@2.0.3`,
+  `promise-retry@2.0.1`, `resedit@2.0.3`, `retry@0.12.0`, `sumchecker@3.0.1`,
+  `undici-types@7.24.6`, `undici@7.30.2`, `xmlbuilder@15.1.1`, `yargs-parser@22.0.0`.
+- The other 15 packages of the closure were already in the lockfile and are reused at the same
+  version: `@isaacs/nonrecursive-glob-match@1.1.0`, `balanced-match@4.0.4`, `brace-expansion@5.0.13`,
+  `cross-spawn@7.0.6`, `debug@4.4.3`, `graceful-fs@4.2.12`, `isexe@2.0.0`, `lru-cache@11.5.3`,
+  `minimatch@11.0.9`, `ms@2.1.3`, `path-key@3.1.1`, `semver@7.8.6`, `shebang-command@2.0.0`,
+  `shebang-regex@3.0.0`, `which@2.0.2`.
+- The resolved versions equal those section 4 named (`@electron/get` 5.1.0, `@electron-internal/extract-zip`
+  1.0.8, `@electron/asar` 4.3.2, `@electron/osx-sign` 2.7.2, `@electron/notarize` 3.1.2,
+  `@electron/universal` 3.0.6, `@electron/windows-sign` 2.1.0, `@types/node` 24.19.2, `undici` 7.30.2,
+  `undici-types` 7.24.6).
+
+### Check 3: how and from where the framework is downloaded (result: facts recorded)
+
+Files read: `electron/index.js`, `cli.js`, `install.js`, `checksums.json` (45.4.1) and
+`@electron/get/dist/{index,artifact-utils,Cache,proxy,FetchDownloader}.js` (5.1.0), plus
+`@electron/packager/dist/download.js` (20.3.0).
+
+- **First run downloads.** `index.js` runs `getElectronPath()` at `require` time. When `path.txt`
+  or `dist/<binary>` is missing, it spawns `install.js` synchronously ("Downloading Electron binary...").
+  So `require('electron')` from plain Node, and `cli.js` (the `electron` bin), both download the
+  framework. Inside a running Electron app the module is built in and this file is not used.
+- **Host.** `artifact-utils.js`: `BASE_URL = 'https://github.com/electron/electron/releases/download/'`,
+  URL `BASE_URL + v45.4.1 + '/' + electron-v45.4.1-darwin-arm64.zip`. The CDN host behind GitHub's
+  redirect is still **Unverified** (check 5).
+- **Checksum verification is on by default.** `@electron/get` verifies every artifact with
+  `sumchecker` (sha256) unless the caller passes `unsafelyDisableChecksums`. `electron/install.js`
+  passes the embedded `checksums.json` (67 entries, shipped in the npm tarball and so covered by the
+  registry integrity; `electron-v45.4.1-darwin-arm64.zip` =
+  `d080c3b05a01bd16137f2c12ab9ebf083c577757fe846844ba325bafa8e8bdf4`) unless
+  `electron_use_remote_checksums` or `npm_config_electron_use_remote_checksums` is set.
+  `@electron/packager` passes only `opts.download` through, so by default it downloads the release's
+  remote `SHASUMS256.txt` from the same host (cache bypassed for that file). Ticket 11 can pass
+  `download: { checksums: <electron/checksums.json> }` to the packager to verify against the
+  registry-covered embedded list instead.
+- **Cache.** `env-paths('electron', { suffix: '' }).cache`, on macOS `~/Library/Caches/electron/`;
+  cached zips are re-checked against the checksums and discarded on mismatch.
+
+### Download redirect variables (for ticket 11)
+
+`@electron/get` 5.1.0 `mirrorVar(name)` reads, in this order of precedence, for each of `mirror`,
+`nightlyMirror`, `customDir`, `customFilename`, `customVersion`:
+`npm_config_electron_<name>`, `NPM_CONFIG_ELECTRON_<SNAKE_NAME>`, `npm_config_electron_<snake_name>`,
+`npm_package_config_electron_<name>`, `npm_package_config_electron_<snake_name>`, then
+`ELECTRON_<SNAKE_NAME>`, then the caller's `mirrorOptions`. The environment therefore overrides
+options passed in code. Names in use:
+
+- Redirect the host or path: `ELECTRON_MIRROR`, `ELECTRON_NIGHTLY_MIRROR`, `ELECTRON_CUSTOM_DIR`,
+  `ELECTRON_CUSTOM_FILENAME`, `ELECTRON_CUSTOM_VERSION`, and their `npm_config_electron_*` /
+  `npm_package_config_electron_*` forms.
+- Cache and checksums: `electron_config_cache` (cache root, read by `install.js`), `force_no_cache`
+  (`true` re-downloads), `electron_use_remote_checksums` / `npm_config_electron_use_remote_checksums`
+  (use the remote `SHASUMS256.txt` instead of the embedded list).
+- Platform and binary: `ELECTRON_INSTALL_PLATFORM`, `ELECTRON_INSTALL_ARCH`, `npm_config_platform`,
+  `npm_config_arch`, `ELECTRON_OVERRIDE_DIST_PATH` (use a framework from another folder).
+- Network: `ELECTRON_GET_USE_PROXY` (enables undici `EnvHttpProxyAgent`), `ELECTRON_GET_NO_PROGRESS`.
+- `ELECTRON_SKIP_BINARY_DOWNLOAD` (section 5) does **not** occur in `electron` 45.4.1 or
+  `@electron/get` 5.1.0: there is no skip variable, because no install script runs.
+
+### Check 4: API, option and fuse names of section 8 (result: confirmed, one correction)
+
+Files read: `electron/electron.d.ts` ("Type definitions for Electron 45.4.1") and
+`@electron/fuses/dist/config.d.ts` and `README.md` (2.1.3).
+
+| Row | Name | 45.4.1 / 2.1.3 |
+|---|---|---|
+| 1 | `autoUpdater`, `setFeedURL`, `checkForUpdates` | present |
+| 2 | packager update feed | `@electron/packager` 20.3.0 `dist` has no update feed or update metadata code; it only strips `publishConfig` from the packaged `package.json` |
+| 3 | `crashReporter`, `start({ submitURL, uploadToServer })` | present; `uploadToServer` "Default is `true`", `submitURL` "Required unless `uploadToServer` is `false`" |
+| 4 | `BrowserWindow`, `WebContentsView`, `contextIsolation`, `nodeIntegration`, `sandbox` | present |
+| 5 | `app` event `web-contents-created`, `setWindowOpenHandler`, `will-navigate`, `app.enableSandbox()` | present |
+| 6 | `session.defaultSession.setPermissionRequestHandler` | present; the typings add that `setPermissionCheckHandler` must also be set for complete permission handling |
+| 7 | `shell.openExternal` | present |
+| 8 to 11 | `FuseV1Options.RunAsNode`, `EnableNodeOptionsEnvironmentVariable`, `EnableNodeCliInspectArguments`, `EnableEmbeddedAsarIntegrityValidation`, `OnlyLoadAppFromAsar`, `GrantFileProtocolExtraPrivileges` | present (indexes 0, 2, 3, 4, 5, 7). Also present, not in section 8: `EnableCookieEncryption`, `LoadBrowserProcessSpecificV8Snapshot`, `WasmTrapHandlers`; config options `resetAdHocDarwinSignature` (README: required on arm64 macOS when not codesigning right after flipping) and `strictlyRequireAllFuses` |
+| 12 | `--remote-debugging-port` | not in the typings (a Chromium switch, appended only through `app.commandLine.appendSwitch`); see the correction below |
+| 13, 14 | telemetry; `setSpellCheckerEnabled` | `Session.setSpellCheckerEnabled` present; the telemetry statement is not checkable from typings and stays **Unverified** (check 7) |
+| 15 | `app.requestSingleInstanceLock` | present; the lock mechanism on macOS stays **Unverified** (check 7) |
+
+### Corrections to section 8
+
+| Row | Section 8 says | Installed files say |
+|---|---|---|
+| 12 | "rejected by fuse 9" | The fuses README describes `EnableNodeCliInspectArguments` as disabling "the `--inspect` and `--inspect-brk` family of CLI options", Node's inspector. Nothing in `@electron/fuses` 2.1.3 names Chromium's `--remote-debugging-port`. The protection for row 12 is that the shell never appends the switch (ticket 10 grep) and check 7's `lsof` showing no listener; the fuse is not a control for it |
+| 6 | `setPermissionRequestHandler` denies all | Add `setPermissionCheckHandler` returning `false`, per the 45.4.1 typings, for complete denial |
+
+### Check 6: advisories (result: no advisory affecting the pinned versions)
+
+- `pnpm audit --prod`, run once at the root: exit 1, "1 vulnerabilities found, Severity: 1 high":
+  `effect` <=3.22.0 (GHSA-7589-6fvf-x4pw), path `packages__core>@mastra/core>hono-openapi>...>effect`.
+- `pnpm audit`, run once at the root: exit 1, the same single high advisory, path
+  `packages__core>prisma>@prisma/config>effect`.
+- Neither report names `electron`, any `@electron/*` package, `apps__shell` or any of the 53 packages
+  above. The `effect` finding predates this ticket and is outside the shell tree.
+- `https://github.com/electron/electron/security/advisories` page 1 of 7 (HTTP 200, the 10 newest,
+  2026-07-27 to 2026-10-22) and the four High entries opened one by one: GHSA-jr5w-w6x2-84p9
+  (affects `>= 45.0.0-alpha.1, < 45.0.0-beta.6`, patched in 45.0.0-beta.6), GHSA-gr2m-v5gq-v685,
+  GHSA-9qh4-3jw8-366w and GHSA-j84w-jfhq-vhvj (each affects `< 41.10.6`, 42 below 42.9.2 and 43
+  below 43.4.1). None affects 45.4.1. Pages 2 to 7 were not opened; they hold advisories published
+  before 2026-07-27, earlier than the 45 line (45.0.0 on 2026-10-21), and `pnpm audit` reports none
+  for the pinned versions.
+
+### Pending, owner-run
+
+- Check 5: the explicit download step, final host names, zip size and extracted `Electron.app` size.
+- Check 7: no socket on the shell's processes, no outbound connection in 10 minutes idle and one
+  start/stop cycle, fuse states read back, ad-hoc signature, idle resident memory.
+- Check 8: macOS opens the locally built, ad-hoc signed app without a Gatekeeper prompt.
