@@ -405,6 +405,12 @@ section 8 delegates them to R3-08 ("the criteria written in R3-08 once the owner
 R3-AC-25.12 is pending evidence until the owner has run the checks below; it is never reported as
 met before that.
 
+Known limitation (owner decision of 2026-11-19, "Document the limit"): install step 5
+(`turbo run build`, unchanged) builds every workspace package, `@studio/shell` included. A failure
+of the shell's esbuild bundle therefore stops the whole install even with `--skip-shell`, which
+only governs step 12. R3-AC-25.10 is still met as written. Revisit trigger: a shell bundle failure
+that blocks an install, or a request to install without the shell's sources.
+
 ## Evidence pending at the final gate (owner-run)
 
 Status: **pending**. Nothing in this section has been run. The owner runs these on the Mac after

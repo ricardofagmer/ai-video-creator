@@ -38,13 +38,19 @@ depois de reiniciar o Mac, basta clicar em "Iniciar".
   Electron será baixado (releases do GitHub de `electron/electron`) e pergunta se pode baixar; sem
   "s", nada é baixado e o resto da instalação segue. O app fica em `~/Applications/Video Studio.app`.
   O instalador não abre o app nem liga "Abrir ao iniciar sessão": faça isso pelo menu.
-- **Pular**: `scripts/install.sh --skip-shell`. Nada é baixado, construído ou copiado.
+- **Pular**: `scripts/install.sh --skip-shell`. O Electron não é baixado e o app não é empacotado
+  nem copiado. O código do app (`dist/main.js`) ainda é compilado na etapa 5, junto com o resto
+  do workspace.
 - **Remover**: `scripts/uninstall.sh`. Desliga o login, fecha o app e apaga só o app com o bundle id
   `com.videostudio.shell`. O cache de download do Electron (`~/Library/Caches/electron`) não é
   apagado, porque outros apps podem usá-lo; o desinstalador mostra o comando para apagá-lo à mão.
 
 Se uma falha acontecer na etapa do app, o instalador avisa no resumo e o resto do estúdio funciona
 normalmente.
+
+Limite conhecido: a etapa 5 (`turbo run build`) compila todos os pacotes, `@studio/shell`
+incluído. Se a compilação do código do app falhar ali, a instalação inteira para, mesmo com
+`--skip-shell`, porque essa etapa vem antes da etapa 12 e não sabe pular pacotes.
 
 ## Privacidade e atualizações
 
