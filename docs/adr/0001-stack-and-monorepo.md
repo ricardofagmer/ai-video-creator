@@ -132,3 +132,50 @@ Revisit triggers:
   (**Assumption**): decide whether to keep both repositories or re-point `ai-creator-engine` at
   the monorepo packages.
 - A packaged `.app` is approved for R3: reopen the launchd and `studio start` split.
+
+## Amendment 2026-11-19 (R3-08, ADR 0005)
+
+Added 2026-11-19 (SPEC 0006 section 9 R3-08, section 11 "ADR 0001 revisit trigger", section 14
+L7; ADR 0005 "Add a thin menu-bar shell"; vetting report `docs/vetting/0002-shell-runtime.md`,
+approved with option P). This section amends the decision above. No line above it is changed,
+the status line included; where this section and the text above disagree, this section wins for
+R3 and later.
+
+- **Revisit trigger fired.** The last revisit trigger, "A packaged `.app` is approved for R3:
+  reopen the launchd and `studio start` split", fired when the owner approved the shell for R3
+  (SPEC 0006 Q1, 2026-11-19). ADR 0005 is the reopening. Its outcome is A2 + B1 + C1: a thin
+  Electron menu-bar shell, with the watcher kept under launchd.
+- **Processes (amends the "Processes" row).** launchd manages only `apps/watcher`; web and api run
+  under `studio start` / `studio stop` or the menu-bar shell, which invokes the same `studio`
+  binary. The shell runs `<node binary> <tools/cli/dist/main.js> start` or `stop` with an argument
+  array and no shell (`apps/shell/src/actions/studio-invoker.ts:99-105`), so
+  `tools/cli/src/services/**` is unchanged and stays the only service manager. The watcher plist
+  template is unchanged, and no menu item starts, stops or restarts the watcher
+  (`apps/shell/src/menu/menu-model.ts:10-13`).
+- **D9.** The amended wording, verbatim from ADR 0005 decision 4: "launchd manages only the watcher. The web and api start with `studio start` or from the menu-bar shell, and stop with `studio stop` or from the shell."
+  PRD 0001's D9 row (section 0) and its section 11 row "Web and api" still carry the R1 wording.
+  Per SPEC 0006 L7, this ADR and ADR 0005 are the amending record; whether the PRD rows themselves
+  are edited is the owner's call.
+- **CLI row.** The rejected alternative "Desktop shell (`.app`): not in R1 (D4)" is superseded for
+  R3 by ADR 0005: a thin menu-bar shell, a tray menu and not a window. The shell creates no window
+  (`apps/shell/src/electron/shell-app.ts:120-140`). The Ink CLI `studio` in `tools/cli` stays the
+  CLI.
+- **Consequence softened.** "The owner must run `studio start` after a reboot" now reads: with the
+  shell registered as a login item, "Iniciar" is one click in its menu. The shell does not start
+  the services by itself at login: at startup it only reads state
+  (`apps/shell/src/electron/shell-app.ts:93-112`), and the api and web start only when "Iniciar" is
+  clicked. The installer neither opens the app nor registers the login item; the owner turns on
+  "Abrir ao iniciar sessão" in the shell's menu (`scripts/install.sh:713`,
+  `apps/shell/src/menu/labels.ts:9`). Without the shell, `studio start` works as before, and the
+  watcher still returns by itself.
+- **pnpm revisit trigger not fired.** `onlyBuiltDependencies` in `pnpm-workspace.yaml` is unchanged:
+  `electron` 45.4.1 has no install script, so no entry is needed (vetting sections 6 and 12,
+  check 2). The trigger "More than 2 dependencies need hoisting workarounds or
+  `onlyBuiltDependencies` entries beyond `esbuild`, Prisma and Playwright" has not fired.
+- **Layout.** A new workspace, `apps/shell` (`@studio/shell`), joins the layout. `pnpm-workspace.yaml`
+  needed no edit, because `apps/*` already matches it. "One language and one runtime" still holds
+  for the code: the shell is TypeScript on Node 22+. Electron is a build-time dependency
+  (`apps/shell/package.json:14-26`, `devDependencies` only, no runtime `dependencies`), and its
+  framework is a bundled runtime inside the locally built `.app` (`~/Applications/Video Studio.app`),
+  not a second language and not a second runtime for install, build and review. Building the app
+  needs Node 22.12 or later (`scripts/install.sh:33-34`).
