@@ -111,6 +111,54 @@ shell if still wanted; scheduled runs that still stop at review.
 
 Non-goals: unattended publishing; SaaS.
 
+### R4 — Connected platforms and studio insights
+
+Added 2026-11-19 from the owner's R4 interview. Platforms: YouTube, Instagram and TikTok.
+
+Goals:
+
+1. **Platform metrics through the APIs.** The watcher pulls metrics on a schedule for every video
+   linked to a run publication, and records them as outcomes exactly like the R3 import (same
+   snapshot store, same platform signal in the quality score). The R3 CSV and form import stay as
+   the fallback.
+2. **Assisted publishing.** After the owner's recorded approval, one explicit click per video and
+   platform uploads the approved MP4 with its title, caption and tags, and records the publication
+   link on the run. A failed upload says why and is never retried without another click.
+3. **Connected accounts.** The owner connects each platform account with OAuth from the local web.
+   Tokens live in the macOS Keychain only (section 12), are refreshed by the process that uses them,
+   and are deleted when the owner disconnects the account.
+4. **Studio insights.** A web page (pt-BR) and a `studio insights` command, both reading one core
+   query, show the section 14 success metrics: runs reaching `review` without manual file repair,
+   time from brief to `review` per recipe, share of catalog assets per run, cost per approved video
+   and per month, rating trend per recipe, and videos published without recorded approval (target 0).
+5. **HyperFrames, decided by a spike.** R4 starts with a feasibility spike. Template support next to
+   Remotion is built only if the spike passes; otherwise the decision is recorded as rejected with
+   its reason. Remotion stays the default.
+6. **Spesia tools.** `video_tool.py` and `captions.py` (section 16, item 1) are located and their
+   behaviour checked against the D15 TypeScript port in `packages/toolbox`; any gap is closed in
+   TypeScript.
+
+Non-goals: unattended or scheduled publishing (every upload needs a click after approval);
+publishing a video without a recorded approval; publishing to any account other than the owner's;
+platforms beyond YouTube, Instagram and TikTok; platform tokens in files, the database, run files
+or logs; multi-user; SaaS.
+
+R4 narrows the R1 non-goal "publishing is manual": the owner may publish from the studio with one
+click per approved video. "No automatic public posting" still holds.
+
+Open for the spec (they do not change the goals):
+
+- Instagram publishing and insights need the owner's account switched to Business or Creator and a
+  Meta developer app with review; TikTok's Content Posting API needs an app audit before public
+  posts. Either can delay its own platform; the spec decides how R4 ships while one is pending,
+  without blocking the other platforms.
+- Each platform's OAuth must accept a loopback redirect to the api on `127.0.0.1`.
+- API quotas per platform and the polling interval for metrics.
+- Which section 14 metrics the run files and database already record, and which need new fields.
+- A video made with biometric assets (cloned voice, avatar): the publish click is the per-action
+  confirmation section 12 requires; the spec decides whether the dialog names those assets.
+- Every publication is listed in the run report under "what left the machine" (section 12).
+
 ## 4. Concept map: eng-grafo → Video Studio
 
 | eng-grafo concept | Video Studio | Notes |
