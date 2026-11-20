@@ -2,7 +2,7 @@
 
 **What to build:** Every schema, constant, route, file name and table the api, watcher, web and CLI agree on exists once, so the other tickets can run in parallel.
 
-**Blocked by:** none (SPEC 0007 frozen at rev 1, 2026-11-20)
+**Blocked by:** none (SPEC 0007 frozen at rev 2, 2026-11-20)
 
 **Status:** ready
 

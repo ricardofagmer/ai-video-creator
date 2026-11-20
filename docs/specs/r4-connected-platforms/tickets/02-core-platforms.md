@@ -2,7 +2,7 @@
 
 **What to build:** The core logic both processes share: gates, accounts, the Keychain vault, the `PlatformClient` port with three mock clients, the publish request and sync handlers, the metric batch ingest, and the insights count.
 
-**Blocked by:** 01-frozen-contracts; the B10 owner-run check (Q5 answered: `security -i` on stdin)
+**Blocked by:** 01-frozen-contracts (Q5 answered: `security -i` on stdin; B10 passed 2026-11-20)
 
 **Status:** blocked (waits for its prerequisites)
 

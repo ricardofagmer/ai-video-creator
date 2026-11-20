@@ -1,7 +1,7 @@
 # SPEC 0007 — R4: connected platforms (PRD R4 goals 1-3)
 
-Status: frozen, rev 1, 2026-11-20. The owner answered Q1 to Q5 on 2026-11-20 and every one took the
-recommended option (section 15). One owner-run check stays open before R4-02 writes the vault: B10.
+Status: frozen, rev 2, 2026-11-20. The owner answered Q1 to Q5 on 2026-11-20 (OD5 to OD9, section 15):
+the recommended option for Q1, Q2, Q3 and Q5, and option (b) for Q4, so Instagram is metrics-only. B10 passed on 2026-11-20 (section 13); no check blocks R4-02.
 Written by the spec author for
 the supervisor. Risk: high (OAuth tokens, public posting on the owner's behalf, the first outbound
 calls to three platforms, a new SQLite migration, a new writer rule for the Keychain). Autonomy A1:
@@ -19,6 +19,18 @@ Owner decisions already taken (binding, 2026-11-19):
   weekly, then stop at day 180. Stay inside each platform's free quota.
 - **OD4.** When the video used `sensitivity: biometric` assets, the publish dialog names each one.
   The click is recorded as the per-action confirmation PRD 12 requires.
+
+Owner answers to section 15 (binding, 2026-11-20):
+
+- **OD5 (Q1 a).** The watcher uploads, between runs.
+- **OD6 (Q2 a).** TikTok publishes as an inbox draft; the owner finishes the post in the TikTok app.
+- **OD7 (Q3 a).** Pulled metrics arrive as batch files ingested as an import with `origin = 'api'`;
+  snapshots keep source `csv`.
+- **OD8 (Q4 b).** Instagram uses Instagram Login and is metrics-only in R4. The studio never uploads
+  to Instagram: the owner posts in the Instagram app and pastes the link (R3 flow), and the studio
+  polls that publication (B13). No Facebook Page is needed.
+- **OD9 (Q5 a).** Tokens are written with `/usr/bin/security -i`, the command on stdin, after the
+  owner-run B10 check.
 - Standing rules: no unattended or scheduled publishing; no publishing without a recorded
   approval; the owner's accounts only; tokens never in files, the database, run files, prompts,
   logs, events or error messages; web and api bind to `127.0.0.1` and every route needs the
@@ -135,12 +147,13 @@ Reading rule:
 | `PlatformCapabilitySchema` | `z.enum(['metrics', 'publish'])` |
 | `GateStateSchema` | `z.enum(['awaiting-review', 'enabled'])` |
 | `defaultGates` | youtube `{ metrics: 'enabled', publish: 'enabled' }`; instagram and tiktok `{ metrics: 'awaiting-review', publish: 'awaiting-review' }` |
-| `CapabilityStatusSchema` | `z.enum(['awaiting-review', 'not-configured', 'disconnected', 'connected', 'needs-reconnect'])` (derived, section 5.3) |
+| `platformPublishSupport` | `{ youtube: true, instagram: false, tiktok: true }` (OD8). The Instagram `publish` gate stays `awaiting-review` and cannot be enabled |
+| `CapabilityStatusSchema` | `z.enum(['unsupported', 'awaiting-review', 'not-configured', 'disconnected', 'connected', 'needs-reconnect'])` (derived, section 5.3) |
 | `ReconnectReasonSchema` | `z.enum(['token-revoked', 'refresh-expired', 'scope-missing', 'account-changed'])` |
 | `PlatformModeSchema` | `z.enum(['mock', 'live'])` |
 | `PublishStateSchema` | `z.enum(['queued', 'uploading', 'processing', 'sent-to-inbox', 'published', 'failed', 'cancelled', 'expired', 'outcome-unknown', 'inbox-unconfirmed'])`. Open: the first four. All others are terminal |
 | `PublishFailureReasonSchema` | `z.enum(['run-not-approved', 'gate-closed', 'mode-mismatch', 'account-not-connected', 'token-revoked', 'scope-missing', 'quota-exhausted', 'rate-limited', 'artifact-missing', 'artifact-changed', 'media-rejected', 'metadata-rejected', 'policy-rejected', 'account-not-eligible', 'network', 'platform-unavailable', 'watcher-interrupted', 'internal-error'])` |
-| `VisibilitySchema` | `z.enum(['public', 'unlisted', 'private'])`; allowed per platform: youtube all three; instagram `public`; tiktok `private` (inbox draft, Q2) |
+| `VisibilitySchema` | `z.enum(['public', 'unlisted', 'private'])`; allowed per platform: youtube all three; instagram none (OD8); tiktok `private` (inbox draft, Q2) |
 | `PollStopReasonSchema` | `z.enum(['window-closed', 'not-found', 'not-owned', 'publication-removed'])` |
 | `PollBackoffReasonSchema` | `z.enum(['rate-limited', 'quota-exhausted', 'platform-unavailable', 'network'])` |
 | `pollRules` | `{ dailyThroughDay: 30, weeklyEveryDays: 7, stopAfterDay: 180, maxPublicationsPerPass: 50, passBudgetMs: 60_000, minPassIntervalMs: 3_600_000, backoffHours: [1, 2, 4, 8, 24], notFoundStrikes: 3 }` |
@@ -232,6 +245,7 @@ The token bundle is not a shared schema. It lives in `packages/core/src/platform
 | Reason | Status | pt-BR text shown to the owner |
 |---|---|---|
 | `platform-awaiting-review` | 409 | "Aguardando revisão da plataforma. Use a importação por CSV ou o formulário enquanto isso." |
+| `platform-publish-unsupported` | 409 | "O estúdio não publica em {plataforma}. Publique no aplicativo e cole o link da publicação." |
 | `platform-not-configured` | 409 | "Falta configurar o aplicativo de {plataforma}. Rode `studio secrets set` com as credenciais do aplicativo." |
 | `platform-not-connected` | 409 | "Conecte a sua conta de {plataforma} primeiro." |
 | `platform-needs-reconnect` | 409 | "A conexão com {plataforma} expirou ou foi revogada. Conecte de novo." |
@@ -355,15 +369,15 @@ Unverified, each closed by an owner-run check in its platform ticket before that
 | U1 | A Google OAuth app left in "Testing" issues refresh tokens that die after 7 days | The owner sets the app to "In production"; otherwise the studio shows `needs-reconnect` weekly |
 | U2 | Upload cost: the method page says 1 unit of a 100-call bucket, a 2025-12-04 revision entry says about 100 units. The YouTube Analytics quota is not stated | Either reading allows far more than one upload a day; polling is capped by `pollRules` |
 | U3 | Meta accepts `http://127.0.0.1:4311/...` as a redirect URI | Section 5.2 fallback |
-| U4 | Facebook Login for Business scopes and token life for this use (`instagram_basic`, `instagram_content_publish`, `instagram_manage_insights`, `pages_read_engagement`, `pages_show_list`) | Scopes are data in the Instagram client; the vault stores whatever expiry the exchange returns |
+| U4 | Instagram Login scope names and endpoints for this use (`instagram_business_basic`, `instagram_business_manage_insights`; authorize on `www.instagram.com`, code exchange on `api.instagram.com`, long-lived exchange, refresh and insights on `graph.instagram.com`) and the units of the watch-time metrics. Read from memory of [M2], not re-read for rev 1 | Scopes and hosts are data in the Instagram client; the Instagram ticket re-reads [M2] and [M3] and reports drift before coding; the vault stores whatever expiry the exchange returns |
 | U5 | A TikTok app of the "Desktop" type may use the Content Posting and Display APIs, and the owner's own account works before app review (sandbox) | TikTok stays `awaiting-review`; CSV and form import continue (OD2) |
 | U6 | TikTok token lifetimes (older material says 24 h and 365 days) | The vault uses the `expires_in` values returned, never a constant |
 | U7 | The TikTok inbox upload is not restricted for unaudited clients | Q2 option (c) |
 | U8 | Google accepts a path on the loopback redirect of a Desktop client | Register the exact URI; else use a Web client with the same URI |
 
 Outbound host allowlist (K6): `accounts.google.com`, `oauth2.googleapis.com`,
-`www.googleapis.com`, `youtubeanalytics.googleapis.com`; `www.facebook.com`,
-`graph.facebook.com`, `rupload.facebook.com`; `www.tiktok.com`, `open.tiktokapis.com`, plus the
+`www.googleapis.com`, `youtubeanalytics.googleapis.com`; `www.instagram.com`,
+`api.instagram.com`, `graph.instagram.com` (Instagram Login, OD8); `www.tiktok.com`, `open.tiktokapis.com`, plus the
 upload host TikTok returns in `upload_url`, accepted only when it is `https` and ends in
 `.tiktokapis.com` or `.tiktok.com` (**Assumption** B12).
 
@@ -403,7 +417,7 @@ gives the status `not-configured`; nothing falls back.
 | Platform | Identity | `metrics` | `publish` |
 |---|---|---|---|
 | YouTube | `youtube.readonly` | `youtube.readonly`, `yt-analytics.readonly` | `youtube.upload` |
-| Instagram (Facebook Login, Q4, U4) | `instagram_basic`, `pages_show_list` | `instagram_manage_insights`, `pages_read_engagement` | `instagram_content_publish` |
+| Instagram (Instagram Login, OD8, U4) | `instagram_business_basic` | `instagram_business_manage_insights` | none: publishing is not supported (OD8) |
 | TikTok | `user.info.basic` | `video.list` | `video.upload` (Q2) |
 
 Enabling a second capability later marks the account `needs-reconnect` / `scope-missing`.
@@ -413,10 +427,10 @@ Meta dashboard. Ranked: (a) `http://127.0.0.1:4311/...` accepted: nothing change
 `http://localhost:4311/...` accepted: the api answers a callback that arrives on host `localhost`
 with a 307 to the same path and query on `127.0.0.1`, before any processing, so the session
 cookie is present; the redirect holds no logic and stores nothing. (c) only `https` accepted: a
-paste-back flow. The redirect goes to Meta's own page
-`https://www.facebook.com/connect/login_success.html` [M5]; the owner copies the address shown and
-pastes it into `/contas`; the api parses `code` and `state` from it and continues at step 2. No
-relay server, tunnel or certificate is added. If none works, Instagram stays `awaiting-review`.
+paste-back flow. The owner registers `https://127.0.0.1:4311/platforms/instagram/connection/callback`;
+the browser cannot load it (the api speaks only `http`), but its address bar holds `code` and
+`state`. The owner copies that address and pastes it into `/contas`; the api parses `code` and
+`state` from it and continues at step 2. No relay server, tunnel or certificate is added. If none works, Instagram stays `awaiting-review`.
 
 **Keychain contract.**
 
@@ -463,6 +477,7 @@ attempts for that platform fail with `token-revoked`. The web banner and `studio
 
 | Condition | Status | pt-BR label |
 |---|---|---|
+| `platformPublishSupport[platform]` is false and capability is `publish` | `unsupported` | "Publique no aplicativo e cole o link" |
 | gate is `awaiting-review` | `awaiting-review` | "Aguardando revisão da plataforma" |
 | client credentials missing (live mode only) | `not-configured` | "Aplicativo não configurado" |
 | no `connected` account, or its `capabilities` lack this one | `disconnected` | "Conta não conectada" |
@@ -471,7 +486,9 @@ attempts for that platform fail with `token-revoked`. The web banner and `studio
 
 - **What turns a platform on:** the owner, and only the owner, with
   `PATCH /platforms/:platform/gate` or `studio platforms enable <platform> --capability <c>`.
-  The studio cannot see a platform's review result, so it never flips a gate itself. The web
+  The studio cannot see a platform's review result, so it never flips a gate itself.
+  Enabling a capability whose status is `unsupported` answers `platform-publish-unsupported` and
+  writes nothing (Instagram `publish`, OD8). The web
   asks for a confirmation that names the consequence ("O estúdio poderá enviar vídeos para
   {plataforma} quando você clicar em Publicar").
 - A gated capability: no OAuth scope is requested for it, no request is accepted, no poll runs.
@@ -485,10 +502,12 @@ attempts for that platform fail with `token-revoked`. The web banner and `studio
 ### 5.4 Publish flow (goal 2, OD4)
 
 **The dialog** (`GET /runs/:runId/publish`), on the page of an `approved` run, one tab per
-platform:
+platform whose publishing is supported (YouTube and TikTok, OD8). Instagram shows no tab: the
+panel says "Publique no Instagram e cole o link" and opens the R3 pasted-link form;
+`POST /runs/:id/publish/instagram` answers `platform-publish-unsupported`. Each tab shows:
 - The video (`final.mp4`), its size, and the connected account's label.
 - Title (prefilled with the run title), caption, tags. YouTube uses title, caption as
-  description, and tags. Instagram uses caption plus the tags as hashtags. TikTok (inbox draft)
+  description, and tags. TikTok (inbox draft)
   uploads the video only; the caption is shown with a copy button, to paste in the app.
 - Visibility: no option is preselected (B7).
 - "Conteúdo alterado ou sintético" (`aiDisclosure`), preselected when the run used a biometric
@@ -609,7 +628,7 @@ run writer. A failed `runs/` scan does nothing, as today.
 | `averageViewPercent` | `averageViewPercentage` | null | null |
 | `impressions` | null | null | null |
 
-An Instagram publication recorded by URL holds the shortcode, not the media id. The client
+Every Instagram publication is recorded by URL (OD8) and holds the shortcode, not the media id. The client
 resolves it once by listing the account's media (`id`, `shortcode`), at most 5 pages a pass, and
 keeps the id in the cursor. Units of the Instagram watch-time metrics are confirmed in the
 Instagram ticket (U4).
@@ -643,7 +662,7 @@ is `api` when the snapshot's import has `origin = 'api'`. Publications and batch
 | Platform | Calls per poll pass (N due videos) | Upload calls | Daily ceiling used |
 |---|---|---|---|
 | YouTube | `ceil(N/50)` `videos.list` + N Analytics queries | 1 session start + chunks + status checks | Under 60 units of 10,000 for polling; at most 1 upload per click against 100 a day |
-| Instagram | N insights calls + at most 5 list pages | container, upload, at most 30 status, publish, 1 limit check | Far below 4800 x impressions; `content_publishing_limit` is read before the upload and a full limit fails with `quota-exhausted` |
+| Instagram | N insights calls + at most 5 list pages | none (OD8) | Far below 4800 x impressions |
 | TikTok | `ceil(N/20)` `video/query` | init, chunks, at most 30 status | Far below 600 a minute; init stays under 6 a minute because one attempt runs at a time |
 
 Rules, the same for the three:
@@ -774,7 +793,7 @@ Numbered after PRD AC 38. Each is falsifiable. "Mock" means every platform in mo
 | 60 | No log line, event or error body contains a token, code, `state`, verifier, URL, title, caption, tag or account label | K7 |
 | 61 | The migration holds only CREATE TABLE, CREATE INDEX and ADD COLUMN, and no ticket executes it | K8 |
 | 62 | Every rev 7 route answers 401 without a session; the BFF table has every rev 7 row except the callback; `GET /insights` counts a forged attempt with no approved outcome in `unapprovedPublications` and returns 0 for the fixture | D8, PRD 14 |
-| 63 | (Per platform, owner-run when its gate opens) in live mode the owner connects the own account, publishes one approved video at the least public visibility the platform offers, sees the link on the run, and sees a first API snapshot after the next pass. One record each for YouTube, Instagram and TikTok; a platform still gated is reported as pending, not as passed | OD2 |
+| 63 | (Per platform, owner-run when its gate opens) in live mode the owner connects the own account, publishes one approved video at the least public visibility the platform offers, sees the link on the run, and sees a first API snapshot after the next pass. One record each for YouTube, Instagram and TikTok; for Instagram (OD8) the owner posts in the app, pastes the link, and sees a first API snapshot after the next pass; a platform still gated is reported as pending, not as passed | OD2 |
 
 ## 9. Tickets
 
@@ -790,7 +809,7 @@ a check, a migration or a git write; tests belong to R4-FP.
 | R4-05 | Web: `/contas`, publish dialog, publications panel | `apps/web/**` except `route-table.ts` | R4-01 | 44, 46, 49 | M |
 | R4-06 | CLI and uninstall | `tools/cli/**`, `scripts/uninstall.sh` | R4-02 | 43, 44, 49 | M |
 | R4-07 | YouTube live client | `packages/core/src/platforms/clients/youtube/**` | R4-02; owner: Google Cloud project and OAuth client | 63 | M |
-| R4-08 | Instagram live client | `packages/core/src/platforms/clients/instagram/**` | R4-02; owner: Meta app, Business or Creator account, U3 check | 63 | M |
+| R4-08 | Instagram live client (metrics only, OD8) | `packages/core/src/platforms/clients/instagram/**` | R4-02; owner: Meta app with Instagram Login, Business or Creator account, U3 check | 63 | S |
 | R4-09 | TikTok live client | `packages/core/src/platforms/clients/tiktok/**` | R4-02; owner: TikTok developer app, U5 check | 63 | M |
 | R4-FP | Final proof | test files and fixtures only | R4-01 to R4-06 integrated; owner approval | all | L |
 
@@ -875,7 +894,7 @@ split because OD2 ships each platform alone and each waits on a different outsid
 | B7 | Visibility has no preselected option | A public post is the owner's explicit choice; TikTok's guidelines require it too [T5] |
 | B8 | `aiDisclosure` is preselected when the run used a biometric asset, and the owner may change it | The platforms ask for disclosure of realistic synthetic media; the owner knows the content |
 | B9 | One upload may resume its transport at most 3 times inside the attempt | Resuming a session re-sends no completed bytes and creates no second video; without it a blip fails a large upload. Zero is the stricter choice |
-| B10 | `/usr/bin/security -i` accepts the write command on stdin with no token in argv | Needs an owner-run check on this macOS (Q5) |
+| B10 | `/usr/bin/security -i` accepts the write command on stdin with no token in argv | **Checked 2026-11-20 on macOS 27.3, with the owner's approval and a dummy item** (service `com.videostudio.b10-check`): the stdin write returned 0, the read-back matched, the delete returned 0 and left no item. The value never appeared in 80 `ps -axww` samples. Those samples also never caught the short-lived `security -i` process, so the argv evidence is structural: the value passed only through a shell builtin to stdin |
 | B11 | `asOfDate` of a pulled batch is the local day of the pull | Counts are cumulative to the moment read; R3 defaults to today as well (SPEC 0006 B11) |
 | B12 | A TikTok `upload_url` host is accepted when it ends in `.tiktokapis.com` or `.tiktok.com` | The host is returned at run time; an allowlist by suffix is the narrowest rule available |
 | B13 | A pasted-link publication is polled too when its platform is connected and the video is the account's | PRD goal 1 says "every video linked to a run publication" |
@@ -899,20 +918,21 @@ split because OD2 ships each platform alone and each waits on a different outsid
 
 ## 15. Open questions (owner)
 
-Only questions whose answer changes the design. **Answered 2026-11-20 by the owner: Q1 (a), Q2 (a), Q3 (a), Q4 (a), Q5 (a), all the recommended option.** The options are kept as the record of what was rejected.
+Only questions whose answer changes the design. **Answered 2026-11-20 by the owner: Q1 (a), Q2 (a), Q3 (a), Q4 (b), Q5 (a).** Rev 1 recorded Q4 as (a); the owner confirmed (b) the same day (rev 2). The options are kept as the record of what was rejected.
 
 | # | Question | Options and consequence |
 |---|---|---|
-| Q1 | Which process uploads? Blocks R4-01 | (a) **The watcher, between runs (Recommended)**: one process holds and refreshes the tokens; launchd keeps it alive when the api stops; uploads from the CLI work too. Cost: a click made while a run executes waits, up to the 2 h expiry. (b) The api, as a background job: starts at once; an upload dies with `studio stop`; two processes refresh tokens and need a stricter lock; the api gains outbound calls. (c) The watcher in a second lane, parallel to a run: starts at once and survives the api; breaks "one thing at a time" in the watcher and needs new crash rules |
-| Q2 | How does TikTok publish, given L9? Blocks R4-09 | (a) **Inbox draft (`video.upload`): the studio uploads, the owner finishes the post in the TikTok app (Recommended)**: works without an audit if U7 holds; the caption is pasted by hand; the link is captured when TikTok reports it within 24 h, else pasted. (b) Direct post while unaudited: only `SELF_ONLY` and only while the account is private, so of no use for a public creator. (c) No TikTok publishing in R4: metrics only; the gate for `publish` stays closed |
-| Q3 | How do pulled metrics enter the snapshot store, given L1 and L3? Blocks R4-01 | (a) **Batch file, ingested as an import with `origin = 'api'`; snapshots keep source `csv` (Recommended)**: K1 and K8 hold; the R3 duplicate rule gives idempotency; the view shows "API". Cost: the stored source word is not literal, and an API pull and a CSV upload on the same day replace each other. (b) Same batch file, plus a migration that rebuilds the snapshot table to allow source `api`: literal labels and separate keys; the first table redefinition in the project. (c) The watcher writes SQLite through the handler: no inbox; ends the "watcher never writes SQLite" rule that three specs kept |
-| Q4 | Which Instagram login? Blocks R4-08 | (a) **Facebook Login for Business, with a Facebook Page linked to the account (Recommended)**: the only documented way to upload a local file [M1]; needs the Page. (b) Instagram Login, metrics only: no Page; publishing stays manual because the video would need a public URL, which a `127.0.0.1` studio cannot give. (c) Instagram Login plus a public host for the video: rejected by PRD 12 unless the owner asks for it |
-| Q5 | How are tokens written to the Keychain without a terminal? Blocks R4-02 | (a) **`/usr/bin/security -i` with the command on stdin (Recommended)**: no dependency; needs the B10 check first. (b) A native keyring package after dependency vetting: a cleaner API; a new native dependency in the api and the watcher. (c) `security ... -w <value>` in argv: simplest; the token is visible to `ps` for a moment; violates K3 and is listed only to be refused |
+| Q1 | Which process uploads? Blocks R4-01. **Answered (a), OD5** | (a) **The watcher, between runs (Recommended)**: one process holds and refreshes the tokens; launchd keeps it alive when the api stops; uploads from the CLI work too. Cost: a click made while a run executes waits, up to the 2 h expiry. (b) The api, as a background job: starts at once; an upload dies with `studio stop`; two processes refresh tokens and need a stricter lock; the api gains outbound calls. (c) The watcher in a second lane, parallel to a run: starts at once and survives the api; breaks "one thing at a time" in the watcher and needs new crash rules |
+| Q2 | How does TikTok publish, given L9? Blocks R4-09. **Answered (a), OD6** | (a) **Inbox draft (`video.upload`): the studio uploads, the owner finishes the post in the TikTok app (Recommended)**: works without an audit if U7 holds; the caption is pasted by hand; the link is captured when TikTok reports it within 24 h, else pasted. (b) Direct post while unaudited: only `SELF_ONLY` and only while the account is private, so of no use for a public creator. (c) No TikTok publishing in R4: metrics only; the gate for `publish` stays closed |
+| Q3 | How do pulled metrics enter the snapshot store, given L1 and L3? Blocks R4-01. **Answered (a), OD7** | (a) **Batch file, ingested as an import with `origin = 'api'`; snapshots keep source `csv` (Recommended)**: K1 and K8 hold; the R3 duplicate rule gives idempotency; the view shows "API". Cost: the stored source word is not literal, and an API pull and a CSV upload on the same day replace each other. (b) Same batch file, plus a migration that rebuilds the snapshot table to allow source `api`: literal labels and separate keys; the first table redefinition in the project. (c) The watcher writes SQLite through the handler: no inbox; ends the "watcher never writes SQLite" rule that three specs kept |
+| Q4 | Which Instagram login? Blocks R4-08. **Answered (b), OD8** | (a) **Facebook Login for Business, with a Facebook Page linked to the account (Recommended)**: the only documented way to upload a local file [M1]; needs the Page. (b) Instagram Login, metrics only: no Page; publishing stays manual because the video would need a public URL, which a `127.0.0.1` studio cannot give. (c) Instagram Login plus a public host for the video: rejected by PRD 12 unless the owner asks for it |
+| Q5 | How are tokens written to the Keychain without a terminal? Blocks R4-02. **Answered (a), OD9** | (a) **`/usr/bin/security -i` with the command on stdin (Recommended)**: no dependency; needs the B10 check first. (b) A native keyring package after dependency vetting: a cleaner API; a new native dependency in the api and the watcher. (c) `security ... -w <value>` in argv: simplest; the token is visible to `ps` for a moment; violates K3 and is listed only to be refused |
 
 ## 16. Risk, rollback and release notes
 
 - Risk: high. Triggers: credentials for the owner's public accounts; an action in the owner's
-  name on three platforms; the first outbound calls beyond the AI providers; a migration; a
+  name on two platforms (YouTube and TikTok publish; Instagram is read-only, OD8); the first
+  outbound calls beyond the AI providers; a migration; a
   second Keychain writer.
 - Human gates before any external effect:
   1. The owner's answers to Q1 to Q5 froze the spec (done 2026-11-20).

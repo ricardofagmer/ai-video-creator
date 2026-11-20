@@ -31,7 +31,7 @@ flowchart TD
 | 05-web-accounts-publish | R4-05 | 01 | 02, 03, 04, 06, 07, 08, 09 | - |
 | 06-cli-platforms | R4-06 | 02 | 03, 04, 05, 07, 08, 09 | - |
 | 07-youtube-live-client | R4-07 | 02 | 03 to 06, 08, 09 | Google project and OAuth client |
-| 08-instagram-live-client | R4-08 | 02 | 03 to 07, 09 | Meta app, account type, U3 |
+| 08-instagram-live-client | R4-08 | 02 | 03 to 07, 09 | metrics only (OD8); Meta app with Instagram Login, account type, U3, U4 |
 | 09-tiktok-live-client | R4-09 | 02 | 03 to 08 | TikTok app, U5 to U7 |
 | 10-final-proof | R4-FP | 01 to 06 | - | owner approval at the final checkpoint |
 
