@@ -35,11 +35,15 @@ export type SlotRunRecovery = 'recovered' | 'none' | 'unknown';
  *    later than `lateGraceMs` turns the crashed candidate into an old slot.
  * 2. Collect the guard facts (reads only) and apply core `decideSlot`; a skip appends its reason. A
  *    failed collection is `skipped` / `internal-error`.
- * 3. Fire: build the run with core `ScheduledRunFactory` (status `pending`, `createdBy: 'watcher'`,
+ * 3. Claim: create `schedules/<id>/fired/<slotMs>` with O_EXCL. An existing claim means another
+ *    evaluation decided to fire the slot: its run gets the missing `fired` line, or, with no run,
+ *    the slot is `skipped` / `internal-error`. A slot is never fired twice, even if two processes
+ *    ever held `fire.lock` together.
+ * 4. Fire: build the run with core `ScheduledRunFactory` (status `pending`, `createdBy: 'watcher'`,
  *    `correlationId: null`, the `schedule` link), write it once, then append `fired`.
  *
- * A failure of the run write or of the `fired` append throws without deciding the slot, so the
- * next idle tick looks again and step 1 finds a run that was written.
+ * A failed run write gives the claim back and throws, so the next idle tick fires the slot. A
+ * failed `fired` append keeps the claim and throws; step 1 then finds the written run.
  */
 @Injectable()
 export class CandidateSlotFirer {
@@ -73,13 +77,47 @@ export class CandidateSlotFirer {
       return 'decided';
     }
 
+    if ((await this.slotLog.claimSlot(scheduleId, slotAt)) === 'taken') return this.handleTakenClaim(candidate);
+
     // The id's time is the evaluation instant, never before the slot: `findRunForSlot` looks only
     // at folders created at or after the slot instant.
     const runId = newUlid(now.getTime());
     const run = this.factory.build({ schedule, slotAt, brief: decision.brief, recipe: decision.recipe, runId, now });
-    await this.runFiles.create(run);
+    try {
+      await this.runFiles.create(run);
+    } catch (error) {
+      await this.giveClaimBack(candidate);
+      throw error;
+    }
     await this.slotLog.append(scheduleId, firedSlotLine(slotAt, { runId, briefId: decision.brief.briefId }, now));
     return 'fired';
+  }
+
+  /**
+   * Another evaluation already claimed the slot. Its run, when one was written meanwhile, gets the
+   * missing `fired` line; otherwise the slot is `skipped` / `internal-error`, never fired twice.
+   */
+  private async handleTakenClaim(candidate: CandidateSlot): Promise<CandidateOutcome> {
+    const { schedule, slotAt, now } = candidate;
+    if ((await this.recoverWrittenRun(candidate)) === 'recovered') return 'decided';
+    this.events.record({ type: 'schedule.slot-claim-taken', scheduleId: schedule.scheduleId, slotAt: slotAt.toISOString() });
+    await this.slotLog.append(schedule.scheduleId, skippedSlotLine(slotAt, 'internal-error', now));
+    return 'decided';
+  }
+
+  /** After a failed run write: the next tick may fire the slot. A failed give-back is logged only. */
+  private async giveClaimBack(candidate: CandidateSlot): Promise<void> {
+    const { scheduleId } = candidate.schedule;
+    try {
+      await this.slotLog.releaseSlotClaim(scheduleId, candidate.slotAt);
+    } catch (error) {
+      this.events.record({
+        type: 'schedule.slot-claim-release-failed',
+        scheduleId,
+        slotAt: candidate.slotAt.toISOString(),
+        error: errorName(error),
+      });
+    }
   }
 
   /**

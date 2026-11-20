@@ -22,6 +22,16 @@ export type ScheduleEvent =
   /** A `run.json` written for the slot before a crash was found; only its `fired` line was added. */
   | { type: 'schedule.slot-recovered'; scheduleId: ScheduleId; slotAt: string; runId: RunId }
   | { type: 'schedule.unreadable'; scheduleId: ScheduleId; reasonId: Extract<SlotSkippedReason, 'schedule-unreadable'> }
+  /** Another watcher process holds the schedule's `fire.lock`; its pid when the lock names one. */
+  | { type: 'schedule.fire-lock-held'; scheduleId: ScheduleId; ownerPid: number | null }
+  /** Releasing `fire.lock` failed; the lock stays this pid's and is taken again next evaluation. */
+  | { type: 'schedule.fire-lock-release-failed'; scheduleId: ScheduleId; error: string }
+  /** Lines in the tail of `slots.jsonl` that are not valid slot lines (a damaged append). */
+  | { type: 'schedule.slot-log-damaged'; scheduleId: ScheduleId; unreadableLines: number }
+  /** The slot's `fired/<slotMs>` claim already existed and no run holds the slot: logged skipped. */
+  | { type: 'schedule.slot-claim-taken'; scheduleId: ScheduleId; slotAt: string }
+  /** Giving back this pid's claim after a failed run write failed; the slot stays claimed. */
+  | { type: 'schedule.slot-claim-release-failed'; scheduleId: ScheduleId; slotAt: string; error: string }
   | { type: 'schedules.scan-failed'; error: string }
   | { type: 'schedules.scan-recovered' };
 
@@ -33,6 +43,11 @@ const levelOf: Readonly<Record<ScheduleEvent['type'], LogLevel>> = {
   'schedule.evaluate-recovered': 'log',
   'schedule.slot-recovered': 'warn',
   'schedule.unreadable': 'warn',
+  'schedule.fire-lock-held': 'warn',
+  'schedule.fire-lock-release-failed': 'error',
+  'schedule.slot-log-damaged': 'warn',
+  'schedule.slot-claim-taken': 'warn',
+  'schedule.slot-claim-release-failed': 'error',
   'schedules.scan-failed': 'error',
   'schedules.scan-recovered': 'log',
 };

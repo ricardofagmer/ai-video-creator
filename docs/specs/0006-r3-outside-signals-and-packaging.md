@@ -342,14 +342,40 @@ created there: two processes write inside it. Modes `0700` folders, `0600` files
 <data home>/schedules/<scheduleId>/schedule.json   api or CLI: create, pause, resume, delete (status), briefs
                                    cursor.json     watcher only: how far slots were evaluated
                                    slots.jsonl     watcher only: append-only, one line per decided slot
+                                   fire.lock       watcher only: exists while one process decides due slots
+                                   fire.lock.takeover  watcher only: exists while one process replaces a stale fire.lock
+                                   fired/<slotMs>  watcher only: O_EXCL claim taken before a slot's run is written
 ```
+
+`fire.lock` (added after the R3 security review, finding L1) enforces OD4's single run writer
+when two watcher processes share one data home. It is created with O_EXCL and holds the owner's
+pid; a process that finds another live owner skips the schedule until the next idle tick. A lock
+whose owner is dead, that is older than 10 minutes, or that has had no pid for 5 seconds is
+taken over. The takeover is serialized by `fire.lock.takeover` (O_EXCL, held for a few file
+operations): under it the lock is judged again and removed only when it is still stale and the
+same inode, so two daemons that judged one lock stale cannot both take it (re-review M1). Under
+the lock the cursor is read again, and a slot already in the tail of `slots.jsonl` is never
+logged a second time (finding L2); a damaged line in that tail is counted and passed over, never
+fatal. Before it writes a slot's run the watcher creates `fired/<slotMs>` with O_EXCL (mode
+`0600`, folder `0700`, the claimant's pid inside); an existing claim means the slot was already
+decided to fire, so its run gets the missing `fired` line or, with no run, the slot is logged
+`skipped` / `internal-error` (or `missed`, once the slot is past `lateGraceMs`) and is never fired
+twice (re-review 2). A failed run write gives its
+own claim back so the next tick fires the slot; a claim is otherwise never removed. The claim
+closes the two lock residuals of re-review 2: a holder stalled past 10 minutes, and a crash in
+the takeover window, can at worst let two processes decide one slot, and only one can claim it
+and write its run. Those two processes can still append duplicate or contradictory lines for that
+slot (`fired` twice, or `skipped` or `missed` beside `fired`); a duplicate `fired` line counts
+toward the review limit, which errs toward skipping. Residual: two hosts sharing one data home over a network file system are not covered.
 
 ADR 0003 and `docs/RUN-FORMAT.md` section 4 gain:
 
 | File or store | Writer | Rule |
 |---|---|---|
 | `schedules/<id>/schedule.json` | api or CLI | Atomic rewrite; `deleted` is a status, the folder is never removed by code |
-| `schedules/<id>/cursor.json`, `slots.jsonl` | Watcher | Written only between runs |
+| `schedules/<id>/cursor.json`, `slots.jsonl` | Watcher | Written only between runs, under `fire.lock` |
+| `schedules/<id>/fire.lock`, `fire.lock.takeover` | Watcher | O_EXCL create, held for one evaluation of one schedule, removed only by its owner; a stale lock is replaced only under `fire.lock.takeover` |
+| `schedules/<id>/fired/<slotMs>` | Watcher | O_EXCL claim created before the slot's run is written; removed only by its claimant after its own run write failed |
 | `run.json` created at `pending` with `createdBy: 'watcher'` and `schedule` | Watcher | Only from a due slot of an `active` schedule, only when no run is startable; one write, then the ordinary rules apply |
 | SQLite `run_publications`, `platform_metric_snapshots`, `metric_imports`, quality columns | Nest command handlers (api or CLI) | The watcher does not read or write them |
 

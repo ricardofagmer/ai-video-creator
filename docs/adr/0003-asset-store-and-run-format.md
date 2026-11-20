@@ -129,7 +129,9 @@ Who writes what (follows eng-grafo's `FORMATO.md`; field detail goes to `docs/RU
 | `egress.jsonl` | Watcher | Amended 2026-11-18 (SPEC 0002 rev 3): append-only, one line per external call, written through the C5 helper; `package` copies it into `manifest.json.egress` |
 | `run.json` created at `pending` with `createdBy: 'watcher'` and `schedule` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6, L1): only from a due slot of an `active` schedule, only when no run is startable; one write, then the ordinary rules apply |
 | `schedules/<id>/schedule.json` | api or CLI | Amended 2026-11-19 (SPEC 0006 section 4.6): atomic rewrite; `deleted` is a status, the folder is never removed by code |
-| `schedules/<id>/cursor.json`, `slots.jsonl` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6): written only between runs |
+| `schedules/<id>/cursor.json`, `slots.jsonl` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6): written only between runs, under `fire.lock` |
+| `schedules/<id>/fire.lock`, `fire.lock.takeover` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6, R3 security review L1 and M1): held for one evaluation of one schedule; a stale lock is replaced only under `fire.lock.takeover` |
+| `schedules/<id>/fired/<slotMs>` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6, R3 security re-review 2): O_EXCL claim created before the slot's run is written, so a slot is fired at most once |
 | SQLite (catalog, recipes, outcomes, run index) | Nest command handlers, run by the api or by the CLI booting the same modules | The watcher only reads it (asset resolution, month-to-date spend); the api resyncs the run index from run folders on start |
 | SQLite `run_publications`, `platform_metric_snapshots`, `metric_imports`, quality columns | Nest command handlers (api or CLI) | Amended 2026-11-19 (SPEC 0006 section 4.6, K1): the watcher does not read or write them |
 | Mastra storage | None | Agents run inside one step and keep no state of their own (D18, ADR 0002) |

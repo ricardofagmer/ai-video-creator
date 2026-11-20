@@ -1,38 +1,38 @@
 {
-  "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+  "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
   "conventions": [
     {
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "id": "colocated-tests",
       "source": "apps/api/src/catalog/multipart-parts.test.ts"
     },
     {
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "id": "eslint",
       "source": "apps/api/eslint.config.mjs"
     },
     {
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "id": "nestjs-modules",
       "source": "apps/api/src/app.module.ts"
     },
     {
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "id": "pnpm-workspace",
       "source": "pnpm-workspace.yaml"
     },
     {
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "id": "prisma",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "id": "turborepo",
       "source": "turbo.json"
     },
     {
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "id": "typescript",
       "source": "apps/api/tsconfig.build.json"
     }
@@ -61,7 +61,7 @@
       "source": "apps/web/.env.example"
     }
   ],
-  "generatedAt": "2026-11-19T22:51:52.458Z",
+  "generatedAt": "2026-11-20T00:55:34.737Z",
   "models": [
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -274,6 +274,66 @@
       "path": "apps/api/src/watcher",
       "purpose": "",
       "source": "apps/api/src/watcher"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/actions",
+      "purpose": "",
+      "source": "apps/shell/src/actions"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/cli",
+      "purpose": "The one switch the shell accepts; the uninstaller runs the app with it to remove the login item.",
+      "source": "apps/shell/src/cli/shell-arguments.ts"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/config",
+      "purpose": "",
+      "source": "apps/shell/src/config"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/controller",
+      "purpose": "",
+      "source": "apps/shell/src/controller"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/electron",
+      "purpose": "",
+      "source": "apps/shell/src/electron"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/logging",
+      "purpose": "",
+      "source": "apps/shell/src/logging"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/menu",
+      "purpose": "`qua., 25/11 09:00`: weekday, day/month and 24-hour time.",
+      "source": "apps/shell/src/menu/format-slot.ts"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/platform",
+      "purpose": "Narrows a thrown Node error to its `code` without trusting its shape.",
+      "source": "apps/shell/src/platform/error-code.ts"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/state",
+      "purpose": "",
+      "source": "apps/shell/src/state"
+    },
+    {
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "path": "apps/shell/src/test-support",
+      "purpose": "",
+      "source": "apps/shell/src/test-support"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -702,7 +762,7 @@
       "source": "packages/video/src/templates"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "path": "scripts",
       "purpose": "",
       "source": "scripts"
@@ -844,7 +904,7 @@
         "test": "turbo run test",
         "typecheck": "turbo run typecheck"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": ".",
       "entryPoints": [],
       "framework": null,
@@ -860,7 +920,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "apps/api",
       "entryPoints": [
         "apps/api/src/main.ts"
@@ -878,6 +938,31 @@
     },
     {
       "commands": {
+        "build": "esbuild src/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main.js",
+        "lint": "eslint .",
+        "package": "node scripts/package-app.mjs",
+        "test": "node --import tsx --test \"src/**/*.test.ts\"",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+      },
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
+      "dir": "apps/shell",
+      "entryPoints": [
+        "apps/shell/dist/main.js",
+        "apps/shell/src/main.ts"
+      ],
+      "framework": null,
+      "language": "node",
+      "source": "apps/shell/package.json",
+      "tests": [
+        "apps/shell/src/actions",
+        "apps/shell/src/cli",
+        "apps/shell/src/config",
+        "apps/shell/src/menu",
+        "apps/shell/src/state"
+      ]
+    },
+    {
+      "commands": {
         "build": "tsc -p tsconfig.build.json",
         "dev:fixture": "tsx src/dev/run-fixture.ts",
         "lint": "eslint .",
@@ -885,7 +970,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "apps/watcher",
       "entryPoints": [
         "apps/watcher/src/main.ts"
@@ -906,7 +991,7 @@
         "start": "next start -H 127.0.0.1 -p ${VIDEO_STUDIO_WEB_PORT:-4310}",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "apps/web",
       "entryPoints": [
         "apps/web/src/app/layout.tsx",
@@ -926,7 +1011,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "packages/core",
       "entryPoints": [],
       "framework": "nestjs",
@@ -945,7 +1030,7 @@
     },
     {
       "commands": {},
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "packages/eslint-config",
       "entryPoints": [],
       "framework": null,
@@ -960,7 +1045,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "packages/shared",
       "entryPoints": [],
       "framework": null,
@@ -979,7 +1064,7 @@
         "build": "tsc -p tsconfig.json",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "packages/toolbox",
       "entryPoints": [
         "packages/toolbox/dist/cli.js",
@@ -992,7 +1077,7 @@
     },
     {
       "commands": {},
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "packages/tsconfig",
       "entryPoints": [],
       "framework": null,
@@ -1006,7 +1091,7 @@
         "lint": "eslint .",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "packages/ui",
       "entryPoints": [
         "packages/ui/src/index.ts"
@@ -1022,7 +1107,7 @@
         "studio": "remotion studio src/index.ts",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "packages/video",
       "entryPoints": [
         "packages/video/dist/render/index.js",
@@ -1040,7 +1125,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "commit": "b423ef11a8637e67cf1dbd1898a2059b82f2bb30",
       "dir": "tools/cli",
       "entryPoints": [
         "tools/cli/dist/main.js",
@@ -1536,10 +1621,10 @@
     {
       "paths": [
         "apps/api/package.json",
+        "apps/shell/package.json",
         "apps/watcher/package.json",
         "apps/web/package.json",
-        "package.json",
-        "packages/core/package.json"
+        "package.json"
       ],
       "task": "change a package command or entry point"
     },

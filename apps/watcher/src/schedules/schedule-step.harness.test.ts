@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import { mkdirSync } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -58,7 +59,16 @@ export class FakeClock implements Clock {
 export class InMemoryScheduleStore extends ScheduleStore {
   private readonly stored = new Map<string, StoredSchedule>();
 
+  constructor(private readonly home: DataHome) {
+    super(home);
+  }
+
+  /**
+   * Also creates `schedules/<id>/` on disk, as `createSchedule` does: the real store only lists
+   * folders that exist, and the watcher's first write of an evaluation is `fire.lock` inside it.
+   */
   put(entry: StoredSchedule): void {
+    mkdirSync(join(this.home.schedules, entry.scheduleId), { recursive: true, mode: 0o700 });
     this.stored.set(entry.scheduleId, entry);
   }
 
@@ -98,8 +108,11 @@ export class SimulatedCrashError extends Error {
 /** Real appends, except that it can fail the next `fired` line once (a crash after the run write). */
 export class CrashableSlotLogWriter extends SlotLogWriter {
   failNextFired = false;
+  /** Runs before a `fired` line is appended, so a test can look at the files at that moment. */
+  beforeFired: (() => Promise<void>) | null = null;
 
   override async append(scheduleId: string, line: SlotLine): Promise<void> {
+    if (line.result === 'fired' && this.beforeFired !== null) await this.beforeFired();
     if (line.result === 'fired' && this.failNextFired) {
       this.failNextFired = false;
       throw new SimulatedCrashError();

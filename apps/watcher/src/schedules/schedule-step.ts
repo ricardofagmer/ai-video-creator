@@ -29,7 +29,11 @@ import { SlotLogWriter } from './slot-log.writer';
  * - the newest in-grace slot goes to `CandidateSlotFirer`: one evaluation fires at most one run per
  *   schedule;
  * - `cursor.json` is written after the slot lines. An evaluation with no due slot writes nothing:
- *   the window simply starts from the same place next time, and the idle loop ticks every second.
+ *   the window simply starts from the same place next time, and the idle loop ticks every second;
+ * - a schedule with due slots is decided only under its `fire.lock`, so a second daemon on the
+ *   same data home skips it until the first has written its lines and cursor (OD4 single writer).
+ *   A slot already in the tail of `slots.jsonl` is never logged again: a crash after the lines and
+ *   before the cursor write leaves no duplicate.
  *
  * A schedule whose evaluation throws keeps its cursor and is retried on the next idle tick; lines
  * already appended by this process are remembered so they are never appended twice. Never throws.
@@ -40,6 +44,8 @@ export class ScheduleStep {
   private readonly appendedThroughMs = new Map<ScheduleId, number>();
   private readonly failing = new Set<ScheduleId>();
   private readonly unreadable = new Set<ScheduleId>();
+  /** Schedules whose `fire.lock` another process held at the last look; logged once per wait. */
+  private readonly lockHeld = new Set<ScheduleId>();
   private scanFailing = false;
   private evaluating = false;
 
@@ -107,27 +113,75 @@ export class ScheduleStep {
   private async evaluateSchedule(schedule: ScheduleFile): Promise<boolean> {
     const { scheduleId } = schedule;
     const now = this.clock.now();
+    // Reads only: most idle ticks have no due slot and never touch the lock.
+    if (!(await this.hasDueSlot(schedule, now))) return false;
+
+    const lock = await this.slotLog.acquireFireLock(scheduleId);
+    if (lock.state === 'held') {
+      // Another watcher process is deciding this schedule's slots; its cursor tells this one later.
+      if (!this.lockHeld.has(scheduleId)) this.events.record({ type: 'schedule.fire-lock-held', scheduleId, ownerPid: lock.pid });
+      this.lockHeld.add(scheduleId);
+      return false;
+    }
+    this.lockHeld.delete(scheduleId);
+    try {
+      return await this.decideDueSlots(schedule, now);
+    } finally {
+      await this.releaseFireLock(scheduleId);
+    }
+  }
+
+  /**
+   * A failed release is logged on its own and never replaces the evaluation's own error. The lock
+   * still names this pid, so this process takes it again next time; another daemon waits until
+   * this one exits or the lock passes `staleMs`.
+   */
+  private async releaseFireLock(scheduleId: ScheduleId): Promise<void> {
+    try {
+      await this.slotLog.releaseFireLock(scheduleId);
+    } catch (error) {
+      this.events.record({ type: 'schedule.fire-lock-release-failed', scheduleId, error: errorName(error) });
+    }
+  }
+
+  private async hasDueSlot(schedule: ScheduleFile, now: Date): Promise<boolean> {
+    const cursor = this.effectiveCursor(schedule, await this.scanner.cursor(schedule.scheduleId));
+    const { missed, candidate } = dueSlotSplit(schedule, cursor, now);
+    return missed.length > 0 || candidate !== null;
+  }
+
+  /**
+   * Under the fire lock: the cursor is read again (another process may have moved it while this
+   * one waited), and a slot already in `slots.jsonl` (logged before a crash that left the cursor
+   * behind) is passed over, so no slot gets a second line.
+   */
+  private async decideDueSlots(schedule: ScheduleFile, now: Date): Promise<boolean> {
+    const { scheduleId } = schedule;
     const cursor = this.effectiveCursor(schedule, await this.scanner.cursor(scheduleId));
     const { missed, candidate } = dueSlotSplit(schedule, cursor, now);
     if (missed.length === 0 && candidate === null) return false;
+    const logged = await this.slotLog.loggedSlotTimes(scheduleId);
 
     for (const slotAt of missed) {
-      // A slot whose run was written before a crash keeps that run: its `fired` line, not `missed`.
-      const recovery = await this.firer.recoverWrittenRun({ schedule, slotAt, now });
-      if (recovery !== 'recovered') {
-        const reasonId = this.busy.wasBusyAt(slotAt) ? 'watcher-busy' : 'watcher-not-running';
-        await this.slotLog.append(scheduleId, missedSlotLine(slotAt, reasonId, now));
-      }
+      if (!logged.has(slotAt.getTime())) await this.decideMissedSlot(schedule, slotAt, now);
       this.appendedThroughMs.set(scheduleId, slotAt.getTime());
     }
     let fired = false;
     if (candidate !== null) {
-      fired = (await this.firer.handle({ schedule, slotAt: candidate, now })) === 'fired';
+      if (!logged.has(candidate.getTime())) fired = (await this.firer.handle({ schedule, slotAt: candidate, now })) === 'fired';
       this.appendedThroughMs.set(scheduleId, candidate.getTime());
     }
     await this.slotLog.advanceCursor(scheduleId, now);
     this.appendedThroughMs.delete(scheduleId);
     return fired;
+  }
+
+  private async decideMissedSlot(schedule: ScheduleFile, slotAt: Date, now: Date): Promise<void> {
+    // A slot whose run was written before a crash keeps that run: its `fired` line, not `missed`.
+    const recovery = await this.firer.recoverWrittenRun({ schedule, slotAt, now });
+    if (recovery === 'recovered') return;
+    const reasonId = this.busy.wasBusyAt(slotAt) ? 'watcher-busy' : 'watcher-not-running';
+    await this.slotLog.append(schedule.scheduleId, missedSlotLine(slotAt, reasonId, now));
   }
 
   /**

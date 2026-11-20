@@ -87,7 +87,9 @@ field is optional (a manifest written before rev 3 still validates; every rev 3 
 | `approval.json` gate decisions (`plan`, recipe gates, `final`) and the optional `resume` flag in `control.json` | api or CLI | SPEC 0002 A6, K2: optional fields, `format: 1` unchanged; written only while no watcher step is in progress |
 | `run.json` created at `pending` with `createdBy: 'watcher'` and `schedule` | Watcher | Amended 2026-11-19 (SPEC 0006 sections 4.6 and 5.6, ADR 0003): only from a due slot of an `active` schedule, only when no run is startable; one write through the C5 helper, then the ordinary rules apply (the run waits at its gates and ends its watcher life at `review`) |
 | `schedules/<id>/schedule.json` | api or CLI | Amended 2026-11-19 (SPEC 0006): atomic rewrite; `deleted` is a status, the folder is never removed by code (section 24) |
-| `schedules/<id>/cursor.json`, `slots.jsonl` | Watcher | Amended 2026-11-19 (SPEC 0006): written only between runs; `slots.jsonl` is append-only (section 24) |
+| `schedules/<id>/cursor.json`, `slots.jsonl` | Watcher | Amended 2026-11-19 (SPEC 0006): written only between runs, under `fire.lock`; `slots.jsonl` is append-only (section 24) |
+| `schedules/<id>/fire.lock`, `fire.lock.takeover` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6, R3 security review L1 and M1): O_EXCL create holding the owner's pid, held for one evaluation of one schedule, removed only by its owner; a stale lock is replaced only under `fire.lock.takeover` |
+| `schedules/<id>/fired/<slotMs>` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6, R3 security re-review 2): O_EXCL claim holding the claimant's pid, created before the slot's run is written; removed only by its claimant after its own run write failed |
 | SQLite (catalog, recipes, outcomes, run index) | Nest command handlers, run by the api or by the CLI booting the same modules | The watcher only reads it; the run index is rebuilt from run folders and the files win |
 | SQLite `run_publications`, `platform_metric_snapshots`, `metric_imports`, quality columns | Nest command handlers (api or CLI) | Amended 2026-11-19 (SPEC 0006 K1): the watcher does not read or write them |
 | Mastra storage | None | Agents keep no state of their own (D18) |
@@ -709,12 +711,15 @@ schedules/<scheduleId>/
   schedule.json   api or CLI: create, pause, resume, delete (status), add or remove briefs
   cursor.json     watcher only: how far slots were evaluated
   slots.jsonl     watcher only: append-only, one line per decided slot
+  fire.lock       watcher only: exists while one process decides due slots
+  fire.lock.takeover  watcher only: exists while one process replaces a stale fire.lock
+  fired/<slotMs>  watcher only: O_EXCL claim taken before a slot's run is written
 ```
 
 | Item | Rule |
 |---|---|
-| Id | `scheduleId`, a ULID; it is the folder name. Validated before any path is joined; the helpers resolve only the three file names above, inside a folder named `schedules`, and refuse anything else (`SchedulePathError`, code `path-outside-run`) |
-| Writers | The api or CLI creates the folder exclusively and writes `schedule.json` with status `active` (`createSchedule`), then rewrites it atomically for each control action (`rewriteScheduleFile`, which never creates a schedule). The watcher writes only `cursor.json` (`writeScheduleCursor`) and `slots.jsonl` (`appendSlotLine`), and only between runs. No file has two writers |
+| Id | `scheduleId`, a ULID; it is the folder name. Validated before any path is joined; the helpers resolve only the five file names and the `fired/<slotMs>` claims above, inside a folder named `schedules`, and refuse anything else (`SchedulePathError`, code `path-outside-run`) |
+| Writers | The api or CLI creates the folder exclusively and writes `schedule.json` with status `active` (`createSchedule`), then rewrites it atomically for each control action (`rewriteScheduleFile`, which never creates a schedule). The watcher writes only `cursor.json` (`writeScheduleCursor`), `slots.jsonl` (`appendSlotLine`), `fire.lock` and `fire.lock.takeover` (`acquireFireLock`, `releaseFireLock`) and `fired/<slotMs>` (`claimSlot`, `releaseSlotClaim`), and only between runs; a second watcher process skips a schedule whose `fire.lock` a live process holds, and a slot whose claim exists is never fired again. No file has two writers |
 | Runs | The watcher's one write per fired slot is `runs/<runId>/run.json` at `pending` with `createdBy: 'watcher'` and `schedule` (section 8, **RunScheduleLink**). It never writes `approval.json`, `control.json`, any other status, or SQLite |
 | Readers | The api (views, next slots, index sync of fired runs from new `fired` lines), the watcher (due evaluation) and the CLI (`schedules`, `status`, `doctor`) |
 | Conventions | Section 2 applies: UTF-8, atomic whole-file writes, strict objects, append-only JSON lines. Times are ISO-8601 instants. JSON files carry `"format": 1` and section 3 applies |

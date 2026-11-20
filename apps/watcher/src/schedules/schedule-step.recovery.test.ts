@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { type ScheduleFile } from '@studio/shared/schedules';
+import { scheduleFilePath, slotClaimPath } from '@studio/shared/schedules/files';
 import {
+  SimulatedCrashError,
   addDailySchedule,
   createHarness,
   cursorOf,
@@ -22,6 +26,8 @@ import {
  * the fixture schedule is 12:00Z every day; the busy run is simulated with the tracker the daemon
  * loop wraps around `RunEngine.execute`, while the injected clock moves across the slot instant.
  */
+
+const slotNoon = new Date('2026-11-20T12:00:00.000Z');
 
 function withStatus(schedule: ScheduleFile, status: ScheduleFile['status'], statusSince: string): ScheduleFile {
   return { ...schedule, status, statusSince, updatedAt: statusSince };
@@ -235,5 +241,152 @@ describe('ScheduleStep.evaluate: paused, deleted and resumed schedules (R3-AC-20
       [['2026-11-23T12:00:00.000Z', 'fired']],
     );
     assert.equal((await runFolderIds(harness)).length, 2);
+  });
+});
+
+/*
+ * R3 security review L1 (two daemons on one data home must not fire one slot twice) and L2 (a
+ * crash after the slot line and before the cursor write must not log the slot again).
+ */
+describe('ScheduleStep.evaluate: one writer per schedule and no second line for a slot', () => {
+  let harness: ScheduleHarness;
+
+  beforeEach(async () => {
+    harness = await createHarness('2026-11-20T12:30:00.000Z');
+  });
+
+  afterEach(async () => {
+    await removeHarness(harness);
+  });
+
+  function fireLockPath(scheduleId: string): string {
+    return scheduleFilePath({ schedulesRoot: harness.dataHome.schedules, scheduleId }, 'fireLock');
+  }
+
+  it('decides nothing while another live process holds fire.lock, then fires once it is released (L1)', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    // The parent of the test process stands in for a second watcher daemon in mid-evaluation.
+    await writeFile(fireLockPath(schedule.scheduleId), `${process.ppid}\n`);
+
+    assert.equal(await harness.step.evaluate(), false);
+    assert.equal(await harness.step.evaluate(), false);
+    assert.deepEqual(await runFolderIds(harness), []);
+    assert.deepEqual(await slotLines(harness, schedule.scheduleId), []);
+    assert.equal(await cursorOf(harness, schedule.scheduleId), null);
+    assert.equal(harness.facts.requests.length, 0, 'no guard is asked while the other process decides');
+    const held = harness.events.events.filter((event) => event.type === 'schedule.fire-lock-held');
+    assert.equal(held.length, 1, 'logged once per wait');
+
+    await rm(fireLockPath(schedule.scheduleId));
+    assert.equal(await harness.step.evaluate(), true);
+    assert.equal((await runFolderIds(harness)).length, 1);
+    assert.deepEqual(
+      (await slotLines(harness, schedule.scheduleId)).map((line) => line.result),
+      ['fired'],
+    );
+    await assert.rejects(stat(fireLockPath(schedule.scheduleId)), { code: 'ENOENT' }, 'released after the evaluation');
+  });
+
+  it('releases fire.lock when the fired append throws, so the recovery can run (L1)', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    harness.slotLog.failNextFired = true;
+    let lockWhileAppending = '';
+    harness.slotLog.beforeFired = async () => {
+      lockWhileAppending = await readFile(fireLockPath(schedule.scheduleId), 'utf8');
+    };
+
+    await harness.step.evaluate();
+
+    assert.equal(lockWhileAppending, `${process.pid}\n`, 'the fired append runs under this process lock');
+    await assert.rejects(stat(fireLockPath(schedule.scheduleId)), { code: 'ENOENT' });
+  });
+
+  it('does not log a fired slot again when a crash left the cursor behind (L2)', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    assert.equal(await harness.step.evaluate(), true);
+    const runIds = await runFolderIds(harness);
+
+    // The crash: the fired line is in slots.jsonl, the cursor write never happened.
+    await rm(scheduleFilePath({ schedulesRoot: harness.dataHome.schedules, scheduleId: schedule.scheduleId }, 'cursor'));
+    const restartedStep = restartStep(harness);
+    harness.clock.set('2026-11-20T12:40:00.000Z');
+    assert.equal(await restartedStep.evaluate(), false);
+
+    assert.deepEqual(await runFolderIds(harness), runIds);
+    assert.deepEqual(
+      (await slotLines(harness, schedule.scheduleId)).map((line) => [line.slotAt, line.result]),
+      [['2026-11-20T12:00:00.000Z', 'fired']],
+    );
+    assert.equal(harness.events.events.filter((event) => event.type === 'schedule.slot-recovered').length, 0);
+    assert.equal((await cursorOf(harness, schedule.scheduleId))?.evaluatedThrough, '2026-11-20T12:40:00.000Z');
+  });
+
+  it('still fires when the slots.jsonl tail holds a damaged line, and reports it (re-review L1-new)', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    const slotsPath = scheduleFilePath({ schedulesRoot: harness.dataHome.schedules, scheduleId: schedule.scheduleId }, 'slots');
+    await writeFile(slotsPath, '{"slotAt":"2026-11-19T1{"slotAt":\n');
+
+    assert.equal(await harness.step.evaluate(), true);
+
+    assert.equal((await runFolderIds(harness)).length, 1);
+    assert.ok(harness.events.events.some((event) => event.type === 'schedule.slot-log-damaged' && event.unreadableLines === 1));
+  });
+
+  it('never fires a slot whose claim exists without a run: logs skipped / internal-error (re-review 2)', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    const location = { schedulesRoot: harness.dataHome.schedules, scheduleId: schedule.scheduleId };
+    // Another process claimed the 12:00 slot and died before writing its run.
+    await mkdir(dirname(slotClaimPath(location, slotNoon)), { recursive: true });
+    await writeFile(slotClaimPath(location, slotNoon), `${process.ppid}\n`);
+
+    assert.equal(await harness.step.evaluate(), false);
+    await harness.step.evaluate();
+
+    assert.deepEqual(await runFolderIds(harness), []);
+    assert.deepEqual(
+      (await slotLines(harness, schedule.scheduleId)).map((line) => [line.slotAt, line.result, line.reasonId]),
+      [['2026-11-20T12:00:00.000Z', 'skipped', 'internal-error']],
+    );
+    assert.equal(harness.events.events.filter((event) => event.type === 'schedule.slot-claim-taken').length, 1);
+    assert.equal(await readFile(slotClaimPath(location, slotNoon), 'utf8'), `${process.ppid}\n`, 'another pid claim is kept');
+  });
+
+  it('gives the claim back when the run write fails, so the next evaluation fires the slot once (re-review 2)', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    const location = { schedulesRoot: harness.dataHome.schedules, scheduleId: schedule.scheduleId };
+    const create = harness.runFiles.create.bind(harness.runFiles);
+    harness.runFiles.create = async () => {
+      throw new SimulatedCrashError();
+    };
+
+    assert.equal(await harness.step.evaluate(), false);
+    assert.deepEqual(await runFolderIds(harness), []);
+    assert.deepEqual(await slotLines(harness, schedule.scheduleId), []);
+    await assert.rejects(stat(slotClaimPath(location, slotNoon)), { code: 'ENOENT' }, 'the failed write gave its claim back');
+
+    harness.runFiles.create = create;
+    harness.clock.set('2026-11-20T12:31:00.000Z');
+    assert.equal(await harness.step.evaluate(), true);
+
+    assert.equal((await runFolderIds(harness)).length, 1);
+    assert.deepEqual(
+      (await slotLines(harness, schedule.scheduleId)).map((line) => line.result),
+      ['fired'],
+    );
+    assert.equal(await readFile(slotClaimPath(location, slotNoon), 'utf8'), `${process.pid}\n`, 'the fired slot stays claimed');
+  });
+
+  it('does not log missed slots again when a crash left the cursor behind (L2)', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    harness.clock.set('2026-11-23T12:30:00.000Z');
+    await harness.step.evaluate();
+    const before = await slotLines(harness, schedule.scheduleId);
+    assert.ok(before.some((line) => line.result === 'missed'));
+
+    await rm(scheduleFilePath({ schedulesRoot: harness.dataHome.schedules, scheduleId: schedule.scheduleId }, 'cursor'));
+    harness.clock.set('2026-11-23T12:35:00.000Z');
+    await restartStep(harness).evaluate();
+
+    assert.deepEqual(await slotLines(harness, schedule.scheduleId), before);
   });
 });

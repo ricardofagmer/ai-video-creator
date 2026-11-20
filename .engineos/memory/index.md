@@ -1,6 +1,6 @@
 # Project Index
 
-Generated facts at commit `48552c3a2548` (2026-11-19T22:51:52.458Z). Detail and sources: [index.json](index.json).
+Generated facts at commit `b423ef11a863` (2026-11-20T00:55:34.737Z). Detail and sources: [index.json](index.json).
 Regenerate with `engineos index refresh`. Narrative and rationale live in the docs linked at the end.
 
 ## Start here (6)
@@ -9,13 +9,14 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - add or change tests: `apps/api/src/catalog`, `apps/api/src/metrics`, `apps/api/src/platform`, `apps/api/src/runs`, `apps/api/src/schedules`
 - change CI or build conventions: `apps/api/eslint.config.mjs`, `apps/api/src/app.module.ts`, `apps/api/src/catalog/multipart-parts.test.ts`, `apps/api/tsconfig.build.json`, `packages/core/prisma/schema.prisma`
 - change a data model or migration: `packages/core/prisma`, `packages/core/prisma/migrations/20261118000000_init`, `packages/core/prisma/migrations/20261118120000_r2_improvement_loop`, `packages/core/prisma/migrations/20261118180000_curator`, `packages/core/prisma/migrations/20261119120000_r3_outside_signals`
-- change a package command or entry point: `apps/api/package.json`, `apps/watcher/package.json`, `apps/web/package.json`, `package.json`, `packages/core/package.json`
+- change a package command or entry point: `apps/api/package.json`, `apps/shell/package.json`, `apps/watcher/package.json`, `apps/web/package.json`, `package.json`
 - change environment configuration: `apps/web/.env.example`
 
-## Packages (12)
+## Packages (13)
 
 - `.` node; entry: none; commands: ace, build, dev, lint, test, typecheck
 - `apps/api` nestjs; entry: `apps/api/src/main.ts`; commands: build, lint, start, test, typecheck
+- `apps/shell` node; entry: `apps/shell/dist/main.js`, `apps/shell/src/main.ts`; commands: build, lint, package, test, typecheck
 - `apps/watcher` nestjs; entry: `apps/watcher/src/main.ts`; commands: build, dev:fixture, lint, start, test, typecheck
 - `apps/web` next; entry: `apps/web/src/app/layout.tsx`, `apps/web/src/app/page.tsx`; commands: build, dev, lint, start, typecheck
 - `packages/core` nestjs; entry: none; commands: build, lint, prisma:generate, prisma:migrate:deploy, test, typecheck
@@ -23,10 +24,9 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `packages/shared` node; entry: none; commands: build, lint, test, typecheck
 - `packages/toolbox` node; entry: `packages/toolbox/dist/cli.js`, `packages/toolbox/src/cli.ts`; commands: ace, build, typecheck
 - `packages/tsconfig` node; entry: none; commands: none
-- `packages/ui` react; entry: `packages/ui/src/index.ts`; commands: build, lint, typecheck
-- ... 2 more in index.json
+- ... 3 more in index.json
 
-## Modules (107)
+## Modules (117)
 
 - `apps`
 - `apps/api/src/auth`
@@ -42,6 +42,16 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `apps/api/src/schedules`
 - `apps/api/src/search`
 - `apps/api/src/watcher`
+- `apps/shell/src/actions`
+- `apps/shell/src/cli` - The one switch the shell accepts; the uninstaller runs the app with it to remove the login item.
+- `apps/shell/src/config`
+- `apps/shell/src/controller`
+- `apps/shell/src/electron`
+- `apps/shell/src/logging`
+- `apps/shell/src/menu` - qua., 25/11 09:00 : weekday, day/month and 24-hour time.
+- `apps/shell/src/platform` - Narrows a thrown Node error to its code without trusting its shape.
+- `apps/shell/src/state`
+- `apps/shell/src/test-support`
 - `apps/watcher/src/adapters`
 - `apps/watcher/src/curation`
 - `apps/watcher/src/daemon` - Error taxonomy category rules/observability.md , as in engine.errors.ts .
@@ -58,17 +68,7 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `docs`
 - `packages`
 - `packages/core/src/agents`
-- `packages/core/src/asset-store` - Error taxonomy category rules/observability.md ; the api maps it to a status code.
-- `packages/core/src/catalog`
-- `packages/core/src/comparisons`
-- `packages/core/src/costs`
-- `packages/core/src/curation`
-- `packages/core/src/embeddings`
-- `packages/core/src/learnings`
-- `packages/core/src/metrics`
-- `packages/core/src/outcomes`
-- `packages/core/src/paths`
-- ... 67 more in index.json
+- ... 77 more in index.json
 
 ## Routes (72)
 
@@ -119,19 +119,19 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `VIDEO_STUDIO_WEB_ORIGIN` from `apps/web/.env.example`
 - `VIDEO_STUDIO_WEB_PORT` from `apps/web/.env.example`
 
-## Test locations (24)
+## Test locations (29)
 
 - `apps/api/src/catalog`
 - `apps/api/src/metrics`
 - `apps/api/src/platform`
 - `apps/api/src/runs`
 - `apps/api/src/schedules`
-- `apps/watcher/src/daemon`
-- `apps/watcher/src/schedules`
-- `packages/core/src/comparisons`
-- `packages/core/src/metrics`
-- `packages/core/src/metrics/commands`
-- ... 14 more in index.json
+- `apps/shell/src/actions`
+- `apps/shell/src/cli`
+- `apps/shell/src/config`
+- `apps/shell/src/menu`
+- `apps/shell/src/state`
+- ... 19 more in index.json
 
 ## Conventions (7)
 

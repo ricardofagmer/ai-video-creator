@@ -1,7 +1,7 @@
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { ScheduleIdSchema, type ScheduleId } from '../../common/ids';
 import { RunFileError } from '../../run-files/errors';
-import { SCHEDULES_FOLDER_NAME, scheduleFileNames, type ScheduleFileKey } from '../constants';
+import { SCHEDULES_FOLDER_NAME, SLOT_CLAIMS_FOLDER_NAME, scheduleFileNames, type ScheduleFileKey } from '../constants';
 
 /** A path that would leave `<data home>/schedules/` or name a folder that is not a schedule. */
 export class SchedulePathError extends RunFileError {
@@ -44,7 +44,17 @@ export function scheduleDirectory(location: ScheduleLocation): string {
   return directory;
 }
 
-/** One of the three schedule files; no other name can be resolved inside a schedule folder. */
+/** `<schedule folder>/fired/<slotMs>`; the slot instant must be a whole, non-negative millisecond. */
+export function slotClaimPath(location: ScheduleLocation, slotAt: Date): string {
+  const directory = join(scheduleDirectory(location), SLOT_CLAIMS_FOLDER_NAME);
+  const slotMs = slotAt.getTime();
+  if (!Number.isSafeInteger(slotMs) || slotMs < 0) throw new SchedulePathError(directory, 'invalid slot instant');
+  const target = join(directory, String(slotMs));
+  if (dirname(target) !== directory) throw new SchedulePathError(target, 'escapes the claims folder');
+  return target;
+}
+
+/** One of the schedule files; no other name can be resolved inside a schedule folder. */
 export function scheduleFilePath(location: ScheduleLocation, file: ScheduleFileKey): string {
   const directory = scheduleDirectory(location);
   const target = resolve(directory, scheduleFileNames[file]);
