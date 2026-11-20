@@ -12,6 +12,35 @@
 readonly STUDIO_LAUNCHD_LABEL='com.videostudio.watcher'
 # A9: default web port; `studio` reads VIDEO_STUDIO_WEB_PORT to move it.
 readonly STUDIO_DEFAULT_WEB_PORT='4310'
+# A9: default api port; `studio` reads VIDEO_STUDIO_API_PORT to move it (tools/cli cli-settings.ts).
+readonly STUDIO_DEFAULT_API_PORT='4311'
+# Menu-bar app (SPEC 0006 R3-08, ADR 0005): the name and bundle id apps/shell/scripts/package-app.mjs
+# gives it. The uninstaller removes only a folder carrying this bundle id.
+readonly STUDIO_SHELL_APP_NAME='Video Studio'
+readonly STUDIO_SHELL_BUNDLE_ID='com.videostudio.shell'
+# vetting 0002 section 12: the one host of the Electron framework download and the pinned version.
+readonly STUDIO_ELECTRON_DOWNLOAD_HOST='https://github.com/electron/electron/releases/download/'
+readonly STUDIO_ELECTRON_VERSION='45.4.1'
+# vetting 0002 section 12 "Download redirect variables": every spelling @electron/get 5.1.0 and
+# electron 45.4.1 read to redirect the host or path, the cache, the checksum source, the platform,
+# the framework folder or the proxy. The installer removes them from the packager's environment and
+# never sets one; package-app.mjs refuses to run if any spelling is still set.
+STUDIO_ELECTRON_DOWNLOAD_VARIABLES=(
+  ELECTRON_MIRROR ELECTRON_NIGHTLY_MIRROR ELECTRON_CUSTOM_DIR ELECTRON_CUSTOM_FILENAME ELECTRON_CUSTOM_VERSION
+  NPM_CONFIG_ELECTRON_MIRROR NPM_CONFIG_ELECTRON_NIGHTLY_MIRROR NPM_CONFIG_ELECTRON_CUSTOM_DIR
+  NPM_CONFIG_ELECTRON_CUSTOM_FILENAME NPM_CONFIG_ELECTRON_CUSTOM_VERSION
+  npm_config_electron_mirror npm_config_electron_nightlyMirror npm_config_electron_nightly_mirror
+  npm_config_electron_customDir npm_config_electron_custom_dir npm_config_electron_customFilename
+  npm_config_electron_custom_filename npm_config_electron_customVersion npm_config_electron_custom_version
+  npm_package_config_electron_mirror npm_package_config_electron_nightlyMirror
+  npm_package_config_electron_nightly_mirror npm_package_config_electron_customDir
+  npm_package_config_electron_custom_dir npm_package_config_electron_customFilename
+  npm_package_config_electron_custom_filename npm_package_config_electron_customVersion
+  npm_package_config_electron_custom_version
+  electron_config_cache force_no_cache electron_use_remote_checksums npm_config_electron_use_remote_checksums
+  ELECTRON_INSTALL_PLATFORM ELECTRON_INSTALL_ARCH ELECTRON_OVERRIDE_DIST_PATH ELECTRON_GET_USE_PROXY
+  ELECTRON_SKIP_BINARY_DOWNLOAD
+)
 # Keychain item names written by `studio secrets set` (packages/core/src/secrets/secret-names.ts,
 # KEYCHAIN_SERVICE and KEYCHAIN_ACCOUNTS). Names only, never values; keep in step with that file.
 readonly STUDIO_KEYCHAIN_SERVICE='com.videostudio.provider-keys'
@@ -32,6 +61,19 @@ PLIST_TEMPLATE=''
 LAUNCH_AGENTS_DIR=''
 PLIST_PATH=''
 LAUNCHD_SERVICE_TARGET=''
+SHELL_PACKAGE_DIR=''
+SHELL_MAIN=''
+SHELL_PACKAGE_SCRIPT=''
+SHELL_OUT_DIR=''
+SHELL_BUILT_APP=''
+SHELL_STAMP_FILE=''
+SHELL_APPS_DIR=''
+SHELL_APP_PATH=''
+SHELL_APP_EXECUTABLE=''
+ELECTRON_CACHE_DIR=''
+
+# Set by is_studio_shell_app when it answers no: the reason, for the caller's message.
+SHELL_APP_REJECTION=''
 
 # Set by resolve_data_home_expected / resolve_data_home_with_core.
 DATA_HOME=''
@@ -177,6 +219,21 @@ define_studio_paths() {
   LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
   PLIST_PATH="$LAUNCH_AGENTS_DIR/$STUDIO_LAUNCHD_LABEL.plist"
   LAUNCHD_SERVICE_TARGET="gui/$UID/$STUDIO_LAUNCHD_LABEL"
+  SHELL_PACKAGE_DIR="$REPO_ROOT/apps/shell"
+  # apps/shell/package.json "build" writes dist/main.js; "package" runs scripts/package-app.mjs.
+  SHELL_MAIN="$SHELL_PACKAGE_DIR/dist/main.js"
+  SHELL_PACKAGE_SCRIPT="$SHELL_PACKAGE_DIR/scripts/package-app.mjs"
+  # Build output, ignored by git (`out/`); the packager names its folder <name>-<platform>-<arch>.
+  SHELL_OUT_DIR="$SHELL_PACKAGE_DIR/out"
+  SHELL_BUILT_APP="$SHELL_OUT_DIR/$STUDIO_SHELL_APP_NAME-darwin-arm64/$STUDIO_SHELL_APP_NAME.app"
+  SHELL_STAMP_FILE="$SHELL_OUT_DIR/install-stamp.txt"
+  # User-owned install location: no sudo, no /Applications.
+  SHELL_APPS_DIR="$HOME/Applications"
+  SHELL_APP_PATH="$SHELL_APPS_DIR/$STUDIO_SHELL_APP_NAME.app"
+  SHELL_APP_EXECUTABLE="$SHELL_APP_PATH/Contents/MacOS/$STUDIO_SHELL_APP_NAME"
+  # vetting 0002 section 12, check 3: env-paths cache of @electron/get on macOS, shared by every
+  # Electron project of this user, so the scripts never delete it.
+  ELECTRON_CACHE_DIR="$HOME/Library/Caches/electron"
 }
 
 # Folders where a `studio` link may live, in preference order.
@@ -290,4 +347,94 @@ bootout_agent() {
     waited=$((waited + 1))
   done
   info "agente $STUDIO_LAUNCHD_LABEL descarregado."
+}
+
+# ---------------------------------------------------------------------------------------------
+# Menu-bar app (SPEC 0006 R3-08, ADR 0005 decision 5)
+# ---------------------------------------------------------------------------------------------
+
+# Prints the CFBundleIdentifier of the app folder $1, or nothing when it has no readable Info.plist.
+# PlistBuddy's Print only reads the file.
+shell_app_bundle_id() {
+  local plist="$1/Contents/Info.plist"
+  if [ -L "$plist" ] || [ ! -f "$plist" ]; then
+    return 0
+  fi
+  /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist" 2>/dev/null || true
+}
+
+# True when $1 is the menu-bar app this studio installs, by four checks: an absolute, normalized
+# path ending in .app; under $HOME/Applications; a real folder, not a symlink; bundle id
+# com.videostudio.shell. On "no" the reason is left in SHELL_APP_REJECTION.
+is_studio_shell_app() {
+  SHELL_APP_REJECTION=''
+  case "$1" in
+    /*.app) ;;
+    *)
+      SHELL_APP_REJECTION='não é um caminho absoluto terminado em .app'
+      return 1
+      ;;
+  esac
+  case "$1" in
+    *//* | */./* | */../*)
+      SHELL_APP_REJECTION='caminho não normalizado'
+      return 1
+      ;;
+  esac
+  if [ "$1" = "$SHELL_APPS_DIR" ] || ! path_is_within "$1" "$SHELL_APPS_DIR"; then
+    SHELL_APP_REJECTION="fora de $SHELL_APPS_DIR"
+    return 1
+  fi
+  if [ -L "$1" ]; then
+    SHELL_APP_REJECTION='é um link simbólico'
+    return 1
+  fi
+  if [ ! -d "$1" ]; then
+    SHELL_APP_REJECTION='não é uma pasta de app'
+    return 1
+  fi
+  if [ "$(shell_app_bundle_id "$1")" != "$STUDIO_SHELL_BUNDLE_ID" ]; then
+    SHELL_APP_REJECTION="o bundle id não é $STUDIO_SHELL_BUNDLE_ID"
+    return 1
+  fi
+}
+
+# True while a process runs from the installed app or from the build output. `ps -o comm` prints
+# the executable's full path on macOS; read-only.
+shell_app_running() {
+  local command_path
+  while IFS= read -r command_path; do
+    case "$command_path" in
+      "$SHELL_APP_PATH/Contents/"* | "$SHELL_BUILT_APP/Contents/"*) return 0 ;;
+    esac
+  done <<EOF_PROCESSES
+$(ps -axo comm= 2>/dev/null || true)
+EOF_PROCESSES
+  return 1
+}
+
+# Asks a running menu-bar app to quit through its bundle id and waits up to 15 s. Never a signal:
+# returns non-zero when it is still running (or macOS refused the Apple event), and the caller
+# leaves the app in place. The first quit may make macOS ask once to let the terminal control it.
+quit_shell_app() {
+  local waited=0
+  if [ "$DRY_RUN" -eq 1 ]; then
+    info '(simulação) se o app do menu estiver aberto, pediria para fechar:'
+    run /usr/bin/osascript -e "quit app id \"$STUDIO_SHELL_BUNDLE_ID\""
+    return 0
+  fi
+  if ! shell_app_running; then
+    return 0
+  fi
+  info 'pedindo ao app do menu para fechar.'
+  # A refused Apple event is not final: the wait below decides from the process list.
+  /usr/bin/osascript -e "quit app id \"$STUDIO_SHELL_BUNDLE_ID\"" >/dev/null 2>&1 || true
+  while shell_app_running; do
+    if [ "$waited" -ge 15 ]; then
+      return 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  info 'app do menu fechado.'
 }

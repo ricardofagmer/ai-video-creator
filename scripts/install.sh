@@ -3,12 +3,18 @@
 # Video Studio installer (SPEC 0002 R1-22, PRD 0001 section 11). Run it in Terminal on the Mac
 # that hosts the studio:
 #
-#   scripts/install.sh [--dry-run] [--yes] [--reset-passphrase]
+#   scripts/install.sh [--dry-run] [--yes] [--reset-passphrase] [--skip-shell]
 #
 #   --dry-run           lists every step and what it would change, and changes nothing. It only
-#                       reads state: command lookups, versions, file tests, `launchctl print`.
+#                       reads state: command lookups, versions, file tests, `launchctl print`,
+#                       `ps`, Info.plist reads and `codesign --verify`. It asks nothing.
 #   --yes               skips the single Homebrew confirmation, and nothing else.
 #   --reset-passphrase  runs `studio passphrase set` to replace the web passphrase.
+#   --skip-shell        skips the menu-bar app step (12): no download, build or copy.
+#
+# The menu-bar app step (SPEC 0006 R3-08, ADR 0005) is optional like the search model: it names
+# the Electron download host and asks before the first build, on its own question that --yes does
+# not answer; any failure warns and the install goes on. It never sets a download mirror.
 #
 # Safe to rerun (criterion 2): every step checks state first and skips or no-ops when it is
 # already satisfied; no step resets, deletes or rewrites user data. It never uses sudo, never
@@ -21,8 +27,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
 
-readonly TOTAL_STEPS=14
+readonly TOTAL_STEPS=15
 readonly MIN_NODE_MAJOR=22
+# The `engines` of electron 45.4.1 and @electron/packager 20.3.0 (vetting 0002 section 2).
+readonly SHELL_MIN_NODE_MAJOR=22
+readonly SHELL_MIN_NODE_MINOR=12
 
 # No telemetry from the build tools this script runs (PRD 12 "no telemetry"). Not secrets.
 export DO_NOT_TRACK=1 TURBO_TELEMETRY_DISABLED=1 NEXT_TELEMETRY_DISABLED=1 CHECKPOINT_DISABLE=1
@@ -38,14 +47,17 @@ PASSPHRASE_STATE='não verificada'
 SUMMARY_NOTES=''
 PLIST_TEMP=''
 IS_RERUN=0
+SKIP_SHELL=0
+SHELL_STATE='não verificado'
 
 usage() {
   cat <<'USAGE'
-Uso: scripts/install.sh [--dry-run] [--yes] [--reset-passphrase]
+Uso: scripts/install.sh [--dry-run] [--yes] [--reset-passphrase] [--skip-shell]
 
   --dry-run           mostra cada etapa e o que mudaria, sem mudar nada
   --yes               pula só a confirmação do Homebrew
   --reset-passphrase  define uma nova senha do studio
+  --skip-shell        pula o app do menu (etapa 12): sem download, build ou cópia
 USAGE
 }
 
@@ -55,6 +67,7 @@ parse_arguments() {
       --dry-run) DRY_RUN=1 ;;
       --yes) ASSUME_YES=1 ;;
       --reset-passphrase) RESET_PASSPHRASE=1 ;;
+      --skip-shell) SKIP_SHELL=1 ;;
       -h | --help)
         usage
         exit 0
@@ -505,7 +518,209 @@ step_link_cli() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 12. launchd agent of the watcher
+# 12. Menu-bar app (optional: a failure warns and the install goes on, like step 7)
+# ---------------------------------------------------------------------------------------------
+
+# Records why the app was not installed; never stops the installer (R3-AC-25.10).
+skip_shell_app() {
+  warn "app do menu: $1 O resto do studio funciona."
+  SHELL_STATE="não instalado: $1"
+  add_note "app do menu: $2"
+}
+
+# True when the node binary $1 is at least 22.12.
+node_meets_shell_minimum() {
+  local version major minor
+  if [ -z "$1" ]; then
+    return 1
+  fi
+  version="$("$1" --version 2>/dev/null || true)"
+  version="${version#v}"
+  major="${version%%.*}"
+  minor="${version#*.}"
+  minor="${minor%%.*}"
+  if ! is_number "$major" || ! is_number "$minor"; then
+    return 1
+  fi
+  if [ "$major" -gt "$SHELL_MIN_NODE_MAJOR" ]; then
+    return 0
+  fi
+  [ "$major" -eq "$SHELL_MIN_NODE_MAJOR" ] && [ "$minor" -ge "$SHELL_MIN_NODE_MINOR" ]
+}
+
+# Both the node that runs the packager (the PATH one, through pnpm) and the one the app will spawn.
+shell_node_ready() {
+  local candidate
+  if [ "$DRY_RUN" -eq 1 ] && { [ -z "$NODE_BIN" ] || ! command -v node >/dev/null 2>&1; }; then
+    info "(simulação) exigiria node >= $SHELL_MIN_NODE_MAJOR.$SHELL_MIN_NODE_MINOR (node ainda ausente nesta simulação)."
+    return 0
+  fi
+  for candidate in "$NODE_BIN" "$(command -v node || true)"; do
+    if ! node_meets_shell_minimum "$candidate"; then
+      skip_shell_app "o node em ${candidate:-PATH} é anterior ao $SHELL_MIN_NODE_MAJOR.$SHELL_MIN_NODE_MINOR exigido pelo Electron $STUDIO_ELECTRON_VERSION." \
+        "atualize o node (brew upgrade node) e rode scripts/install.sh de novo."
+      return 1
+    fi
+  done
+  info "node >= $SHELL_MIN_NODE_MAJOR.$SHELL_MIN_NODE_MINOR ok."
+}
+
+# A configured port when it is a number, else the A9 default; package-app.mjs checks the range.
+shell_port() {
+  if is_number "$1"; then
+    printf '%s' "$1"
+  else
+    printf '%s' "$2"
+  fi
+}
+
+shell_file_sha256() {
+  if [ -f "$1" ]; then
+    shasum -a 256 "$1" 2>/dev/null | cut -d ' ' -f 1 || true
+  else
+    printf 'ausente'
+  fi
+}
+
+# Every input of the build, one per line: the bundle, the packaging script, the Electron version
+# and the five values baked into shell-config.json. Equal to the stamp the last successful install
+# wrote (and the installed copy still verifying) means "sem mudança".
+shell_build_stamp() {
+  printf 'electron=%s\nmain-sha256=%s\npackage-script-sha256=%s\nnode-bin=%s\ncli-main=%s\ndata-home=%s\nweb-port=%s\napi-port=%s\n' \
+    "$STUDIO_ELECTRON_VERSION" "$(shell_file_sha256 "$SHELL_MAIN")" "$(shell_file_sha256 "$SHELL_PACKAGE_SCRIPT")" \
+    "$NODE_BIN" "$CLI_MAIN" "$DATA_HOME" "$1" "$2"
+}
+
+shell_app_unchanged() {
+  if [ -L "$SHELL_STAMP_FILE" ] || [ ! -f "$SHELL_STAMP_FILE" ] || ! is_studio_shell_app "$SHELL_APP_PATH"; then
+    return 1
+  fi
+  if [ "$(cat "$SHELL_STAMP_FILE")" != "$1" ]; then
+    return 1
+  fi
+  /usr/bin/codesign --verify --deep --strict "$SHELL_APP_PATH" >/dev/null 2>&1
+}
+
+# The host line comes before the question, and the question before any build. --yes is not read
+# here: it answers only the Homebrew question. Without a terminal the answer is no.
+ask_shell_build() {
+  local question='Baixar o Electron (se não estiver em cache) e construir o app do menu agora?'
+  info "O build usa o Electron $STUDIO_ELECTRON_VERSION baixado de $STUDIO_ELECTRON_DOWNLOAD_HOST (releases do GitHub de electron/electron),"
+  info "conferido com o checksums.json do pacote npm electron. O zip fica em cache em $ELECTRON_CACHE_DIR;"
+  info 'mesmo um rebuild pode baixá-lo de novo se o cache faltar. Nenhum espelho é usado.'
+  if [ "$DRY_RUN" -eq 1 ]; then
+    info "(simulação) perguntaria: $question [s/N]"
+    return 0
+  fi
+  if [ ! -t 0 ]; then
+    skip_shell_app 'sem terminal interativo, o download não foi autorizado.' \
+      'rode scripts/install.sh num terminal para construir o app do menu (ou use --skip-shell).'
+    return 1
+  fi
+  if ! confirm "  $question"; then
+    skip_shell_app 'download não autorizado nesta execução.' \
+      'rode scripts/install.sh de novo e responda "s" para construir o app do menu.'
+    return 1
+  fi
+}
+
+# Runs the package script with every download redirect variable removed from its environment.
+build_shell_app() {
+  local status=0
+  info "variáveis de redirecionamento do download removidas deste comando: ${#STUDIO_ELECTRON_DOWNLOAD_VARIABLES[@]} nomes (vetting 0002 seção 12)."
+  (
+    unset "${STUDIO_ELECTRON_DOWNLOAD_VARIABLES[@]}"
+    run corepack pnpm --filter @studio/shell run package -- \
+      --node-bin "${NODE_BIN:-<node do Homebrew>}" --cli-main "$CLI_MAIN" --data-home "$DATA_HOME" \
+      --web-port "$1" --api-port "$2"
+  ) || status=$?
+  if [ "$status" -ne 0 ]; then
+    skip_shell_app "o build saiu com código $status (mensagem acima)." \
+      'corrija a causa mostrada na etapa 12 e rode scripts/install.sh de novo.'
+    return 1
+  fi
+  if [ "$DRY_RUN" -eq 0 ] && [ "$(shell_app_bundle_id "$SHELL_BUILT_APP")" != "$STUDIO_SHELL_BUNDLE_ID" ]; then
+    skip_shell_app "o build não gerou $SHELL_BUILT_APP com o bundle id $STUDIO_SHELL_BUNDLE_ID." \
+      'confira a saída da etapa 12 e rode scripts/install.sh de novo.'
+    return 1
+  fi
+}
+
+# Replaces only a folder that passes the four checks of is_studio_shell_app, then verifies the copy.
+install_shell_app() {
+  local status=0
+  if [ -e "$SHELL_APP_PATH" ] || [ -L "$SHELL_APP_PATH" ]; then
+    if ! is_studio_shell_app "$SHELL_APP_PATH"; then
+      skip_shell_app "$SHELL_APP_PATH existe e não é este app ($SHELL_APP_REJECTION); nada foi sobrescrito." \
+        "renomeie ou remova $SHELL_APP_PATH e rode scripts/install.sh de novo."
+      return 1
+    fi
+  fi
+  if ! quit_shell_app; then
+    skip_shell_app 'o app do menu continua aberto depois do pedido para fechar.' \
+      'feche o app pelo item "Sair" do menu e rode scripts/install.sh de novo.'
+    return 1
+  fi
+  if [ ! -d "$SHELL_APPS_DIR" ]; then
+    run mkdir -p "$SHELL_APPS_DIR" || status=$?
+  fi
+  # ditto merges into an existing bundle, so the checked old copy is removed first. The four
+  # checks run again right before the removal: the folder may have been swapped during the wait.
+  if [ "$status" -eq 0 ] && { [ -e "$SHELL_APP_PATH" ] || [ -L "$SHELL_APP_PATH" ]; }; then
+    if ! is_studio_shell_app "$SHELL_APP_PATH"; then
+      skip_shell_app "$SHELL_APP_PATH mudou durante a espera e não é este app ($SHELL_APP_REJECTION); nada foi apagado." \
+        "renomeie ou remova $SHELL_APP_PATH e rode scripts/install.sh de novo."
+      return 1
+    fi
+    run rm -rf -- "$SHELL_APP_PATH" || status=$?
+  fi
+  if [ "$status" -eq 0 ]; then
+    run /usr/bin/ditto "$SHELL_BUILT_APP" "$SHELL_APP_PATH" || status=$?
+  fi
+  if [ "$status" -eq 0 ]; then
+    run /usr/bin/codesign --verify --deep --strict "$SHELL_APP_PATH" || status=$?
+  fi
+  if [ "$status" -ne 0 ]; then
+    skip_shell_app "a cópia para $SHELL_APP_PATH ou a verificação da assinatura falhou (código $status)." \
+      'rode scripts/install.sh de novo; se repetir, remova o app com scripts/uninstall.sh.'
+    return 1
+  fi
+  outcome "instalado: $SHELL_APP_PATH (assinatura ad hoc verificada)" \
+    "instalaria: $SHELL_APP_PATH (a pasta só é substituída se for este app, bundle id $STUDIO_SHELL_BUNDLE_ID)"
+}
+
+step_menu_bar_app() {
+  begin_step 12 "$TOTAL_STEPS" 'app do menu (opcional)'
+  local web_port api_port stamp
+  if [ "$SKIP_SHELL" -eq 1 ]; then
+    info 'pulada (--skip-shell): nada foi baixado, construído ou copiado.'
+    SHELL_STATE='pulado (--skip-shell)'
+    return 0
+  fi
+  if ! shell_node_ready; then
+    return 0
+  fi
+  web_port="$(shell_port "${VIDEO_STUDIO_WEB_PORT:-}" "$STUDIO_DEFAULT_WEB_PORT")"
+  api_port="$(shell_port "${VIDEO_STUDIO_API_PORT:-}" "$STUDIO_DEFAULT_API_PORT")"
+  stamp="$(shell_build_stamp "$web_port" "$api_port")"
+  if shell_app_unchanged "$stamp"; then
+    info "sem mudança: $SHELL_APP_PATH"
+    SHELL_STATE="sem mudança ($SHELL_APP_PATH)"
+    return 0
+  fi
+  if ! ask_shell_build || ! build_shell_app "$web_port" "$api_port" || ! install_shell_app; then
+    return 0
+  fi
+  if [ "$DRY_RUN" -eq 0 ] && ! printf '%s\n' "$stamp" >"$SHELL_STAMP_FILE"; then
+    warn "não foi possível gravar $SHELL_STAMP_FILE; a próxima instalação reconstrói o app."
+  fi
+  SHELL_STATE="instalado ($SHELL_APP_PATH)"
+  info "Para abrir: open \"$SHELL_APP_PATH\" (ou pelo Finder, em Aplicativos da sua pasta pessoal)."
+  info 'O instalador não abre o app nem o registra no login: ative "Abrir ao iniciar sessão" no menu dele.'
+}
+
+# ---------------------------------------------------------------------------------------------
+# 13. launchd agent of the watcher
 # ---------------------------------------------------------------------------------------------
 
 # Plist values are substituted verbatim, so only plain path characters are accepted: nothing that
@@ -540,7 +755,7 @@ render_plist() {
 }
 
 step_launchd() {
-  begin_step 12 "$TOTAL_STEPS" "agente launchd do watcher ($STUDIO_LAUNCHD_LABEL)"
+  begin_step 13 "$TOTAL_STEPS" "agente launchd do watcher ($STUDIO_LAUNCHD_LABEL)"
   local changed=1
   if [ ! -f "$PLIST_TEMPLATE" ]; then
     die "modelo do plist não encontrado: $PLIST_TEMPLATE"
@@ -595,11 +810,11 @@ step_launchd() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 13. Seed catalog
+# 14. Seed catalog
 # ---------------------------------------------------------------------------------------------
 
 step_seed() {
-  begin_step 13 "$TOTAL_STEPS" 'catálogo inicial (studio catalog seed)'
+  begin_step 14 "$TOTAL_STEPS" 'catálogo inicial (studio catalog seed)'
   local status=0 arguments=(catalog seed)
   if [ -n "${VIDEO_STUDIO_SEED_SOURCE_ROOT:-}" ]; then
     arguments+=(--source-root "$VIDEO_STUDIO_SEED_SOURCE_ROOT")
@@ -610,14 +825,14 @@ step_seed() {
     0) ;;
     7)
       warn 'o seed terminou com itens com falha (listados acima).'
-      add_note 'alguns itens do seed falharam; veja a saída da etapa 13 e rode "studio catalog seed" de novo.'
+      add_note 'alguns itens do seed falharam; veja a saída da etapa 14 e rode "studio catalog seed" de novo.'
       ;;
     *) die "studio catalog seed saiu com código $status." ;;
   esac
 }
 
 # ---------------------------------------------------------------------------------------------
-# 14. Start web and api, doctor, summary
+# 15. Start web and api, doctor, summary
 # ---------------------------------------------------------------------------------------------
 
 web_url() {
@@ -644,6 +859,7 @@ print_summary() {
   info "Dados:          $DATA_HOME"
   info "Watcher:        agente launchd $STUDIO_LAUNCHD_LABEL"
   info "Comando:        ${LINK_PATH:-não ligado}"
+  info "App do menu:    $SHELL_STATE"
   info "Senha:          $PASSPHRASE_STATE"
   info 'Chaves:         nenhuma foi pedida; sem chaves o studio roda em modo simulado.'
   info '                Para provedores reais: studio secrets set anthropic-api-key'
@@ -655,7 +871,7 @@ print_summary() {
 }
 
 step_start_and_doctor() {
-  begin_step 14 "$TOTAL_STEPS" 'iniciar web e api, studio doctor'
+  begin_step 15 "$TOTAL_STEPS" 'iniciar web e api, studio doctor'
   local status=0 doctor_status=0
   # "já estava rodando" is a success; a rerun does not restart services that are already up.
   run "${NODE_BIN:-node}" "$CLI_MAIN" start || status=$?
@@ -697,6 +913,7 @@ main() {
   step_playwright
   step_passphrase
   step_link_cli
+  step_menu_bar_app
   step_launchd
   step_seed
   step_start_and_doctor
