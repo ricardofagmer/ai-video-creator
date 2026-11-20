@@ -194,11 +194,14 @@ export async function createHarness(start: string): Promise<ScheduleHarness> {
  * A new step over the same data home, store, facts, events and clock, as a restarted process
  * would build it: fresh busy record, no in-memory slot or failure state, appends that never fail.
  */
-export function restartStep(harness: ScheduleHarness): ScheduleStep {
+export function restartStep(
+  harness: ScheduleHarness,
+  runs: Pick<ScheduleRunsReader, 'findRunForSlot'> = new ScheduleRunsReader(harness.dataHome),
+): ScheduleStep {
   const busy = new BusyIntervalTracker(harness.clock);
   const slotLog = new SlotLogWriter(harness.dataHome, harness.events);
   const runFiles = new ScheduledRunFiles(harness.dataHome);
-  const firer = new CandidateSlotFirer(new ScheduleRunsReader(harness.dataHome), harness.facts, new ScheduledRunFactory(), runFiles, slotLog, harness.events);
+  const firer = new CandidateSlotFirer(runs, harness.facts, new ScheduledRunFactory(), runFiles, slotLog, harness.events);
   return new ScheduleStep(new ScheduleScanner(harness.store), firer, slotLog, busy, harness.events, harness.clock);
 }
 

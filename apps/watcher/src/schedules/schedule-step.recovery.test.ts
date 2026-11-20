@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
+import { ScheduleRunsReader } from '@studio/core/schedules';
 import { type ScheduleFile } from '@studio/shared/schedules';
 import { scheduleFilePath, slotClaimPath } from '@studio/shared/schedules/files';
 import {
@@ -374,6 +375,37 @@ describe('ScheduleStep.evaluate: one writer per schedule and no second line for 
       ['fired'],
     );
     assert.equal(await readFile(slotClaimPath(location, slotNoon), 'utf8'), `${process.pid}\n`, 'the fired slot stays claimed');
+  });
+
+  it('adds the fired line, never a second run, when another process claimed and wrote the slot meanwhile', async () => {
+    const schedule = addDailySchedule(harness, '2026-11-20T10:00:00.000Z');
+    assert.equal(await harness.step.evaluate(), true);
+    const runIds = await runFolderIds(harness);
+    const [runId = ''] = runIds;
+
+    // Another process: its first look for a run ran before the run above was written, so it got
+    // as far as the claim. Its slot line and cursor are not there yet.
+    const location = { schedulesRoot: harness.dataHome.schedules, scheduleId: schedule.scheduleId };
+    await rm(scheduleFilePath(location, 'slots'));
+    await rm(scheduleFilePath(location, 'cursor'));
+    const reader = new ScheduleRunsReader(harness.dataHome);
+    let lookups = 0;
+    const racingReader: Pick<ScheduleRunsReader, 'findRunForSlot'> = {
+      findRunForSlot: async (slot) => {
+        lookups += 1;
+        return lookups === 1 ? { state: 'none' } : reader.findRunForSlot(slot);
+      },
+    };
+    harness.clock.set('2026-11-20T12:31:00.000Z');
+    assert.equal(await restartStep(harness, racingReader).evaluate(), false);
+
+    assert.deepEqual(await runFolderIds(harness), runIds);
+    assert.deepEqual(
+      (await slotLines(harness, schedule.scheduleId)).map((line) => [line.result, line.runId]),
+      [['fired', runId]],
+    );
+    assert.equal(harness.events.events.filter((event) => event.type === 'schedule.slot-recovered').length, 1);
+    assert.equal(harness.events.events.filter((event) => event.type === 'schedule.slot-claim-taken').length, 0);
   });
 
   it('does not log missed slots again when a crash left the cursor behind (L2)', async () => {

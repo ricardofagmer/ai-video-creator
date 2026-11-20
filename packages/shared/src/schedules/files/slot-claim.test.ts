@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, open, readdir, readFile, rm, stat, symlink, writeFile, type FileHandle } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { afterEach, beforeEach, describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it, mock } from 'node:test';
+import { RunFileWriteError } from '../../run-files/errors';
 import { newUlid } from '../../run-files/ulid';
 import { SchedulePathError, slotClaimPath, type ScheduleLocation } from './paths';
 import { claimSlot, releaseSlotClaim } from './slot-claim';
@@ -98,6 +99,42 @@ describe('claimSlot / releaseSlotClaim', () => {
     await releaseSlotClaim(fixture.location, slotAt, process.pid);
     assert.ok((await stat(claimPath)).isFile());
     assert.equal(await readFile(target, 'utf8'), `${process.pid}\n`);
+  });
+
+  it('removes a claim it could not fill, so the slot can still fire (re-review 3 I-1)', async () => {
+    const claimPath = slotClaimPath(fixture.location, slotAt);
+    const probe = await open(join(fixture.root, 'probe'), 'w');
+    // Every FileHandle shares this prototype, so the claim's own handle gets the failing write.
+    const fileHandlePrototype: FileHandle = Object.getPrototypeOf(probe);
+    await probe.close();
+    const failingWrite = mock.method(fileHandlePrototype, 'writeFile', async () => {
+      throw Object.assign(new Error('no space left'), { code: 'ENOSPC' });
+    });
+    try {
+      await assert.rejects(claimSlot(fixture.location, slotAt, process.pid), RunFileWriteError);
+    } finally {
+      failingWrite.mock.restore();
+    }
+
+    await assert.rejects(stat(claimPath), { code: 'ENOENT' });
+    assert.equal(await claimSlot(fixture.location, slotAt, process.pid), 'claimed');
+  });
+
+  it('refuses a fired/ that is a file, by name (re-review 3 I-2)', async () => {
+    const folder = dirname(slotClaimPath(fixture.location, slotAt));
+    await writeFile(folder, 'not a folder');
+
+    await assert.rejects(claimSlot(fixture.location, slotAt, process.pid), SchedulePathError);
+  });
+
+  it('refuses a fired/ that is a symlink and writes nothing through it (re-review 3 I-3)', async () => {
+    const folder = dirname(slotClaimPath(fixture.location, slotAt));
+    const elsewhere = join(fixture.root, 'elsewhere');
+    await mkdir(elsewhere);
+    await symlink(elsewhere, folder);
+
+    await assert.rejects(claimSlot(fixture.location, slotAt, process.pid), SchedulePathError);
+    assert.deepEqual(await readdir(elsewhere), []);
   });
 
   it('refuses a slot instant that is not a whole, non-negative millisecond', async () => {
