@@ -1,12 +1,13 @@
 # Project Index
 
-Generated facts at commit `ecbdc4c2d628` (2026-11-19T16:44:48.499Z). Detail and sources: [index.json](index.json).
+Generated facts at commit `48552c3a2548` (2026-11-19T22:51:52.458Z). Detail and sources: [index.json](index.json).
 Regenerate with `engineos index refresh`. Narrative and rationale live in the docs linked at the end.
 
-## Start here (5)
+## Start here (6)
 
-- add or change an HTTP route or page: `apps/api/src/catalog`, `apps/api/src/comparisons`, `apps/api/src/curations`, `apps/api/src/health`, `apps/api/src/recipes`
-- change CI or build conventions: `apps/api/eslint.config.mjs`, `apps/api/src/app.module.ts`, `apps/api/tsconfig.build.json`, `packages/core/prisma/schema.prisma`, `pnpm-workspace.yaml`
+- add or change an HTTP route or page: `apps/api/src/catalog`, `apps/api/src/comparisons`, `apps/api/src/curations`, `apps/api/src/health`, `apps/api/src/metrics`
+- add or change tests: `apps/api/src/catalog`, `apps/api/src/metrics`, `apps/api/src/platform`, `apps/api/src/runs`, `apps/api/src/schedules`
+- change CI or build conventions: `apps/api/eslint.config.mjs`, `apps/api/src/app.module.ts`, `apps/api/src/catalog/multipart-parts.test.ts`, `apps/api/tsconfig.build.json`, `packages/core/prisma/schema.prisma`
 - change a data model or migration: `packages/core/prisma`, `packages/core/prisma/migrations/20261118000000_init`, `packages/core/prisma/migrations/20261118120000_r2_improvement_loop`, `packages/core/prisma/migrations/20261118180000_curator`, `packages/core/prisma/migrations/20261119120000_r3_outside_signals`
 - change a package command or entry point: `apps/api/package.json`, `apps/watcher/package.json`, `apps/web/package.json`, `package.json`, `packages/core/package.json`
 - change environment configuration: `apps/web/.env.example`
@@ -25,7 +26,7 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `packages/ui` react; entry: `packages/ui/src/index.ts`; commands: build, lint, typecheck
 - ... 2 more in index.json
 
-## Modules (97)
+## Modules (107)
 
 - `apps`
 - `apps/api/src/auth`
@@ -34,8 +35,11 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `apps/api/src/curations`
 - `apps/api/src/health`
 - `apps/api/src/logging`
+- `apps/api/src/metrics`
 - `apps/api/src/platform`
 - `apps/api/src/recipes`
+- `apps/api/src/runs`
+- `apps/api/src/schedules`
 - `apps/api/src/search`
 - `apps/api/src/watcher`
 - `apps/watcher/src/adapters`
@@ -45,6 +49,7 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `apps/watcher/src/engine` - Injected time source rules/architecture.md: inject the clock , so tests can fix instants.
 - `apps/watcher/src/mocks`
 - `apps/watcher/src/platform` - The error's class name for a log field.
+- `apps/watcher/src/schedules`
 - `apps/watcher/src/stages`
 - `apps/web/src/app`
 - `apps/web/src/features`
@@ -63,42 +68,39 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `packages/core/src/metrics`
 - `packages/core/src/outcomes`
 - `packages/core/src/paths`
-- `packages/core/src/prisma`
-- `packages/core/src/promotion`
-- `packages/core/src/providers`
-- `packages/core/src/quality`
-- ... 57 more in index.json
+- ... 67 more in index.json
 
-## Routes (51)
+## Routes (72)
 
 - `GET /` in `apps/api/src/catalog/catalog.controller.ts`
 - `GET /` in `apps/api/src/comparisons/comparisons.controller.ts`
 - `GET /` in `apps/api/src/curations/curations.controller.ts`
 - `GET /` in `apps/api/src/health/health.controller.ts`
+- `GET /` in `apps/api/src/metrics/metric-imports.controller.ts`
 - `GET /` in `apps/api/src/recipes/recipes.controller.ts`
+- `GET /` in `apps/api/src/runs/runs.controller.ts`
+- `GET /` in `apps/api/src/schedules/schedules.controller.ts`
 - `GET /` in `apps/api/src/watcher/watcher.controller.ts`
 - `PAGE /` in `apps/web/src/app/page.tsx`
 - `POST /` in `apps/api/src/catalog/catalog.controller.ts`
 - `POST /` in `apps/api/src/comparisons/comparisons.controller.ts`
 - `POST /` in `apps/api/src/curations/curations.controller.ts`
+- `POST /` in `apps/api/src/metrics/metric-imports.controller.ts`
 - `POST /` in `apps/api/src/recipes/recipes.controller.ts`
+- `POST /` in `apps/api/src/runs/runs.controller.ts`
+- `POST /` in `apps/api/src/schedules/schedules.controller.ts`
 - `POST /` in `apps/api/src/search/search.controller.ts`
 - `GET /:assetId/versions` in `apps/api/src/catalog/catalog.controller.ts`
 - `POST /:assetId/versions` in `apps/api/src/catalog/catalog.controller.ts`
-- `POST /:assetId/versions/${apiRouteSegments.byReference}` in `apps/api/src/catalog/catalog.controller.ts`
-- `GET /:assetId/versions/:version` in `apps/api/src/catalog/catalog.controller.ts`
-- `PUT /:assetId/versions/:version/${apiRouteSegments.learnings}/:noteId/status` in `apps/api/src/catalog/catalog-version-decisions.controller.ts`
-- `POST /:assetId/versions/:version/${apiRouteSegments.promotion}` in `apps/api/src/catalog/catalog-version-decisions.controller.ts`
-- `PUT /:assetId/versions/:version/status` in `apps/api/src/catalog/catalog.controller.ts`
-- `POST /:assetId/versions/from-previous` in `apps/api/src/catalog/catalog.controller.ts`
-- ... 31 more in index.json
+- ... 52 more in index.json
 
-## Data models and migrations (20)
+## Data models and migrations (21)
 
 - migration `migration` in `packages/core/prisma/migrations/20261118000000_init/migration.sql`
 - migration `migration` in `packages/core/prisma/migrations/20261118120000_r2_improvement_loop/migration.sql`
 - migration `migration` in `packages/core/prisma/migrations/20261118180000_curator/migration.sql`
 - migration `migration` in `packages/core/prisma/migrations/20261119120000_r3_outside_signals/migration.sql`
+- migration `migration` in `packages/core/prisma/migrations/20261119130000_r3_promotion_platform_sample/migration.sql`
 - schema `Asset` in `packages/core/prisma/schema.prisma`
 - schema `AssetLearningNote` in `packages/core/prisma/schema.prisma`
 - schema `AssetVersion` in `packages/core/prisma/schema.prisma`
@@ -109,8 +111,7 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - schema `PlatformMetricSnapshot` in `packages/core/prisma/schema.prisma`
 - schema `PromotionApproval` in `packages/core/prisma/schema.prisma`
 - schema `Recipe` in `packages/core/prisma/schema.prisma`
-- schema `RecipeVersion` in `packages/core/prisma/schema.prisma`
-- ... 5 more in index.json
+- ... 6 more in index.json
 
 ## Environment variable names (3)
 
@@ -118,8 +119,23 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `VIDEO_STUDIO_WEB_ORIGIN` from `apps/web/.env.example`
 - `VIDEO_STUDIO_WEB_PORT` from `apps/web/.env.example`
 
-## Conventions (6)
+## Test locations (24)
 
+- `apps/api/src/catalog`
+- `apps/api/src/metrics`
+- `apps/api/src/platform`
+- `apps/api/src/runs`
+- `apps/api/src/schedules`
+- `apps/watcher/src/daemon`
+- `apps/watcher/src/schedules`
+- `packages/core/src/comparisons`
+- `packages/core/src/metrics`
+- `packages/core/src/metrics/commands`
+- ... 14 more in index.json
+
+## Conventions (7)
+
+- colocated-tests (`apps/api/src/catalog/multipart-parts.test.ts`)
 - eslint (`apps/api/eslint.config.mjs`)
 - nestjs-modules (`apps/api/src/app.module.ts`)
 - pnpm-workspace (`pnpm-workspace.yaml`)
@@ -127,9 +143,10 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - turborepo (`turbo.json`)
 - typescript (`apps/api/tsconfig.build.json`)
 
-## Docs (4)
+## Docs (5)
 
 - [docs/RUN-FORMAT.md](../../docs/RUN-FORMAT.md)
 - [docs/adr/](../../docs/adr/)
 - [docs/prds/](../../docs/prds/)
+- [docs/rules/](../../docs/rules/)
 - [docs/specs/](../../docs/specs/)

@@ -1,33 +1,38 @@
 {
-  "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+  "commit": "48552c3a25482932351765eeed46cba66e13a62c",
   "conventions": [
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
+      "id": "colocated-tests",
+      "source": "apps/api/src/catalog/multipart-parts.test.ts"
+    },
+    {
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "id": "eslint",
       "source": "apps/api/eslint.config.mjs"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "id": "nestjs-modules",
       "source": "apps/api/src/app.module.ts"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "id": "pnpm-workspace",
       "source": "pnpm-workspace.yaml"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "id": "prisma",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "id": "turborepo",
       "source": "turbo.json"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "id": "typescript",
       "source": "apps/api/tsconfig.build.json"
     }
@@ -36,6 +41,7 @@
     "docs/RUN-FORMAT.md",
     "docs/adr/",
     "docs/prds/",
+    "docs/rules/",
     "docs/specs/"
   ],
   "envNames": [
@@ -55,7 +61,7 @@
       "source": "apps/web/.env.example"
     }
   ],
-  "generatedAt": "2026-11-19T16:44:48.499Z",
+  "generatedAt": "2026-11-19T22:51:52.458Z",
   "models": [
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -82,97 +88,103 @@
       "source": "packages/core/prisma/migrations/20261119120000_r3_outside_signals/migration.sql"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "kind": "migration",
+      "name": "migration",
+      "source": "packages/core/prisma/migrations/20261119130000_r3_promotion_platform_sample/migration.sql"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "Asset",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "AssetLearningNote",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "AssetVersion",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "Comparison",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "CostEntry",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "CurationDecision",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "MetricImport",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "PlatformMetricSnapshot",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "PromotionApproval",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "Recipe",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "RecipeVersion",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "RunIndexEntry",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "RunOutcome",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "RunOutcomeAsset",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "RunPublication",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "kind": "schema",
       "name": "Setting",
       "source": "packages/core/prisma/schema.prisma"
@@ -186,13 +198,13 @@
       "source": "apps"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "apps/api/src/auth",
       "purpose": "",
       "source": "apps/api/src/auth"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "apps/api/src/catalog",
       "purpose": "",
       "source": "apps/api/src/catalog"
@@ -222,7 +234,13 @@
       "source": "apps/api/src/logging"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "path": "apps/api/src/metrics",
+      "purpose": "",
+      "source": "apps/api/src/metrics"
+    },
+    {
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "apps/api/src/platform",
       "purpose": "",
       "source": "apps/api/src/platform"
@@ -232,6 +250,18 @@
       "path": "apps/api/src/recipes",
       "purpose": "",
       "source": "apps/api/src/recipes"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "path": "apps/api/src/runs",
+      "purpose": "",
+      "source": "apps/api/src/runs"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "path": "apps/api/src/schedules",
+      "purpose": "",
+      "source": "apps/api/src/schedules"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -258,7 +288,7 @@
       "source": "apps/watcher/src/curation"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "path": "apps/watcher/src/daemon",
       "purpose": "Error taxonomy category (rules/observability.md), as in `engine.errors.ts`.",
       "source": "apps/watcher/src/daemon/daemon.errors.ts"
@@ -270,7 +300,7 @@
       "source": "apps/watcher/src/dev"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "apps/watcher/src/engine",
       "purpose": "Injected time source (rules/architecture.md: inject the clock), so tests can fix instants.",
       "source": "apps/watcher/src/engine/clock.ts"
@@ -286,6 +316,12 @@
       "path": "apps/watcher/src/platform",
       "purpose": "The error's class name for a log field.",
       "source": "apps/watcher/src/platform/error-name.ts"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "path": "apps/watcher/src/schedules",
+      "purpose": "",
+      "source": "apps/watcher/src/schedules"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -312,7 +348,7 @@
       "source": "apps/web/src/lib"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "path": "design",
       "purpose": "Referência de design do Video Studio",
       "source": "design/README.md"
@@ -348,7 +384,7 @@
       "source": "packages/core/src/catalog"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/core/src/comparisons",
       "purpose": "",
       "source": "packages/core/src/comparisons"
@@ -366,7 +402,7 @@
       "source": "packages/core/src/curation"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/core/src/embeddings",
       "purpose": "",
       "source": "packages/core/src/embeddings"
@@ -378,7 +414,7 @@
       "source": "packages/core/src/learnings"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "path": "packages/core/src/metrics",
       "purpose": "",
       "source": "packages/core/src/metrics"
@@ -402,19 +438,19 @@
       "source": "packages/core/src/prisma"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "path": "packages/core/src/promotion",
       "purpose": "",
       "source": "packages/core/src/promotion"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/core/src/providers",
       "purpose": "",
       "source": "packages/core/src/providers"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "packages/core/src/quality",
       "purpose": "",
       "source": "packages/core/src/quality"
@@ -438,7 +474,13 @@
       "source": "packages/core/src/review"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "path": "packages/core/src/runs",
+      "purpose": "",
+      "source": "packages/core/src/runs"
+    },
+    {
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/core/src/schedules",
       "purpose": "",
       "source": "packages/core/src/schedules"
@@ -456,25 +498,25 @@
       "source": "packages/core/src/seed"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/shared/src/ace",
       "purpose": "",
       "source": "packages/shared/src/ace"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/shared/src/agents",
       "purpose": "",
       "source": "packages/shared/src/agents"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/shared/src/api",
       "purpose": "",
       "source": "packages/shared/src/api"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "packages/shared/src/catalog",
       "purpose": "",
       "source": "packages/shared/src/catalog"
@@ -492,7 +534,7 @@
       "source": "packages/shared/src/curation/index.ts"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "packages/shared/src/metrics",
       "purpose": "Metrics protocol (SPEC 0006 sections 4.2, 4.3, 5.1 to 5.4, `@studio/shared/metrics`): constants, enums, zod schemas and pure functions only, browser-safe.",
       "source": "packages/shared/src/metrics/index.ts"
@@ -504,13 +546,13 @@
       "source": "packages/shared/src/ports"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/shared/src/recipes",
       "purpose": "",
       "source": "packages/shared/src/recipes"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/shared/src/run-files",
       "purpose": "",
       "source": "packages/shared/src/run-files"
@@ -522,10 +564,16 @@
       "source": "packages/shared/src/run-format"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/shared/src/schedules",
       "purpose": "Schedule protocol (SPEC 0006 sections 4.2, 4.3, 5.5 and 5.6, `@studio/shared/schedules`): constants, enums, zod schemas and the pure slot functions only, bro...",
       "source": "packages/shared/src/schedules/index.ts"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "path": "packages/shared/src/telemetry",
+      "purpose": "On-demand OTLP JSON trace export (SPEC 0006 R3-09, ADR 0006 option 2, `@studio/shared/telemetry`): a pure mapper from one run's or curation's `events.jsonl`...",
+      "source": "packages/shared/src/telemetry/index.ts"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -558,7 +606,7 @@
       "source": "packages/toolbox/src/hooks"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
       "path": "packages/toolbox/src/media",
       "purpose": "",
       "source": "packages/toolbox/src/media"
@@ -678,7 +726,7 @@
       "source": "tools/cli/src/catalog"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "tools/cli/src/commands",
       "purpose": "",
       "source": "tools/cli/src/commands"
@@ -690,13 +738,13 @@
       "source": "tools/cli/src/curations"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "tools/cli/src/doctor",
       "purpose": "`warning` is shown but does not fail `doctor`; `failed` makes it exit 6.",
       "source": "tools/cli/src/doctor/doctor-check.ts"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "tools/cli/src/errors",
       "purpose": "",
       "source": "tools/cli/src/errors"
@@ -708,22 +756,28 @@
       "source": "tools/cli/src/logging"
     },
     {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "path": "tools/cli/src/metrics",
+      "purpose": "",
+      "source": "tools/cli/src/metrics"
+    },
+    {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
       "path": "tools/cli/src/models",
       "purpose": "",
       "source": "tools/cli/src/models"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "tools/cli/src/nest",
       "purpose": "",
       "source": "tools/cli/src/nest"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "path": "tools/cli/src/output",
-      "purpose": "Where command output goes.",
-      "source": "tools/cli/src/output/printer.ts"
+      "purpose": "",
+      "source": "tools/cli/src/output"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -732,10 +786,22 @@
       "source": "tools/cli/src/passphrase"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
       "path": "tools/cli/src/program",
       "purpose": "",
       "source": "tools/cli/src/program"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "path": "tools/cli/src/runs",
+      "purpose": "",
+      "source": "tools/cli/src/runs"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "path": "tools/cli/src/schedules",
+      "purpose": "",
+      "source": "tools/cli/src/schedules"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -750,10 +816,16 @@
       "source": "tools/cli/src/settings"
     },
     {
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
       "path": "tools/cli/src/terminal",
       "purpose": "",
       "source": "tools/cli/src/terminal"
+    },
+    {
+      "commit": "6f286b0e80d65ec6c6c202d1830c889d7d8e0a3c",
+      "path": "tools/cli/src/traces",
+      "purpose": "",
+      "source": "tools/cli/src/traces"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -772,7 +844,7 @@
         "test": "turbo run test",
         "typecheck": "turbo run typecheck"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": ".",
       "entryPoints": [],
       "framework": null,
@@ -788,7 +860,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "apps/api",
       "entryPoints": [
         "apps/api/src/main.ts"
@@ -796,7 +868,13 @@
       "framework": "nestjs",
       "language": "node",
       "source": "apps/api/package.json",
-      "tests": []
+      "tests": [
+        "apps/api/src/catalog",
+        "apps/api/src/metrics",
+        "apps/api/src/platform",
+        "apps/api/src/runs",
+        "apps/api/src/schedules"
+      ]
     },
     {
       "commands": {
@@ -807,7 +885,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "apps/watcher",
       "entryPoints": [
         "apps/watcher/src/main.ts"
@@ -815,7 +893,10 @@
       "framework": "nestjs",
       "language": "node",
       "source": "apps/watcher/package.json",
-      "tests": []
+      "tests": [
+        "apps/watcher/src/daemon",
+        "apps/watcher/src/schedules"
+      ]
     },
     {
       "commands": {
@@ -825,7 +906,7 @@
         "start": "next start -H 127.0.0.1 -p ${VIDEO_STUDIO_WEB_PORT:-4310}",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "apps/web",
       "entryPoints": [
         "apps/web/src/app/layout.tsx",
@@ -845,17 +926,26 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "packages/core",
       "entryPoints": [],
       "framework": "nestjs",
       "language": "node",
       "source": "packages/core/package.json",
-      "tests": []
+      "tests": [
+        "packages/core/src/comparisons",
+        "packages/core/src/metrics",
+        "packages/core/src/metrics/commands",
+        "packages/core/src/metrics/queries",
+        "packages/core/src/promotion",
+        "packages/core/src/quality",
+        "packages/core/src/schedules",
+        "packages/core/src/schedules/commands"
+      ]
     },
     {
       "commands": {},
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "packages/eslint-config",
       "entryPoints": [],
       "framework": null,
@@ -870,13 +960,18 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "packages/shared",
       "entryPoints": [],
       "framework": null,
       "language": "node",
       "source": "packages/shared/package.json",
-      "tests": []
+      "tests": [
+        "packages/shared/src/catalog",
+        "packages/shared/src/metrics",
+        "packages/shared/src/schedules",
+        "packages/shared/src/telemetry"
+      ]
     },
     {
       "commands": {
@@ -884,7 +979,7 @@
         "build": "tsc -p tsconfig.json",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "packages/toolbox",
       "entryPoints": [
         "packages/toolbox/dist/cli.js",
@@ -897,7 +992,7 @@
     },
     {
       "commands": {},
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "packages/tsconfig",
       "entryPoints": [],
       "framework": null,
@@ -911,7 +1006,7 @@
         "lint": "eslint .",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "packages/ui",
       "entryPoints": [
         "packages/ui/src/index.ts"
@@ -927,7 +1022,7 @@
         "studio": "remotion studio src/index.ts",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "packages/video",
       "entryPoints": [
         "packages/video/dist/render/index.js",
@@ -945,7 +1040,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
+      "commit": "48552c3a25482932351765eeed46cba66e13a62c",
       "dir": "tools/cli",
       "entryPoints": [
         "tools/cli/dist/main.js",
@@ -954,7 +1049,13 @@
       "framework": "nestjs",
       "language": "node",
       "source": "tools/cli/package.json",
-      "tests": []
+      "tests": [
+        "tools/cli/src/commands",
+        "tools/cli/src/doctor",
+        "tools/cli/src/output",
+        "tools/cli/src/schedules",
+        "tools/cli/src/traces"
+      ]
     }
   ],
   "routes": [
@@ -983,10 +1084,28 @@
       "source": "apps/api/src/health/health.controller.ts"
     },
     {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/metrics/metric-imports.controller.ts"
+    },
+    {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
       "method": "GET",
       "path": "/",
       "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/runs/runs.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "GET",
+      "path": "/",
+      "source": "apps/api/src/schedules/schedules.controller.ts"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -1019,10 +1138,28 @@
       "source": "apps/api/src/curations/curations.controller.ts"
     },
     {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "POST",
+      "path": "/",
+      "source": "apps/api/src/metrics/metric-imports.controller.ts"
+    },
+    {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
       "method": "POST",
       "path": "/",
       "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "method": "POST",
+      "path": "/",
+      "source": "apps/api/src/runs/runs.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "POST",
+      "path": "/",
+      "source": "apps/api/src/schedules/schedules.controller.ts"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -1125,6 +1262,96 @@
       "method": "PUT",
       "path": "/:recipeId/versions/:version/status",
       "source": "apps/api/src/recipes/recipes.controller.ts"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "method": "GET",
+      "path": "/:runId",
+      "source": "apps/api/src/runs/runs.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "POST",
+      "path": "/:runId/${apiRouteSegments.learnings}",
+      "source": "apps/api/src/runs/run-learnings.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "GET",
+      "path": "/:runId/${apiRouteSegments.publications}",
+      "source": "apps/api/src/metrics/run-publications.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "POST",
+      "path": "/:runId/${apiRouteSegments.publications}",
+      "source": "apps/api/src/metrics/run-publications.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "DELETE",
+      "path": "/:runId/${apiRouteSegments.publications}/:publicationId",
+      "source": "apps/api/src/metrics/run-publications.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "PUT",
+      "path": "/:runId/${apiRouteSegments.publications}/:publicationId/${apiRouteSegments.metrics}/:asOfDate",
+      "source": "apps/api/src/metrics/metric-snapshots.controller.ts"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "method": "GET",
+      "path": "/:runId/artifact",
+      "source": "apps/api/src/runs/runs.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "POST",
+      "path": "/:runId/control",
+      "source": "apps/api/src/runs/run-decisions.controller.ts"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "method": "GET",
+      "path": "/:runId/events",
+      "source": "apps/api/src/runs/runs.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "POST",
+      "path": "/:runId/gate-decisions",
+      "source": "apps/api/src/runs/run-decisions.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "POST",
+      "path": "/:runId/promote",
+      "source": "apps/api/src/runs/run-decisions.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "POST",
+      "path": "/:runId/review",
+      "source": "apps/api/src/runs/run-decisions.controller.ts"
+    },
+    {
+      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "method": "POST",
+      "path": "/:runId/start",
+      "source": "apps/api/src/runs/runs.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "GET",
+      "path": "/:scheduleId",
+      "source": "apps/api/src/schedules/schedules.controller.ts"
+    },
+    {
+      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "method": "PATCH",
+      "path": "/:scheduleId",
+      "source": "apps/api/src/schedules/schedules.controller.ts"
     },
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -1272,17 +1499,27 @@
         "apps/api/src/comparisons",
         "apps/api/src/curations",
         "apps/api/src/health",
-        "apps/api/src/recipes"
+        "apps/api/src/metrics"
       ],
       "task": "add or change an HTTP route or page"
     },
     {
       "paths": [
+        "apps/api/src/catalog",
+        "apps/api/src/metrics",
+        "apps/api/src/platform",
+        "apps/api/src/runs",
+        "apps/api/src/schedules"
+      ],
+      "task": "add or change tests"
+    },
+    {
+      "paths": [
         "apps/api/eslint.config.mjs",
         "apps/api/src/app.module.ts",
+        "apps/api/src/catalog/multipart-parts.test.ts",
         "apps/api/tsconfig.build.json",
-        "packages/core/prisma/schema.prisma",
-        "pnpm-workspace.yaml"
+        "packages/core/prisma/schema.prisma"
       ],
       "task": "change CI or build conventions"
     },
