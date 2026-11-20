@@ -7,6 +7,8 @@ import { withCliContext } from '../nest/cli-context.js';
 import { runDetailLines, runListLines } from '../output/run-text.js';
 import { listRecentRuns, readRunSnapshot, type RunSnapshot } from '../runs/run-reader.js';
 import { isSettled, settleRuns } from '../runs/run-settlement.js';
+import { nestScheduleGateway } from '../schedules/nest-schedule-gateway.js';
+import { printScheduleStatus } from '../schedules/schedule-status.js';
 import { type CommandDependencies } from './command-dependencies.js';
 
 /** Runs listed by `studio status` without an id (rules/backend.md pagination default). */
@@ -52,8 +54,9 @@ async function printCurationQueue(dependencies: CommandDependencies): Promise<vo
 
 /**
  * `studio status [runId]`: reads run folders directly through C5 (no api needed). Without an id it
- * lists the newest runs and the curation queue line; with one it shows stages, the waiting reason
- * and live activity.
+ * lists the newest runs, the curation queue line and the schedules line (active count, next slot,
+ * missed in 7 days; SPEC 0006 section 5.7, read through the core schedule queries); with one it
+ * shows stages, the waiting reason and live activity.
  */
 export async function statusCommand(runId: RunId | undefined, dependencies: CommandDependencies): Promise<number> {
   const runsRoot = dependencies.settings.dataHome.runs;
@@ -66,6 +69,11 @@ export async function statusCommand(runId: RunId | undefined, dependencies: Comm
   const recent = await listRecentRuns(runsRoot, STATUS_LIST_LIMIT);
   for (const line of runListLines(recent)) dependencies.printer.line(line);
   await printCurationQueue(dependencies);
+  await printScheduleStatus({
+    gateway: nestScheduleGateway,
+    printer: dependencies.printer,
+    describeError: (error) => toErrorReport(error).message,
+  });
   const snapshots = recent.results.flatMap((result) => (result.status === 'read' ? [result.snapshot] : []));
   await settleShown(snapshots, dependencies);
   return ExitCode.ok;

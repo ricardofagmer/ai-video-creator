@@ -2,23 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { type PromotionApproval as PromotionApprovalRow } from '@prisma/client';
 import { PrismaService, type PrismaTransaction } from '../prisma';
 import { type PromotionTarget } from './promote-version.command';
-import { toEvidenceJson, type ActivationFacts } from './promotion-approval.mapper';
+import { toApprovalCreateData, type ActivationFacts, type NewPromotionApproval } from './promotion-approval.mapper';
 import { type PromotionEvidence } from './promotion-input';
-
-/** One approval as recorded; `decidedAt` is the server clock, `decidedBy` the session's owner. */
-export interface NewPromotionApproval {
-  target: PromotionTarget;
-  /** `asset_versions.id` or `recipe_versions.id`, matching `target`. */
-  versionRowId: number;
-  decidedBy: string;
-  decidedAt: Date;
-  reason: string;
-  evidence: PromotionEvidence;
-  replacedVersion: number | null;
-  qualityScoreAtApproval: number | null;
-  sampleSizeAtApproval: number;
-  correlationId: string | null;
-}
 
 /** Hard bound on one activation lookup; the api pages versions at 100 at most. */
 export const MAX_ACTIVATION_LOOKUP = 100;
@@ -41,21 +26,7 @@ export class PromotionApprovalRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async insert(approval: NewPromotionApproval, db: PrismaTransaction): Promise<PromotionApprovalRow> {
-    return db.promotionApproval.create({
-      data: {
-        targetKind: approval.target,
-        assetVersionId: approval.target === 'asset-version' ? approval.versionRowId : null,
-        recipeVersionId: approval.target === 'recipe-version' ? approval.versionRowId : null,
-        decidedBy: approval.decidedBy,
-        decidedAt: approval.decidedAt,
-        reason: approval.reason,
-        evidenceJson: toEvidenceJson(approval.evidence),
-        replacedVersion: approval.replacedVersion,
-        qualityScoreAtApproval: approval.qualityScoreAtApproval,
-        sampleSizeAtApproval: approval.sampleSizeAtApproval,
-        correlationId: approval.correlationId,
-      },
-    });
+    return db.promotionApproval.create({ data: toApprovalCreateData(approval) });
   }
 
   /** Approvals of `target` by id; ids that name another target kind are not returned. */

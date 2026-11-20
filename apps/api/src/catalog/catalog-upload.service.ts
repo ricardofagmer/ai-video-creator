@@ -43,7 +43,7 @@ function assertDeclaredSize(request: Request): void {
   if (Number.isSafeInteger(bytes) && bytes > MAX_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES) throw new UploadRejectedError('file-too-large');
 }
 
-function parseFields<Fields>(part: MultipartPart, schema: z.ZodType<Fields, z.ZodTypeDef, unknown>): Fields {
+function parseFields<Fields>(part: MultipartPart, schema: z.ZodType<Fields, unknown>): Fields {
   if (part.kind !== 'field' || part.name !== uploadPartNames.fields) {
     if (part.kind === 'file') part.stream.resume();
     throw new UploadRejectedError('missing-fields');
@@ -89,7 +89,7 @@ export class CatalogUploadService {
 
   private async receive<Fields extends { layout: AssetLayout }>(
     request: Request,
-    schema: z.ZodType<Fields, z.ZodTypeDef, unknown>,
+    schema: z.ZodType<Fields, unknown>,
     save: SaveVersion<Fields>,
   ): Promise<AssetVersion> {
     assertDeclaredSize(request);

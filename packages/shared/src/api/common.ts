@@ -10,8 +10,8 @@ import { CorrelationIdSchema } from '../common/ids';
  * change: `PUT .../status` refuses `active` with 422 `promotion-approval-required`. Revision 4
  * (SPEC 0005 section 4.4, owner C5-01) adds the four curation routes; every addition is additive.
  * Revision 5 (SPEC 0006 section 4.4, owner R3-01) adds the publication, metrics and schedule routes
- * and the fields `qualityPlatformSampleSize`, `schedule` and `publicationCount`; every addition is
- * additive.
+ * and the fields `qualityPlatformSampleSize` (also on a comparison's `comparedVersionScore`),
+ * `platformSampleSizeAtApproval`, `schedule` and `publicationCount`; every addition is additive.
  */
 export const API_CONTRACT_REVISION = 5;
 
@@ -143,7 +143,7 @@ export const API_DEFAULT_PAGE_LIMIT = 20;
 export const API_MAX_PAGE_LIMIT = 100;
 
 /** A decimal query-string integer in `[min, max]`; query values always arrive as text. */
-export function queryInteger(min: number, max: number): z.ZodType<number, z.ZodTypeDef, string> {
+export function queryInteger(min: number, max: number): z.ZodType<number, string> {
   return z
     .string()
     .regex(/^[0-9]{1,16}$/, 'expected a decimal integer')
@@ -152,12 +152,13 @@ export function queryInteger(min: number, max: number): z.ZodType<number, z.ZodT
 }
 
 /** A comma-separated query list whose items each satisfy `item` (e.g. `statuses=draft,active`). */
-export function queryList<Item extends z.ZodTypeAny>(item: Item, maxItems: number): z.ZodType<z.output<Item>[], z.ZodTypeDef, string> {
+export function queryList<Item extends z.ZodType<unknown, string>>(item: Item, maxItems: number): z.ZodType<z.output<Item>[], string> {
+  const items: z.ZodType<z.output<Item>[], string[]> = z.array(item).min(1).max(maxItems);
   return z
     .string()
     .max(1000)
     .transform((value) => value.split(',').map((part) => part.trim()))
-    .pipe(z.array(item).min(1).max(maxItems));
+    .pipe(items);
 }
 
 export const PageLimitQuerySchema = queryInteger(1, API_MAX_PAGE_LIMIT);
@@ -170,7 +171,7 @@ export interface Page<Item> {
   nextCursor: string | null;
 }
 
-export function pageOf<Item extends z.ZodTypeAny>(item: Item): z.ZodType<Page<z.output<Item>>, z.ZodTypeDef, unknown> {
+export function pageOf<Item extends z.ZodTypeAny>(item: Item): z.ZodType<Page<z.output<Item>>, unknown> {
   return z
     .object({
       items: z.array(item).max(API_MAX_PAGE_LIMIT),

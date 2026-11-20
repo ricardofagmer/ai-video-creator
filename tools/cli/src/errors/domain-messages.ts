@@ -23,6 +23,7 @@ import {
 } from '@studio/core/runs';
 import { KeychainUnavailableError, KeychainWriteNeedsTerminalError, MalformedSecretError } from '@studio/core/secrets';
 import { RUN_STATUS_LABELS, formatBytes } from '../output/format.js';
+import { describeOutsideSignalError } from './outside-signal-messages.js';
 
 function describeIssues(issues: readonly InputIssue[]): string {
   return issues
@@ -86,5 +87,5 @@ export function describeDomainError(error: unknown): string | null {
   if (error instanceof InvalidSemanticSearchError) return `Busca inválida em: ${error.issues.map((issue) => issue.path || '<raiz>').join(', ')}.`;
   if (error instanceof InvalidModelManifestError) return `O manifesto do modelo de busca não pode ser usado (${error.reason}).`;
   if (error instanceof MalformedSecretError) return `A chave ${error.secretName} encontrada em ${error.source} está malformada; defina de novo.`;
-  return null;
+  return describeOutsideSignalError(error);
 }

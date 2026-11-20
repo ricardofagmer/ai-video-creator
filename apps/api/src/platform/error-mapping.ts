@@ -6,12 +6,14 @@ import { CostsError } from '@studio/core/costs';
 import { CurationError, InvalidCurationInputError } from '@studio/core/curation';
 import { EmbeddingsError, InvalidSemanticSearchError } from '@studio/core/embeddings';
 import { InvalidLearningInputError, LearningsError } from '@studio/core/learnings';
+import { InvalidMetricsInputError, MetricsError } from '@studio/core/metrics';
 import { InvalidPromotionInputError, PromotionError } from '@studio/core/promotion';
 import { QualityError } from '@studio/core/quality';
 import { InvalidRecipeInputError, RecipesError } from '@studio/core/recipes';
 import { InvalidReviewInputError, RequiredChecklistUncheckedError, ReviewError, ReviewNotAllowedError } from '@studio/core/review';
 import { InvalidRunInputError, RunsError } from '@studio/core/runs';
-import { apiRev4ErrorReasons, type ApiErrorCode, type ApiIssue } from '@studio/shared/api';
+import { InvalidScheduleInputError, ScheduleError } from '@studio/core/schedules';
+import { apiRev4ErrorReasons, apiRev5ErrorReasons, type ApiErrorCode, type ApiIssue } from '@studio/shared/api';
 import { RunFileError, type RunFileErrorCode } from '@studio/shared/run-files';
 import { ApiError, LoginRateLimitedError, RequestValidationError } from './api.errors';
 
@@ -84,7 +86,9 @@ function domainIssues(error: unknown): ApiIssue[] | undefined {
     error instanceof InvalidLearningInputError ||
     error instanceof InvalidComparisonInputError ||
     error instanceof InvalidCurationInputError ||
-    error instanceof InvalidSemanticSearchError
+    error instanceof InvalidSemanticSearchError ||
+    error instanceof InvalidMetricsInputError ||
+    error instanceof InvalidScheduleInputError
   ) {
     return error.issues.slice(0, 50).map((issue) => ({ path: issue.path.slice(0, 200), message: issue.message.slice(0, 500) }));
   }
@@ -131,6 +135,30 @@ function mapCurationError(error: CurationError): MappedError {
   };
 }
 
+/** C10 rev 5 (SPEC 0006 section 4.4): the frozen status of each publication, metrics and schedule reason. */
+const rev5ReasonStatus: Readonly<Record<string, number>> = apiRev5ErrorReasons;
+
+/**
+ * Metrics and schedule errors carry their C10 `reason`, used as is, and the status is the frozen
+ * rev 5 one (`metrics-file-too-large` 413 although its category is validation;
+ * `schedule-file-corrupt` and `metrics-row-corrupt` 500). A reason outside the table takes its
+ * category. Their messages carry ids, platforms, dates, counts and amounts only (K7); a 500 gets
+ * the fixed text so no storage detail reaches a client.
+ */
+function mapRev5Error(error: MetricsError | ScheduleError): MappedError {
+  const target = categoryStatus[error.category];
+  const statusCode = rev5ReasonStatus[error.reason] ?? target.statusCode;
+  const isInternal = statusCode >= 500 || error.category === 'internal';
+  return {
+    statusCode,
+    code: statusCodes[statusCode] ?? (isInternal ? 'internal' : target.code),
+    reason: error.reason,
+    message: isInternal ? 'Internal error' : error.message,
+    issues: domainIssues(error),
+    expected: !isInternal,
+  };
+}
+
 function mapHttpException(error: HttpException): MappedError {
   const statusCode = error.getStatus();
   const code = statusCodes[statusCode] ?? (statusCode >= 500 ? 'internal' : 'validation');
@@ -154,6 +182,7 @@ export function mapError(error: unknown): MappedError {
     return { statusCode: 409, code: 'conflict', reason: 'review-not-allowed', message: 'The run cannot take this decision now', expected: true };
   }
   if (error instanceof CurationError) return mapCurationError(error);
+  if (error instanceof MetricsError || error instanceof ScheduleError) return mapRev5Error(error);
   if (
     error instanceof CatalogError ||
     error instanceof RecipesError ||

@@ -39,7 +39,7 @@ export class MissingMockInputError extends Error {
 export async function readStageInput<T>(
   context: StageExecutionContext,
   name: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
 ): Promise<T> {
   const input = context.stageBrief.inputs.find((candidate) => candidate.name === name);
   if (input === undefined) throw new MissingMockInputError(context.stage.stageId, name);

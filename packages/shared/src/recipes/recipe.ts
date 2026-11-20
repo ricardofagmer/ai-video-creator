@@ -36,7 +36,8 @@ const unique = (values: readonly string[]): boolean => new Set(values).size === 
  * fields `checks`, `limits`, `rubric`, `checklist`, `allowedKinds`). Versioned like assets: a saved
  * version is immutable and an edit creates version N+1 (PRD 5.4).
  */
-export const RecipeSchema = z
+/** The recipe fields without the cross-field rules; derive views (`omit`, `extend`) from this. */
+export const RecipeBaseSchema = z
   .object({
     id: RecipeIdSchema,
     version: z.number().int().min(1),
@@ -59,44 +60,45 @@ export const RecipeSchema = z
     checklist: z.array(ChecklistItemSchema).max(20),
     allowedKinds: z.array(AssetKindSchema).min(1).max(AssetKindSchema.options.length),
   })
-  .strict()
-  .superRefine((recipe, context) => {
-    const issue = (path: (string | number)[], message: string): void =>
-      context.addIssue({ code: z.ZodIssueCode.custom, path, message });
+  .strict();
 
-    const stageIds = recipe.graph.stages.map((stage) => stage.stageId);
-    const positions = stageIds.map((stageId) => stageOrder.indexOf(stageId));
-    if (!unique(stageIds)) issue(['graph', 'stages'], 'a stage appears at most once');
-    if (positions.some((position, index) => index > 0 && position <= (positions[index - 1] ?? -1))) {
-      issue(['graph', 'stages'], 'stages must follow the canonical stage order');
-    }
-    const enabledStages = recipe.graph.stages.filter((stage) => stage.enabled).map((stage) => stage.stageId);
-    for (const stageId of mandatoryStages) {
-      if (!enabledStages.includes(stageId)) issue(['graph', 'stages'], `stage ${stageId} must be present and enabled`);
-    }
+export const RecipeSchema = RecipeBaseSchema.superRefine((recipe, context) => {
+  const issue = (path: (string | number)[], message: string): void =>
+    context.addIssue({ code: z.ZodIssueCode.custom, path, message });
 
-    const checkIds = recipe.checks.map((check) => check.id);
-    if (!unique(checkIds)) issue(['checks'], 'a check is defined at most once');
-    recipe.graph.stages.forEach((stage, index) => {
-      for (const checkId of stage.checks) {
-        if (!checkIds.includes(checkId)) issue(['graph', 'stages', index, 'checks'], `check ${checkId} is not defined`);
-      }
-    });
+  const stageIds = recipe.graph.stages.map((stage) => stage.stageId);
+  const positions = stageIds.map((stageId) => stageOrder.indexOf(stageId));
+  if (!unique(stageIds)) issue(['graph', 'stages'], 'a stage appears at most once');
+  if (positions.some((position, index) => index > 0 && position <= (positions[index - 1] ?? -1))) {
+    issue(['graph', 'stages'], 'stages must follow the canonical stage order');
+  }
+  const enabledStages = recipe.graph.stages.filter((stage) => stage.enabled).map((stage) => stage.stageId);
+  for (const stageId of mandatoryStages) {
+    if (!enabledStages.includes(stageId)) issue(['graph', 'stages'], `stage ${stageId} must be present and enabled`);
+  }
 
-    if (!unique(recipe.bindings.map((binding) => binding.slot))) issue(['bindings'], 'binding slots must be unique');
-    if (!unique(recipe.gates.map((gate) => gate.id))) issue(['gates'], 'gate ids must be unique');
-    recipe.gates.forEach((gate, index) => {
-      if (!enabledStages.includes(gate.afterStage)) issue(['gates', index, 'afterStage'], 'gate follows a disabled stage');
-    });
-    if (!unique(recipe.rubric.map((criterion) => criterion.criterionId))) issue(['rubric'], 'criterion ids must be unique');
-    if (!unique(recipe.checklist.map((item) => item.id))) issue(['checklist'], 'checklist ids must be unique');
-
-    const [ratioWidth, ratioHeight] = recipe.format.aspect.split(':').map((part) => Number.parseInt(part, 10));
-    const ratio = recipe.format.canvas.width / recipe.format.canvas.height;
-    if (ratioWidth === undefined || ratioHeight === undefined || Math.abs(ratio - ratioWidth / ratioHeight) > 0.01) {
-      issue(['format', 'canvas'], 'canvas does not match the aspect ratio');
+  const checkIds = recipe.checks.map((check) => check.id);
+  if (!unique(checkIds)) issue(['checks'], 'a check is defined at most once');
+  recipe.graph.stages.forEach((stage, index) => {
+    for (const checkId of stage.checks) {
+      if (!checkIds.includes(checkId)) issue(['graph', 'stages', index, 'checks'], `check ${checkId} is not defined`);
     }
   });
+
+  if (!unique(recipe.bindings.map((binding) => binding.slot))) issue(['bindings'], 'binding slots must be unique');
+  if (!unique(recipe.gates.map((gate) => gate.id))) issue(['gates'], 'gate ids must be unique');
+  recipe.gates.forEach((gate, index) => {
+    if (!enabledStages.includes(gate.afterStage)) issue(['gates', index, 'afterStage'], 'gate follows a disabled stage');
+  });
+  if (!unique(recipe.rubric.map((criterion) => criterion.criterionId))) issue(['rubric'], 'criterion ids must be unique');
+  if (!unique(recipe.checklist.map((item) => item.id))) issue(['checklist'], 'checklist ids must be unique');
+
+  const [ratioWidth, ratioHeight] = recipe.format.aspect.split(':').map((part) => Number.parseInt(part, 10));
+  const ratio = recipe.format.canvas.width / recipe.format.canvas.height;
+  if (ratioWidth === undefined || ratioHeight === undefined || Math.abs(ratio - ratioWidth / ratioHeight) > 0.01) {
+    issue(['format', 'canvas'], 'canvas does not match the aspect ratio');
+  }
+});
 export type Recipe = z.infer<typeof RecipeSchema>;
 
 export function recipeRefOf(recipe: Pick<Recipe, 'id' | 'version'>): RecipeRef {

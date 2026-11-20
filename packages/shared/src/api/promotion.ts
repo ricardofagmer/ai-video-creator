@@ -23,6 +23,12 @@ export const PromotionApprovalViewSchema = z
     replacedVersion: z.number().int().min(1).nullable(),
     qualityScoreAtApproval: z.number().finite().min(1).max(5).nullable(),
     sampleSizeAtApproval: z.number().int().nonnegative(),
+    /**
+     * Rev 5 (SPEC 0006 section 4.4, R3-AC-07): the version's `qualityPlatformSampleSize` recorded at
+     * approval. `null` for a recipe-version approval (recipes carry no score) and for an approval
+     * recorded before the column existed; absent from a rev 4 producer.
+     */
+    platformSampleSizeAtApproval: z.number().int().nonnegative().nullable().optional(),
   })
   .strict();
 export type PromotionApprovalView = z.infer<typeof PromotionApprovalViewSchema>;

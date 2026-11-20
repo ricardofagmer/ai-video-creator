@@ -1,7 +1,7 @@
 # 0005. Add a thin menu-bar shell that controls the api and web, and keep the watcher under launchd
 
 Date: 2026-11-19
-Status: proposed; the owner chose A2 + B1 + C1 (thin Electron menu-bar shell, watcher stays under launchd) on 2026-11-19 (SPEC 0006 Q1, "Electron menu-bar (Recommended)"). Acceptance follows review, as for ADRs 0001-0004.
+Status: proposed; the owner chose A2 + B1 + C1 (thin Electron menu-bar shell, watcher stays under launchd) on 2026-11-19 (SPEC 0006 Q1, "Electron menu-bar (Recommended)"). Vetting 0002 (`docs/vetting/0002-shell-runtime.md`) was approved with option P on 2026-11-19, and R3-08 part 2 was implemented by tickets 09 to 12 (see "Decision record (R3-08)"). Acceptance follows review, as for ADRs 0001-0004.
 
 Decider: Ricardo Fagmer. The decision is the owner's; this ADR recommends and does not decide
 (SPEC 0006 Q1). Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) D4, D8, D9, section 3 (R3:
@@ -199,3 +199,231 @@ the app and its login item.
   B1.
 - macOS blocks or warns on the locally built, ad-hoc signed app: reopen section D.
 - The shell is unused for a release (the owner keeps using `studio start`): remove it.
+
+## Decision record (R3-08)
+
+Added 2026-11-19 (R3-08 part 2, super-dev run `2026-11-19-r3-outside-signals-3`, tickets 09 to 11;
+recorded by ticket 12). It records what was built. The sections above are left as written,
+including their **Unverified** marks; where vetting 0002 section 12 confirmed or corrected one of
+them, the list at the end of this section says so. Paths are relative to the repository root.
+
+D9, as amended by decision 4 above and recorded here and in the ADR 0001 amendment of 2026-11-19: "launchd manages only the watcher. The web and api start with `studio start` or from the menu-bar shell, and stop with `studio stop` or from the shell."
+PRD 0001's D9 row (section 0) and its section 11 row "Web and api" still carry the R1 wording; per
+SPEC 0006 L7 the two ADRs are the amending record. Whether the PRD rows are edited is the owner's
+call.
+
+### Dependencies (ticket 09)
+
+1. **Three exact pins**, in `apps/shell/package.json` `devDependencies` (lines 14-26): `electron`
+   `45.4.1`, `@electron/packager` `20.3.0`, `@electron/fuses` `2.1.3`, with no range character. The
+   package has no runtime `dependencies`. The framework version is pinned again where it is
+   downloaded: `ELECTRON_VERSION` in `apps/shell/scripts/package-app.mjs:23` and
+   `STUDIO_ELECTRON_VERSION` in `scripts/lib/common.sh:23`. `pnpm-lock.yaml` gained additions only:
+   38 packages, all inside the trees of vetting section 4, none with an install script (vetting
+   section 12, check 2).
+2. **No `onlyBuiltDependencies` entry.** `pnpm-workspace.yaml` is unchanged: `apps/*` already
+   matches `apps/shell`, and `electron` 45.4.1 has no install script to allow.
+3. **esbuild bundle.** `@studio/shared` is a `devDependency` that esbuild inlines into
+   `dist/main.js` (`apps/shell/package.json:8`: `--bundle --platform=node --format=cjs
+   --external:electron`), so the menu reuses the shared schedule, run and heartbeat code instead of
+   a second implementation. `esbuild` is pinned to `0.28.2`, a version the lockfile already held.
+4. **Tooling.** `apps/shell/tsconfig.json` extends `@studio/tsconfig/library.json`
+   (`rootDir: src`, `outDir: dist`); `tsconfig.build.json` excludes `src/**/*.test.ts`;
+   `eslint.config.mjs` re-exports `@studio/eslint-config/base`, not `nest`, because the shell has
+   no Nest module.
+5. **Read checks.** Phase 2 checks 1, 2, 3, 4 and 6 are recorded in vetting section 12. The
+   owner-run checks are listed under "Evidence pending at the final gate (owner-run)" below.
+
+### Tray app (ticket 10, `apps/shell/src`)
+
+6. **Service control by invoking the `studio` binary.** This answers the "Harder" item above that
+   left the choice to R3-08: `tools/cli/src/services/**` is untouched and not extracted. "Iniciar"
+   and "Parar" spawn `<nodeBinary>` with the argument arrays `[cliMain, 'start']` and
+   `[cliMain, 'stop']`, `shell: false`, `stdio: 'ignore'` and not detached
+   (`actions/studio-invoker.ts:99-105`, `actions/node-spawner.ts:9-15`). One action runs at a time;
+   a child still running after 60 s is shown as "sem resposta" and is never killed
+   (`actions/studio-invoker.ts:11-12`). Exit code 0 is success, 5 is "dependency unavailable", any
+   other code is a failure (`actions/studio-invoker.ts:7-9`). The CLI's output is neither shown nor
+   logged.
+7. **Allowlisted child environment** (`actions/child-environment.ts:3-27`): `PATH` (fallback
+   `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin` when a login item starts with
+   none), `HOME`, `TMPDIR` and `LANG` when set, and `VIDEO_STUDIO_HOME`, `VIDEO_STUDIO_WEB_PORT`,
+   `VIDEO_STUDIO_API_PORT` from the bundled configuration. No provider key and no `NODE_OPTIONS`.
+8. **Provider-mode difference.** `studio start` run from a terminal forwards its caller's provider
+   mock/live variables (`VIDEO_STUDIO_<PROVIDER>_MODE`, `VIDEO_STUDIO_<PROVIDER>_MOCK_FAULT`) to the
+   api (`tools/cli/src/settings/cli-settings.ts:67-70`). An api started from the shell receives none
+   of them and runs with the api's defaults: every provider `mock`
+   (`packages/core/src/providers/provider-modes.config.ts:6`). No way to carry them was added.
+9. **State model** (`state/state-model.ts:38-79`): watcher `alive` / `dead` / `absent` from
+   `logs/watcher.heartbeat.json`, read through the shared reader; fresh within the shared
+   `WATCHER_HEARTBEAT_STALE_AFTER_MS` in either direction is `alive`, older, future-dated or
+   unreadable is `dead`. Api and web `running` / `stopped` / `unknown` from the pid records of
+   `tools/cli/src/services/service-spec.ts:33-35`, read by the shell's own strict reader (at most
+   4096 bytes, `state/pid-record.ts:24-25`) plus the shared signal-0 `isProcessAlive`; an invalid
+   record is `unknown`.
+10. **Polling** (`controller/shell-controller.ts:5-11`): heartbeat and pid records every 5 s;
+    schedules and runs every 60 s, once when the menu opens, and after every action. No file
+    watcher on the data home.
+11. **Menu contents.** The earliest next slot over `active` schedules through the shared
+    `nextSlots` and schedule file readers (`state/schedule-summary.ts:1-2`); the count of runs at
+    `review` from a bounded directory read (at most 2000 run folders, 2 MiB per `run.json`) parsed
+    with the shared `RunFileSchema`, because `@studio/shared/run-files` has no lister and no size
+    bound (`state/review-summary.ts:8-18`). Labels are pt-BR (`menu/labels.ts:5-39`): "Iniciar",
+    "Parar", "Abrir estúdio", "Abrir ao iniciar sessão", "Sair". "Iniciar" is enabled when api or
+    web is not running, "Parar" when either is running or unknown, both only while no action is in
+    flight; "Abrir estúdio" only while the web is `running` (`menu/menu-model.ts:83-97`). An
+    invalid or missing configuration shows "Instalação incompleta: reinstale o estúdio" and "Sair"
+    only (`menu/menu-model.ts:124-131`).
+12. **Tray and Dock.** A text-title tray ("Estúdio") with an empty image: the repository has no
+    icon asset and none was added (`electron/shell-app.ts:97-99`). The Dock icon is hidden both in
+    code (`electron/shell-app.ts:95-96`) and by `LSUIElement` in the packaged `Info.plist`
+    (`apps/shell/scripts/package-app.mjs:257`).
+13. **One browser hand-off.** `shell.openExternal(studioUrl(config.webPort))` is the only
+    `openExternal` call site (`electron/shell-app.ts:62-65`); `studioUrl` returns exactly
+    `http://127.0.0.1:<webPort>/` (`actions/studio-url.ts:8-11`).
+14. **Security handlers** (`electron/security.ts:10-24`): `app.enableSandbox()` and a
+    `web-contents-created` handler that denies window opening and cancels navigation, before
+    `ready`; at `ready`, `setPermissionRequestHandler` and `setPermissionCheckHandler` both deny
+    (the vetting section 12 correction of section 8 row 6). No window, web view, `autoUpdater` or
+    `crashReporter` is used, and no command-line switch is appended anywhere (the section 12
+    correction of row 12: no fuse blocks the remote-debugging switch, so its absence is the
+    control). A second instance quits (`electron/shell-app.ts:128-132`).
+15. **Login item.** The "Abrir ao iniciar sessão" checkbox calls
+    `app.setLoginItemSettings({ openAtLogin })` (`electron/login-item.ts:4-10`). The shell does
+    not start the services at login: at startup it reads state only, and the services start only
+    from "Iniciar". The process accepts one switch, `--unregister-login-item`
+    (`cli/shell-arguments.ts:1-12`), which sets open-at-login to false and quits without a tray or
+    the single-instance lock (`electron/shell-app.ts:114-126`); the uninstaller uses it.
+16. **Baked `shell-config.json`** (`config/shell-config.ts:5-24`, `main.ts:4-6`): `format: 1`,
+    `nodeBinary`, `cliMain`, `dataHome`, `webPort`, `apiPort`, written by the package script beside
+    `main.js` inside `app.asar`, so the asar integrity fuse covers it. Reason: a login item starts
+    with a minimal `PATH` and fuse `RunAsNode` is off, so the app cannot find `node` by name or be
+    its own Node. Strict parse: unknown or missing keys, relative or non-normalized paths, ports
+    outside 1024-65535 or equal ports, and files over 16 KiB are typed errors. Values never come
+    from an environment variable, an argument or a data-home file.
+17. **Read-only in the data home.** The shell reads `logs/`, `schedules/` and `runs/`
+    (`state/data-home-paths.ts:3-15`) with `O_RDONLY | O_NOFOLLOW` (`state/bounded-file.ts:26-27`)
+    and writes no file there, not even a pid record: the `studio` child it spawns writes those, as
+    it does from a terminal. It sends no signal to any process.
+18. **Diagnostics** (`logging/diagnostics.ts:4-8`): no log file; one JSON line per event to stderr
+    with an event id, reason ids, an action, an exit code and counts only (SPEC 0006 K7).
+
+### Packaging, install and uninstall (ticket 11)
+
+19. **Package script** `apps/shell/scripts/package-app.mjs`, run by the installer as
+    `pnpm --filter @studio/shell run package -- --node-bin <abs> --cli-main <abs> --data-home <abs>
+    --web-port <port> --api-port <port>`. Guards, in order (lines 90-201): refuses root; macOS
+    only; refuses to run while any download redirect variable of vetting section 12 is set, in any
+    spelling (13 normalized names, lines 45-64); strict arguments; `dist/main.js` present; the
+    installed `electron` is 45.4.1 and its embedded `checksums.json` holds a sha-256 for
+    `electron-v45.4.1-darwin-arm64.zip`.
+20. **Three staged files** (lines 222-234): `main.js`, `shell-config.json` and a minimal
+    `package.json` (`name`, `version`, `main`); no `node_modules`, sources or maps. The packager
+    runs with `asar: true` and `asarIntegrityDigest: true`.
+21. **App identity and download** (lines 23-31, 236-260): name "Video Studio", bundle id
+    `com.videostudio.shell`, darwin arm64. The framework download is build-only, done by
+    `@electron/packager` from GitHub releases of `electron/electron`
+    (`https://github.com/electron/electron/releases/download/`), and is verified against the
+    registry-covered embedded `checksums.json` rather than the remote `SHASUMS256.txt`. No
+    `install-electron`, no dev binary, no mirror. The zip is cached in `~/Library/Caches/electron/`.
+22. **Six fuses, read back** (lines 66-74, 267-277): `RunAsNode`,
+    `EnableNodeOptionsEnvironmentVariable`, `EnableNodeCliInspectArguments` and
+    `GrantFileProtocolExtraPrivileges` off; `EnableEmbeddedAsarIntegrityValidation` and
+    `OnlyLoadAppFromAsar` on. Each state is read back after flipping, and the script fails on a
+    mismatch.
+23. **Ad-hoc signing** (lines 284-288): an explicit `codesign --sign - --force --deep` after the
+    fuse flip (which invalidates the framework signature; `resetAdHocDarwinSignature` is left
+    `false`), then `codesign --verify --deep --strict`. No Developer ID, no notarization.
+24. **Install step 12 of 15** (`scripts/install.sh:520-714`), after the `studio` link and before the
+    watcher's launchd agent. `--skip-shell` skips it with no download, build or copy. Both the
+    `PATH` node and the node the app will spawn must be 22.12 or later. It names the download host
+    and asks its own question before the packager runs; `--yes` does not answer it, and without a
+    terminal the answer is no. `--dry-run` asks nothing and changes nothing. It removes the 37
+    redirect variable spellings of `scripts/lib/common.sh:28-43` from the packager's environment
+    and never sets a mirror. Any failure warns, adds a note to the summary and the install goes on.
+    Web and api ports are `VIDEO_STUDIO_WEB_PORT` / `VIDEO_STUDIO_API_PORT` when numeric, else 4310
+    and 4311.
+25. **Rebuild detection** (`scripts/install.sh:585-602`): the stamp
+    `apps/shell/out/install-stamp.txt` holds the Electron version, the sha-256 of `dist/main.js`
+    and of the package script, and the five baked values; an equal stamp plus a verifying
+    installed copy is "sem mudança".
+26. **Install location** `~/Applications/Video Studio.app` (`scripts/lib/common.sh:229-236`),
+    user-owned, no `sudo`. An existing folder is replaced only when it passes four checks: an
+    absolute, normalized path ending in `.app`; under `~/Applications`; a real folder, not a link;
+    bundle id `com.videostudio.shell` (`scripts/lib/common.sh:366-400`). A running shell is asked
+    to quit first; the copy is made with `ditto` and its signature verified.
+27. **Uninstall step 1 of 6** (`scripts/uninstall.sh:68-147`, refusal of root at line 340): when
+    the app passes the four checks, it runs the app once with `--unregister-login-item` (15 s
+    bounded wait, `TERM` on timeout, never `-9`), asks it to quit through
+    `osascript -e 'quit app id "com.videostudio.shell"'` with a 15 s wait (if it is still running,
+    nothing is deleted), repeats the four checks and removes the app folder. It removes
+    `apps/shell/out/` only when that is a real folder and no shell runs from it. The Electron cache
+    `~/Library/Caches/electron` is never deleted: other Electron apps may use it; the script prints
+    its path and the command to delete it by hand.
+28. **Facts the owner meets.** An `electron_*` entry in the owner's `.npmrc` reaches the package
+    script as an `npm_config_electron_*` variable, so `package-app.mjs` refuses and the install step
+    is skipped with a note. The first quit through `osascript` may trigger a one-time macOS
+    Automation prompt for the terminal (`scripts/lib/common.sh:416-418`).
+
+### Statements of the sections above that vetting 0002 section 12 confirmed or corrected
+
+- B1 cons, "its install script downloads a binary": corrected. `electron` 45.4.1 has no install
+  script (section 12, install and check 2). The framework is downloaded only by
+  `@electron/packager` at build time (decision 21), or by a plain-Node `require('electron')`,
+  which the shell never does (section 12, check 3).
+- Section D and the download: the host is confirmed as GitHub releases of `electron/electron`
+  (section 12, check 3); the CDN host behind the redirect is still **Unverified**.
+- Section 8 of the vetting report, rows 6 and 12: corrected in section 12 ("Corrections to section
+  8") and applied in decision 14.
+- B1 cons, bundle size (about 200 MB) and idle memory, and section D, Gatekeeper: still
+  **Unverified**; they are owner-run measurements under "Evidence pending at the final gate
+  (owner-run)" below.
+- B1 cons, the support window of "the latest three majors": still **Unverified** (vetting section
+  10).
+
+## Acceptance criteria (SPEC 0006 R3-AC-25)
+
+The twelve criteria as written in `docs/specs/r3-outside-signals/tickets/R3-08-graph.md` ("R3-AC-25,
+written concretely"), copied verbatim, each with its evidence kind and its ticket. SPEC 0006
+section 8 delegates them to R3-08 ("the criteria written in R3-08 once the owner answers Q1").
+
+| AC | Criterion (falsifiable) | Evidence | Ticket |
+|---|---|---|---|
+| R3-AC-25.1 | `apps/shell/package.json` `devDependencies` holds `electron` `45.4.1`, `@electron/packager` `20.3.0` and `@electron/fuses` `2.1.3` with no range character; it has no runtime `dependencies`; `onlyBuiltDependencies` in `pnpm-workspace.yaml` is unchanged | manifest and diff | 09 |
+| R3-AC-25.2 | Every package the lockfile gained is inside the trees of vetting section 4, none has a `preinstall`, `install` or `postinstall` script, and the results of phase 2 checks 1, 2, 3, 4 and 6 are recorded in vetting section 12 | lockfile read, report | 09 |
+| R3-AC-25.3 | From a heartbeat that is fresh, stale, absent or invalid, and pid records that are valid-and-alive, valid-and-dead, absent or invalid, the shell's state model reports watcher `alive` / `dead` / `absent` and api and web `running` / `stopped` / `unknown` as specified in ticket 10 | unit tests | 10 |
+| R3-AC-25.4 | The menu has items labelled exactly "Iniciar", "Parar" and "Abrir estúdio", shows the earliest next slot over `active` schedules (or that there is none) and the count of runs at `review`; "Abrir estúdio" is enabled only while the web is `running` | unit tests | 10 |
+| R3-AC-25.5 | "Iniciar" and "Parar" run the configured Node binary with the argument arrays `[cliMain, 'start']` and `[cliMain, 'stop']`, no shell and an allowlisted environment; the shell sends no signal to any process and writes no file in the data home | unit tests, grep | 10 |
+| R3-AC-25.6 | The watcher is not controlled by the shell and its launchd plist template is unchanged; `tools/cli/src/services/**` is unchanged | diff, grep | 10, 11 |
+| R3-AC-25.7 | The only URL the shell hands to the browser is `http://127.0.0.1:<web port>/`, built from the bundled configuration, at a single `openExternal` call site | unit test, grep | 10 |
+| R3-AC-25.8 | `apps/shell/src` creates no `BrowserWindow` or web view, imports no `autoUpdater` or `crashReporter`, opens no listener and makes no outbound request; permission requests, navigation and window opening are denied; a second instance quits | grep, inspection | 10 |
+| R3-AC-25.9 | The package script sets fuses `RunAsNode`, `EnableNodeOptionsEnvironmentVariable`, `EnableNodeCliInspectArguments` and `GrantFileProtocolExtraPrivileges` off and `EnableEmbeddedAsarIntegrityValidation` and `OnlyLoadAppFromAsar` on, then signs ad hoc and verifies; the packaged app contains `main.js`, `shell-config.json` and a minimal `package.json` and no `node_modules` | inspection | 11 |
+| R3-AC-25.10 | `scripts/install.sh` names the download host and asks before the packager runs, never sets a mirror, refuses to run as root, skips with `--skip-shell`, changes nothing with `--dry-run` and continues the install when the step fails; `scripts/uninstall.sh` refuses root, unregisters the login item and removes only the app it identifies by bundle id | `bash -n`, `--dry-run` output, inspection | 11 |
+| R3-AC-25.11 | ADR 0001 carries an append-only amendment for the processes decision and its fired revisit trigger; ADR 0005 carries the decision record, these criteria and the amended D9 sentence verbatim; SPEC 0006 and PRD 0001 are unchanged | diff | 12 |
+| R3-AC-25.12 | On the owner's Mac after the first build: no TCP or UDP socket on the shell's processes; no outbound connection in 10 minutes idle and one start/stop cycle; the six fuse states read back as in 25.9; the signature is ad hoc; the bundle is under 400 MB and idle resident memory under 300 MB (ADR 0005 revisit triggers, measured); macOS opens the app without a Gatekeeper prompt | owner-run, phase 2 checks 5, 7, 8 | final gate |
+
+R3-AC-25.12 is pending evidence until the owner has run the checks below; it is never reported as
+met before that.
+
+Known limitation (owner decision of 2026-11-19, "Document the limit"): install step 5
+(`turbo run build`, unchanged) builds every workspace package, `@studio/shell` included. A failure
+of the shell's esbuild bundle therefore stops the whole install even with `--skip-shell`, which
+only governs step 12. R3-AC-25.10 is still met as written. Revisit trigger: a shell bundle failure
+that blocks an install, or a request to install without the shell's sources.
+
+## Evidence pending at the final gate (owner-run)
+
+Status: **pending**. Nothing in this section has been run. The owner runs these on the Mac after
+the first `scripts/install.sh` run that builds the app (step 12, answering "s" to its download
+question). Per the owner's decision of 2026-11-19 (`R3-08-graph.md`, "Owner decisions on the open
+questions"), the measured results are appended by the supervisor to
+`docs/vetting/0002-shell-runtime.md` section 12, not to this ADR.
+
+| Phase 2 check (vetting section 11) | What the owner runs and records | Revisit trigger it measures |
+|---|---|---|
+| 5 | The explicit download step, once: `scripts/install.sh` step 12. Record the final host names (the CDN host behind GitHub's redirect is still **Unverified**), the framework zip size in `~/Library/Caches/electron/` and the size of the built app (`package-app.mjs` prints `tamanho: <bytes>`; `du -sk "$HOME/Applications/Video Studio.app"` reads the installed copy) | Bundle over 400 MB: reopen B1 versus B3 |
+| 7 | `lsof -nP -a -p <shell pids> -i` shows no TCP or UDP socket; 10 minutes idle and one "Iniciar" / "Parar" cycle show no outbound connection; `npx @electron/fuses read --app "$HOME/Applications/Video Studio.app"` shows the six fuse states of R3-AC-25.9; `codesign -dv "$HOME/Applications/Video Studio.app"` shows an ad-hoc signature; idle resident memory of all shell processes (for example `ps -axo pid,rss,comm` filtered on `Video Studio.app`, summed) | Idle memory over 300 MB: reopen B1 versus B3 |
+| 8 | Open the locally built, ad-hoc signed app (`open "$HOME/Applications/Video Studio.app"`) and confirm macOS shows no Gatekeeper prompt | A block or warning: reopen section D |
+
+The `du` and `ps` forms are suggestions for reading the values; the checks themselves are those of
+vetting section 11 and `R3-08-graph.md`.

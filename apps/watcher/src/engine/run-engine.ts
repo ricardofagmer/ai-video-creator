@@ -118,7 +118,7 @@ export class RunEngine {
         type: 'step.status',
         level: 'warning',
         text: `${stepStatusText(stage.number, stage.stageId, orphan.step, 'pending')}. ${ownerTexts.stepOrphaned}`,
-        stepKey: formatStepKey({ stageNumber: stage.number, stageId: stage.stageId, step: orphan.step, attempt: Math.max(1, record.attempts) }),
+        stepKey: formatStepKey({ stageId: stage.stageId, step: orphan.step, attempt: Math.max(1, record.attempts) }),
         status: 'pending',
       });
     }

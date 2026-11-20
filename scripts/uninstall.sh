@@ -9,10 +9,14 @@
 #                  owner types the confirmation word. Without it the data home is kept.
 #   --remove-keys  offers to delete each studio Keychain entry, asking once per entry.
 #
-# Removes the launchd agent and its plist, stops web and api, and removes the `studio` link only
-# when it points into this repository. It never touches the repository, node_modules, Homebrew
+# Removes the menu-bar app (SPEC 0006 R3-08, ADR 0005 decision 5) only when ~/Applications/Video
+# Studio.app carries the bundle id com.videostudio.shell, after unregistering its login item and
+# asking it to quit, plus its build output apps/shell/out/. Removes the launchd agent and its plist,
+# stops web and api, and removes the `studio` link only when it points into this repository. It
+# never touches the repository sources, node_modules, the Electron download cache, Homebrew
 # packages, files registered by reference outside the data home, or the Keychain without
-# --remove-keys. Rerunning it is safe: whatever is already gone is reported and skipped.
+# --remove-keys. It refuses to run as root. Rerunning it is safe: whatever is already gone is
+# reported and skipped.
 
 set -Eeuo pipefail
 
@@ -20,11 +24,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
 
-readonly TOTAL_STEPS=5
+readonly TOTAL_STEPS=6
 readonly PURGE_WORD='APAGAR'
+# Bounded wait for the app run with --unregister-login-item, which exits on its own.
+readonly UNREGISTER_WAIT_SECONDS=15
 
 PURGE=0
 REMOVE_KEYS=0
+SHELL_RESULT='não verificado'
 DATA_HOME_RESULT='mantida'
 KEYS_RESULT='não tocadas'
 
@@ -58,11 +65,93 @@ parse_arguments() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 1. launchd agent
+# 1. Menu-bar app: login item, the app folder, the build output
+# ---------------------------------------------------------------------------------------------
+
+# Runs the installed app once with --unregister-login-item (apps/shell/src/cli/shell-arguments.ts);
+# it removes its login item and exits. On timeout that one child is asked to end with TERM, never -9.
+unregister_shell_login_item() {
+  local pid waited=0 status=0
+  "$SHELL_APP_EXECUTABLE" --unregister-login-item >/dev/null 2>&1 &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$waited" -ge "$UNREGISTER_WAIT_SECONDS" ]; then
+      kill -TERM "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      return 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  wait "$pid" || status=$?
+  return "$status"
+}
+
+remove_shell_app() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    run "$SHELL_APP_EXECUTABLE" --unregister-login-item
+  elif [ -x "$SHELL_APP_EXECUTABLE" ] && [ ! -L "$SHELL_APP_EXECUTABLE" ] && unregister_shell_login_item; then
+    info 'login item removido ("Abrir ao iniciar sessão" desligado).'
+  else
+    warn 'não foi possível confirmar a remoção do login item; confira em Ajustes do Sistema > Geral > Itens de Início.'
+  fi
+  if ! quit_shell_app; then
+    warn 'o app do menu continua aberto; feche-o pelo item "Sair" e rode scripts/uninstall.sh de novo. Nada foi apagado.'
+    SHELL_RESULT='mantido: o app continuava aberto'
+    return 0
+  fi
+  # The four checks again, right before the removal.
+  if ! is_studio_shell_app "$SHELL_APP_PATH"; then
+    warn "recusado: $SHELL_APP_PATH ($SHELL_APP_REJECTION); nada foi apagado."
+    SHELL_RESULT="mantido: $SHELL_APP_PATH ($SHELL_APP_REJECTION)"
+    return 0
+  fi
+  run rm -rf -- "$SHELL_APP_PATH"
+  outcome "app removido: $SHELL_APP_PATH" "removeria o app: $SHELL_APP_PATH"
+  SHELL_RESULT="removido ($SHELL_APP_PATH)"
+}
+
+# apps/shell/out/ is a build artefact (ignored by git): the staging folder, the packaged app and
+# the install stamp. Only that exact folder, and only when it is a real folder.
+remove_shell_build_output() {
+  if [ ! -e "$SHELL_OUT_DIR" ] && [ ! -L "$SHELL_OUT_DIR" ]; then
+    info "sem saída de build em $SHELL_OUT_DIR."
+    return 0
+  fi
+  if [ -L "$SHELL_OUT_DIR" ] || [ ! -d "$SHELL_OUT_DIR" ] || ! path_is_within "$SHELL_OUT_DIR" "$SHELL_PACKAGE_DIR"; then
+    info "mantido: $SHELL_OUT_DIR não é uma pasta de build comum."
+    return 0
+  fi
+  if [ "$DRY_RUN" -eq 0 ] && shell_app_running; then
+    warn "um app do menu ainda roda; $SHELL_OUT_DIR foi mantida."
+    return 0
+  fi
+  run rm -rf -- "$SHELL_OUT_DIR"
+  outcome "saída de build removida: $SHELL_OUT_DIR" "removeria a saída de build: $SHELL_OUT_DIR"
+}
+
+step_menu_bar_app() {
+  begin_step 1 "$TOTAL_STEPS" "app do menu ($STUDIO_SHELL_BUNDLE_ID)"
+  if [ ! -e "$SHELL_APP_PATH" ] && [ ! -L "$SHELL_APP_PATH" ]; then
+    info "sem app em $SHELL_APP_PATH."
+    SHELL_RESULT='já ausente'
+  elif ! is_studio_shell_app "$SHELL_APP_PATH"; then
+    info "mantido: $SHELL_APP_PATH não é este app ($SHELL_APP_REJECTION)."
+    SHELL_RESULT="mantido: $SHELL_APP_PATH não é este app"
+  else
+    remove_shell_app
+  fi
+  remove_shell_build_output
+  info "o cache do download do Electron fica em $ELECTRON_CACHE_DIR e não é tocado (outros apps Electron podem usá-lo)."
+  info "para apagá-lo à mão: rm -rf \"$ELECTRON_CACHE_DIR\""
+}
+
+# ---------------------------------------------------------------------------------------------
+# 2. launchd agent
 # ---------------------------------------------------------------------------------------------
 
 step_launchd() {
-  begin_step 1 "$TOTAL_STEPS" "agente launchd ($STUDIO_LAUNCHD_LABEL)"
+  begin_step 2 "$TOTAL_STEPS" "agente launchd ($STUDIO_LAUNCHD_LABEL)"
   bootout_agent
   if [ -e "$PLIST_PATH" ] || [ -L "$PLIST_PATH" ]; then
     run rm -f "$PLIST_PATH"
@@ -73,11 +162,11 @@ step_launchd() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 2. Web and api
+# 3. Web and api
 # ---------------------------------------------------------------------------------------------
 
 step_stop_services() {
-  begin_step 2 "$TOTAL_STEPS" 'parar web e api (studio stop)'
+  begin_step 3 "$TOTAL_STEPS" 'parar web e api (studio stop)'
   local status=0
   if ! command -v node >/dev/null 2>&1 || [ ! -f "$CLI_MAIN" ]; then
     info 'CLI do studio ausente (node ou build); nada a parar por ele.'
@@ -90,11 +179,11 @@ step_stop_services() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 3. `studio` link
+# 4. `studio` link
 # ---------------------------------------------------------------------------------------------
 
 step_remove_link() {
-  begin_step 3 "$TOTAL_STEPS" 'comando studio no PATH'
+  begin_step 4 "$TOTAL_STEPS" 'comando studio no PATH'
   local directory link found=0
   while IFS= read -r directory; do
     link="$directory/studio"
@@ -114,7 +203,7 @@ EOF
 }
 
 # ---------------------------------------------------------------------------------------------
-# 4. Data home (kept unless --purge and the typed confirmation)
+# 5. Data home (kept unless --purge and the typed confirmation)
 # ---------------------------------------------------------------------------------------------
 
 # Same answer the installer used: core when built, else the bash mirror of its rule.
@@ -180,7 +269,7 @@ purge_data_home() {
 }
 
 step_data_home() {
-  begin_step 4 "$TOTAL_STEPS" 'pasta de dados'
+  begin_step 5 "$TOTAL_STEPS" 'pasta de dados'
   resolve_data_home
   if [ "$PURGE" -eq 0 ]; then
     info "mantida: $DATA_HOME (use --purge para apagar)."
@@ -196,7 +285,7 @@ step_data_home() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 5. Keychain (only with --remove-keys, one question per entry)
+# 6. Keychain (only with --remove-keys, one question per entry)
 # ---------------------------------------------------------------------------------------------
 
 # Without -w or -g, `security` prints item attributes only, never the value; output is discarded.
@@ -205,7 +294,7 @@ keychain_entry_exists() {
 }
 
 step_keychain() {
-  begin_step 5 "$TOTAL_STEPS" 'chaves no Keychain'
+  begin_step 6 "$TOTAL_STEPS" 'chaves no Keychain'
   local account removed=0
   if [ "$REMOVE_KEYS" -eq 0 ]; then
     info 'não tocadas (use --remove-keys para revisar uma a uma).'
@@ -238,14 +327,19 @@ print_summary() {
     return 0
   fi
   say 'Video Studio desinstalado.'
+  info "App do menu:     $SHELL_RESULT"
   info "Agente launchd:  removido ($STUDIO_LAUNCHD_LABEL)"
   info 'Comando studio:  link deste repositório removido'
   info "Pasta de dados:  $DATA_HOME_RESULT"
   info "Chaves:          $KEYS_RESULT"
-  info 'Repositório, node_modules e pacotes do Homebrew não foram tocados.'
+  info 'Fontes do repositório, node_modules, cache do Electron e pacotes do Homebrew não foram tocados.'
 }
 
 main() {
+  # Same refusal as the installer: everything was installed for the user, never for root.
+  if [ "$UID" -eq 0 ]; then
+    die 'não rode como root nem com sudo: o studio foi instalado para o seu usuário.'
+  fi
   parse_arguments "$@"
   enable_error_trap
   resolve_repo_root "$SCRIPT_DIR"
@@ -253,6 +347,7 @@ main() {
   if [ "$DRY_RUN" -eq 1 ]; then
     say 'Modo simulação (--dry-run): nada é removido.'
   fi
+  step_menu_bar_app
   step_launchd
   step_stop_services
   step_remove_link

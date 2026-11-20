@@ -9,7 +9,7 @@ function coerceNumeric(value: unknown): unknown {
  * CLI options arrive as strings and programmatic callers pass numbers; both meet the same range
  * check, so no unvalidated number ever reaches a filter expression or argv.
  */
-export function numberArg(schema: z.ZodNumber): z.ZodEffects<z.ZodNumber, number, unknown> {
+export function numberArg(schema: z.ZodNumber): z.ZodPreprocess<z.ZodNumber, unknown> {
   return z.preprocess(coerceNumeric, schema);
 }
 

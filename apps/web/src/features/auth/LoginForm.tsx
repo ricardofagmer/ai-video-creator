@@ -2,7 +2,7 @@
 
 import { Alert, Button, Card, FormField, Input } from '@studio/ui';
 import { useRouter } from 'next/navigation';
-import { useRef, useState, type FormEvent, type ReactElement } from 'react';
+import { useId, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import { ApiRequestError, ApiUnreachableError, browserStudioClient } from '@/lib/api';
 import { API_UNREACHABLE_TEXT } from '@/features/common/api-error-text';
 import layout from '@/features/common/layout.module.css';
@@ -27,10 +27,13 @@ function loginErrorText(error: unknown): string {
 /**
  * design/telas/01, block 2. The passphrase lives only in this field's state and in the login POST
  * body: never in a URL, never in storage, never logged. `method="post"` keeps it out of the URL
- * even if the page is submitted before hydration.
+ * even if the page is submitted before hydration. The card heading is the page's single h1, drawn
+ * here because the shared Card title stops at h2.
  */
 export function LoginForm(): ReactElement {
   const router = useRouter();
+  const titleId = useId();
+  const descriptionId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [passphrase, setPassphrase] = useState('');
   const [pending, setPending] = useState(false);
@@ -55,8 +58,23 @@ export function LoginForm(): ReactElement {
   }
 
   return (
-    <Card title="Entrar" as="h1" description="Digite a senha deste Mac.">
-      <form method="post" className={layout.stack} onSubmit={(event) => void handleSubmit(event)} noValidate>
+    <Card>
+      <div className={layout.authCardHeading}>
+        <h1 id={titleId} className="heading-3">
+          Entrar
+        </h1>
+        <p id={descriptionId} className={`caption ${layout.authCardDescription}`}>
+          Digite a senha deste Mac.
+        </p>
+      </div>
+      <form
+        method="post"
+        className={layout.stack}
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        onSubmit={(event) => void handleSubmit(event)}
+        noValidate
+      >
         {error !== null && (
           <Alert variant="error">
             <span id={`${FIELD_ID}-alert`}>{error}</span>

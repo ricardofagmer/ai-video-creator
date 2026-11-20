@@ -19,6 +19,19 @@ function stableBlock(packet: WriterPacket): string {
   ].join('\n\n');
 }
 
+/** The packet as it goes into the variable body: the stable-block texts are replaced by a pointer to that block. */
+function bodyPacket(packet: WriterPacket): WriterPacket {
+  return {
+    ...packet,
+    inputs: {
+      ...packet.inputs,
+      promptText: MOVED_TO_STABLE_BLOCK,
+      ...(packet.inputs.skillText === undefined ? {} : { skillText: MOVED_TO_STABLE_BLOCK }),
+      ...(packet.inputs.brandVoice === undefined ? {} : { brandVoice: MOVED_TO_STABLE_BLOCK }),
+    },
+  };
+}
+
 /**
  * Changelog: writer@1 (2026-11-18) first version, topology v1 section 5. writer@2 (2026-11-19)
  * learning notes in the packet and the topology 0004 section 8 guard line (SPEC 0005 section 5.6).
@@ -38,14 +51,6 @@ export const writerPrompt: RolePrompt<WriterPacket> = {
   ].join('\n'),
   render: (packet) => ({
     stablePrefix: stableBlock(packet),
-    body: renderPacketBodyWithLearnings(PacketTypeSchema.enum.WriterPacket, {
-      ...packet,
-      inputs: {
-        ...packet.inputs,
-        promptText: MOVED_TO_STABLE_BLOCK,
-        ...(packet.inputs.skillText === undefined ? {} : { skillText: MOVED_TO_STABLE_BLOCK }),
-        ...(packet.inputs.brandVoice === undefined ? {} : { brandVoice: MOVED_TO_STABLE_BLOCK }),
-      },
-    }),
+    body: renderPacketBodyWithLearnings(PacketTypeSchema.enum.WriterPacket, bodyPacket(packet)),
   }),
 };

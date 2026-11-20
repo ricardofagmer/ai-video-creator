@@ -11,7 +11,7 @@ export const IS_PUBLIC_ROUTE = 'studio:public-route';
 export const Public = (): CustomDecorator<string> => SetMetadata(IS_PUBLIC_ROUTE, true);
 
 /** The principal the session guard put in the request context; guarded routes only. */
-export const CurrentPrincipal = createParamDecorator((_data: unknown): Principal => {
+export const CurrentPrincipal = createParamDecorator<unknown, Principal>((): Principal => {
   const principal = currentRequestState()?.principal ?? null;
   if (principal === null) throw new UnauthenticatedError();
   return principal;

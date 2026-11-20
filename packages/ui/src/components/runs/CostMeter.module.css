@@ -1,0 +1,62 @@
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  --meter-fill: var(--color-meter-fill);
+}
+
+.warning {
+  --meter-fill: var(--color-warning);
+}
+
+.danger {
+  --meter-fill: var(--color-danger);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.track {
+  position: relative;
+  height: var(--size-meter-height);
+  overflow: hidden;
+  background-color: var(--color-meter-track);
+  border-radius: var(--radius-full);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background-color: var(--meter-fill);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-slow) var(--ease-standard);
+}
+
+.estimate {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--color-text);
+}
+
+.note {
+  margin: 0;
+}
+
+.alertText {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-danger);
+}

@@ -26,7 +26,7 @@ export type ToolEnvelopeShape<Result extends z.ZodTypeAny, Handoff extends z.Zod
 export function toolEnvelopeSchema<Result extends z.ZodTypeAny, Handoff extends z.ZodTypeAny>(
   result: Result,
   handoff: Handoff,
-): z.ZodObject<ToolEnvelopeShape<Result, Handoff>, 'strict'> {
+): z.ZodObject<ToolEnvelopeShape<Result, Handoff>, z.core.$strict> {
   const shape: ToolEnvelopeShape<Result, Handoff> = {
     [ENVELOPE_DSL_KEY]: z.string().max(2000),
     [ENVELOPE_RESULT_KEY]: result,

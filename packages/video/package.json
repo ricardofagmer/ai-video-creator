@@ -16,14 +16,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@remotion/bundler": "4.0.300",
-    "@remotion/cli": "4.0.300",
-    "@remotion/renderer": "4.0.300",
+    "@remotion/bundler": "4.0.541",
+    "@remotion/cli": "4.0.541",
+    "@remotion/renderer": "4.0.541",
     "@studio/shared": "workspace:*",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "remotion": "4.0.300",
-    "zod": "^3.25.76"
+    "remotion": "4.0.541",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

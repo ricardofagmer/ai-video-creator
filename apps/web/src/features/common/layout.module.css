@@ -113,6 +113,22 @@
   max-width: var(--layout-auth-card-width);
 }
 
+/*
+ * Card header for the login card, which owns the page's h1. The shared Card caps its title at h2
+ * (design/componentes.md section 5), so the login renders an untitled Card and this header itself,
+ * matching the Card header spacing.
+ */
+.authCardHeading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.authCardDescription {
+  margin: 0;
+}
+
 .page {
   display: flex;
   flex-direction: column;

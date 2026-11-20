@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CatalogModule } from '@studio/core/catalog';
 import { CostsModule } from '@studio/core/costs';
+import { MetricsModule } from '@studio/core/metrics';
 import { PathsModule } from '@studio/core/paths';
 import { PrismaModule } from '@studio/core/prisma';
 import { QualityModule } from '@studio/core/quality';
 import { RedactionModule } from '@studio/core/redaction';
 import { ReviewModule } from '@studio/core/review';
 import { RunsModule } from '@studio/core/runs';
+import { SchedulesModule } from '@studio/core/schedules';
 import { SeedModule } from '@studio/core/seed';
 import { PassphraseHashRepository } from '../passphrase/passphrase-hash.repository.js';
 
@@ -18,7 +20,10 @@ import { PassphraseHashRepository } from '../passphrase/passphrase-hash.reposito
  * No HTTP listener; the context lives for one command or one dashboard session. The one CLI-local
  * provider writes the passphrase hash row, which no core module owns. `QualityModule` backs
  * `studio catalog rescore` (SPEC 0003 R2-08); the embeddings module is not here: only the commands
- * that search or index by meaning boot it, through `CliSearchModule`.
+ * that search or index by meaning boot it, through `CliSearchModule`. `MetricsModule` backs
+ * `studio metrics import` and `SchedulesModule` the schedule commands and the status line (SPEC 0006
+ * R3-07): the same handlers as the api, so `schedule.json` and the metrics tables keep their writers
+ * and the CLI never writes `cursor.json` or `slots.jsonl` (ADR 0003).
  */
 @Module({
   imports: [
@@ -32,6 +37,8 @@ import { PassphraseHashRepository } from '../passphrase/passphrase-hash.reposito
     SeedModule,
     CostsModule,
     QualityModule,
+    MetricsModule,
+    SchedulesModule,
   ],
   providers: [PassphraseHashRepository],
 })

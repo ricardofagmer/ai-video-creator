@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Sha256Schema } from '../common/ids';
 import { AssetStatusSchema } from '../catalog/asset-kind';
-import { RecipeIdSchema, RecipeRefSchema, RecipeSchema } from '../recipes/recipe';
+import { RecipeBaseSchema, RecipeIdSchema, RecipeRefSchema, RecipeSchema } from '../recipes/recipe';
 import { PageLimitQuerySchema, pageOf, queryInteger, queryList } from './common';
 import { PromotionApprovalViewSchema } from './promotion';
 
@@ -67,7 +67,7 @@ export const RecipeVersionParamsSchema = z
  * C2 (stage order, defined checks, unique ids, canvas ratio) and the binding pins are checked by
  * the recipes module.
  */
-export const RecipeDefinitionInputSchema = RecipeSchema.innerType().omit({
+export const RecipeDefinitionInputSchema = RecipeBaseSchema.omit({
   id: true,
   version: true,
   status: true,

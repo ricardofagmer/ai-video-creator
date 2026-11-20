@@ -1,7 +1,10 @@
+import { type IncomingHttpHeaders } from 'node:http';
 import { type Readable } from 'node:stream';
 import busboy from 'busboy';
-import { type Request } from 'express';
 import { UploadRejectedError, type UploadRejection } from '../platform/api.errors';
+
+/** What the parser reads: the request body stream and its headers (an express `Request` is one). */
+export type MultipartSource = Readable & { headers: IncomingHttpHeaders };
 
 export type MultipartPart =
   | { kind: 'field'; name: string; value: string }
@@ -12,9 +15,12 @@ export interface MultipartLimits {
   /** Per file. A part that reaches it is destroyed with `file-too-large`, never truncated. */
   maxFileBytes: number;
   maxFieldBytes: number;
+  /** Text fields accepted; one when absent (the catalog's JSON `fields` part). */
+  maxFields?: number;
 }
 
-function createParser(request: Request, limits: MultipartLimits): busboy.Busboy {
+function createParser(request: MultipartSource, limits: MultipartLimits): busboy.Busboy {
+  const maxFields = limits.maxFields ?? 1;
   try {
     return busboy({
       headers: request.headers,
@@ -22,10 +28,13 @@ function createParser(request: Request, limits: MultipartLimits): busboy.Busboy 
       preservePath: true,
       defParamCharset: 'utf8',
       limits: {
-        fields: 1,
+        fields: maxFields,
         fieldSize: limits.maxFieldBytes,
         files: limits.maxFiles,
-        parts: limits.maxFiles + 1,
+        // busboy emits `partsLimit` when the count reaches this value, not when it is exceeded, so
+        // a full request of `maxFiles` files and `maxFields` fields needs one more; the files and
+        // fields limits still refuse the first extra part.
+        parts: limits.maxFiles + maxFields + 1,
         fileSize: limits.maxFileBytes,
         headerPairs: 20,
       },
@@ -42,7 +51,7 @@ function createParser(request: Request, limits: MultipartLimits): busboy.Busboy 
  * read or `resume()` each file stream before the next part arrives. Leaving the loop early stops
  * parsing and drains the rest of the request, so an error response can still be written.
  */
-export async function* multipartParts(request: Request, limits: MultipartLimits): AsyncGenerator<MultipartPart, void, void> {
+export async function* multipartParts(request: MultipartSource, limits: MultipartLimits): AsyncGenerator<MultipartPart, void, void> {
   const parser = createParser(request, limits);
   const queue: MultipartPart[] = [];
   // Mutated by parser callbacks; an object so the loop below reads current values.
@@ -57,8 +66,8 @@ export async function* multipartParts(request: Request, limits: MultipartLimits)
     state.wake = null;
     resolve?.();
   };
-  const fail = (rejection: UploadRejection): void => {
-    state.failure ??= new UploadRejectedError(rejection);
+  const fail = (rejection: UploadRejection | UploadRejectedError): void => {
+    state.failure ??= rejection instanceof UploadRejectedError ? rejection : new UploadRejectedError(rejection);
     notify();
   };
 
@@ -68,8 +77,20 @@ export async function* multipartParts(request: Request, limits: MultipartLimits)
     notify();
   });
   parser.on('file', (name, stream, info) => {
-    stream.on('limit', () => stream.destroy(new UploadRejectedError('file-too-large')));
-    queue.push({ kind: 'file', name, filename: info.filename, mimeType: info.mimeType, stream });
+    stream.on('limit', () => {
+      const tooLarge = new UploadRejectedError('file-too-large');
+      fail(tooLarge);
+      stream.destroy(tooLarge);
+    });
+    // A part can be destroyed (limit, unexpected end) before its consumer attaches a listener, when
+    // its bytes arrive in the same chunk as its headers. The destroy emits `error` on a later tick;
+    // without this listener that is an unhandled `error` event that crashes the process. The failure
+    // ends the loop; a consumer's own listeners still receive the error.
+    stream.on('error', (error: unknown) => fail(error instanceof UploadRejectedError ? error : 'malformed'));
+    // busboy gives no filename for a bare `application/octet-stream` part. The empty text is
+    // refused by every consumer that reads a filename (`RelativePathSchema` needs at least one
+    // character), exactly as the missing value was.
+    queue.push({ kind: 'file', name, filename: info.filename ?? '', mimeType: info.mimeType, stream });
     notify();
   });
   parser.on('partsLimit', () => fail('too-many-parts'));

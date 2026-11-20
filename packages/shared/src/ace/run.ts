@@ -88,7 +88,7 @@ export const ApprovalSchema = z
     decision: z.enum(['APPROVED', 'REJECTED']),
     reviewer: z.string().min(1).max(100),
     reason: z.string().max(1000).nullable(),
-    checklist: z.record(z.enum(publishChecklistItems), z.boolean()),
+    checklist: z.partialRecord(z.enum(publishChecklistItems), z.boolean()),
     decidedAt: z.string().datetime(),
   })
   .superRefine((value, context) => {
@@ -115,7 +115,7 @@ export const RunFileSchema = z.object({
   failedStage: PipelineStageSchema.nullable(),
   stateReason: z.string().nullable(),
   /** sha256 of each stage's validated manifest; a changed upstream hash invalidates downstream stages. */
-  manifestHashes: z.record(PipelineStageSchema, z.string()),
+  manifestHashes: z.partialRecord(PipelineStageSchema, z.string()),
   transitions: z.array(TransitionSchema),
   costs: z.array(CostRowSchema),
   approval: ApprovalSchema.nullable(),

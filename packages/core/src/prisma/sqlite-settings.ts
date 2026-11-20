@@ -24,7 +24,9 @@ export class InvalidDatabasePathError extends Error {
  * wait in seconds; the explicit PRAGMA in PrismaService sets the same bound in milliseconds.
  */
 export function sqliteDatasourceUrl(databaseFile: string): string {
-  if (!databaseFile.startsWith('/') || /[?#\u0000]/.test(databaseFile)) throw new InvalidDatabasePathError();
+  if (!databaseFile.startsWith('/') || /[?#]/.test(databaseFile) || databaseFile.includes('\u0000')) {
+    throw new InvalidDatabasePathError();
+  }
   const lockWaitSeconds = Math.ceil(SQLITE_BUSY_TIMEOUT_MS / 1000);
   return `file:${databaseFile}?connection_limit=${SQLITE_CONNECTION_LIMIT}&socket_timeout=${lockWaitSeconds}`;
 }

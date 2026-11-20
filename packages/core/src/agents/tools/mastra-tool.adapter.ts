@@ -29,7 +29,7 @@ export interface MastraToolSpec {
   readonly name: AgentToolName;
   readonly description: string;
   /** The unchanged C7 input schema; the adapter adds only the `runId` override in front of it. */
-  readonly inputSchema: z.ZodType<unknown, z.ZodTypeDef, unknown>;
+  readonly inputSchema: z.ZodType<unknown, unknown>;
   /** The guarded wrapper call; it validates the input again, so Mastra's own parse is never trusted. */
   readonly invoke: (input: unknown) => Promise<ModelVisibleOutput>;
   readonly resultForm: ToolResultForm;

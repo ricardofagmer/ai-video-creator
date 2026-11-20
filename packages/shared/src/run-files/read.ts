@@ -42,14 +42,14 @@ function assertSupportedFormat(filePath: string, parsed: unknown): void {
   }
 }
 
-function validate<T>(filePath: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>, parsed: unknown): T {
+function validate<T>(filePath: string, schema: z.ZodType<T, unknown>, parsed: unknown): T {
   const checked = schema.safeParse(parsed);
   if (!checked.success) throw new RunFileSchemaError(filePath, describeZodIssues(checked.error.issues));
   return checked.data;
 }
 
 /** Reads, checks the format number, then validates against the contract. */
-export async function readJsonFile<T>(filePath: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>): Promise<T> {
+export async function readJsonFile<T>(filePath: string, schema: z.ZodType<T, unknown>): Promise<T> {
   const parsed = parseJson(filePath, await readTextFile(filePath), 'document');
   assertSupportedFormat(filePath, parsed);
   return validate(filePath, schema, parsed);
@@ -57,7 +57,7 @@ export async function readJsonFile<T>(filePath: string, schema: z.ZodType<T, z.Z
 
 export async function readOptionalJsonFile<T>(
   filePath: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
 ): Promise<OptionalFile<T>> {
   try {
     return { status: 'present', value: await readJsonFile(filePath, schema) };
@@ -116,7 +116,7 @@ async function readBytesFrom(filePath: string, fromByte: number, maxBytes?: numb
  */
 export async function readJsonLines<T>(
   filePath: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
   fromByte = 0,
   maxBytes?: number,
 ): Promise<JsonLinesPage<T>> {

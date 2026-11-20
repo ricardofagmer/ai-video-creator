@@ -29,7 +29,7 @@ export function mockFaultVariable(provider: ProviderName): string {
 function readSetting<T extends string>(
   environment: Readonly<Record<string, string | undefined>>,
   variable: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
   fallback: T,
 ): T {
   const raw = environment[variable]?.trim();

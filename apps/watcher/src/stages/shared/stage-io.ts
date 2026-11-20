@@ -20,7 +20,7 @@ export function findStageInput(context: StageExecutionContext, name: string): St
 async function readStageInput<T>(
   context: StageExecutionContext,
   name: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
 ): Promise<T> {
   const input = findStageInput(context, name);
   if (input === undefined) throw new MissingStageInputError(context.stage.stageId, name);
@@ -30,7 +30,7 @@ async function readStageInput<T>(
 export async function readOptionalStageInput<T>(
   context: StageExecutionContext,
   name: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
 ): Promise<T | null> {
   return findStageInput(context, name) === undefined ? null : readStageInput(context, name, schema);
 }
@@ -39,7 +39,7 @@ export async function readOptionalStageInput<T>(
 export async function readOwnOutput<T>(
   context: StageExecutionContext,
   name: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: z.ZodType<T, unknown>,
 ): Promise<T | null> {
   const declared = context.stageBrief.declaredOutputs.find((candidate) => candidate.name === name);
   if (declared === undefined) throw new UndeclaredStageOutputError(context.stage.stageId, name);
@@ -72,7 +72,7 @@ export class StageOutputSink {
     return resolveInsideRun(this.context.runDir, this.pathOf(name));
   }
 
-  async writeJson<T>(name: string, schema: z.ZodType<T, z.ZodTypeDef, unknown>, value: T): Promise<void> {
+  async writeJson<T>(name: string, schema: z.ZodType<T, unknown>, value: T): Promise<void> {
     const target = this.absolutePathOf(name);
     if (name === this.omit) return;
     await writeJsonAtomic(target, schema, value);

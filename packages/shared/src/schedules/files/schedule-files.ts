@@ -1,9 +1,10 @@
-import { type Dirent } from 'node:fs';
-import { lstat, mkdir, readdir, rmdir } from 'node:fs/promises';
+import { constants, type Dirent } from 'node:fs';
+import { lstat, mkdir, open, readdir, rmdir } from 'node:fs/promises';
 import { ScheduleIdSchema, type ScheduleId } from '../../common/ids';
 import { appendJsonLine, writeJsonAtomic } from '../../run-files/atomic-write';
 import { RunFileError, RunFileNotFoundError, RunFileSchemaError, RunFileWriteError, hasErrorCode } from '../../run-files/errors';
 import { readJsonLines, readOptionalJsonFile, type JsonLinesPage, type OptionalFile } from '../../run-files/read';
+import { fireLockBounds } from '../constants';
 import { ScheduleFileSchema, type ScheduleFile } from '../schedule-file';
 import { ScheduleCursorSchema, SlotLineSchema, type ScheduleCursor, type SlotLine } from '../slot-log';
 import { checkedSchedulesRoot, scheduleDirectory, scheduleFilePath, type ScheduleLocation } from './paths';
@@ -118,6 +119,67 @@ export async function appendSlotLine(location: ScheduleLocation, line: SlotLine)
 /** Slot lines from a byte offset; pass the returned `nextByte` on the next read. */
 export async function readSlotLines(location: ScheduleLocation, fromByte = 0, maxBytes?: number): Promise<JsonLinesPage<SlotLine>> {
   return readJsonLines(scheduleFilePath(location, 'slots'), SlotLineSchema, fromByte, maxBytes);
+}
+
+/** The last `maxBytes` of a file, from the first byte after a newline when it starts mid-file. */
+async function readLineAlignedTail(filePath: string, maxBytes: number): Promise<Buffer | 'absent'> {
+  let handle;
+  try {
+    handle = await open(filePath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  } catch (error) {
+    if (hasErrorCode(error, 'ENOENT')) return 'absent';
+    throw error;
+  }
+  try {
+    const { size } = await handle.stat();
+    const start = Math.max(0, size - maxBytes);
+    const buffer = Buffer.alloc(Math.min(size, maxBytes));
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, start);
+    const bytes = buffer.subarray(0, bytesRead);
+    if (start === 0) return bytes;
+    const newline = bytes.indexOf(0x0a);
+    return newline === -1 ? Buffer.alloc(0) : bytes.subarray(newline + 1);
+  } finally {
+    await handle.close();
+  }
+}
+
+function parseSlotLine(text: string): SlotLine | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // A line joined onto a partial append (power loss, disk full) is not JSON; counted, not fatal.
+    return null;
+  }
+  const checked = SlotLineSchema.safeParse(parsed);
+  return checked.success ? checked.data : null;
+}
+
+/** Complete lines of the tail; `unreadableLines` counts those that are not valid slot lines. */
+export interface SlotLineTail {
+  lines: SlotLine[];
+  unreadableLines: number;
+}
+
+/**
+ * The slot lines in the last `maxBytes` of `slots.jsonl`, whole lines only. The watcher reads it
+ * before deciding slots, so a slot logged before a crash (the line written, the cursor not yet
+ * moved) is never logged a second time. Unlike `readSlotLines`, a line that does not parse is
+ * counted and passed over: a damaged line must never stop the schedule for good.
+ */
+export async function readSlotLineTail(location: ScheduleLocation, maxBytes: number = fireLockBounds.tailBytes): Promise<SlotLineTail> {
+  const bytes = await readLineAlignedTail(scheduleFilePath(location, 'slots'), maxBytes);
+  if (bytes === 'absent') return { lines: [], unreadableLines: 0 };
+  const complete = bytes.subarray(0, bytes.lastIndexOf(0x0a) + 1).toString('utf8');
+  const tail: SlotLineTail = { lines: [], unreadableLines: 0 };
+  for (const text of complete.split('\n')) {
+    if (text.trim() === '') continue;
+    const line = parseSlotLine(text);
+    if (line === null) tail.unreadableLines += 1;
+    else tail.lines.push(line);
+  }
+  return tail;
 }
 
 async function readFolderEntries(folder: string): Promise<Dirent[]> {

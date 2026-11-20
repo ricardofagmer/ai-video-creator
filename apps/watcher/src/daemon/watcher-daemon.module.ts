@@ -4,6 +4,7 @@ import { PathsModule } from '@studio/core/paths';
 import { RedactionModule } from '@studio/core/redaction';
 import { WatcherCurationModule } from '../curation/watcher-curation.module';
 import { noMockFault } from '../mocks/mock-fault';
+import { WatcherScheduleModule } from '../schedules/watcher-schedule.module';
 import { WatcherModule } from '../watcher.module';
 import { DaemonLoop } from './daemon-loop';
 import { DAEMON_PROCESS, DAEMON_SHUTDOWN, type DaemonProcess } from './daemon.settings';
@@ -29,18 +30,24 @@ export interface WatcherDaemonModuleOptions {
  * bootstrap until the context closes; it exists only here, so the dev fixture writes no heartbeat.
  * `WatcherCurationModule` (SPEC 0005 C5-04) hosts the Curator for the loop's curation step; it is
  * read-only toward SQLite and the catalog too, and writes only inside `curations/<id>/`.
+ * `WatcherScheduleModule` (SPEC 0006 R3-04) hosts the schedule step the loop calls before
+ * curations; it reads SQLite only through core `SchedulesReadModule`, writes `cursor.json` and
+ * `slots.jsonl`, and creates one `run.json` at `pending` per fired slot. It shares the engine's
+ * `CLOCK` through the same `WatcherModule` registration object.
  */
 @Module({})
 export class WatcherDaemonModule {
   static register(options: WatcherDaemonModuleOptions): DynamicModule {
+    const watcher = WatcherModule.register({ ports: { kind: 'catalog', fault: noMockFault, agents: 'core' }, shutdown: options.shutdown });
     return {
       module: WatcherDaemonModule,
       imports: [
         CqrsModule.forRoot(),
-        WatcherModule.register({ ports: { kind: 'catalog', fault: noMockFault, agents: 'core' }, shutdown: options.shutdown }),
+        watcher,
         PathsModule,
         RedactionModule,
         WatcherCurationModule.register({ stop: options.shutdown }),
+        WatcherScheduleModule.register({ clock: watcher }),
       ],
       providers: [
         { provide: DAEMON_SHUTDOWN, useValue: options.shutdown },

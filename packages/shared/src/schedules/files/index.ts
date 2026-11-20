@@ -11,8 +11,12 @@ export {
   listScheduleIds,
   readScheduleCursor,
   readScheduleFile,
+  readSlotLineTail,
+  type SlotLineTail,
   readSlotLines,
   rewriteScheduleFile,
   writeScheduleCursor,
 } from './schedule-files';
-export { SchedulePathError, scheduleDirectory, scheduleFilePath, type ScheduleLocation } from './paths';
+export { acquireFireLock, releaseFireLock, type FireLockResult } from './fire-lock';
+export { claimSlot, releaseSlotClaim, type SlotClaimResult } from './slot-claim';
+export { SchedulePathError, scheduleDirectory, scheduleFilePath, slotClaimPath, type ScheduleLocation } from './paths';

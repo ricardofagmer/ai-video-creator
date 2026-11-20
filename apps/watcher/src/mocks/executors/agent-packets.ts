@@ -106,6 +106,8 @@ export function writerPacket(context: StageExecutionContext, verifiedClaims: Wri
       ...(brandVoice === undefined ? {} : { brandVoice }),
       targetDurationSec: context.brief.targetDurationSec,
       language: context.brief.language,
+      // Required block, `[]` when none (topology 0004 section 4): the mock catalog carries no notes.
+      learnings: [],
     },
     constraints: {
       claimsOnly: true,
@@ -130,6 +132,8 @@ export function directorPacket(
       templateSceneSchema: {},
       offeredRefs: bindingSummaries(context),
       brandKit: mockBrandKitSummary,
+      // Required block, `[]` when none (topology 0004 section 4): the mock catalog carries no notes.
+      learnings: [],
     },
     constraints: {
       citeOnlyOfferedRefs: true,

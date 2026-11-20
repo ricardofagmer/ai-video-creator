@@ -62,6 +62,25 @@ function reviewerScoresOf(arm: LoadedArm): ComparisonArmDetail['reviewerScores']
   return [...bySubject].map(([subject, overall]) => ({ subject, overall }));
 }
 
+/** The score columns of a compared asset version that the arm shows. */
+export interface ComparedVersionScoreSource {
+  qualityScore: number | null;
+  qualitySampleSize: number;
+  qualityPlatformSampleSize: number;
+}
+
+/**
+ * R3-AC-07: a shown score always travels with both sample sizes, the run count and the platform
+ * count, so no screen can show a score without saying how much evidence stands behind it.
+ */
+export function toComparedVersionScore(version: ComparedVersionScoreSource): NonNullable<ComparedVersionScore> {
+  return {
+    qualityScore: version.qualityScore,
+    qualitySampleSize: version.qualitySampleSize,
+    qualityPlatformSampleSize: version.qualityPlatformSampleSize,
+  };
+}
+
 export function toArmDetail(arm: LoadedArm, comparedRef: string, comparedVersionScore: ComparedVersionScore): ComparisonArmDetail {
   return {
     arm: arm.arm,
