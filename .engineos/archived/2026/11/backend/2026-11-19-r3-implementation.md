@@ -1,8 +1,14 @@
 ---
+name: 2026-11-19-r3-implementation
+status: done
+completed: 2026-11-19
+owner: Ricardo Fagmer
 domain: backend
 risk: high
 spec: docs/specs/0006-r3-outside-signals-and-packaging.md
 security_review: done
+new_feature: true
+release: true
 ---
 
 # R3 implementation: outside signals and packaging (SPEC 0006 rev 1)
@@ -23,16 +29,16 @@ writer rule. `security_review` stays pending until the final gate.
 ## Ticket ledger
 | Ticket | Scope | Blocked by | State |
 |---|---|---|---|
-| R3-01 | `packages/shared/**`, `docs/RUN-FORMAT.md`, `docs/adr/0003-asset-store-and-run-format.md` | - | integrated (DEGRADED: not compiled) |
-| R3-02 | core metrics, migration, quality v2 (fills `platformSignal`, `qualityPlatformSampleSize`) | R3-01; parser profiles also wait for the owner's header rows (Q7) | integrated (DEGRADED: not compiled) |
-| R3-03 | core schedules, paths, run-draft factory and input (widens `packages/core/src/runs/run-draft.input.ts:21` createdBy) | R3-01 | integrated (DEGRADED: not compiled) |
-| R3-04 | watcher schedule step | R3-01, R3-03 | planned |
-| R3-05 | api routes | R3-01, R3-02, R3-03 | planned |
-| R3-06 | web (also pt-BR texts for `apiRev5ErrorReasons`) | R3-01 | integrated (DEGRADED: not compiled) |
-| R3-07 | CLI | see SPEC 0006 section 10 | planned |
-| R3-08 | Electron menu-bar shell | ADR 0005 answered (Q1) | planned |
-| R3-09 | OTLP file export | R3-01, R3-07 | planned |
-| R3-FP | final proof | owner approval at the final gate | planned |
+| R3-01 | `packages/shared/**`, `docs/RUN-FORMAT.md`, `docs/adr/0003-asset-store-and-run-format.md` | - | done (compiled and tested in super-dev runs 1 and 2) |
+| R3-02 | core metrics, migration, quality v2 (fills `platformSignal`, `qualityPlatformSampleSize`) | R3-01; parser profiles corrected after the first real import (Q7 closed) | done (migrations applied by the owner-run install) |
+| R3-03 | core schedules, paths, run-draft factory and input (widens `packages/core/src/runs/run-draft.input.ts:21` createdBy) | R3-01 | done (super-dev run 2, ticket 03) |
+| R3-04 | watcher schedule step | R3-01, R3-03 | done (super-dev run 2; L1/L2 fix `658015e`) |
+| R3-05 | api routes | R3-01, R3-02, R3-03 | done (super-dev run 2, ticket 05) |
+| R3-06 | web (also pt-BR texts for `apiRev5ErrorReasons`) | R3-01 | done (compiled in super-dev run 1, ticket 02) |
+| R3-07 | CLI | see SPEC 0006 section 10 | done (super-dev run 1, ticket 06, `845ac04`) |
+| R3-08 | Electron menu-bar shell | ADR 0005 answered (Q1) | done (super-dev run 3, tickets 09-12) |
+| R3-09 | OTLP file export | R3-01, R3-07 | done (super-dev run 2, ticket 08) |
+| R3-FP | final proof | owner approval at the final gate | deferred to the next wave (owner: "Carry to next wave") |
 
 ## Checklist
 - [x] R3-01 integrated (backend-coordinator, opus, 14m51s, OK; inspected by the supervisor)
@@ -40,6 +46,17 @@ writer rule. `security_review` stays pending until the final gate.
 - [x] Wave 3 and later implemented (super-dev runs 1 and 2; R3-08 shell code waits for the vetting report approval)
 - [x] Closing review (security-reviewer, critic) and one fix pass (run 2)
 - [x] Final checks pass under the run 2 approved plan (run blocked on dependency advisories and CR-7)
+- [x] Run 3 (shell) completed; blockers cleared or documented; owner-run install applied the migrations
+- [x] Release-wide security review; L1/L2 fixed with `fire.lock` and the `fired/<slotMs>` claim; re-review 3 clear; checks green (`658015e`)
+- [ ] R3-FP final proof: deferred to the next wave
+- [ ] Owner check 7 and hands-on test: deferred to the next wave
+
+## Not done (carried to the next wave)
+- R3-FP final proof (SPEC 0006): not run. R3 closes without claiming it passed.
+- Owner check 7 (vetting 0002 section 12, R3-AC-25.12) and the owner's hands-on test of the packaged app.
+- Re-review 3 info items, not fixed: I-1 a failed claim write loses that slot (`packages/shared/src/schedules/files/slot-claim.ts:31-35`); I-2 a non-directory `fired/` stops the schedule with error name `Error` (`slot-claim.ts:23`); I-3 the `fired/` folder follows a symlink (same user only); I-5 tests for a taken claim whose run is found, and for a failed claim write.
+- Known residuals: a data home shared over a network file system is not covered by `fire.lock` or the claim; two lock holders can still append duplicate slot lines (never a second run).
+- Earlier info items not acted on: GET handlers call `syncFiredRuns()`; unbounded first read of `slots.jsonl`; `uninstall.sh` runs the installed binary without `codesign --verify`; `install.sh:714` stamp write follows a symlink.
 
 ## Integration notes
 - R3-01: about 25 files in `packages/shared/src/{metrics,schedules,schedules/files}`, api `metrics.ts`/`schedules.ts`, edits to ids, quality-score (v2, `platform: 0.3`), asset-version, run-file (`RunCreatedBySchema` adds `watcher`, `schedule` link required exactly for watcher runs, `format` stays 1), api common (rev 5), runs, routes, package exports; RUN-FORMAT sections 4, 8, 24; ADR 0003 writer rows. Inspection: no `node:` imports outside `schedules/files/`; no `any`/`as`; formula v2 adds no term when `platformSignal` is null (`catalog/quality-score.ts:87-89`); schedule paths checked as ULID under an absolute `schedules` root (`schedules/files/paths.ts:27-55`); CSV bounds 2 MiB, 5,000 rows, 64 columns; `csvSafeCell` guards `= + - @ \t \r`.
@@ -140,6 +157,7 @@ super-dev run `2026-11-19-r3-outside-signals` (ledger: `.engineos/super-dev/2026
     - lint: green for both packages.
     - test: `@studio/shared` 171/171 pass; `@studio/watcher` red, 56 tests, every schedule-step case fails with event `schedule.evaluate-failed` error `TypeError`. Cause: the watcher loads `@studio/shared/schedules/files` from `packages/shared/dist` (package.json `exports` "node"), built 19:04, before this fix (no `acquireFireLock`, `claimSlot`, `readSlotLineTail`); not a logic defect. Fix needs `corepack pnpm --filter @studio/shared run build` (outside the approved checks), then the watcher test once more.
     - Build and rerun (owner: "Build and rerun"): `corepack pnpm --filter @studio/shared run build` done (`dist/schedules/files` now has `fire-lock` and `slot-claim`); watcher test rerun once: red, 56 tests, 29 pass, 27 fail, event `schedule.evaluate-failed` error `RunFileWriteError`. Cause: `fire.lock` is now the first write of an evaluation and opens a file inside `schedules/<id>/`; the test harness's `InMemoryScheduleStore` never created that folder on disk (earlier the slot append created it). In production `createSchedule` always creates the folder. Repair attempt 1 (test harness only): `InMemoryScheduleStore.put` creates `schedules/<id>/` (mode 0700) in `apps/watcher/src/schedules/schedule-step.harness.test.ts`. Owner: "Rerun once (Recommended)"; `corepack pnpm --filter @studio/watcher run test`: green, 56 tests, 11 suites, 56 pass, 0 fail.
+  - Typecheck and lint rerun over the harness repair (owner: "continue the work", EngineOS bypass on): both green. Committed as `658015e` "fix(watcher): one writer and one run per slot" (owner: "Commit it (Recommended)").
   - Result: re-review 3 CLEAR; typecheck green, lint green, `@studio/shared` test 171/171, `@studio/watcher` test 56/56. `security_review: done` (owner rule: done on a clean rerun). Not covered: typecheck and lint ran before the harness repair (`schedule-step.harness.test.ts`, test file only); the 4 open info items of re-review 3 (I-1, I-2, I-3, I-5) are not fixed.
 
 - Owner-run `scripts/install.sh` (owner answer "run the cmd", in the Terminal panel; the owner answered its prompts): step 8 applied all 5 migrations (`prisma migrate deploy`, 18 tables, 5 finished rows in `_prisma_migrations`; backup `studio.sqlite.pre-migrate-2026-11-19` kept); step 10 passphrase not saved (shorter than 12 characters); step 12 rebuilt the menu-bar app from the cached zip and installed it to `~/Applications/Video Studio.app` (264,403,910 bytes, fuses as designed, signature verified); step 13 registered the launchd watcher; step 14 seeded 31 catalog items; step 15: api started (pid 51527), web not started because port 4310 is held by an older `next-server` (pid 80466, started 19:13, serving a build from before today), stopped on the owner's answer "Yes, restart web" and replaced by `studio start` (web pid 52254, HTTP 307; api health 200); `studio doctor`: everything ok, 2 warnings for the provisional search model.
@@ -178,3 +196,4 @@ super-dev run `2026-11-19-r3-outside-signals` (ledger: `.engineos/super-dev/2026
 2026-11-19 | Ricardo Fagmer | re-review 2 LOW residuals: "Add the per-slot claim (Recommended)": exclusive `schedules/<id>/fired/<slotMs>` claim before each run write, fix the two weak tests, one last scoped re-review before the 3 approved checks; a claim without a run is logged skipped (internal-error), never fired twice | approved | this record
 2026-11-19 | Ricardo Fagmer | watcher test red on a stale `@studio/shared` build: "Build and rerun" (`corepack pnpm --filter @studio/shared run build`, then `corepack pnpm --filter @studio/watcher run test` once) | approved | this record
 2026-11-19 | Ricardo Fagmer | watcher test rerun after the harness repair: "Rerun once (Recommended)" (green 56/56) | approved | this record
+2026-11-19 | Ricardo Fagmer | "end r3 wave": "Merge, close record (Recommended)", "Merge with --no-ff (Recommended)" (feat/r3-outside-signals into main, local, no remote), open items "Carry to next wave (Recommended)" (R3-FP, check 7, hands-on test, info items); record closed while the EngineOS bypass was on | approved | this record
