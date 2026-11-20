@@ -435,9 +435,39 @@ Files read: `electron/electron.d.ts` ("Type definitions for Electron 45.4.1") an
   before 2026-07-27, earlier than the 45 line (45.0.0 on 2026-10-21), and `pnpm audit` reports none
   for the pinned versions.
 
+### Results of 2026-11-19 (owner-approved run of checks 5, 6 and 8)
+
+Run by the supervisor at the owner's request ("run 5, 6 and 8"). The build used install step 12's
+own command, `corepack pnpm --filter @studio/shell run package -- --node-bin ... --cli-main ...
+--data-home ... --web-port 4310 --api-port 4311`, with every `STUDIO_ELECTRON_DOWNLOAD_VARIABLES`
+name unset. `scripts/install.sh` was not run, because its download question needs a terminal and
+it would also apply the step 8 migrations. The copy then followed `install_shell_app`: `ditto`
+into `~/Applications/Video Studio.app` (absent before), followed by `codesign --verify --deep --strict`.
+Baked values: node `~/Library/pnpm/bin/node`, cli
+`tools/cli/dist/main.js`, data home `~/Library/Application Support/VideoStudio`.
+
+- Check 5, download: the package script named `electron-v45.4.1-darwin-arm64.zip` from
+  `https://github.com/electron/electron/releases/download/`, checked against the npm `electron`
+  `checksums.json`. The final host behind GitHub's redirect is `release-assets.githubusercontent.com`
+  (HEAD on the zip URL: HTTP 302 to that host). It was **Unverified** until now. Zip in cache:
+  121,010,879 bytes. Built app: 264,403,910 bytes (`tamanho:` line); `du -sk` gives 259,100 KiB for
+  both the built and the installed copy. That is under the 400 MB revisit trigger. Fuses as printed by the script:
+  RunAsNode off, EnableNodeOptionsEnvironmentVariable off, EnableNodeCliInspectArguments off,
+  EnableEmbeddedAsarIntegrityValidation on, OnlyLoadAppFromAsar on, GrantFileProtocolExtraPrivileges
+  off. `codesign --verify --strict`: valid on disk and satisfies its Designated Requirement. Bundle id
+  `com.videostudio.shell`.
+- Check 6, audits after the `effect` 3.22.1 override (`9470650`): `pnpm audit --prod` and `pnpm audit`
+  both say "No known vulnerabilities found". The GitHub advisory database (`gh api advisories`,
+  ecosystem npm) lists 79 advisories for `electron`; filtered by `affects=electron@45.4.1`, it returns none.
+- Check 8, Gatekeeper: the installed app has no `com.apple.quarantine` attribute, only
+  `com.apple.provenance`. `codesign -dv`: `Signature=adhoc`, no team identifier. `spctl --assess
+  --type execute` answers `rejected`, as expected for an app that is not notarized. Gatekeeper
+  applies that verdict only to quarantined apps. `open` started the app (main process
+  `Contents/MacOS/Video Studio` running 6 s later) with no block. The owner confirms visually that
+  no prompt appeared when testing.
+
 ### Pending, owner-run
 
-- Check 5: the explicit download step, final host names, zip size and extracted `Electron.app` size.
 - Check 7: no socket on the shell's processes, no outbound connection in 10 minutes idle and one
   start/stop cycle, fuse states read back, ad-hoc signature, idle resident memory.
-- Check 8: macOS opens the locally built, ad-hoc signed app without a Gatekeeper prompt.
+- Check 8, visual part: confirm that no Gatekeeper dialog appeared when the app opened.
