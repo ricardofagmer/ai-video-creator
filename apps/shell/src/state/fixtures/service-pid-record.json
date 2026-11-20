@@ -1,0 +1,7 @@
+{
+  "service": "api",
+  "pid": 4242,
+  "startedAt": "2026-11-19T12:00:00.000Z",
+  "entryPath": "/Users/owner/video-studio/apps/api/dist/main.js",
+  "port": 4311
+}
