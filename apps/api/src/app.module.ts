@@ -5,6 +5,7 @@ import { CatalogModule } from '@studio/core/catalog';
 import { ComparisonsModule } from '@studio/core/comparisons';
 import { CostsModule } from '@studio/core/costs';
 import { CurationModule } from '@studio/core/curation';
+import { InsightsModule } from '@studio/core/insights';
 import { LearningsModule } from '@studio/core/learnings';
 import { MetricsModule } from '@studio/core/metrics';
 import { PrismaModule } from '@studio/core/prisma';
@@ -19,6 +20,7 @@ import { CatalogApiModule } from './catalog/catalog-api.module';
 import { ComparisonsApiModule } from './comparisons/comparisons-api.module';
 import { CurationsApiModule } from './curations/curations-api.module';
 import { HealthModule } from './health/health.module';
+import { InsightsApiModule } from './insights/insights-api.module';
 import { MetricsApiModule } from './metrics/metrics-api.module';
 import { ApiExceptionFilter } from './platform/api-exception.filter';
 import { AccessLogMiddleware, CorrelationMiddleware, HostOriginMiddleware, SecurityHeadersMiddleware } from './platform/http.middleware';
@@ -61,6 +63,7 @@ import { WatcherApiModule } from './watcher/watcher-api.module';
     CurationModule,
     MetricsModule,
     SchedulesModule,
+    InsightsModule,
     AuthModule,
     HealthModule,
     CatalogApiModule,
@@ -72,6 +75,7 @@ import { WatcherApiModule } from './watcher/watcher-api.module';
     CurationsApiModule,
     MetricsApiModule,
     SchedulesApiModule,
+    InsightsApiModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
 })

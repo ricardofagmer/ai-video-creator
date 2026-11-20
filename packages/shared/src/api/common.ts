@@ -12,8 +12,9 @@ import { CorrelationIdSchema } from '../common/ids';
  * Revision 5 (SPEC 0006 section 4.4, owner R3-01) adds the publication, metrics and schedule routes
  * and the fields `qualityPlatformSampleSize` (also on a comparison's `comparedVersionScore`),
  * `platformSampleSizeAtApproval`, `schedule` and `publicationCount`; every addition is additive.
+ * Revision 6 (PRD 0001 R4 goal 4) adds `GET /insights`; it is additive.
  */
-export const API_CONTRACT_REVISION = 5;
+export const API_CONTRACT_REVISION = 6;
 
 /** Request header the api copies into `correlationId`; echoed on every response. */
 export const REQUEST_ID_HEADER = 'x-request-id';

@@ -16,6 +16,7 @@ const links = [
   { href: '/comparacoes', label: 'Comparações' },
   { href: '/agendamentos', label: 'Agendamentos' },
   { href: '/metricas/importar', label: 'Métricas' },
+  { href: '/indicadores', label: 'Indicadores' },
 ];
 
 function isActive(pathname: string, href: string): boolean {

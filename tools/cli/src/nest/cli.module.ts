@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CatalogModule } from '@studio/core/catalog';
 import { CostsModule } from '@studio/core/costs';
+import { InsightsModule } from '@studio/core/insights';
 import { MetricsModule } from '@studio/core/metrics';
 import { PathsModule } from '@studio/core/paths';
 import { PrismaModule } from '@studio/core/prisma';
@@ -39,6 +40,7 @@ import { PassphraseHashRepository } from '../passphrase/passphrase-hash.reposito
     QualityModule,
     MetricsModule,
     SchedulesModule,
+    InsightsModule,
   ],
   providers: [PassphraseHashRepository],
 })

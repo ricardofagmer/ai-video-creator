@@ -107,6 +107,8 @@ const rows: readonly RouteRow[] = [
   { id: 'schedules.create', method: 'POST', pattern: 'schedules', body: 'json' },
   { id: 'schedules.get', method: 'GET', pattern: 'schedules/:scheduleId' },
   { id: 'schedules.patch', method: 'PATCH', pattern: 'schedules/:scheduleId', body: 'json' },
+  // Rev 6 (PRD 0001 R4 goal 4): the section 14 success metrics, read-only.
+  { id: 'insights.get', method: 'GET', pattern: 'insights' },
 ];
 
 export const apiRoutes: readonly ApiRoute[] = rows.map((row) => ({

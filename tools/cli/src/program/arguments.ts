@@ -10,6 +10,7 @@ import { type ServiceName } from '../errors/service.errors.js';
 import { type CatalogImportOptions } from '../commands/catalog-import.command.js';
 import { type SemanticSearchOptions } from '../commands/catalog-search.command.js';
 import { type DoctorOptions } from '../commands/doctor.command.js';
+import { type InsightsOptions } from '../commands/insights.command.js';
 import { type MetricsImportOptions } from '../commands/metrics-import.command.js';
 import { type RunCommandOptions } from '../commands/run.command.js';
 
@@ -153,6 +154,15 @@ export function parseScheduleId(value: unknown): ScheduleId {
   const parsed = ScheduleIdSchema.safeParse(value);
   if (!parsed.success) throw usage('Id de agendamento inválido; use o id mostrado por "studio schedules list".');
   return parsed.data;
+}
+
+const InsightsFlagsSchema = z.object({ json: z.boolean().default(false) });
+
+/** `insights [--json]`. */
+export function parseInsightsOptions(options: unknown): InsightsOptions {
+  const parsed = InsightsFlagsSchema.safeParse(options);
+  if (!parsed.success) throw usage('Opção inválida em --json.');
+  return { json: parsed.data.json };
 }
 
 const MetricsImportFlagsSchema = z.object({

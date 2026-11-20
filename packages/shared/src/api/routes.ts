@@ -65,6 +65,7 @@
  * | POST | /schedules | CreateScheduleRequest | 201 ScheduleView (R3) |
  * | GET | /schedules/:scheduleId | - | 200 ScheduleView (R3) |
  * | PATCH | /schedules/:scheduleId | PatchScheduleRequest | 200 ScheduleView (R3) |
+ * | GET | /insights | - | 200 InsightsView, read-only (R4, rev 6) |
  *
  * Errors use `ApiError`: 400 request shape, 401 no session or wrong passphrase, 403 refused Host
  * or Origin, 404 unknown id, 409 state conflict (e.g. a live watcher owns the run), 413 upload too
@@ -119,6 +120,8 @@ export const apiRouteSegments = {
   metricImports: 'metrics/imports',
   /** R3 (rev 5): controller base of the schedule routes. */
   schedules: 'schedules',
+  /** R4 (rev 6): controller base of `GET /insights`. */
+  insights: 'insights',
 };
 
 export const apiPaths = {
@@ -176,4 +179,5 @@ export const apiPaths = {
     options === undefined ? '/metrics/imports' : `/metrics/imports?dryRun=${options.dryRun ? 'true' : 'false'}`,
   schedules: (): string => '/schedules',
   schedule: (scheduleId: string): string => `/schedules/${encodeURIComponent(scheduleId)}`,
+  insights: (): string => '/insights',
 };

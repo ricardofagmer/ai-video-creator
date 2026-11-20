@@ -88,6 +88,10 @@
       "types": "./src/curation/index.ts",
       "default": "./dist/curation/index.js"
     },
+    "./insights": {
+      "types": "./src/insights/index.ts",
+      "default": "./dist/insights/index.js"
+    },
     "./metrics": {
       "types": "./src/metrics/index.ts",
       "default": "./dist/metrics/index.js"
@@ -161,6 +165,9 @@
       ],
       "curation": [
         "./src/curation/index.ts"
+      ],
+      "insights": [
+        "./src/insights/index.ts"
       ],
       "metrics": [
         "./src/metrics/index.ts"

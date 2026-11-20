@@ -3,6 +3,7 @@ export * from './catalog';
 export * from './common';
 export * from './comparisons';
 export * from './curations';
+export * from './insights';
 export * from './learnings';
 export * from './metrics';
 export * from './promotion';
