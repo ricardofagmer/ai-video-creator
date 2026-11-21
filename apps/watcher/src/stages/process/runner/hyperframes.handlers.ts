@@ -137,13 +137,13 @@ export async function hyperframesRender(request: HyperframesRenderRequest, ports
   const [runtime, templateDir] = await Promise.all([runtimeOf(request, ports), realSandboxPath(ports, request.templateDir)]);
   const { renderSeconds } = await renderPicture({ templateDir, variablesFile, output: picture, runtime }, { process: ports.process });
 
-  const probe = await ports.probePicture(request.tools.ffprobePath, picture);
+  // The media programs are the resolved runtime paths, not the unresolved settings (SPEC 0008 sections 18.1 G3 and 18.5).
+  const probe = await ports.probePicture(runtime.ffprobeBin, picture);
   if (probe === null) throw new PictureCheckError(['unreadable']);
   const mismatches = pictureMismatches(probe, request);
   if (mismatches.length > 0) throw new PictureCheckError(mismatches);
 
   const duration = request.durationS.toFixed(3);
-  // The same resolved ffmpeg the sandbox allows, not the unresolved setting (SPEC 0008 section 18.1 G3).
   await runTool(
     runtime.ffmpegBin,
     [
@@ -159,6 +159,6 @@ export async function hyperframesRender(request: HyperframesRenderRequest, ports
     ],
     ENCODE_TIMEOUT_MS,
   );
-  const written = await probeMedia(request.tools.ffprobePath, request.output);
+  const written = await probeMedia(runtime.ffprobeBin, request.output);
   return { durationS: written.durationS, renderSeconds };
 }

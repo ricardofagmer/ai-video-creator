@@ -19,8 +19,10 @@ const COMMAND_NAME = 'hyperframes trace';
 const TEMPLATE_MAX_BYTES = 16 * 1024 * 1024;
 
 /**
- * Every Chrome failure of the trace (the binary changed, unreadable, or outside the Chrome folder)
- * is the `chrome-missing` refusal, and `trace.json` is not written (SPEC 0008 section 17.9, AC 92).
+ * A Chrome failure of the check before the trace starts (the binary changed, unreadable, or outside
+ * the Chrome folder) is the `chrome-missing` refusal, and `trace.json` is not written (SPEC 0008
+ * section 17.9, AC 92). A failure inside the trace, before or after the render, is a finding in a
+ * failing record instead (section 18.2).
  */
 async function withChromeRefusal<T>(work: () => Promise<T>): Promise<T> {
   try {

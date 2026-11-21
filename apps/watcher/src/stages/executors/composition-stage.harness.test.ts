@@ -358,8 +358,12 @@ export class RecordingHyperframesPorts implements HyperframesStagePorts {
   readonly chromeVerifications: { recorded: RecordedChromeBinary; cacheDir: string }[] = [];
   /** Section 17.5: settings values (bare names or absolute paths) `resolveExecutable` finds nothing for. */
   readonly unresolvableExecutables = new Set<string>();
+  /** Section 18.5: the real path `resolveExecutable` answers for a settings value, when scripted. */
+  readonly resolvedExecutables = new Map<string, string>();
   /** Section 17.5: folders `realFolder` answers as `missing`. */
   readonly missingFolders = new Set<string>();
+  /** Section 18.5: folders whose real path is elsewhere (a symlink), keyed by the requested path. */
+  readonly redirectedFolders = new Map<string, string>();
 
   constructor(readonly dataHomeRoot: string) {}
 
@@ -404,6 +408,8 @@ export class RecordingHyperframesPorts implements HyperframesStagePorts {
 
   async resolveExecutable(nameOrPath: string): Promise<string> {
     if (this.unresolvableExecutables.has(nameOrPath)) throw new HyperframesSandboxUnavailableError();
+    const scripted = this.resolvedExecutables.get(nameOrPath);
+    if (scripted !== undefined) return scripted;
     return nameOrPath.startsWith('/') ? nameOrPath : join(FAKE_TOOLS_DIR, nameOrPath);
   }
 
@@ -417,7 +423,7 @@ export class RecordingHyperframesPorts implements HyperframesStagePorts {
 
   async realFolder(path: string): Promise<RealFolder> {
     if (this.missingFolders.has(path)) return { status: 'missing' };
-    return { status: 'present', realPath: path };
+    return { status: 'present', realPath: this.redirectedFolders.get(path) ?? path };
   }
 
   studioRoot(): string {

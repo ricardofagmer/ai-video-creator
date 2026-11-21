@@ -221,7 +221,8 @@ export async function runNetworkTrace(inputs: NetworkTraceInputs, ports: Network
     } else findings.push('vídeo: o ffprobe não leu o arquivo renderizado');
   }
   if (chromeAfter.status === 'changed') findings.push(TRACE_CHROME_CHANGED_AFTER_TEXT);
-  else if (chromeAfter.status === 'unreadable') findings.push(TRACE_CHROME_UNREADABLE_AFTER_TEXT);
+  // Only after a render that ran: with no render, the "before" finding already says why (section 18.2).
+  else if (chromeAfter.status === 'unreadable' && renderExitCode !== RENDER_NOT_STARTED) findings.push(TRACE_CHROME_UNREADABLE_AFTER_TEXT);
   const credentials = await credentialFileCount(runtime.configDir);
   if (credentials > 0) findings.push(`configuração: ${credentials} arquivo(s) credentials* na pasta do estúdio`);
   if (verdict.ownerFolderDenied > 0) findings.push(`leituras negadas da sua pasta ~/.hyperframes: ${verdict.ownerFolderDenied}`);

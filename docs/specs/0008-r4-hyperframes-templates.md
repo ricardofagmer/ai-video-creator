@@ -1241,3 +1241,30 @@ before `verifyChromeBinary`. All other checks keep their order.
 Rollback: revert the rev 3 commit; rev 2 behaviour returns. The engine stays off until a trace
 passes (AC 98), either way. Validation: the final checkpoint of the release; `security-reviewer`
 and `critic` at the final gate (risk high).
+
+### 18.5 Final-gate review items (2026-11-21)
+
+The read-only `security-reviewer` (MERGE OK) and `critic` (HOLDS WITH GAPS) passes on the rev 3
+commit `660e678` found six small items. On 2026-11-21 the owner chose to fix all six:
+
+- **Media programs outside the writable folders.** The mux and the picture probes run outside the
+  sandbox after the render. If `ffmpegBin` or `ffprobeBin` resolves anywhere under the data home,
+  or inside the real hyperframes `config/`, `cache/` or `home/` (checked on their own, since a
+  symlink may place them outside the data home), the watcher refuses with `sandbox-unavailable`
+  before any start. The scratch folder and the staged template live in the temp folder, not the
+  data home, and need no check: they are created after the programs are resolved, so a resolved
+  program cannot be inside them. This closes a sandbox escape that needed a misconfigured setting
+  or `PATH`. No new refusal id (K18).
+- **ffprobe resolved too.** Both picture probes run `runtime.ffprobeBin`, as G3 did for ffmpeg.
+  The request schema is unchanged.
+- **G1 refined.** The "unreadable after the render" finding is written only when the render ran.
+  When the binary disappears before the render, the existing "before" finding stands alone and
+  the record still carries 64 zeros.
+- **Tests and comments.** AC 99 also asserts that a control finding is kept. The trace command and
+  watcher preparation comments are brought in line with 18.2 and 18.3.
+
+| AC | Criterion | Source |
+|---|---|---|
+| 102 | Watcher preparation with `ffmpegBin` under `cache/`, `ffprobeBin` anywhere under the data home, or `ffmpegBin` inside a `config/` or `home/` symlinked outside the data home: `sandbox-unavailable`, zero starts | 18.5 |
+| 103 | `hyperframesRender` probes the picture with `runtime.ffprobeBin`, never `tools.ffprobePath` | 18.5, K18 |
+| 104 | Trace with the binary removed before the render: the render never starts, the record is `fail` with the "before" finding and without the "after" finding | 18.5, G1 |

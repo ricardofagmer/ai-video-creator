@@ -555,8 +555,9 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
     it('writes a failing record with a zero hash and the finding when the binary is unreadable after the render (AC 99)', async () => {
       const shellPath = await seedChrome(studio);
       await seedConfig(studio);
+      // C2 is not refused, so a control finding exists that the record must keep.
       const fake = confirmedPorts(
-        [],
+        controlExitCodes(START.C2, NOT_REFUSED),
         atStart(START.render, async () => {
           await rm(shellPath);
         }),
@@ -571,6 +572,28 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       assert.equal(trace.chromeSha256, '0'.repeat(64));
       assert.ok(trace.findings.includes(TRACE_CHROME_UNREADABLE_AFTER_TEXT));
       assert.equal(trace.findings.includes(TRACE_CHROME_CHANGED_AFTER_TEXT), false);
+      assert.equal(trace.findings.filter((finding) => finding.startsWith('controle C2:')).length, 1);
+    });
+
+    it('reports only the "before" finding when the binary is removed before the render, which then never starts', async () => {
+      const shellPath = await seedChrome(studio);
+      await seedConfig(studio);
+      const fake = confirmedPorts(
+        [],
+        atStart(START.C5, async () => {
+          await rm(shellPath);
+        }),
+      );
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.unhealthy);
+      assert.equal(fake.processPort.requests.length, 5);
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'fail');
+      assert.equal(trace.chromeSha256, '0'.repeat(64));
+      assert.ok(trace.findings.includes(traceChromeBeforeText('unreadable')));
+      assert.equal(trace.findings.includes(TRACE_CHROME_UNREADABLE_AFTER_TEXT), false);
     });
 
     it('fails with a finding and starts no render when the binary changes after the verification, before the render', async () => {
