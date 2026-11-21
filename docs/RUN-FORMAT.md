@@ -25,7 +25,7 @@ runs/<runId>/
   egress.jsonl             append-only "what left the machine" log, one line per external call
   control.json             request channel api/CLI -> watcher (pause, stop, resume)
   approval.json            human gate decisions (plan, recipe gates, final)
-  watcher.pid              pid of the watcher executing the run
+  watcher.pid              `<pid> <bootTimeMs>` stamp of the watcher executing the run
   sessions/<sessionId>.jsonl        redacted agent session streams
   checks/<NN>-<stageId>/<checkId>-<attempt>.json   check results (+ .log raw output)
   stages/<NN>-<stageId>/   working folder: brief.json, input-manifest.json, declared outputs
@@ -85,7 +85,7 @@ The SPEC 0007 amendments keep `format: 1` too: `publications.jsonl` is an additi
 |---|---|---|
 | `run.json` (draft, `pending`) | api (for the web) or CLI | Created before any watcher runs; only `draft` -> `pending` |
 | `run.json`, `plan.md`, `now.json`, `events.jsonl`, `watcher.pid`, `sessions/`, `checks/`, `stages/`, `archive/`, outputs (`final.mp4`, `manifest.json`, `cost.json`, `qa/`, `report.md`) | Watcher | Sole writer while its `watcher.pid` is alive |
-| `control.json` | api or CLI | Request channel `{ pause, stop, at }`; the watcher reads it between steps and deletes it when an execution starts |
+| `control.json` | api or CLI | Request channel `{ pause, stop, at }`; the watcher reads it between steps and deletes only the request it read |
 | `approval.json` + `run.json` status `review` -> `approved` / `rejected` | api or CLI | Only at `review` with no live watcher; the same outcome is written to SQLite |
 | `run.json` status `running` -> `rejected` at the plan gate | Watcher | Amended 2026-11-18 (SPEC 0002 rev 3, ADR 0003): the watcher holds the run at the plan gate, so it applies the owner's `rejected` plan decision read from `approval.json` and ends the run |
 | `egress.jsonl` | Watcher | Amended 2026-11-18 (SPEC 0002 rev 3, ADR 0003): append-only, one line per external call, written through the C5 helper; `package` copies it into `manifest.json.egress` |
@@ -345,7 +345,9 @@ the C6 event sink (`StageExecutionContext.events`); the engine stamps `atMs`, `r
   `pending`, writes `interrupted` with a reason and exits. `stop` wins over `pause`.
 - `resume` (A6): written only while no watcher is alive, for a run in `waiting`, `paused`,
   `failed` or `interrupted`; the daemon picks the run up and continues from `cursor`.
-- The watcher reads the file between steps and deletes it when an execution starts.
+- The watcher reads the file between steps and deletes only the request it read: it moves the
+  file aside, compares it with that request, and links it back if a newer request arrived in
+  between, so a pause or stop written meanwhile is never lost.
 
 ## 13. `approval.json`
 
@@ -364,11 +366,53 @@ A gate may be answered again after the run returns to it; the decision with the 
 
 ## 14. `watcher.pid`
 
-The decimal pid of the watcher executing the run, followed by a newline. On start a watcher
-refuses a run whose pid file names a live process; otherwise it writes its own pid, sets
-`running`, increments `totals.executions` and sets `lastExecution`. On exit it records
-`lastExecution.endedAt` and `outcome` and removes the file. Readers decide liveness with signal 0:
-no such process means dead, a permission error means alive.
+The process stamp of the watcher executing the run: `<pid> <bootTimeMs>` and a newline, where
+`bootTimeMs` is the epoch-ms boot instant of the machine (`Date.now() - os.uptime()`, written
+through `formatProcessStamp`). The file is at most 64 bytes and must be a regular file; a link, a
+non-regular file or other content is a schema error.
+
+- **Claim.** On start a watcher reads the file with its own pid as `selfPid` and refuses the run
+  when the owner is `alive`. Otherwise it creates the file exclusively (`O_EXCL`, `wx`) through
+  `claimWatcherPid`. When the file is there and its owner is not alive, the stale file is removed
+  (`removeStaleWatcherPid`, which re-reads it first and keeps a live owner's file) and the
+  exclusive create is tried once more; losing that race refuses the run. A watcher never
+  overwrites another process's file. Then it sets `running`, increments `totals.executions` and
+  sets `lastExecution`.
+- **Liveness** (`readWatcherState(runDir, { selfPid })`, `isStampAlive`). The owner is `alive`
+  only when all three hold: the stamp's boot time matches this boot within
+  `BOOT_TIME_TOLERANCE_MS` (60 s), the pid is not `selfPid`, and signal 0 to the pid succeeds.
+  Signal 0 failing with `ESRCH` (no such process) or `EPERM` (a process of another user, which a
+  watcher never is) means `dead`. A stamp from an earlier boot is `dead` without signalling: its
+  pid may now belong to any process. A stamp naming the reader's own pid was left by an earlier
+  life of that pid, so a `running` run it names crash-resumes (criterion 13). The api and CLI
+  pass no `selfPid`.
+- **Older bare-pid files.** A file holding only `<pid>` and a newline (written before the stamp)
+  is still read. Its mtime stands in for the boot: a file written before this boot (mtime earlier
+  than boot minus the tolerance) is `dead` without signalling; otherwise the same `selfPid` and
+  signal-0 rules apply. Such a file is treated as stale only when it is provably dead; it is
+  replaced by a stamp on the next claim. `readWatcherPid` still returns the pid of either form.
+- **Release.** On exit the watcher records `lastExecution.endedAt` and `outcome` and removes the
+  file only while it names its own pid (`releaseWatcherPid`); a file another watcher has since
+  claimed stays.
+
+### `<data home>/logs/watcher.lock`
+
+One watcher daemon per data home. Before Nest starts, `main.ts` creates
+`<data home>/logs/watcher.lock` exclusively (`wx`, mode `0600`) holding the same
+`<pid> <bootTimeMs>` stamp. When the file exists:
+
+- a holder that is `alive` by the rules above (same boot, not this pid, signal 0 succeeds) keeps
+  it: the new daemon logs `watcher.already-running` with the holder's pid to stderr and exits 1;
+- a holder of another boot, a holder whose pid answers `ESRCH`/`EPERM`, a stamp naming this pid,
+  a link or a non-regular file is stale and is taken over. Takeover is serialized through
+  `watcher.lock.takeover` (exclusive create) and replaces the file only if it is still the same
+  inode that was judged stale;
+- a file without a readable stamp (a holder that crashed between create and write) is stale once
+  it predates this boot or is older than 10 s; younger, it counts as held.
+
+On shutdown, and on the process `exit` path, the daemon removes the lock only while it still
+holds its own stamp. The lock is a data-home file, not a run file, and no reader outside the
+watcher uses it; the heartbeat (section 21) still says whether a daemon is running.
 
 ## 15. `sessions/<sessionId>.jsonl`
 

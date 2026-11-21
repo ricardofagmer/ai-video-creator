@@ -1,9 +1,10 @@
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type z } from 'zod';
 import { type StageSettings } from '../shared/stage-settings';
 import { minimalChildEnv } from './child-env';
 import { commandSignal, spawnBounded } from './spawn-bounded';
-import { RESULT_MARKER, ToolRunnerReplySchema, type RunnerErrorKind, type ToolRunnerRequest } from './tool-runner.protocol';
+import { RESULT_MARKER, ToolRunnerReplySchema, type RunnerErrorKind, type ToolRunnerEnvelope, type ToolRunnerRequest } from './tool-runner.protocol';
 
 const MAX_RUNNER_STDOUT_BYTES = 8 * 1024 * 1024;
 
@@ -19,6 +20,36 @@ export interface ToolRunOptions {
   signal: AbortSignal;
   /** `recipeStage.timeoutMs ?? limits.commandTimeoutMs`. */
   timeoutMs: number;
+  /**
+   * Absolute folders or files the request's inputs may come from besides the scratch root, such as
+   * the run folder and a bound catalog file. Omitted: inputs are resolved but not confined.
+   */
+  readRoots?: readonly string[];
+}
+
+/**
+ * StageSettings fills these bare names when FFMPEG_PATH/FFPROBE_PATH are unset; the child then
+ * looks the default up once on its own PATH (`StageSettings.path`). Any other value is passed on,
+ * and the child refuses it unless it is an absolute path to an executable.
+ */
+const DEFAULT_TOOL_NAMES = { FFMPEG_PATH: 'ffmpeg', FFPROBE_PATH: 'ffprobe' } as const;
+
+/** The tool variables of the runner's environment; read once at the child's start, never per request. */
+export function toolPathEnvironment(settings: Pick<StageSettings, 'ffmpegPath' | 'ffprobePath'>): Record<string, string> {
+  const environment: Record<string, string> = {};
+  if (settings.ffmpegPath !== DEFAULT_TOOL_NAMES.FFMPEG_PATH) environment['FFMPEG_PATH'] = settings.ffmpegPath;
+  if (settings.ffprobePath !== DEFAULT_TOOL_NAMES.FFPROBE_PATH) environment['FFPROBE_PATH'] = settings.ffprobePath;
+  return environment;
+}
+
+/**
+ * The stdin envelope. The write root is the folder `withScratchDir` creates every step's scratch
+ * folder in (`settings.tmpDir`, else the OS temp folder); it is also a read root, since srt files,
+ * serve folders and staged templates are written there first.
+ */
+export function toolRunnerEnvelope(request: ToolRunnerRequest, settings: Pick<StageSettings, 'tmpDir'>, readRoots: readonly string[] | undefined): ToolRunnerEnvelope {
+  const scratchRoot = settings.tmpDir ?? tmpdir();
+  return { request, roots: { read: readRoots === undefined ? null : [scratchRoot, ...readRoots], write: [scratchRoot] } };
 }
 
 /**
@@ -36,9 +67,9 @@ export class ToolRunner {
     const outcome = await spawnBounded({
       command: process.execPath,
       args: [...runnerExecArgv(), runnerEntry()],
-      env: minimalChildEnv(this.settings),
+      env: minimalChildEnv(this.settings, toolPathEnvironment(this.settings)),
       signal,
-      stdin: JSON.stringify(request),
+      stdin: JSON.stringify(toolRunnerEnvelope(request, this.settings, options.readRoots)),
       maxStdoutBytes: MAX_RUNNER_STDOUT_BYTES,
     });
     // A stop or step timeout is an interruption the engine owns; rethrow its reason unchanged.

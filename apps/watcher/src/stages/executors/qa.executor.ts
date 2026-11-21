@@ -10,7 +10,6 @@ import { latestVideoInput } from '../shared/latest-video';
 import { QaSubjectSchema } from '../shared/stage-artifacts';
 import { readOwnOutput, sha256OfFile, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { commandTimeoutMs, needsPerson, reportedSuccess, stageFailed, toolFailure, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
-import { mediaToolPaths } from '../shared/stage-settings';
 import { stageTexts } from '../shared/stage-texts';
 
 const JSON_MIME = 'application/json';
@@ -61,9 +60,9 @@ export class QaExecutor extends BaseStageExecutor {
     context.report({ kind: 'tool', text: `Medindo ${video.name} (QA técnico).` });
 
     const reviewed = await this.dependencies.runner.run(
-      { command: 'media-review', tools: mediaToolPaths(this.dependencies.settings), input: absolutePath, ...mediaReviewTargets(context) },
+      { command: 'media-review', input: absolutePath, ...mediaReviewTargets(context) },
       MediaReviewResultSchema,
-      { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+      { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] },
     );
     if (reviewed.status === 'failed') return stageFailed(toolFailure(reviewed, context));
     const review = reviewed.result;

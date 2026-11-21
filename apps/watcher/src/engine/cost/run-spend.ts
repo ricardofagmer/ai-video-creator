@@ -31,6 +31,20 @@ export function runEstimateWait(estimateUsd: number, limitUsd: number): CostCeil
   };
 }
 
+/**
+ * An estimate, spend or ledger figure that is not a finite, non-negative number: the run waits as
+ * if the ceiling were reached. The contract needs a finite `estimateUsd`, so the wait records the
+ * limit itself; the owner text says the estimate was invalid.
+ */
+export function invalidEstimateWait(ceiling: 'run' | 'month', limitUsd: number): CostCeilingWait {
+  const safeLimitUsd = Number.isFinite(limitUsd) && limitUsd >= 0 ? limitUsd : 0;
+  return {
+    cause: { kind: 'cost-ceiling', ceiling, estimateUsd: safeLimitUsd, limitUsd: safeLimitUsd },
+    reason: ownerTexts.costEstimateInvalidReason,
+    whatToDo: ceiling === 'run' ? ownerTexts.costRunWhatToDo : ownerTexts.costMonthWhatToDo,
+  };
+}
+
 export function monthEstimateWait(totalUsd: number, limitUsd: number): CostCeilingWait {
   return {
     cause: { kind: 'cost-ceiling', ceiling: 'month', estimateUsd: totalUsd, limitUsd },

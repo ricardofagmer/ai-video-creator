@@ -25,6 +25,7 @@ import { feedbackIssues, outputParsers, packetParsers } from './call/role-parser
 import { rolePrompts, schemaFeedbackSection } from './prompts';
 import { packetNoteIdsOf, packetRefsOf } from './packets/agent-packet-facts';
 import { OutputScanner } from './safety/output-scanner';
+import { renderRedactedPrompt } from './safety/untrusted-redaction';
 import { SessionStream } from './sessions/session-stream';
 import { AgentToolSetResolver, type AgentToolSet } from './tooling/agent-tool-set';
 import { ZERO_USAGE, toUsageQuantity } from './usage/model-usage.mapper';
@@ -231,15 +232,9 @@ export class AgentsService implements AgentsPort, OnModuleInit {
     }
   }
 
-  /** Static role instructions, plus the packet rendering redacted before it can leave. */
+  /** Static role instructions, plus the packet rendering redacted per untrusted block before it can leave (L2). */
   private async renderPrompt<Role extends ModelRoleName>(role: Role, packet: AgentPacket<Role>): Promise<RenderedPrompt> {
-    const prompt = rolePrompts[role];
-    const rendered = prompt.render(packet);
-    return {
-      instructions: prompt.system,
-      stablePrefix: rendered.stablePrefix === null ? null : await this.redactOrFail(role, rendered.stablePrefix),
-      body: await this.redactOrFail(role, rendered.body),
-    };
+    return renderRedactedPrompt(role, packet, (text) => this.redactOrFail(role, text));
   }
 
   private async redactOrFail(role: ModelRoleName, text: string): Promise<string> {

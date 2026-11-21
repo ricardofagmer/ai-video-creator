@@ -11,13 +11,16 @@ import {
   type FrameSampleInput,
 } from '@studio/shared/agents';
 import { SensitivitySchema } from '@studio/shared/catalog';
-import { RunPathOutsideRunError, readRunFile, readTextFile, resolveInsideRun } from '@studio/shared/run-files';
-import { RelativePathSchema, type RunFile, type StageId } from '@studio/shared/run-format';
+import { RunPathOutsideRunError, readRunFile, readRunManifest, resolveInsideRun } from '@studio/shared/run-files';
+import { RelativePathSchema, type RunFile, type StageId, type StageOutput } from '@studio/shared/run-format';
 import { isInsideOrEqual } from '../../asset-store';
 import { type RedactorService } from '../../redaction';
+import { type BiometricRunGuard } from '../../review/biometric-guard';
 import { AgentRunError } from '../agents.errors';
+import { type AgentToolScope } from '../tooling/agent-tool-set';
 import { biometricPathState } from './biometric-guard';
-import { extractJpegFrame, probeDurationMs, type ProcessOutcome, type ProcessSignals } from './ffmpeg-frames';
+import { demuxerFor, extractJpegFrame, probeDurationMs, type ProcessOutcome, type ProcessSignals } from './ffmpeg-frames';
+import { MAX_ARTIFACT_CHARS, readRecordedOutput } from './run-artifact.sources';
 import { toolFailure } from './tool-errors';
 import { FrameSampleEnvelopeSchema, JPEG_MEDIA_TYPE, type SampledFrame } from './tool-results';
 import { type GuardedTool, type ToolCall, type ToolSuccess } from './tool-wrapper';
@@ -60,16 +63,19 @@ function sourceNotFound(): never {
   throw toolFailure(TOOL, 'ERROR_SOURCE_NOT_FOUND');
 }
 
-function recordedOutput(run: RunFile, stageId: StageId, name: string): { path: string; contentHash: string } | undefined {
+function recordedOutput(run: RunFile, stageId: StageId, name: string): StageOutput | undefined {
   return run.stages.find((stage) => stage.stageId === stageId)?.outputs.find((output) => output.name === name);
 }
 
 async function captureSource(runDir: string, run: RunFile, captureId: string): Promise<FrameSource> {
   const index = recordedOutput(run, 'capture', CAPTURES_INDEX_ARTIFACT);
-  if (index === undefined) return sourceNotFound();
+  if (index === undefined || index.sizeBytes > MAX_ARTIFACT_CHARS) return sourceNotFound();
   let indexJson: unknown;
   try {
-    indexJson = JSON.parse(await readTextFile(resolveInsideRun(runDir, index.path)));
+    // The index carries each capture's sensitivity, so only the bytes `record` hashed are trusted.
+    const bytes = await readRecordedOutput(resolveInsideRun(runDir, index.path), index);
+    if (bytes === 'changed') return sourceNotFound();
+    indexJson = JSON.parse(bytes.toString('utf8'));
   } catch {
     // An unreadable or non-JSON index is a missing source for this tool; the stage's own verify reports it.
     return sourceNotFound();
@@ -95,15 +101,41 @@ const DESCRIPTION =
   `source=capture needs a captureId from ${CAPTURES_INDEX_ARTIFACT}; timestamps are ascending milliseconds within the duration shown in ` +
   `${CAPTURES_INDEX_ARTIFACT} or ${QA_METRICS_ARTIFACT}. At most ${toolLimits.frameSample.framesPerCall} frames per call and ${framesPerStep} per step; pick key moments.`;
 
+/** The review module's run-level biometric check (PRD 7.3); any throw means "do not sample". */
+export type RunBiometricCheck = Pick<BiometricRunGuard, 'assertNoBiometricInputs'>;
+
 export interface FrameSampleDependencies {
   readonly redactor: RedactorService;
+  readonly biometricRuns: RunBiometricCheck;
+}
+
+/**
+ * Renders (composition, fades, music) carry every bound asset, an avatar or cloned voice
+ * included, so a render of a run that used any biometric version is never sampled (M2). The
+ * check is `BiometricRunGuard`: bindings, references and the pinned manifest. It fails closed: a
+ * refusal, an unknown version, an unreadable manifest, a manifest naming another run or a run
+ * file naming another run all answer "not found".
+ */
+async function assertRenderSampleable(dependencies: FrameSampleDependencies, scope: AgentToolScope, run: RunFile): Promise<void> {
+  if (run.runId !== scope.runId) return sourceNotFound();
+  try {
+    // The guard skips a manifest whose runId differs; here that is an undecidable run, not a clear one.
+    const manifest = await readRunManifest(scope.runDir);
+    if (manifest.status === 'present' && manifest.value.runId !== scope.runId) return sourceNotFound();
+    await dependencies.biometricRuns.assertNoBiometricInputs({ runId: scope.runId, runDir: scope.runDir, run });
+  } catch {
+    // Refused, unknown sensitivity or unreadable input: the render is withheld without saying why.
+    return sourceNotFound();
+  }
 }
 
 /**
  * FrameSampleTool (topology 3.2): a fixed source map (render from `run.json`, capture from
  * `captures-index` by captureId), every path kept inside the run folder after following symlinks,
- * biometric-registered paths refused as not found, ffprobe and ffmpeg through `execFile` with a
- * fixed argv, numeric `-ss`, local files only, a minimal env and one 20 s deadline per call, and
+ * biometric-registered paths refused as not found, a render of a run that used any biometric
+ * version refused as not found (BiometricRunGuard, fail closed), the captures index checked
+ * against its recorded hash, ffprobe and ffmpeg through `execFile` with a fixed argv, numeric
+ * `-ss`, local files only, a pinned demuxer, a minimal env and one 20 s deadline per call, and
  * the per-step frame counter enforced server-side. Frames go to memory only.
  */
 export function frameSampleTool(dependencies: FrameSampleDependencies): GuardedTool<FrameSampleInput, { frames: SampledFrame[] }, null> {
@@ -127,6 +159,8 @@ export function frameSampleTool(dependencies: FrameSampleDependencies): GuardedT
       return sourceNotFound();
     }
     if (!isInsideOrEqual(realRunDir, realSource) || realSource === realRunDir) return sourceNotFound();
+    // Only a pinned container is opened; a symlink to a playlist or concat list has no demuxer.
+    if (demuxerFor(realSource) === null) return sourceNotFound();
     for (const candidate of new Set([source.path, realSource])) {
       if ((await biometricPathState(dependencies.redactor, candidate)) !== 'clear') return sourceNotFound();
     }
@@ -153,6 +187,7 @@ export function frameSampleTool(dependencies: FrameSampleDependencies): GuardedT
       }
       const captureId = input.source === CAPTURE_FRAME_SOURCE ? input.captureId : undefined;
       if (input.source === CAPTURE_FRAME_SOURCE && captureId === undefined) return sourceNotFound();
+      if (captureId === undefined) await assertRenderSampleable(dependencies, scope, run);
       let source: FrameSource;
       try {
         source = captureId === undefined ? renderSource(scope.runDir, run) : await captureSource(scope.runDir, run, captureId);

@@ -3,6 +3,7 @@ import type { StageExecutionResult } from '@studio/shared/ports';
 import { RunFileSchemaError } from '@studio/shared/run-files';
 import { type ModelUse, type StepName } from '@studio/shared/run-format';
 import { NextBriefDrafter } from '../brief/next-brief.drafter';
+import { CostCeilingCheck, isUsableUsd } from '../cost/cost-ceiling.check';
 import { ownerTexts } from '../owner-texts';
 import { findMissingDeclaredOutputs } from '../postconditions/declared-outputs';
 import { type StageWorkspace } from '../stage-workspace';
@@ -15,15 +16,26 @@ import { postconditionFailed, type StepContext, type StepHandler, type StepOutco
  * one that exists is non-empty too (PRD 7.2, criterion 11, SPEC 0002 rev 4 A30). The
  * models the attempt reported, failed or not, go into the stage input manifest (SPEC 0002 rev 3).
  * The next stage's brief is drafted while the executor runs (PRD 7.2 step 4, K1).
+ *
+ * Cost ceilings before a retried attempt (baseline review): a Recovery `retry-step` restarts at
+ * `execute` and `retry-with-params` at `snapshot`, so neither passes `preflight` again. Before any
+ * attempt after the first, and whenever `preflight` did not check the params in force during this
+ * execution (a patch, a resume), the executor's estimate for those params goes through the same
+ * `CostCeilingCheck`; a reached ceiling is a `guard` failure and the run waits, never retried.
  */
 @Injectable()
 export class ExecuteStep implements StepHandler {
   readonly step: StepName = 'execute';
 
-  constructor(@Inject(NextBriefDrafter) private readonly nextBrief: NextBriefDrafter) {}
+  constructor(
+    @Inject(NextBriefDrafter) private readonly nextBrief: NextBriefDrafter,
+    @Inject(CostCeilingCheck) private readonly costCeiling: CostCeilingCheck,
+  ) {}
 
   async run(context: StepContext): Promise<StepOutcome> {
     const { workspace } = context;
+    const ceiling = await this.checkCostBeforeAttempt(context);
+    if (ceiling !== null) return ceiling;
     const executionContext = await buildExecutionContext(context);
     const draft = this.nextBrief.draftAfter(workspace.active, workspace.location);
     let result: StageExecutionResult;
@@ -45,6 +57,20 @@ export class ExecuteStep implements StepHandler {
       return postconditionFailed(this.step, ownerTexts.outputsMissing(missing.map((output) => `${output.name} (${output.problem})`)));
     }
     return { kind: 'passed', detail: ownerTexts.executorReported(result.summary) };
+  }
+
+  /** Null when the ceilings allow the attempt, or when `preflight` already checked these params this execution. */
+  private async checkCostBeforeAttempt({ workspace, attempt }: StepContext): Promise<StepOutcome | null> {
+    if (attempt <= 1 && workspace.costCheckedForParams) return null;
+    const estimate = await workspace.executor.estimate(workspace.planningContext());
+    if (isUsableUsd(estimate.usd)) workspace.active.setStageEstimate(workspace.location.stageNumber, estimate);
+    const cost = await this.costCeiling.check(workspace, estimate);
+    if (cost.status === 'passed') {
+      workspace.markCostChecked();
+      return null;
+    }
+    const { failure } = cost;
+    return { kind: 'failed', failure, detail: failure.origin === 'guard' ? failure.reason : this.step };
   }
 }
 

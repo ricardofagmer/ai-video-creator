@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { Injectable } from '@nestjs/common';
-import { resolveInsideRun, writeFileAtomic } from '@studio/shared/run-files';
+import { resolveInsideRunReal, writeFileAtomic } from '@studio/shared/run-files';
 import {
   runFileNames,
   stageArchivePath,
@@ -31,8 +31,8 @@ export class ArchiveStep implements StepHandler {
   async run({ workspace }: StepContext): Promise<StepOutcome> {
     const copies = await this.plannedCopies(workspace);
     for (const copy of copies) {
-      const bytes = await readFile(resolveInsideRun(workspace.runDir, copy.from));
-      await writeFileAtomic(resolveInsideRun(workspace.runDir, copy.to), bytes);
+      const bytes = await readFile(await resolveInsideRunReal(workspace.runDir, copy.from));
+      await writeFileAtomic(await resolveInsideRunReal(workspace.runDir, copy.to), bytes);
     }
     if (!(await isRunDirectory(workspace.runDir, stageArchivePath(workspace.location)))) {
       return postconditionFailed(this.step, stageArchivePath(workspace.location));

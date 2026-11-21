@@ -1,11 +1,10 @@
-import { readdir, stat } from 'node:fs/promises';
+import { open, readdir, stat } from 'node:fs/promises';
 import { CHECKS_ARTIFACT, toolErrorHints, toolLimits, type RunArtifactId } from '@studio/shared/agents';
 import {
   RunFileNotFoundError,
   readCheckResult,
   readNowFile,
   readRunEvents,
-  readTextFile,
   resolveInsideRun,
 } from '@studio/shared/run-files';
 import {
@@ -19,6 +18,7 @@ import {
   type StageOutput,
   type StepKey,
 } from '@studio/shared/run-format';
+import { sha256Hex } from '../../asset-store';
 import { toolFailure } from './tool-errors';
 
 const TOOL = 'RunArtifactReadTool';
@@ -107,6 +107,28 @@ function isMissing(error: unknown): boolean {
   return error instanceof Error && 'code' in error && (error.code === 'ENOENT' || error.code === 'ENOTDIR');
 }
 
+/**
+ * The recorded bytes of a stage output, or `changed` when the file no longer has the size and
+ * sha-256 the `record` step wrote into `run.json`. Reads at most `sizeBytes + 1` bytes.
+ */
+export async function readRecordedOutput(path: string, output: StageOutput): Promise<Buffer | 'changed'> {
+  const handle = await open(path, 'r');
+  try {
+    const buffer = Buffer.alloc(output.sizeBytes + 1);
+    let filled = 0;
+    while (filled < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, filled, buffer.length - filled, filled);
+      if (bytesRead === 0) break;
+      filled += bytesRead;
+    }
+    if (filled !== output.sizeBytes) return 'changed';
+    const bytes = buffer.subarray(0, filled);
+    return sha256Hex(bytes) === output.contentHash ? bytes : 'changed';
+  } finally {
+    await handle.close();
+  }
+}
+
 async function readStageOutput(request: ArtifactReadRequest, producedBy: StageId): Promise<ArtifactText> {
   const stage = request.run.stages.find((candidate) => candidate.stageId === producedBy);
   const output = stage?.outputs.find((candidate) => candidate.name === request.artifact);
@@ -114,13 +136,16 @@ async function readStageOutput(request: ArtifactReadRequest, producedBy: StageId
   if (output.sizeBytes > MAX_ARTIFACT_CHARS) return tooLarge();
   const cached = request.memoized(output);
   if (cached !== null) return { text: cached, recordedHash: output.contentHash };
-  let text: string;
+  let bytes: Buffer | 'changed';
   try {
-    text = await readTextFile(resolveInsideRun(request.runDir, output.path));
+    bytes = await readRecordedOutput(resolveInsideRun(request.runDir, output.path), output);
   } catch (error) {
     if (isMissing(error)) return notProducedYet(producedBy);
     throw error;
   }
+  // A file rewritten after `record` is not the output the run recorded; it is never memoized (M3).
+  if (bytes === 'changed') return notProducedYet(producedBy);
+  const text = bytes.toString('utf8');
   if (text.length > MAX_ARTIFACT_CHARS) return tooLarge();
   return { text, recordedHash: output.contentHash };
 }

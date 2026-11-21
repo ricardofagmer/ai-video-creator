@@ -11,6 +11,7 @@ export type RunTrigger = 'crash-resume' | 'owner-resume' | 'approval-answered' |
 /** The run files the decision reads; the scanner loads only what the run's status needs. */
 export interface RunFacts {
   run: Pick<Readonly<RunFile>, 'runId' | 'state'>;
+  /** Read with this daemon's pid as `selfPid`: `alive` always means another process. */
   owner: WatcherState;
   resumeRequested: boolean;
   approval: OptionalFile<ApprovalFile>;
@@ -60,17 +61,16 @@ function triggerOf(facts: RunFacts): RunTrigger | null {
 
 /**
  * Whether this daemon may start the run now. The ownership rule is the one `RunEngine.execute`
- * enforces (RUN-FORMAT 14): a live pid in `watcher.pid` owns the run, and a live owner with
- * `running` recorded is executing it even when that pid is this process. Checking it here keeps
- * the daemon from claiming a run it would only be refused.
+ * enforces (RUN-FORMAT 14): a live owner in `watcher.pid` (same boot, a live process of this user,
+ * not this daemon's own pid) owns the run. A file naming this daemon's pid was left by an earlier
+ * life of that pid, so a `running` run it names crash-resumes (criterion 13). Checking it here
+ * keeps the daemon from claiming a run it would only be refused.
  */
-export function classifyRun(facts: RunFacts, selfPid: number): RunVerdict {
+export function classifyRun(facts: RunFacts): RunVerdict {
   const trigger = triggerOf(facts);
   if (trigger === null) return { kind: 'idle' };
   const { owner } = facts;
-  if (owner.status === 'alive' && (owner.pid !== selfPid || facts.run.state.status === 'running')) {
-    return { kind: 'owned', ownerPid: owner.pid };
-  }
+  if (owner.status === 'alive') return { kind: 'owned', ownerPid: owner.pid };
   return { kind: 'start', trigger };
 }
 

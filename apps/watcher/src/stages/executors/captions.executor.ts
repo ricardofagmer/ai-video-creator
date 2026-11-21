@@ -12,7 +12,6 @@ import { withScratchDir } from '../shared/scratch-dir';
 import { NarrationIndexSchema } from '../shared/stage-artifacts';
 import { readOptionalStageInput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { commandTimeoutMs, needsPerson, reportedSuccess, stageFailed, toolFailure, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
-import { mediaToolPaths } from '../shared/stage-settings';
 import { stageTexts } from '../shared/stage-texts';
 
 /**
@@ -63,14 +62,13 @@ export class CaptionsExecutor extends BaseStageExecutor {
       const result = await this.dependencies.runner.run(
         {
           command: 'caption-burn',
-          tools: mediaToolPaths(this.dependencies.settings),
           input: resolveInsideRun(context.runDir, video.path),
           output,
           srt,
           verticalAnchor: context.recipe.format.captions.yPercent / 100,
         },
         MediaWriteResultSchema,
-        { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+        { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] },
       );
       if (result.status === 'ok') await outputs.adoptFile('captions-video', output);
       return result;

@@ -1,13 +1,15 @@
 import 'reflect-metadata';
+import { homedir } from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { type INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DataHome } from '@studio/core/paths';
+import { DATA_HOME_ENV_VAR, DataHome, resolveDataHome } from '@studio/core/paths';
 import { RedactorService } from '@studio/core/redaction';
 import { DaemonLoop } from './daemon/daemon-loop';
 import { RedactingLogger } from './daemon/logging/redacting-logger';
 import { installShutdownSignals, type ForcedExitCause } from './daemon/shutdown-signals';
 import { WatcherDaemonModule } from './daemon/watcher-daemon.module';
+import { acquireWatcherInstanceLock, type WatcherInstanceLock } from './daemon/watcher-instance.lock';
 
 const LOG_CONTEXT = 'WatcherDaemon';
 
@@ -48,6 +50,25 @@ function forcedExit(logger: RedactingLogger, cause: ForcedExitCause): void {
   void exitAfterFlush(logger, 1);
 }
 
+/**
+ * One watcher per data home (baseline review "single-instance lock"), taken before the Nest graph
+ * boots, so a second daemon never writes a heartbeat, opens SQLite or claims a run. The data home is
+ * resolved exactly as core `PathsModule` resolves it. Null when another live watcher holds the lock
+ * or the lock could not be taken; stderr then carries fixed words only.
+ */
+async function takeInstanceLock(): Promise<WatcherInstanceLock | null> {
+  try {
+    const dataHome = resolveDataHome({ homeDirectory: homedir(), override: process.env[DATA_HOME_ENV_VAR] });
+    const result = await acquireWatcherInstanceLock(dataHome.logs, { pid: process.pid });
+    if (result.state === 'acquired') return result.lock;
+    process.stderr.write(`${JSON.stringify({ level: 'fatal', event: 'watcher.already-running', ownerPid: result.pid })}\n`);
+    return null;
+  } catch (error) {
+    writeBootFatal('watcher.lock-failed', error);
+    return null;
+  }
+}
+
 async function boot(logger: RedactingLogger, shutdown: AbortSignal): Promise<INestApplicationContext | null> {
   try {
     // `abortOnError: false`: a boot failure is thrown here and reported redaction-safe, never `process.abort()`.
@@ -63,8 +84,9 @@ async function boot(logger: RedactingLogger, shutdown: AbortSignal): Promise<INe
 /**
  * The launchd daemon (SPEC 0002 R1-09): boots the watcher as a standalone Nest application
  * context (D17, no HTTP listener), then executes runs one at a time until SIGTERM/SIGINT. Exit
- * codes: 0 after a graceful stop, 1 after a boot failure, a crash or a forced stop. The plist's
- * `KeepAlive = true` restarts it after either, and the run a shutdown left `running` resumes.
+ * codes: 0 after a graceful stop, 1 after a boot failure, a crash, a forced stop or when another
+ * live watcher holds `logs/watcher.lock`. The plist's `KeepAlive = true` restarts it after
+ * either, and the run a shutdown left `running` resumes.
  */
 async function main(): Promise<void> {
   const logger = new RedactingLogger();
@@ -75,22 +97,34 @@ async function main(): Promise<void> {
   process.on('uncaughtException', (error) => fatalExit(logger, 'watcher.uncaught-exception', error));
   process.on('unhandledRejection', (reason) => fatalExit(logger, 'watcher.unhandled-rejection', reason));
 
-  const app = await boot(logger, signals.signal);
-  if (app === null) {
+  const lock = await takeInstanceLock();
+  if (lock === null) {
     signals.dispose();
     process.exitCode = 1;
     return;
   }
+  // A forced or fatal exit ends in `process.exit`, which runs only synchronous listeners.
+  process.once('exit', () => lock.releaseSync());
   try {
-    await logger.attach({ redactor: app.get(RedactorService), logsDirectory: app.get(DataHome).logs });
-    logger.log({ event: 'watcher.started', pid: process.pid }, LOG_CONTEXT);
-    await app.get(DaemonLoop).run();
-    logger.log({ event: 'watcher.stopped', reason: 'shutdown' }, LOG_CONTEXT);
+    const app = await boot(logger, signals.signal);
+    if (app === null) {
+      process.exitCode = 1;
+      return;
+    }
+    try {
+      await logger.attach({ redactor: app.get(RedactorService), logsDirectory: app.get(DataHome).logs });
+      logger.log({ event: 'watcher.started', pid: process.pid }, LOG_CONTEXT);
+      await app.get(DaemonLoop).run();
+      logger.log({ event: 'watcher.stopped', reason: 'shutdown' }, LOG_CONTEXT);
+    } finally {
+      // Before the context closes: redaction reads registered biometric paths through Prisma.
+      await logger.flush();
+      await app.close();
+      await logger.close();
+    }
   } finally {
-    // Before the context closes: redaction reads registered biometric paths through Prisma.
-    await logger.flush();
-    await app.close();
-    await logger.close();
+    // Last, after every run file and the database are closed; only this process's lock is removed.
+    await lock.release();
     signals.dispose();
   }
 }

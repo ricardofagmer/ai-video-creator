@@ -122,6 +122,44 @@ export class BiometricRequiresReferenceError extends CatalogError {
   }
 }
 
+export type BiometricSourceRefusal = 'overlaps-biometric-reference' | 'biometric-registry-unresolvable';
+
+/**
+ * PRD 12: an import, or a non-biometric reference, whose real path lies on, under or above a
+ * registered biometric reference is refused whatever sensitivity the caller declared. Carries no
+ * path: neither the source nor the reference it matched.
+ */
+export class BiometricSourceRefusedError extends CatalogError {
+  override readonly category = 'validation';
+
+  constructor(readonly refusal: BiometricSourceRefusal) {
+    super(
+      refusal === 'overlaps-biometric-reference'
+        ? 'The source overlaps a registered biometric reference; biometric material is registered by reference with sensitivity biometric'
+        : 'A registered biometric reference could not be resolved, so the source cannot be cleared',
+    );
+    this.name = 'BiometricSourceRefusedError';
+  }
+}
+
+/**
+ * The leading bytes do not match the declared (or, inside a folder, the extension's) MIME type.
+ * `relativePath` is the C1 path inside an imported folder, kept as a field; the message stays
+ * path-free.
+ */
+export class ContentTypeMismatchError extends CatalogError {
+  override readonly category = 'validation';
+
+  constructor(
+    readonly kind: AssetKind,
+    readonly mimeType: string,
+    readonly relativePath: string | null,
+  ) {
+    super(`Content does not match MIME type ${mimeType} for kind ${kind}`);
+    this.name = 'ContentTypeMismatchError';
+  }
+}
+
 /**
  * Once an asset holds biometric material, its later versions stay biometric; otherwise a
  * relabelled version would become agent-readable and exportable (PRD 12).

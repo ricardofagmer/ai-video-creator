@@ -119,6 +119,8 @@ export const ownerTexts = {
     `O custo previsto da execução (${usd(estimateUsd)}) passa do teto por execução (${usd(limitUsd)}).`,
   costMonthReason: (totalUsd: number, limitUsd: number): string =>
     `O gasto do mês mais a estimativa desta execução (${usd(totalUsd)}) passa do teto mensal (${usd(limitUsd)}).`,
+  costEstimateInvalidReason:
+    'A estimativa de custo desta etapa não é um valor válido; sem ela o teto não pode ser conferido, então a execução espera.',
   costSpentReason: (spentUsd: number, limitUsd: number): string =>
     `O gasto desta execução (${usd(spentUsd)}) passou do teto por execução (${usd(limitUsd)}); o passo foi parado.`,
   costRunWhatToDo:

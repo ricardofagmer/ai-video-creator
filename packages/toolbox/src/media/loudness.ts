@@ -1,5 +1,5 @@
 import { runTool } from './exec-tool';
-import { ANALYSIS_TIMEOUT_MS } from './media-tools';
+import { ANALYSIS_TIMEOUT_MS, fileInputArgs } from './media-tools';
 
 export interface LoudnessMeasurement {
   integratedLufs: number | null;
@@ -20,7 +20,7 @@ function readNumber(pattern: RegExp, text: string): number | null {
 export async function measureLoudness(ffmpegPath: string, filePath: string): Promise<LoudnessMeasurement> {
   const { stderr } = await runTool(
     ffmpegPath,
-    ['-hide_banner', '-nostats', '-nostdin', '-i', filePath, '-map', '0:a:0', '-af', 'ebur128=peak=true', '-f', 'null', '-'],
+    ['-hide_banner', '-nostats', '-nostdin', ...fileInputArgs(filePath), '-map', '0:a:0', '-af', 'ebur128=peak=true', '-f', 'null', '-'],
     ANALYSIS_TIMEOUT_MS,
   );
   const summaryStart = stderr.lastIndexOf('Summary:');

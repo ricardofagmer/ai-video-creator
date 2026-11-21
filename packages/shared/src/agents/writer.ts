@@ -5,6 +5,15 @@ import { packetBaseShape } from './packet-base';
 import { LearningNotesBlockSchema, UntrustedTextSchema } from './packet-parts';
 import { OutputContractSchema, WRITE_SCRIPT_TASK } from './protocol';
 
+/**
+ * A scene id as the Scriptwriter names it ("s1", "intro", "scene-2"). Model output: bounded to one
+ * token of letters, digits, `-` and `_` (64 at most, as `sceneTimings` downstream), so it can
+ * never carry a path, whitespace or a control sequence into logs, file names or the terminal.
+ */
+export const SceneIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/, 'expected a scene id: a letter or digit, then letters, digits, - or _, at most 64');
+
 /** Scriptwriter answer (topology section 5). */
 export const ScriptOutputSchema = z
   .object({
@@ -14,7 +23,7 @@ export const ScriptOutputSchema = z
       .array(
         z
           .object({
-            sceneId: z.string(),
+            sceneId: SceneIdSchema,
             narration: z.string(),
             onScreenText: z.string().max(80).optional(),
             claimIds: z.array(z.string()),

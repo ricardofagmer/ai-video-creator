@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { KebabIdSchema } from '../common/ids';
 import { JsonObjectSchema } from '../common/json';
 import { AssetRefSchema } from '../catalog/asset-kind';
 import { packetBaseShape } from './packet-base';
@@ -16,21 +17,25 @@ import {
   OutputContractSchema,
   TITLE_CARD_VISUAL,
 } from './protocol';
-import { ScriptOutputSchema } from './writer';
+import { SceneIdSchema, ScriptOutputSchema } from './writer';
 
-/** Scene director answer (topology section 5). The engine re-resolves `citedRefs` at `verify`. */
+/**
+ * Scene director answer (topology section 5). The engine re-resolves `citedRefs` at `verify`.
+ * `captureId` must name an entry of `inputs.capturesIndex`; capture ids are lowercase kebab ids
+ * (`capture-1`), so anything else is refused here instead of reaching the frame and render tools.
+ */
 export const ScenesOutputSchema = z
   .object({
     scenes: z
       .array(
         z
           .object({
-            sceneId: z.string(),
+            sceneId: SceneIdSchema,
             visual: z.discriminatedUnion('type', [
               z
                 .object({
                   type: z.literal(CAPTURE_VISUAL),
-                  captureId: z.string(),
+                  captureId: KebabIdSchema,
                   inMs: z.number().int(),
                   outMs: z.number().int(),
                 })
@@ -68,7 +73,7 @@ export const DirectorPacketSchema = z
         /** The approved output only, never the Scriptwriter session. */
         script: ScriptOutputSchema,
         capturesIndex: z.array(
-          z.object({ captureId: z.string(), label: z.string(), durationMs: z.number().int() }).strict(),
+          z.object({ captureId: KebabIdSchema, label: z.string(), durationMs: z.number().int() }).strict(),
         ),
         templateSceneSchema: JsonObjectSchema,
         /** Recipe bindings; the tool layer grows the offered set with CatalogSearchTool results. */

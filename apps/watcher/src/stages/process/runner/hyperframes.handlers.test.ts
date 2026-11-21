@@ -257,7 +257,7 @@ describe('hyperframesRender', () => {
       assert.equal(error instanceof PictureCheckError, false);
       // AC 101: the mux runs the resolved runtime.ffmpegBin (a fixture path that does not exist), never tools.ffmpegPath.
       assert.equal(error.tool, world.request.runtime.ffmpegBin);
-      assert.notEqual(error.tool, world.request.tools.ffmpegPath);
+      assert.notEqual(error.tool, world.request.tools?.ffmpegPath);
       assert.equal(probeCalls.length, 1);
     });
 

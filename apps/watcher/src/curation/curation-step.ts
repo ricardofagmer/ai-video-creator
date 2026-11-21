@@ -5,6 +5,7 @@ import { type Clock } from '../engine/clock';
 import { errorName } from '../platform/error-name';
 import { ClaimedCuration } from './claimed-curation';
 import { CurationEventRecorder } from './curation-event.recorder';
+import { isCurationClaimantAlive } from './curation-claimant';
 import { claimedFileOf, failed, type CurationEnding } from './curation-file.mapper';
 import { CurationPipeline } from './curation-pipeline';
 import { CurationScanner, type ScannedCuration } from './curation-scanner';
@@ -23,9 +24,11 @@ import {
  * run and a curation never overlap and only one curation runs at a time (C5-AC-10). The queue is
  * the `requested` folders, served oldest first; the api bounds it at 3.
  *
- * - Sweep (Q7, B12): before this process claims anything, every `collecting` curation was claimed
- *   by a process that is gone (its `claim.pid` cannot be a claim of this one yet, even when the pid
- *   number was reused), so it ends `failed` / `watcher-restarted`; it is never resumed.
+ * - Sweep (Q7, B12): before this process claims anything, a `collecting` curation whose claimant is
+ *   gone ends `failed` / `watcher-restarted`; it is never resumed. Gone means claimed under an
+ *   earlier boot, by this process's own pid (an earlier life of the pid: this process has claimed
+ *   nothing yet) or by a pid with no live process of this user. A live claimant (another watcher,
+ *   which the single-instance lock should prevent) keeps its curation (baseline review).
  * - Claim: re-read, rewrite `requested` -> `collecting` with `claim`, re-read to confirm the claim
  *   is ours; anything else is a lost race and is skipped. The 300 s signal starts here.
  * - The pipeline runs; the step writes the ending, and nothing after it. An ending whose write
@@ -67,8 +70,24 @@ export class CurationStep {
       this.logger.error({ event: 'curation.sweep-failed', error: errorName(error) });
       return;
     }
-    for (const scanned of stale) await this.failStale(scanned);
+    for (const scanned of stale) {
+      if (this.claimantAlive(scanned)) {
+        this.logger.warn({ event: 'curation.sweep-skipped', reason: 'live-claimant', curationId: scanned.file.curationId, claimantPid: scanned.file.claim?.pid ?? null });
+        continue;
+      }
+      await this.failStale(scanned);
+    }
     this.swept = true;
+  }
+
+  /** A liveness probe that fails is no proof of death: the curation is left alone. */
+  private claimantAlive(scanned: ScannedCuration): boolean {
+    try {
+      return isCurationClaimantAlive(scanned.file, { selfPid: this.daemonProcess.pid });
+    } catch (error) {
+      this.logger.warn({ event: 'curation.sweep-liveness-unknown', curationId: scanned.file.curationId, error: errorName(error) });
+      return true;
+    }
   }
 
   /**

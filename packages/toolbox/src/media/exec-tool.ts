@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { isAbsolute } from 'node:path';
 import { promisify } from 'node:util';
 import { ExternalToolError, isErrnoException } from '../errors';
 
@@ -16,8 +17,12 @@ function stderrOf(error: unknown): string {
   return '';
 }
 
-/** Runs a local tool with an argument array (never a shell), capturing its output. */
+/**
+ * Runs a local tool with an argument array (never a shell), capturing its output. The program is
+ * an absolute path resolved once by the caller's configuration, never a name looked up on PATH.
+ */
 export async function runTool(command: string, args: readonly string[], timeoutMs: number): Promise<ToolOutput> {
+  if (!isAbsolute(command)) throw new ExternalToolError(`tool path must be absolute, got "${command}"; set FFMPEG_PATH/FFPROBE_PATH to absolute paths`, command);
   try {
     const { stdout, stderr } = await execFileAsync(command, [...args], { maxBuffer: MAX_OUTPUT_BYTES, timeout: timeoutMs, encoding: 'utf8' });
     return { stdout, stderr };

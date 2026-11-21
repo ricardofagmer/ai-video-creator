@@ -4,7 +4,7 @@ import { runTool } from '../../media/exec-tool';
 import { probeMedia } from '../../media/ffprobe';
 import { filePathArg, numberArg, parseCommandArgs } from '../../media/media-args';
 import { prepareOutputFile, resolveInputFile } from '../../media/media-paths';
-import { ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS, formatSeconds, type MediaToolPaths } from '../../media/media-tools';
+import { ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS, fileInputArgs, formatSeconds, type MediaToolPaths } from '../../media/media-tools';
 
 /** Contract C9 `music-bed` arguments. Defaults: video_tool.py `music` and RELATORIO.md (volume 0.25, -16 LUFS). */
 export const MusicBedArgsSchema = z
@@ -96,8 +96,8 @@ export async function runMusicBed(tools: MediaToolPaths, rawArgs: unknown): Prom
     tools.ffmpegPath,
     [
       ...FFMPEG_WRITE_ARGS,
-      '-i', input,
-      '-stream_loop', '-1', '-i', music,
+      ...fileInputArgs(input),
+      '-stream_loop', '-1', ...fileInputArgs(music),
       '-filter_complex', buildFilterGraph(plan),
       '-map', '0:v', '-map', '[a]',
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000',

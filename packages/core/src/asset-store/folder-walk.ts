@@ -1,8 +1,10 @@
 import { lstat, readdir } from 'node:fs/promises';
 import { RelativePathSchema, type FolderEntry } from '@studio/shared/catalog';
 import { ContentTooLargeError, UnsafePathError, UnsupportedFolderError } from './asset-store.errors';
+import { toAssetStoreError } from './fs-errors';
 import { type HashedContent } from './hashing';
 import { resolveInside } from './path-guards';
+import { identityOf, type FileIdentity } from './regular-file';
 
 /** Mirrors the max of C1 `FolderManifestSchema.files`. */
 export const MAX_FOLDER_FILES = 10000;
@@ -20,6 +22,8 @@ export interface FolderFile {
   /** C1 `RelativePath`, forward slashes. */
   relativePath: string;
   absolutePath: string;
+  /** What the walk's `lstat` saw; the file is read only if the opened handle is still this file. */
+  identity: FileIdentity;
 }
 
 export interface FolderLimits {
@@ -29,8 +33,17 @@ export interface FolderLimits {
 /**
  * Lists the regular files of a folder, sorted by relative path in code-unit order (the C1
  * canonical order). Symlinks and special files are refused, so the walk never leaves `root`.
+ * File-system errors leave as typed `AssetStoreIoError`s, path-free (asset-store.errors.ts).
  */
 export async function listFolderFiles(root: string): Promise<FolderFile[]> {
+  try {
+    return await walkFolder(root);
+  } catch (error) {
+    throw toAssetStoreError(error);
+  }
+}
+
+async function walkFolder(root: string): Promise<FolderFile[]> {
   const files: FolderFile[] = [];
   const pending: { relative: string; depth: number }[] = [{ relative: '', depth: 0 }];
 
@@ -43,12 +56,12 @@ export async function listFolderFiles(root: string): Promise<FolderFile[]> {
       const relativePath = next.relative === '' ? entry.name : `${next.relative}/${entry.name}`;
       if (!RelativePathSchema.safeParse(relativePath).success) throw new UnsupportedFolderError('invalid-name', relativePath);
       const absolutePath = resolveInside(root, relativePath);
-      const stats = await lstat(absolutePath);
+      const stats = await lstat(absolutePath, { bigint: true });
       if (stats.isSymbolicLink()) throw new UnsupportedFolderError('symlink', relativePath);
       if (stats.isDirectory()) {
         pending.push({ relative: relativePath, depth: next.depth + 1 });
       } else if (stats.isFile()) {
-        files.push({ relativePath, absolutePath });
+        files.push({ relativePath, absolutePath, identity: identityOf(stats) });
         if (files.length > MAX_FOLDER_FILES) throw new UnsupportedFolderError('too-many-files', null);
       } else {
         throw new UnsupportedFolderError('special-file', relativePath);
@@ -85,6 +98,11 @@ export async function buildFolderEntries(
 
 /** Confirms `root` is a real directory before a walk; a file or symlink here is refused. */
 export async function assertFolder(root: string): Promise<void> {
-  const stats = await lstat(root);
-  if (!stats.isDirectory()) throw new UnsafePathError('not-a-folder');
+  let isDirectory: boolean;
+  try {
+    isDirectory = (await lstat(root)).isDirectory();
+  } catch (error) {
+    throw toAssetStoreError(error);
+  }
+  if (!isDirectory) throw new UnsafePathError('not-a-folder');
 }

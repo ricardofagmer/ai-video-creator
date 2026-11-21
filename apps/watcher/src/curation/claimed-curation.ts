@@ -51,6 +51,8 @@ export class ClaimedCuration {
   private readonly logger = new Logger(ClaimedCuration.name);
   private current: CurationFile;
   private ended = false;
+  /** `curation.ended` while its append is still owed: the terminal file is written, the event is not. */
+  private pendingEndEvent: EventBody | null = null;
 
   constructor(private readonly options: ClaimedCurationOptions) {
     this.current = options.file;
@@ -119,21 +121,37 @@ export class ClaimedCuration {
     await writeCurationProposal(this.options.location, proposal);
   }
 
-  /** The final `curation.json`, then `curation.ended`; nothing is written afterwards. */
+  /**
+   * The final `curation.json`, then `curation.ended`; nothing is written afterwards. When the file
+   * write succeeded and the event append failed, a later call appends only that owed event (the
+   * ending it records is the one already on disk) instead of refusing as already ended, so the
+   * step's retry of an unwritten ending converges (baseline review).
+   */
   async end(ending: CurationEnding): Promise<void> {
+    if (this.pendingEndEvent !== null) {
+      await this.appendEndEvent(this.pendingEndEvent);
+      return;
+    }
     this.assertOpen();
     const now = this.options.clock.now();
     const ended = endedFileOf(this.current, ending, now.toISOString());
     await writeCurationState(this.options.location, ended);
     this.current = ended;
     this.ended = true;
-    await this.event({
+    const endEvent: EventBody = {
       type: 'curation.ended',
       status: ending.status,
       reasonId: endingReasonId(ending),
       spentUsd: ended.spentUsd,
       durationMs: Math.max(0, now.getTime() - this.options.claimedAtMs),
-    });
+    };
+    this.pendingEndEvent = endEvent;
+    await this.appendEndEvent(endEvent);
+  }
+
+  private async appendEndEvent(endEvent: EventBody): Promise<void> {
+    await this.event(endEvent);
+    this.pendingEndEvent = null;
   }
 
   private assertOpen(): void {

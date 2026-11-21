@@ -60,6 +60,21 @@ export class UnsupportedFolderError extends AssetStoreError {
   }
 }
 
+/**
+ * A file-system call failed. Only the errno code is kept: Node's own message and `path` field
+ * name the absolute path, which may lie under a biometric reference (PRD 12), so the raw error is
+ * dropped, not chained as `cause`. `code` stays readable for callers that branch on `ENOENT`.
+ */
+export class AssetStoreIoError extends AssetStoreError {
+  override readonly category: AssetStoreErrorCategory;
+
+  constructor(readonly code: string) {
+    super(`File system operation failed (${code})`);
+    this.name = 'AssetStoreIoError';
+    this.category = code === 'ENOENT' || code === 'ENOTDIR' ? 'not_found' : 'internal';
+  }
+}
+
 /** A stream yielded something other than bytes or text; a programming error upstream. */
 export class UnsupportedChunkError extends AssetStoreError {
   override readonly category = 'internal';

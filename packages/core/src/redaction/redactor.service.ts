@@ -2,6 +2,7 @@ import { homedir } from 'node:os';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { type JsonValue } from '@studio/shared/run-format';
 import { SecretsService } from '../secrets/secrets.service';
+import { withRealPathSpellings } from './biometric-reference-paths';
 import { BIOMETRIC_REFERENCE_SOURCE, type BiometricReferenceSource } from './biometric-reference.source';
 import {
   CompiledRedaction,
@@ -75,10 +76,11 @@ export class RedactorService {
     }
   }
 
+  /** Typed registrations plus their realpaths, so a symlinked spelling of either side matches. */
   private async biometricPaths(): Promise<readonly string[]> {
     const now = Date.now();
     if (this.cachedPaths !== null && now - this.cachedPaths.loadedAtMs < BIOMETRIC_PATHS_TTL_MS) return this.cachedPaths.paths;
-    const paths = await this.biometric.listBiometricReferencePaths();
+    const paths = await withRealPathSpellings(await this.biometric.listBiometricReferencePaths());
     this.cachedPaths = { paths, loadedAtMs: now };
     return paths;
   }

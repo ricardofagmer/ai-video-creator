@@ -5,7 +5,6 @@ import { type DeclaredOutput, type StageEstimate } from '@studio/shared/run-form
 import { MediaWriteResultSchema } from '../process/tool-runner.protocol';
 import { BaseStageExecutor, zeroEstimate } from '../shared/base-stage.executor';
 import { withScratchDir } from '../shared/scratch-dir';
-import { mediaToolPaths } from '../shared/stage-settings';
 import { CapturesIndexSchema, type CaptureEntry } from '../shared/stage-artifacts';
 import { stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { commandTimeoutMs, needsPerson, reportedSuccess, stageFailed, toolFailure, type CheckEvidenceMap } from '../shared/stage-results';
@@ -61,8 +60,7 @@ export class CaptureExecutor extends BaseStageExecutor {
     }
     context.report({ kind: 'tool', text: live ? `Gravando a página ${new URL(sourceUrl).hostname}.` : 'Gerando captura simulada local.' });
 
-    const options = { signal: context.signal, timeoutMs: commandTimeoutMs(context) };
-    const tools = mediaToolPaths(this.dependencies.settings);
+    const options = { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] };
     const recorded = await withScratchDir(this.dependencies.settings, async (directory) => {
       const output = join(directory, live ? `${CAPTURE_ID}.webm` : `${CAPTURE_ID}.mp4`);
       const result = live
@@ -72,7 +70,7 @@ export class CaptureExecutor extends BaseStageExecutor {
             options,
           )
         : await this.dependencies.runner.run(
-            { command: 'test-capture', tools, width: canvas.width, height: canvas.height, durationS, output },
+            { command: 'test-capture', width: canvas.width, height: canvas.height, durationS, output },
             MediaWriteResultSchema,
             options,
           );

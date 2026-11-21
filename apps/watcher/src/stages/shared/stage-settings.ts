@@ -15,6 +15,19 @@ const optionalText = z
   .or(z.literal('').transform((): undefined => undefined));
 
 /*
+ * A program the watcher starts: when set it must be absolute (baseline review 2026-11-21), so a
+ * relative value can never resolve against whatever folder a child process happens to run in.
+ */
+const optionalAbsolutePath = z
+  .string()
+  .trim()
+  .min(2)
+  .max(4096)
+  .startsWith('/')
+  .optional()
+  .or(z.literal('').transform((): undefined => undefined));
+
+/*
  * The studio's loopback ports, read with the same names, defaults and bounds as the CLI and the api
  * (`VIDEO_STUDIO_API_PORT`, `VIDEO_STUDIO_WEB_PORT`). The HyperFrames sandbox denies both
  * (SPEC 0008 section 17.5, B11); an unset or empty variable takes the A9 default.
@@ -36,9 +49,9 @@ const StageSettingsSchema = z
     PATH: z.string().min(1).max(8192),
     HOME: optionalText,
     TMPDIR: optionalText,
-    FFMPEG_PATH: optionalText,
-    FFPROBE_PATH: optionalText,
-    LOCAL_VOICE_PYTHON: optionalText,
+    FFMPEG_PATH: optionalAbsolutePath,
+    FFPROBE_PATH: optionalAbsolutePath,
+    LOCAL_VOICE_PYTHON: optionalAbsolutePath,
     LOCAL_VOICE_SCRIPT: optionalText,
     ELEVENLABS_VOICE_ID: optionalText,
     ELEVENLABS_MODEL_ID: optionalText,
@@ -93,9 +106,4 @@ export function readStageSettings(environment: Readonly<Record<string, string | 
     elevenLabs: { voiceId: values.ELEVENLABS_VOICE_ID ?? null, modelId: values.ELEVENLABS_MODEL_ID ?? DEFAULT_ELEVENLABS_MODEL_ID },
     studioPorts: { api: values.VIDEO_STUDIO_API_PORT ?? DEFAULT_API_PORT, web: values.VIDEO_STUDIO_WEB_PORT ?? DEFAULT_WEB_PORT },
   };
-}
-
-/** ffmpeg and ffprobe as the C9 media commands take them. */
-export function mediaToolPaths(settings: StageSettings): { ffmpegPath: string; ffprobePath: string } {
-  return { ffmpegPath: settings.ffmpegPath, ffprobePath: settings.ffprobePath };
 }

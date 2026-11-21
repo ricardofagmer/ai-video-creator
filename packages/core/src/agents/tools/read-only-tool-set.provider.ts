@@ -4,9 +4,10 @@ import { agentToolAllowlists, type AgentToolName } from '@studio/shared/agents';
 import { type AssetVersion, type Tag } from '@studio/shared/catalog';
 import { readRunFile } from '@studio/shared/run-files';
 import { type RunFile } from '@studio/shared/run-format';
-import { AssetStoreModule, ContentStore } from '../../asset-store';
+import { AssetStoreModule, ContentStore, ReferenceInspector } from '../../asset-store';
 import { GetAssetVersionQuery } from '../../catalog';
 import { RedactorService } from '../../redaction';
+import { BiometricRunGuard } from '../../review/biometric-guard';
 import { type AgentsModuleOptions } from '../agents.module';
 import { AgentRunError } from '../agents.errors';
 import { type AgentToolScope, type AgentToolSet, type AgentToolSetProvider } from '../tooling/agent-tool-set';
@@ -41,13 +42,17 @@ export class ReadOnlyAgentToolSetProvider implements AgentToolSetProvider {
   private readonly describeMemo = new BoundedCache<string, DescribedAsset>(DESCRIBE_MEMO_ENTRIES);
   private readonly artifactMemo = new BoundedCache<string, string>(ARTIFACT_MEMO_ENTRIES);
   private readonly textReader: AssetTextReader;
+  /** The review module's promotion guard, reused so frame sampling and promotion can never disagree. */
+  private readonly biometricRuns: BiometricRunGuard;
 
   constructor(
     private readonly queries: QueryBus,
     private readonly redactor: RedactorService,
     store: ContentStore,
+    references: ReferenceInspector,
   ) {
-    this.textReader = new AssetTextReader(store, redactor);
+    this.textReader = new AssetTextReader({ store, references, redactor });
+    this.biometricRuns = new BiometricRunGuard(queries);
   }
 
   async toolsFor(scope: AgentToolScope): Promise<AgentToolSet> {
@@ -75,7 +80,7 @@ export class ReadOnlyAgentToolSetProvider implements AgentToolSetProvider {
       case 'RunArtifactReadTool':
         return this.wrap(runArtifactReadTool({ redactor: this.redactor, memo: this.artifactMemo }, scope), scope, state, 'json');
       case 'FrameSampleTool':
-        return this.wrap(frameSampleTool({ redactor: this.redactor }), scope, state, 'images');
+        return this.wrap(frameSampleTool({ redactor: this.redactor, biometricRuns: this.biometricRuns }), scope, state, 'images');
     }
   }
 

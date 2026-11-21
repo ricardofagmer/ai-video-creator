@@ -5,6 +5,7 @@ import {
   currentBootTimeMs,
   formatProcessStamp,
   isOwnProcessAlive,
+  isPidAliveSince,
   isSameBoot,
   isStampAlive,
   parseProcessStamp,
@@ -137,5 +138,30 @@ describe('isStampAlive', () => {
     const kill = stubKill(() => true);
     assert.equal(isStampAlive({ pid: SELF_PID, bootTimeMs: BOOT_TIME_MS }, { bootTimeMs: BOOT_TIME_MS, selfPid: SELF_PID }), false);
     assert.equal(kill.mock.callCount(), 0);
+  });
+});
+
+describe('isPidAliveSince (a bare pid dated by when it was recorded)', () => {
+  it('answers alive for a live owner recorded during this boot', () => {
+    stubKill(() => true);
+    assert.equal(isPidAliveSince(OWNER_PID, BOOT_TIME_MS + 5_000, { bootTimeMs: BOOT_TIME_MS, selfPid: SELF_PID }), true);
+  });
+
+  it('answers dead for a record from before this boot, without signalling its pid', () => {
+    const kill = stubKill(() => true);
+    assert.equal(isPidAliveSince(OWNER_PID, BOOT_TIME_MS - BOOT_TIME_TOLERANCE_MS - 1, { bootTimeMs: BOOT_TIME_MS }), false);
+    assert.equal(kill.mock.callCount(), 0);
+  });
+
+  it('answers dead for the reader itself, an unparseable instant, or a pid of another user', () => {
+    const kill = stubKill(() => true);
+    assert.equal(isPidAliveSince(SELF_PID, BOOT_TIME_MS + 5_000, { bootTimeMs: BOOT_TIME_MS, selfPid: SELF_PID }), false);
+    assert.equal(isPidAliveSince(OWNER_PID, Number.NaN, { bootTimeMs: BOOT_TIME_MS }), false);
+    assert.equal(kill.mock.callCount(), 0);
+    mock.restoreAll();
+    stubKill(() => {
+      throw errorWithCode('EPERM');
+    });
+    assert.equal(isPidAliveSince(OWNER_PID, BOOT_TIME_MS + 5_000, { bootTimeMs: BOOT_TIME_MS }), false);
   });
 });

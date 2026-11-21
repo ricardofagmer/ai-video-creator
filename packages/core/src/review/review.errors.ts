@@ -175,6 +175,19 @@ export class PromoteBiometricRefusedError extends ReviewError {
 }
 
 /**
+ * The run folder's manifest names another run, so the versions it pinned cannot be trusted to be
+ * this run's; the biometric check fails closed instead of skipping the manifest.
+ */
+export class PromoteManifestMismatchError extends ReviewError {
+  override readonly category = 'conflict';
+
+  constructor(readonly runId: string) {
+    super(`Run ${runId} has a manifest that names another run; promotion refused`);
+    this.name = 'PromoteManifestMismatchError';
+  }
+}
+
+/**
  * A version the run used cannot be resolved in the catalog, so its sensitivity is unknown and the
  * promotion fails closed rather than risk reusing biometric material.
  */

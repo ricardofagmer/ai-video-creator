@@ -8,7 +8,6 @@ import { latestVideoInput } from '../shared/latest-video';
 import { withScratchDir } from '../shared/scratch-dir';
 import { stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { commandTimeoutMs, needsPerson, reportedSuccess, stageFailed, toolFailure, type CheckEvidenceMap } from '../shared/stage-results';
-import { mediaToolPaths } from '../shared/stage-settings';
 import { stageTexts } from '../shared/stage-texts';
 
 /** `fades`: the C9 `fades` command (fade in and out of picture and sound) over the latest video. */
@@ -36,9 +35,9 @@ export class FadesExecutor extends BaseStageExecutor {
     const faded = await withScratchDir(this.dependencies.settings, async (directory) => {
       const output = join(directory, 'fades.mp4');
       const result = await this.dependencies.runner.run(
-        { command: 'fades', tools: mediaToolPaths(this.dependencies.settings), input: resolveInsideRun(context.runDir, video.path), output },
+        { command: 'fades', input: resolveInsideRun(context.runDir, video.path), output },
         MediaWriteResultSchema,
-        { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+        { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] },
       );
       if (result.status === 'ok') await outputs.adoptFile('fades', output);
       return result;

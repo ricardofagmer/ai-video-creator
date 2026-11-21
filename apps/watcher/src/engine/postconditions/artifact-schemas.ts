@@ -1,5 +1,5 @@
 import { PlanOutputSchema, ReviewVerdictSchema, ScenesOutputSchema, ScriptOutputSchema } from '@studio/shared/agents';
-import { RunFileError, RunFileSchemaError, readJsonFile, resolveInsideRun } from '@studio/shared/run-files';
+import { RunFileError, RunFileSchemaError, readJsonFile, resolveInsideRunReal } from '@studio/shared/run-files';
 import { CostFileSchema, QaMetricsSchema, QaSummarySchema, RunManifestSchema } from '@studio/shared/run-format';
 import { type z } from 'zod';
 
@@ -29,7 +29,7 @@ export async function validateArtifact(runDir: string, output: { name: string; p
   const schema = artifactSchemas[output.name];
   if (schema === undefined) return { status: 'no-schema' };
   try {
-    await readJsonFile(resolveInsideRun(runDir, output.path), schema);
+    await readJsonFile(await resolveInsideRunReal(runDir, output.path), schema);
     return { status: 'valid' };
   } catch (error) {
     if (error instanceof RunFileSchemaError) {

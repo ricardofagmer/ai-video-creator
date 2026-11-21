@@ -2,6 +2,7 @@ import { Box, Text } from 'ink';
 import { type ReactElement } from 'react';
 import { RUN_LIST_HEADER, runListRow } from '../output/run-text.js';
 import { type RecentRuns } from '../runs/run-reader.js';
+import { SafeText } from './safe-text.js';
 
 export interface RunListViewProps {
   recent: RecentRuns | null;
@@ -18,9 +19,9 @@ export function RunListView({ recent, selectedIndex }: RunListViewProps): ReactE
       {recent.results.map((result, index) => {
         const isSelected = index === selectedIndex;
         return (
-          <Text key={result.status === 'read' ? result.snapshot.runId : result.runId} inverse={isSelected}>
+          <SafeText key={result.status === 'read' ? result.snapshot.runId : result.runId} inverse={isSelected}>
             {`${isSelected ? '> ' : '  '}${runListRow(result)}`}
-          </Text>
+          </SafeText>
         );
       })}
       {recent.total > recent.results.length ? <Text dimColor>{`Mostrando ${recent.results.length} de ${recent.total} execuções.`}</Text> : null}

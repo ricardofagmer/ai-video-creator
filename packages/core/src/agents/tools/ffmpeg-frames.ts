@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { extname } from 'node:path';
 
 /** Resolved through the child's PATH; no shell is ever involved. */
 const FFMPEG_COMMAND = 'ffmpeg';
@@ -85,18 +86,44 @@ function runProcess(command: string, args: readonly string[], signals: ProcessSi
   });
 }
 
-/** Input options shared by both tools: local files only, so a crafted media file cannot make ffmpeg reach the network. */
-function localInput(sourcePath: string): string[] {
-  return ['-protocol_whitelist', 'file', '-i', `file:${sourcePath}`];
+/**
+ * The one demuxer each sampled container may open: renders are `.mp4`, live captures `.webm` and
+ * mock captures `.mp4`. Pinning it stops ffmpeg from probing the content, so a file that is
+ * really an HLS playlist, a concat list or an image sequence cannot pull in other local files.
+ */
+const DEMUXER_BY_EXTENSION: ReadonlyMap<string, string> = new Map([
+  ['.mp4', 'mov,mp4,m4a,3gp,3g2,mj2'],
+  ['.mov', 'mov,mp4,m4a,3gp,3g2,mj2'],
+  ['.webm', 'matroska,webm'],
+]);
+
+/** The pinned demuxer for a source path, or null when its extension is not a sampled container. */
+export function demuxerFor(sourcePath: string): string | null {
+  return DEMUXER_BY_EXTENSION.get(extname(sourcePath).toLowerCase()) ?? null;
 }
+
+/**
+ * Input options shared by both tools: local files only (a crafted media file cannot make ffmpeg
+ * reach the network) and a pinned demuxer (no format probing). Null when the source has no
+ * pinned demuxer; callers refuse it before any process starts.
+ */
+export function localInputArguments(sourcePath: string): string[] | null {
+  const demuxer = demuxerFor(sourcePath);
+  if (demuxer === null) return null;
+  return ['-protocol_whitelist', 'file', '-f', demuxer, '-i', `file:${sourcePath}`];
+}
+
+const UNSUPPORTED_CONTAINER: Exclude<ProcessOutcome, { status: 'ok' }> = { status: 'failed', reason: 'bad-output', stderrTail: '' };
 
 export type DurationOutcome = { readonly status: 'ok'; readonly durationMs: number } | Exclude<ProcessOutcome, { status: 'ok' }>;
 
 /** ffprobe duration of the source, read on every call (topology 3.3 "facts"). */
 export async function probeDurationMs(sourcePath: string, signals: ProcessSignals): Promise<DurationOutcome> {
+  const input = localInputArguments(sourcePath);
+  if (input === null) return UNSUPPORTED_CONTAINER;
   const outcome = await runProcess(
     FFPROBE_COMMAND,
-    ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', ...localInput(sourcePath)],
+    ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', ...input],
     signals,
     MAX_PROBE_BYTES,
   );
@@ -115,6 +142,8 @@ export async function extractJpegFrame(
   signals: ProcessSignals,
 ): Promise<ProcessOutcome> {
   const edge = String(request.maxEdgePx);
+  const input = localInputArguments(request.sourcePath);
+  if (input === null) return UNSUPPORTED_CONTAINER;
   const outcome = await runProcess(
     FFMPEG_COMMAND,
     [
@@ -124,7 +153,7 @@ export async function extractJpegFrame(
       'error',
       '-ss',
       seekArgument(request.timestampMs),
-      ...localInput(request.sourcePath),
+      ...input,
       '-frames:v',
       '1',
       '-vf',

@@ -7,6 +7,7 @@ import { ANALYSIS_TIMEOUT_MS, ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS } from '@ace/
 import { HyperframesSandboxUnavailableError, renderPicture, type HyperframesProcessPort, type HyperframesRuntime } from '@studio/hyperframes';
 import { hyperframesBounds } from '@studio/shared/hyperframes';
 import { type HyperframesRenderRequest } from '../tool-runner.protocol';
+import { FILE_INPUT_GUARD_ARGS, fileInputArgs } from './ffmpeg-input';
 
 /*
  * The tool-runner side of a HyperFrames render (SPEC 0008 section 5.2): `variables.json`, one
@@ -91,7 +92,7 @@ export function pictureMismatches(probe: PictureProbe, request: Pick<Hyperframes
 async function probeWithFfprobe(ffprobePath: string, file: string): Promise<PictureProbe | null> {
   const { stdout } = await runTool(
     ffprobePath,
-    ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name,pix_fmt,width,height,avg_frame_rate:format=duration', '-of', 'json', file],
+    ['-v', 'error', ...FILE_INPUT_GUARD_ARGS, '-select_streams', 'v:0', '-show_entries', 'stream=codec_name,pix_fmt,width,height,avg_frame_rate:format=duration', '-of', 'json', file],
     ANALYSIS_TIMEOUT_MS,
   );
   return parsePictureProbe(stdout);
@@ -148,8 +149,8 @@ export async function hyperframesRender(request: HyperframesRenderRequest, ports
     runtime.ffmpegBin,
     [
       ...FFMPEG_WRITE_ARGS,
-      '-i', picture,
-      '-i', request.audio,
+      ...fileInputArgs(picture),
+      ...fileInputArgs(request.audio),
       '-map', '0:v:0', '-map', '1:a:0',
       '-c:v', 'copy',
       '-c:a', 'aac', '-b:a', '192k', '-ar', NARRATION_SAMPLE_RATE,

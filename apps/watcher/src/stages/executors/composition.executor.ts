@@ -20,7 +20,6 @@ import { CapturesIndexSchema, NarrationIndexSchema, type NarrationIndex } from '
 import { priceForEstimate } from '../shared/stage-estimates';
 import { readOptionalStageInput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { commandTimeoutMs, needsPerson, reportedSuccess, stageFailed, toolFailure, type CheckEvidenceMap } from '../shared/stage-results';
-import { mediaToolPaths } from '../shared/stage-settings';
 import { hyperframesRefusalText, stageTexts } from '../shared/stage-texts';
 
 const AUDIO_NAME = 'narration.wav';
@@ -68,7 +67,6 @@ export class CompositionExecutor extends BaseStageExecutor {
       const result = await this.dependencies.runner.run(
         {
           command: 'slate-render',
-          tools: mediaToolPaths(this.dependencies.settings),
           width: canvas.width,
           height: canvas.height,
           fps,
@@ -77,7 +75,7 @@ export class CompositionExecutor extends BaseStageExecutor {
           output,
         },
         MediaWriteResultSchema,
-        { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+        { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] },
       );
       if (result.status === 'failed') return { status: 'failed', failure: toolFailure(result, context) };
       await outputs.adoptFile('composition', output);
@@ -134,7 +132,7 @@ export class CompositionExecutor extends BaseStageExecutor {
           thumbnail: join(directory, 'thumbnail.png'),
         },
         RenderResultSchema,
-        { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+        { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] },
       );
       if (result.status === 'failed') return { status: 'failed', failure: toolFailure(result, context) };
       await outputs.adoptFile('composition', output);
@@ -188,7 +186,6 @@ export class CompositionExecutor extends BaseStageExecutor {
       const result = await runner.run(
         {
           command: 'hyperframes-render',
-          tools: mediaToolPaths(settings),
           templateDir,
           variables: variables.value,
           width: template.details.canvas.width,
@@ -201,7 +198,7 @@ export class CompositionExecutor extends BaseStageExecutor {
           runtime: runtime.value,
         },
         RenderResultSchema,
-        { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+        { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] },
       );
       if (result.status === 'failed') {
         recordRenderFinished(subject, { ok: false, renderSeconds: null, variableCount });

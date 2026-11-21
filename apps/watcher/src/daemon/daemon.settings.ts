@@ -7,7 +7,7 @@
 /** `AbortSignal` that fires on SIGTERM/SIGINT; bound with `useValue` by the composition root. */
 export const DAEMON_SHUTDOWN = Symbol('DAEMON_SHUTDOWN');
 
-/** `{ pid }` of this daemon process, compared with `watcher.pid` the same way `RunEngine` does. */
+/** `{ pid }` of this daemon process, the `selfPid` of `watcher.pid` checks, as in `RunEngine`. */
 export const DAEMON_PROCESS = Symbol('DAEMON_PROCESS');
 
 export interface DaemonProcess {

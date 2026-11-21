@@ -4,6 +4,7 @@ import { hookSpec, type HookTimeline } from '@studio/shared/ace';
 import { runTool } from '../media/exec-tool';
 import { detectBlackAndSilence } from '../media/ffmpeg';
 import { probeMedia } from '../media/ffprobe';
+import { fileInputArgs } from '../media/media-tools';
 import { measureEbur128 } from './audio/mixdown';
 
 const SHEET_TIMEOUT_MS = 2 * 60_000;
@@ -27,7 +28,7 @@ export interface HookQaReport {
 
 /** One frame from the middle of every shot, side by side, for a quick human look. */
 async function writeContactSheet(ffmpegPath: string, videoPath: string, timeline: HookTimeline, outPath: string): Promise<void> {
-  const inputs = timeline.shots.flatMap((shot) => ['-ss', ((shot.startS + shot.endS) / 2).toFixed(3), '-i', videoPath]);
+  const inputs = timeline.shots.flatMap((shot) => ['-ss', ((shot.startS + shot.endS) / 2).toFixed(3), ...fileInputArgs(videoPath)]);
   const scaled = timeline.shots.map((_, index) => `[${index}:v]scale=${SHEET_CELL.width}:${SHEET_CELL.height}[s${index}]`);
   const stacked = `${timeline.shots.map((_, index) => `[s${index}]`).join('')}hstack=inputs=${timeline.shots.length}[sheet]`;
   await runTool(

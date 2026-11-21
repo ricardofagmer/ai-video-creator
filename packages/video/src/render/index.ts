@@ -2,7 +2,7 @@ import { join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
-import { RenderInputSchema, compositionIds, type RenderInput, type RenderTemplateId } from '@studio/shared/ace';
+import { LocalRenderInputSchema, compositionIds, type RenderInput, type RenderTemplateId } from '@studio/shared/ace';
 
 // dist/render/index.js and src/render/index.ts both sit two levels below the package root.
 const PACKAGE_ROOT = resolve(__dirname, '..', '..');
@@ -37,7 +37,8 @@ export async function renderVideo(request: {
   outputPath: string;
   thumbnailPath: string;
 }): Promise<{ durationS: number; renderSeconds: number }> {
-  const input = RenderInputSchema.parse(request.input);
+  // The boundary: loopback media URLs only and no unknown keys, before any bundle or browser work.
+  const input = LocalRenderInputSchema.parse(request.input);
   const startedAt = performance.now();
   const serveUrl = await getServeUrl();
   const inputProps: Record<string, unknown> = { ...input };

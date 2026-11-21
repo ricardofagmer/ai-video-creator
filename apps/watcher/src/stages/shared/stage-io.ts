@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import type { StageExecutionContext } from '@studio/shared/ports';
-import { readJsonFile, readOptionalJsonFile, resolveInsideRun, writeFileAtomic, writeJsonAtomic } from '@studio/shared/run-files';
+import { readJsonFile, readOptionalJsonFile, resolveInsideRun, resolveInsideRunReal, writeFileAtomic, writeJsonAtomic } from '@studio/shared/run-files';
 import { stageWorkPath, type DeclaredOutput, type StageInput, type StageLocation } from '@studio/shared/run-format';
 import { type z } from 'zod';
 import { MissingStageInputError, UndeclaredStageOutputError } from './stage-errors';
@@ -24,7 +24,7 @@ async function readStageInput<T>(
 ): Promise<T> {
   const input = findStageInput(context, name);
   if (input === undefined) throw new MissingStageInputError(context.stage.stageId, name);
-  return readJsonFile(resolveInsideRun(context.runDir, input.path), schema);
+  return readJsonFile(await resolveInsideRunReal(context.runDir, input.path), schema);
 }
 
 export async function readOptionalStageInput<T>(
@@ -43,7 +43,7 @@ export async function readOwnOutput<T>(
 ): Promise<T | null> {
   const declared = context.stageBrief.declaredOutputs.find((candidate) => candidate.name === name);
   if (declared === undefined) throw new UndeclaredStageOutputError(context.stage.stageId, name);
-  const result = await readOptionalJsonFile(resolveInsideRun(context.runDir, declared.path), schema);
+  const result = await readOptionalJsonFile(await resolveInsideRunReal(context.runDir, declared.path), schema);
   return result.status === 'present' ? result.value : null;
 }
 

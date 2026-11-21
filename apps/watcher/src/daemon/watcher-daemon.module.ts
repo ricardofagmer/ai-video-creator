@@ -11,6 +11,7 @@ import { DaemonLoop } from './daemon-loop';
 import { DAEMON_PROCESS, DAEMON_SHUTDOWN, type DaemonProcess } from './daemon.settings';
 import { HeartbeatWriter } from './heartbeat-writer';
 import { RunScanner } from './run-scanner';
+import { WatcherDatabaseAccessModule } from './watcher-database-access.module';
 
 export interface WatcherDaemonModuleOptions {
   /** Fires on SIGTERM/SIGINT (`installShutdownSignals`). */
@@ -21,7 +22,8 @@ export interface WatcherDaemonModuleOptions {
  * Composition root of the launchd daemon (SPEC 0002 R1-09, D17): a standalone Nest application
  * context, booted by `src/main.ts` with `NestFactory.createApplicationContext`. The graph holds
  * no controller and no HTTP adapter, so it never opens a port. SQLite is read only (ADR 0003
- * writer table): the catalog selection brings `CatalogReadModule` (query handlers only) and core
+ * writer table), enforced by `WatcherDatabaseAccessModule` (`PRAGMA query_only = ON`, no database
+ * created): the catalog selection brings `CatalogReadModule` (query handlers only) and core
  * `AgentsModule` (R1-12, with the R1-13 read-only tool set and `CostsReadModule`); with
  * `PathsModule` and `RedactionModule`, no command handler is registered anywhere in the graph.
  * `CqrsModule.forRoot()` provides the QueryBus those query handlers and the agent tools use; the
@@ -48,6 +50,7 @@ export class WatcherDaemonModule {
     return {
       module: WatcherDaemonModule,
       imports: [
+        WatcherDatabaseAccessModule.register(),
         CqrsModule.forRoot(),
         watcher,
         PathsModule,

@@ -1,6 +1,7 @@
 import type { StageFailure } from '@studio/shared/ports';
 import {
   type CheckId,
+  type ControlRequest,
   type JsonObject,
   type RecoveryRecord,
   type RunEvent,
@@ -77,6 +78,8 @@ export interface ControlState {
   directive: ControlDirective;
   resume: boolean;
   requests: readonly ControlRequestKind[];
+  /** The request as read, null when the file was absent; `clear` deletes only this one. */
+  request: ControlRequest | null;
 }
 
 /**
@@ -86,6 +89,9 @@ export interface ControlState {
 export interface RunControlChannel {
   /** An absent file reads as `continue` with no flags. */
   read(runDir: string): Promise<ControlState>;
-  /** Deletes the request file; called once the execution owns the run (RUN-FORMAT section 12). */
-  clear(runDir: string): Promise<void>;
+  /**
+   * Deletes the request file once the execution owns the run (RUN-FORMAT section 12), but only
+   * while it still holds the request `read` carried: a request written after that read survives.
+   */
+  clear(runDir: string, read: ControlState): Promise<void>;
 }

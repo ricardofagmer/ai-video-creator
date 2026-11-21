@@ -1,6 +1,6 @@
 import { ReviewVerdictSchema } from '@studio/shared/agents';
 import type { StageExecutionContext } from '@studio/shared/ports';
-import { readOptionalJsonFile, readRunFile, resolveInsideRun } from '@studio/shared/run-files';
+import { readOptionalJsonFile, readRunFile, resolveInsideRunReal } from '@studio/shared/run-files';
 import {
   CheckResultSchema,
   checkResultPath,
@@ -79,7 +79,7 @@ export async function qaCheckResults(context: StageExecutionContext): Promise<Ch
   const results: CheckResult[] = [];
   for (const checkId of checkIds) {
     const location = { stageNumber: stage.number, stageId: stage.stageId, checkId, attempt };
-    const read = await readOptionalJsonFile(resolveInsideRun(context.runDir, checkResultPath(location)), CheckResultSchema);
+    const read = await readOptionalJsonFile(await resolveInsideRunReal(context.runDir, checkResultPath(location)), CheckResultSchema);
     if (read.status === 'present') results.push(read.value);
   }
   return results;

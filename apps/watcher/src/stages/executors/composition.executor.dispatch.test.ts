@@ -137,7 +137,6 @@ describe('mock mode renders the slate for either engine (AC 74)', () => {
     const request = onlyRequest(current.runner, 'slate-render');
     assert.deepEqual(request, {
       command: 'slate-render',
-      tools: { ffmpegPath: 'ffmpeg', ffprobePath: 'ffprobe' },
       width: 1920,
       height: 1080,
       fps: 30,
@@ -214,7 +213,6 @@ describe('a ready HyperFrames render (SPEC 0008 section 5.2)', () => {
     assert.deepEqual(current.runner.stagedTemplateFiles, [['index.html', 'style.css']]);
     assert.deepEqual(request, {
       command: 'hyperframes-render',
-      tools: { ffmpegPath: 'ffmpeg', ffprobePath: 'ffprobe' },
       templateDir: join(scratch, 'template'),
       variables: { title: script.title, hook: script.hook, disclosure: PT_BR_DISCLOSURE, accent: BRAND_ACCENT, durationS: 50 },
       width: 1920,

@@ -2,6 +2,9 @@ import { realpath } from 'node:fs/promises';
 import { isAbsolute, normalize, relative, resolve, sep } from 'node:path';
 import { AbsolutePathSchema } from '@studio/shared/catalog';
 import { SourceNotFoundError, UnsafePathError } from './asset-store.errors';
+import { isErrnoException, toAssetStoreError } from './fs-errors';
+
+export { isErrnoException } from './fs-errors';
 
 /** True when `candidate` is `root` itself or lies below it, compared after `resolve`. */
 export function isInsideOrEqual(root: string, candidate: string): boolean {
@@ -21,16 +24,12 @@ export function resolveInside(root: string, relativePath: string): string {
   return target;
 }
 
-export function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
-  return error instanceof Error && 'code' in error;
-}
-
 async function realpathOrSelf(path: string): Promise<string> {
   try {
     return await realpath(path);
   } catch (error) {
     if (isErrnoException(error) && error.code === 'ENOENT') return resolve(path);
-    throw error;
+    throw toAssetStoreError(error);
   }
 }
 
@@ -54,7 +53,8 @@ export async function assertSafeSourcePath(candidate: string, storeRoot: string)
     realCandidate = await realpath(candidate);
   } catch (error) {
     if (isErrnoException(error) && error.code === 'ENOENT') throw new SourceNotFoundError();
-    throw error;
+    // EACCES, ELOOP and the rest: Node's message names the path, which may be biometric.
+    throw toAssetStoreError(error);
   }
   if (isInsideOrEqual(await realpathOrSelf(storeRoot), realCandidate)) throw new UnsafePathError('inside-store');
   return realCandidate;

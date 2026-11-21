@@ -10,6 +10,8 @@ import { ElevenLabsVoiceProvider } from '../providers/voice/elevenlabs-voice';
 import { synthesizeLocalLines } from '../providers/voice/local-voice';
 
 const SAY_TIMEOUT_MS = 60_000;
+/** macOS ships `say` here; a fixed path keeps a PATH entry from substituting another program. */
+const SAY_PATH = '/usr/bin/say';
 /** macOS system voices for draft narration; the live voice comes from ELEVENLABS_VOICE_ID. */
 const DRAFT_VOICES: Record<HookLang, string> = { pt: 'Luciana', en: 'Samantha' };
 
@@ -32,7 +34,7 @@ export interface NarrationResult {
 
 async function draftClip(env: ToolboxEnv, lang: HookLang, line: NarrationLine, dir: string): Promise<NarrationClip> {
   const path = join(dir, `${line.shotId}.aiff`);
-  await runTool('say', ['-v', DRAFT_VOICES[lang], '-o', path, '--', line.text], SAY_TIMEOUT_MS);
+  await runTool(SAY_PATH, ['-v', DRAFT_VOICES[lang], '-o', path, '--', line.text], SAY_TIMEOUT_MS);
   const probe = await probeMedia(env.ffprobePath, path);
   return { shotId: line.shotId, path, words: estimateWordTimings(line.text, probe.durationS) };
 }

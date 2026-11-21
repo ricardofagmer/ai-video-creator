@@ -36,7 +36,7 @@ export class CurationScanner {
     return open.filter((scanned) => scanned.file.status === 'requested');
   }
 
-  /** Every `collecting` curation: at start, each was claimed by a process that is gone (Q7). */
+  /** Every `collecting` curation; the step's start sweep ends those whose claimant is gone (Q7). */
   async listCollecting(): Promise<ScannedCuration[]> {
     const open = await this.openCurations();
     return open.filter((scanned) => scanned.file.status === 'collecting');

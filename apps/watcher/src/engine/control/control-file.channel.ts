@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { readControlRequest, removeControlRequest } from '@studio/shared/run-files';
+import { readControlRequest, removeControlRequestIfUnchanged } from '@studio/shared/run-files';
 import { type ControlRequest } from '@studio/shared/run-format';
 import { ownerTexts } from '../owner-texts';
 import { type ControlDirective, type ControlRequestKind, type ControlState, type RunControlChannel } from '../seams';
 
-const noRequest: ControlState = { directive: { kind: 'continue' }, resume: false, requests: [] };
+const noRequest: ControlState = { directive: { kind: 'continue' }, resume: false, requests: [], request: null };
 
 /** `stop` wins over `pause`; `pause: false` written before the watcher acts cancels a pause (RUN-FORMAT 12). */
 function directiveOf(request: ControlRequest): ControlDirective {
@@ -31,10 +31,20 @@ export class ControlFileChannel implements RunControlChannel {
   async read(runDir: string): Promise<ControlState> {
     const request = await readControlRequest(runDir);
     if (request.status === 'absent') return noRequest;
-    return { directive: directiveOf(request.value), resume: request.value.resume === true, requests: requestsOf(request.value) };
+    return {
+      directive: directiveOf(request.value),
+      resume: request.value.resume === true,
+      requests: requestsOf(request.value),
+      request: request.value,
+    };
   }
 
-  async clear(runDir: string): Promise<void> {
-    await removeControlRequest(runDir);
+  /**
+   * Nothing read, nothing cleared: a request that appeared after the read is the next check's. A
+   * pause written between the read and this call is kept (baseline review "lost pause").
+   */
+  async clear(runDir: string, read: ControlState): Promise<void> {
+    if (read.request === null) return;
+    await removeControlRequestIfUnchanged(runDir, read.request);
   }
 }

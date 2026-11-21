@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { AssetStoreModule } from '../asset-store/asset-store.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { BIOMETRIC_REFERENCE_SOURCE, PrismaBiometricReferenceSource } from '../redaction/biometric-reference.source';
 import { AssetContentService } from './asset-content';
 import { AssetVersionRepository } from './asset-version.repository';
+import { BiometricSourceGuard } from './biometric-source.guard';
 import { CatalogAssetResolver } from './catalog-asset-resolver';
 import { HyperframesTemplateCheck } from './hyperframes-template.check';
 import { CreateAssetHandler } from './commands/create-asset.handler';
@@ -24,6 +26,9 @@ import { SearchAssetsHandler } from './queries/search-assets.handler';
   providers: [
     AssetVersionRepository,
     AssetContentService,
+    // Imports and non-biometric references are checked against the registered biometric paths.
+    { provide: BIOMETRIC_REFERENCE_SOURCE, useClass: PrismaBiometricReferenceSource },
+    BiometricSourceGuard,
     CatalogAssetResolver,
     HyperframesTemplateCheck,
     CreateAssetHandler,

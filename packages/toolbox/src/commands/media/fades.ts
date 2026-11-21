@@ -4,7 +4,7 @@ import { runTool } from '../../media/exec-tool';
 import { probeMedia } from '../../media/ffprobe';
 import { filePathArg, numberArg, parseCommandArgs } from '../../media/media-args';
 import { prepareOutputFile, resolveInputFile } from '../../media/media-paths';
-import { ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS, formatSeconds, H264_VIDEO_ARGS, type MediaToolPaths } from '../../media/media-tools';
+import { ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS, fileInputArgs, formatSeconds, H264_VIDEO_ARGS, type MediaToolPaths } from '../../media/media-tools';
 
 /** Contract C9 `fades` arguments. Defaults: video_tool.py `motion` (0.4 s), matching RELATORIO.md's 0.4 s fade-out. */
 export const FadesArgsSchema = z
@@ -49,7 +49,7 @@ export async function runFades(tools: MediaToolPaths, rawArgs: unknown): Promise
     tools.ffmpegPath,
     [
       ...FFMPEG_WRITE_ARGS,
-      '-i', input,
+      ...fileInputArgs(input),
       ...(filters.length > 0 ? ['-vf', filters.join(',')] : []),
       ...H264_VIDEO_ARGS,
       '-c:a', 'aac', '-b:a', '160k',
