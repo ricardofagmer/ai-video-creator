@@ -3,9 +3,9 @@ import { type SandboxDenial } from './hyperframes-ports.js';
 /*
  * Reading the macOS sandbox denials out of `/usr/bin/log show --style ndjson` (SPEC 0008 section
  * 5.6 step 3). The kernel writes one line per denial, for example
- * `Sandbox: node(4242) deny(1) network-outbound 192.0.2.1:9`. Whether this predicate sees the
- * denials at all is proven by the control connection on every trace: an invisible control makes
- * the trace invalid, never passed.
+ * `Sandbox: node(4242) deny(1) network-outbound 192.0.2.1:9`. macOS 27 writes no line for
+ * sandbox-exec profile denials (section 18.7), so the control's proof is its EPERM exit code and
+ * this reading only adds evidence: other network denials and owner-folder reads, when logged.
  */
 
 /** Kernel sandbox lines and the sandbox reporting subsystem; both carry the same text. */

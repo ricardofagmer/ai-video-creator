@@ -23,7 +23,7 @@ import {
  * in live mode with a HyperFrames template bound. Each stops the stage as `needs-person` with its
  * section 5.7 text, sends no tool-runner request (the runner is the only way a process starts),
  * records no cost and logs exactly one `hyperframes.render-refused` event naming the reason
- * (AC 89, 91, 96). The child environment's eleven keys (AC 89, last sentence) are covered by
+ * (AC 89, 91, 96). The child environment's keys (AC 89, last sentence; twelve since section 18.6) are covered by
  * `stages/process/runner/hyperframes.handlers.test.ts` ("gives the child exactly the eleven
  * environment keys and none of the parent sentinels").
  */

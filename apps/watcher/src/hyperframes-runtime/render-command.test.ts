@@ -51,7 +51,7 @@ describe('buildRenderArgv (AC 66)', () => {
 });
 
 describe('buildRenderEnv (AC 67)', () => {
-  it('holds exactly the eleven keys of section 4.5 with their stated values', () => {
+  it('holds exactly the eleven keys of section 4.5 plus HYPERFRAMES_CHROME_SANDBOX=0 (section 18.6), with their stated values', () => {
     const runtime = runtimeFixture();
 
     const env = buildRenderEnv(runtime);

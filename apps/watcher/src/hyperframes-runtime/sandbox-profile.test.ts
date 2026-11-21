@@ -37,7 +37,7 @@ const PROFILE_HEADER: readonly string[] = ['(version 1)', '(allow default)'];
 /** Rev 1 network rules, kept right after `(allow default)` (section 17.4). */
 const REV1_NETWORK_RULES: readonly string[] = [
   '(deny network*)',
-  '(allow network* (local ip "localhost:*"))',
+  '(allow network-bind network-inbound (local ip "localhost:*"))',
   '(allow network* (remote ip "localhost:*"))',
   '(allow network* (remote unix-socket))',
   '(deny network* (remote unix-socket (path-literal "/private/var/run/mDNSResponder")))',

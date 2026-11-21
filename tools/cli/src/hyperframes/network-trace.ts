@@ -22,6 +22,7 @@ import {
   TRACE_PROBE_FILE_REMOVED_TEXT,
   traceChromeBeforeText,
   traceControlNotRefusedText,
+  TRACE_CONTROL_NOT_LOGGED_TEXT,
   traceInformationalDenialText,
 } from './hyperframes-texts.js';
 import { pictureMismatches, type PictureExpectation } from './picture-probe.js';
@@ -202,9 +203,11 @@ export async function runNetworkTrace(inputs: NetworkTraceInputs, ports: Network
   const findings: string[] = [];
   if (log.status !== 'read') findings.push('log do sistema: leitura indisponível; a verificação não pôde ser confirmada');
   const controlExit = controls.exitCodes.C1;
-  const controlDenied = controlExit === 0 && verdict.controlLogged;
-  if (controlExit !== 0) findings.push(`controle: a conexão para ${NETWORK_CONTROL_TARGET} não foi negada pelo isolamento (código ${controlExit})`);
-  else if (log.status === 'read' && !verdict.controlLogged) findings.push('controle: a negação não apareceu no log; verificação inválida');
+  // Section 18.7: EPERM (exit 0) is the proof. Unsandboxed, a connect to the TEST-NET-1 address times
+  // out or is unreachable (exit 11 or 12); only the sandbox answers EPERM. macOS 27 writes no line
+  // for sandbox-exec profile denials, so a missing log line is informational, never a failure.
+  const controlDenied = controlExit === 0;
+  if (!controlDenied) findings.push(`controle: a conexão para ${NETWORK_CONTROL_TARGET} não foi negada pelo isolamento (código ${controlExit})`);
   const notRefused = PROBED_CONTROLS.filter((id) => controls.exitCodes[id] !== 0);
   for (const id of notRefused) findings.push(traceControlNotRefusedText(id, controls.exitCodes[id]));
   if (controls.probeFileRemoved) findings.push(TRACE_PROBE_FILE_REMOVED_TEXT);
@@ -227,6 +230,7 @@ export async function runNetworkTrace(inputs: NetworkTraceInputs, ports: Network
   if (credentials > 0) findings.push(`configuração: ${credentials} arquivo(s) credentials* na pasta do estúdio`);
   if (verdict.ownerFolderDenied > 0) findings.push(`leituras negadas da sua pasta ~/.hyperframes: ${verdict.ownerFolderDenied}`);
   // Last, so the result-bearing findings are the ones kept within the record's bound.
+  if (controlDenied && log.status === 'read' && !verdict.controlLogged) findings.push(TRACE_CONTROL_NOT_LOGGED_TEXT);
   for (const denial of verdict.informational) findings.push(traceInformationalDenialText(describeDenial(denial)));
 
   // Step 5: the record.
