@@ -4,7 +4,7 @@ status: active
 owner: Ricardo Fagmer
 spec: pending (SPEC 0008, after the pin approval)
 domain: backend
-security_review: pending
+security_review: done
 preview: pending
 risk: medium
 new_feature: true
@@ -164,3 +164,4 @@ advisory; 0.9.17 (the newest release at least 14 days old) pins `undici` 7.25.0 
 | 2026-11-21 | Ricardo Fagmer | — | "done, next phase", then "AC 86-97 tests (Recommended)": approves writing the SPEC 0008 17.13 "next task" tests (OD8/K17/AC 97 bound only the finished rev 2 wave); written by four test-writer units, not run until the final checkpoint |
 | 2026-11-21 | Ricardo Fagmer | security-accept | Rev 2 re-review findings: "Accept as residual risk" — F1 (unix sockets outside the four denies, `render.sb:23,31-39`), F2 (HF_CACHE_DIR rename around the CHROME_DIR deny, dylibs unhashed), F3 (lint misses `srcdoc`, SVG SMIL), F4 (Chrome verify check-to-use gap) accepted, not fixed; F5 info noted. Engine stays off until O3 passes (AC 98); `security_review` left `pending` (accepting findings is not a clean review) |
 | 2026-11-21 | Ricardo Fagmer | — | R4H-FP security: "Run reviewer and scan" — read-only `security-reviewer` over the SPEC 0008 diff plus `apps/api/src/auth/rev7-routes.guard.test.ts`, and `engineos compliance diff` once |
+| 2026-11-21 | Ricardo Fagmer | security-accept | After "New branch and PR" then "same branch": "Mark done (accepted)" — `security_review` set to `done` on the recorded acceptance of F1 to F4 (residual risk, not fixed); the secret and injection scans at commit, push and PR still apply. Seed-entry CI fix: "Skip, let CI run it" — the test file was not run locally |
