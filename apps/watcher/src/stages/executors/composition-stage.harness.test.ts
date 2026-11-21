@@ -11,7 +11,13 @@ import { CqrsModule, QueryBus, QueryHandler, type IQueryHandler } from '@nestjs/
 import { type z } from 'zod';
 import { type FolderFileSource, type FolderVersionSource } from '@studio/core/asset-store';
 import { GetAssetVersionQuery } from '@studio/core/catalog';
-import { HyperframesPinMismatchError } from '@studio/hyperframes';
+import {
+  HyperframesChromeMissingError,
+  HyperframesPinMismatchError,
+  HyperframesSandboxUnavailableError,
+  type ChromeMissingDetail,
+  type RecordedChromeBinary,
+} from '@studio/hyperframes';
 import { type AgentsPort, type ScenesOutput, type ScriptOutput } from '@studio/shared/agents';
 import { type AssetVersion, type JsonObject, type TemplateDetails } from '@studio/shared/catalog';
 import {
@@ -346,6 +352,14 @@ export class RecordingHyperframesPorts implements HyperframesStagePorts {
   profileUnreadable = false;
   /** Changes the folder listing (the manifest the copy is checked against) before it is returned. */
   listingEdit: (files: FolderFileSource[]) => FolderFileSource[] = (files) => files;
+  /** SPEC 0008 section 17.6: when set, `verifyChromeBinary` refuses the recorded binary with this detail. */
+  chromeVerifyFailure: ChromeMissingDetail | null = null;
+  /** The arguments of every `verifyChromeBinary` call, in order. */
+  readonly chromeVerifications: { recorded: RecordedChromeBinary; cacheDir: string }[] = [];
+  /** Section 17.5: settings values (bare names or absolute paths) `resolveExecutable` finds nothing for. */
+  readonly unresolvableExecutables = new Set<string>();
+  /** Section 17.5: folders `realFolder` answers as `missing`. */
+  readonly missingFolders = new Set<string>();
 
   constructor(readonly dataHomeRoot: string) {}
 
@@ -378,14 +392,18 @@ export class RecordingHyperframesPorts implements HyperframesStagePorts {
 
   /*
    * SPEC 0008 sections 17.5 and 17.6 (rev 2): the Chrome re-hash and the real-path resolution.
-   * In memory: Chrome always matches `chrome.json` and every path is already real, so the
-   * request's paths equal the harness's own folders.
+   * In memory: by default Chrome matches `chrome.json` and every path is already real, so the
+   * request's paths equal the harness's own folders. `chromeVerifyFailure`,
+   * `unresolvableExecutables` and `missingFolders` script the refusals.
    */
-  async verifyChromeBinary(): Promise<void> {
+  async verifyChromeBinary(recorded: RecordedChromeBinary, options: { cacheDir: string }): Promise<void> {
     this.calls.push('verifyChromeBinary');
+    this.chromeVerifications.push({ recorded, cacheDir: options.cacheDir });
+    if (this.chromeVerifyFailure !== null) throw new HyperframesChromeMissingError(this.chromeVerifyFailure);
   }
 
   async resolveExecutable(nameOrPath: string): Promise<string> {
+    if (this.unresolvableExecutables.has(nameOrPath)) throw new HyperframesSandboxUnavailableError();
     return nameOrPath.startsWith('/') ? nameOrPath : join(FAKE_TOOLS_DIR, nameOrPath);
   }
 
@@ -398,6 +416,7 @@ export class RecordingHyperframesPorts implements HyperframesStagePorts {
   }
 
   async realFolder(path: string): Promise<RealFolder> {
+    if (this.missingFolders.has(path)) return { status: 'missing' };
     return { status: 'present', realPath: path };
   }
 
@@ -558,6 +577,8 @@ export interface CompositionHarnessOptions {
   /** Folder names under the temp root; tests put sentinel strings in them (AC 81). */
   scratchDirName?: string;
   dataHomeDirName?: string;
+  /** The studio ports in the stage settings (default api 4311, web 4310; SPEC 0008 section 17.5). */
+  studioPorts?: StageSettings['studioPorts'];
 }
 
 export interface CompositionHarness {
@@ -657,7 +678,7 @@ export async function createCompositionHarness(options: CompositionHarnessOption
     ffprobePath: 'ffprobe',
     localVoice: null,
     elevenLabs: { voiceId: null, modelId: 'eleven_multilingual_v2' },
-    studioPorts: { api: 4311, web: 4310 },
+    studioPorts: options.studioPorts ?? { api: 4311, web: 4310 },
   };
   const runner = new RecordingToolRunner(settings);
   const ports = new RecordingHyperframesPorts(dataHomeRoot);

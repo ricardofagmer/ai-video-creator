@@ -281,3 +281,120 @@ describe('templateFolderIssues: other section 4.3 rules', () => {
     assert.deepEqual(codesOf([indexWith('<img src="\\\\cdn.example.com\\logo.png" alt="" />')]), ['folder-reference-protocol-relative']);
   });
 });
+
+/*
+ * Rev 2 lint (SPEC 0008 section 17, R4H-11, finding L2). Each AC 94 case is a bypass the rev 1
+ * lint let through; the check asserts the expected issue is present, not that it is the only one.
+ * The AC 77 blocks above must keep holding unchanged (AC 95).
+ */
+
+function assertRefused(entries: readonly TemplateFolderEntry[], expected: { code: TemplateIssueCode; at: string }): void {
+  const issues = templateFolderIssues(entries).map((issue) => ({ code: issue.code, at: issue.at }));
+
+  assert.ok(
+    issues.some((issue) => issue.code === expected.code && issue.at === expected.at),
+    `expected ${JSON.stringify(expected)} among ${JSON.stringify(issues)}`,
+  );
+}
+
+const SCHEME_IN_INDEX = { code: 'folder-reference-scheme', at: 'index.html' } as const;
+const PROTOCOL_RELATIVE_IN_INDEX = { code: 'folder-reference-protocol-relative', at: 'index.html' } as const;
+
+describe('templateFolderIssues: AC 94 rev 2 refusals', () => {
+  it('rejects a scheme hidden by a decimal character reference', () => {
+    assertRefused([indexWith('<img src="&#104;ttps://h/x" alt="" />')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a scheme hidden by a hexadecimal character reference', () => {
+    assertRefused([indexWith('<img src="&#x68;ttps://h/x" alt="" />')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a scheme whose colon is the &colon; named reference', () => {
+    assertRefused([indexWith('<a href="https&colon;//h/x">x</a>')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects an attribute name that follows a slash', () => {
+    assertRefused([indexWith('<img/src="https://h/x">')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects an attribute name that follows a closing quote with no white space', () => {
+    assertRefused([indexWith('<img alt="a"src="https://h/x">')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a scheme split by a tab', () => {
+    assertRefused([indexWith('<img src="ht\ttps://h/x" alt="" />')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a scheme split by a line break', () => {
+    assertRefused([indexWith('<img src="ht\ntps://h/x" alt="" />')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a remote body background attribute', () => {
+    assertRefused([indexWith('<body background="https://h/x"></body>')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects an unquoted protocol-relative video poster', () => {
+    assertRefused([indexWith('<video poster=//h/x></video>')], PROTOCOL_RELATIVE_IN_INDEX);
+  });
+
+  it('rejects a remote srcset candidate beside a local one', () => {
+    assertRefused([indexWith('<img srcset="a.png 1x, https://h/b.png 2x">'), file('a.png')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a meta refresh to a remote url', () => {
+    assertRefused([indexWith('<meta http-equiv="refresh" content="0;url=https://h/">')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a meta refresh whose upper-case URL= target is quoted', () => {
+    assertRefused([indexWith('<meta http-equiv="refresh" content="0;URL=\'https://h/\'">')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a meta refresh whose http-equiv is upper-case Refresh', () => {
+    assertRefused([indexWith('<meta http-equiv="Refresh" content="0;url=https://h/">')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a remote image-set candidate in a stylesheet', () => {
+    const entries = folderWith(file('style.css', 'body { background-image: image-set("https://h/x" 1x); }'));
+
+    assertRefused(entries, { code: 'folder-reference-scheme', at: 'style.css' });
+  });
+
+  it('rejects a protocol-relative -webkit-image-set candidate', () => {
+    const entries = folderWith(file('style.css', "body { background-image: -webkit-image-set('//h/x' 1x); }"));
+
+    assertRefused(entries, { code: 'folder-reference-protocol-relative', at: 'style.css' });
+  });
+
+  it('rejects an inline style url() whose scheme is a character reference', () => {
+    assertRefused([indexWith('<div style="background:url(&#104;ttps://h/x)"></div>')], SCHEME_IN_INDEX);
+  });
+
+  it('rejects a reference value that still holds an undecodable &foo; reference', () => {
+    assertRefused([indexWith('<img src="assets/&foo;logo.png" alt="" />')], SCHEME_IN_INDEX);
+  });
+});
+
+/*
+ * AC 95: the seed template folder is covered by 'accepts the repository seed template' in the
+ * AC 77 block above and is not repeated here. Signature and TemplateIssueCode byte-identity are
+ * checked by inspection, not by a test.
+ */
+describe('templateFolderIssues: AC 95 rev 2 acceptances', () => {
+  it('accepts an inline data: image whose value holds character references', () => {
+    assert.deepEqual(templateFolderIssues([indexWith('<img src="data:image/svg+xml;utf8,&lt;svg/&gt;" alt="" />')]), []);
+  });
+
+  it('accepts a query string joined by &amp; on a listed file', () => {
+    assert.deepEqual(templateFolderIssues([indexWith('<img src="a.png?x=1&amp;y=2" alt="" />'), file('a.png')]), []);
+  });
+
+  it('does not treat a data-src attribute holding a URL as a reference', () => {
+    assert.deepEqual(templateFolderIssues([indexWith('<div data-src="https://h/x"></div>')]), []);
+  });
+
+  it('accepts an image-set of listed local files', () => {
+    const entries = folderWith(file('style.css', 'body { background-image: image-set("a.png" 1x, "b.png" 2x); }'), file('a.png'), file('b.png'));
+
+    assert.deepEqual(templateFolderIssues(entries), []);
+  });
+});
