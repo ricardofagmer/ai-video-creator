@@ -18,8 +18,8 @@ placeholder pins until they are read from the model host, and the installer and 
 placeholders. Measurements are **To measure** (vetting section 9). Statements marked
 **Assumption** are defaults chosen here.
 
-Status stays `proposed` until the R2 final proof (R2-FP) confirms the vetting report's phase 2
-checks (section 11) and the measurements on the owner's Mac.
+Acceptance was first tied to the R2 final proof (R2-FP), which checks the vetting report's phase 2
+items (section 11) and the measurements on the owner's Mac; the owner accepted it on 2026-11-21.
 
 ## Context
 

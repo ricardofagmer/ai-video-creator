@@ -3,7 +3,7 @@
 Date: 2026-11-19
 Status: accepted (owner, 2026-11-21). The owner chose A2 + B1 + C1 (thin Electron menu-bar shell, watcher stays under launchd) on 2026-11-19 (SPEC 0006 Q1, "Electron menu-bar (Recommended)"). Vetting 0002 (`docs/vetting/0002-shell-runtime.md`) was approved with option P on 2026-11-19, and R3-08 part 2 was implemented by tickets 09 to 12 (see "Decision record (R3-08)").
 
-Decider: Ricardo Fagmer. The decision is the owner's; this ADR recommends and does not decide
+Decider: Ricardo Fagmer. The decision is the owner's, made on 2026-11-19
 (SPEC 0006 Q1). Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) D4, D8, D9, section 3 (R3:
 "a packaged `.app` or menu-bar shell if still wanted"), section 11, section 12; ADR 0001 (last
 revisit trigger: "A packaged `.app` is approved for R3: reopen the launchd and `studio start`
@@ -134,7 +134,7 @@ Forces:
 
 ## Decision
 
-**Proposed, for the owner to accept, change or reject (SPEC 0006 Q1):** A2 + B1 + C1.
+**Accepted by the owner (SPEC 0006 Q1):** A2 + B1 + C1.
 
 1. Build a **thin menu-bar shell** (A2): tray icon and menu only, no window that renders the
    studio. "Abrir estúdio" opens the local web in the default browser.
