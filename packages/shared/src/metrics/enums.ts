@@ -8,6 +8,28 @@ export type Platform = z.infer<typeof PlatformSchema>;
 export const MetricSourceSchema = z.enum(['csv', 'form']);
 export type MetricSource = z.infer<typeof MetricSourceSchema>;
 
+/**
+ * Where a publication came from (SPEC 0007 section 4.1, column `run_publications.origin`): a link the
+ * owner pasted, a studio upload, or a simulated upload. Checked by zod in the handlers because an
+ * added column carries no table CHECK (K8). Existing rows read `manual`.
+ */
+export const PublicationOriginSchema = z.enum(['manual', 'studio', 'mock']);
+export type PublicationOrigin = z.infer<typeof PublicationOriginSchema>;
+
+/**
+ * How a `metric_imports` row arrived (SPEC 0007 section 4.5, column `metric_imports.origin`): a CSV
+ * upload or a pulled API batch (Q3). Existing rows read `upload`.
+ */
+export const MetricImportOriginSchema = z.enum(['upload', 'api']);
+export type MetricImportOrigin = z.infer<typeof MetricImportOriginSchema>;
+
+/**
+ * How a snapshot is shown (SPEC 0007 section 4.1): derived on read from `source` and the origin of
+ * its import, never stored. A pulled snapshot keeps source `csv` (Q3) and shows `api`.
+ */
+export const MetricSnapshotOriginSchema = z.enum(['form', 'csv-upload', 'api']);
+export type MetricSnapshotOrigin = z.infer<typeof MetricSnapshotOriginSchema>;
+
 /** Why one CSV row was skipped; the import continues and reports the row by its line number. */
 export const MetricRowIssueSchema = z.enum([
   'id-missing',

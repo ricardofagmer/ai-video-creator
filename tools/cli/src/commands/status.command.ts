@@ -5,6 +5,8 @@ import { ExitCode } from '../errors/exit-codes.js';
 import { toErrorReport } from '../errors/error-report.js';
 import { withCliContext } from '../nest/cli-context.js';
 import { runDetailLines, runListLines } from '../output/run-text.js';
+import { nestPlatformGateway } from '../platforms/nest-platform-gateway.js';
+import { printLeftTheMachine, printPlatformStatus } from '../platforms/platform-status.js';
 import { listRecentRuns, readRunSnapshot, type RunSnapshot } from '../runs/run-reader.js';
 import { isSettled, settleRuns } from '../runs/run-settlement.js';
 import { nestScheduleGateway } from '../schedules/nest-schedule-gateway.js';
@@ -54,26 +56,28 @@ async function printCurationQueue(dependencies: CommandDependencies): Promise<vo
 
 /**
  * `studio status [runId]`: reads run folders directly through C5 (no api needed). Without an id it
- * lists the newest runs, the curation queue line and the schedules line (active count, next slot,
- * missed in 7 days; SPEC 0006 section 5.7, read through the core schedule queries); with one it
- * shows stages, the waiting reason and live activity.
+ * lists the newest runs, the curation queue line, the schedules line (active count, next slot,
+ * missed in 7 days; SPEC 0006 section 5.7, read through the core schedule queries) and one line
+ * per platform with its status words (SPEC 0007 section 5.3, AC 43). With one (also
+ * `studio runs show <runId>`) it shows stages, the waiting reason, live activity, "O que saiu da
+ * máquina" and the run's publish attempts (SPEC 0007 section 5.4, AC 49), after
+ * `PublishAttemptSync` for that run.
  */
 export async function statusCommand(runId: RunId | undefined, dependencies: CommandDependencies): Promise<number> {
   const runsRoot = dependencies.settings.dataHome.runs;
+  const describeError = (error: unknown): string => toErrorReport(error).message;
   if (runId !== undefined) {
     const snapshot = await readRunSnapshot(runsRoot, runId);
     for (const line of runDetailLines(snapshot)) dependencies.printer.line(line);
+    await printLeftTheMachine({ gateway: nestPlatformGateway, printer: dependencies.printer, describeError, runId, runDir: snapshot.runDir });
     await settleShown([snapshot], dependencies);
     return ExitCode.ok;
   }
   const recent = await listRecentRuns(runsRoot, STATUS_LIST_LIMIT);
   for (const line of runListLines(recent)) dependencies.printer.line(line);
   await printCurationQueue(dependencies);
-  await printScheduleStatus({
-    gateway: nestScheduleGateway,
-    printer: dependencies.printer,
-    describeError: (error) => toErrorReport(error).message,
-  });
+  await printScheduleStatus({ gateway: nestScheduleGateway, printer: dependencies.printer, describeError });
+  await printPlatformStatus({ gateway: nestPlatformGateway, printer: dependencies.printer, describeError, now: () => new Date() });
   const snapshots = recent.results.flatMap((result) => (result.status === 'read' ? [result.snapshot] : []));
   await settleShown(snapshots, dependencies);
   return ExitCode.ok;

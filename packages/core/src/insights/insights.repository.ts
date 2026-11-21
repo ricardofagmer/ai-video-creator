@@ -1,9 +1,30 @@
 import { Injectable } from '@nestjs/common';
+import { type Prisma } from '@prisma/client';
 import { type ParsedAssetRef } from '@studio/shared/catalog';
 import { PrismaService } from '../prisma';
+import { AttemptUploadEvidence } from './attempt-upload-evidence.reader';
 
 /** Statuses a run has once it reached `review` (C3 `RunStatus`). */
 const REVIEWED_STATUSES = ['review', 'approved', 'rejected'];
+
+/** Attempt states that never reached `uploading`: no byte left the machine (SPEC 0007 section 5.4). */
+const NEVER_UPLOADED_STATES = ['queued', 'cancelled', 'expired'];
+
+/**
+ * `failed` reasons the watcher writes at its re-check, before `uploading` (SPEC 0007 section 5.5),
+ * so the attempt sent nothing.
+ */
+const PRE_UPLOAD_FAILURE_REASONS = ['run-not-approved', 'gate-closed', 'mode-mismatch', 'account-not-connected', 'artifact-missing', 'artifact-changed'];
+
+/**
+ * `failed` reasons the watcher writes either before any byte or during an upload (finding C8): a
+ * revoked token at the re-check or mid-upload, an internal error, a restart. Such an attempt is
+ * left out only when its run's `publications.jsonl` shows no `upload-started` line for it.
+ */
+const BEFORE_OR_DURING_UPLOAD_REASONS = ['token-revoked', 'internal-error', 'watcher-interrupted'];
+
+/** Attempts whose `publications.jsonl` is checked per count; any beyond stay counted. */
+const MAX_EVIDENCE_CHECKS = 200;
 
 /** Ids per `IN (...)` or `OR` query; well under SQLite's bound-parameter limit. */
 const KEYS_PER_QUERY = 200;
@@ -38,7 +59,10 @@ export function assetVersionKey(version: ParsedAssetRef): string {
  */
 @Injectable()
 export class InsightsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadEvidence: AttemptUploadEvidence,
+  ) {}
 
   /** Runs that reached review, newest first; asks for `limit` rows. */
   async reviewedRuns(limit: number): Promise<ReviewedRunRow[]> {
@@ -77,8 +101,39 @@ export class InsightsRepository {
     return createdAt;
   }
 
-  /** Publications whose run has no `approved` outcome; the handler rule keeps this at 0. */
+  /**
+   * Videos that left without a recorded approval (SPEC 0007 section 5.10); the handler rules keep it
+   * at 0 and this query exists to prove it. Two terms, so a studio publication is counted once:
+   * - pasted publications (`attempt_id` null) whose run has no `approved` outcome;
+   * - `publication_attempts` that reached `uploading` or later (bytes may have left; a studio or
+   *   mock publication always has one) whose outcome is not `approved`, or whose
+   *   `approval_decided_at` is later than `requested_at`. A `failed` attempt with a reason the
+   *   watcher writes before any byte is left out; one with a reason it writes before or during an
+   *   upload is left out only when its run's `publications.jsonl` proves no byte was sent (C8).
+   */
   async unapprovedPublicationCount(): Promise<number> {
-    return this.prisma.runPublication.count({ where: { outcome: { decision: { not: 'approved' } } } });
+    const pasted = await this.prisma.runPublication.count({
+      where: { attemptId: null, outcome: { decision: { not: 'approved' } } },
+    });
+    const unapproved: Prisma.PublicationAttemptWhereInput = {
+      state: { notIn: [...NEVER_UPLOADED_STATES] },
+      NOT: { state: 'failed', reasonId: { in: [...PRE_UPLOAD_FAILURE_REASONS] } },
+      OR: [
+        { outcome: { decision: { not: 'approved' } } },
+        { approvalDecidedAt: { gt: this.prisma.publicationAttempt.fields.requestedAt } },
+      ],
+    };
+    const attempts = await this.prisma.publicationAttempt.count({ where: unapproved });
+    const ambiguous = await this.prisma.publicationAttempt.findMany({
+      where: { AND: [unapproved, { state: 'failed', reasonId: { in: [...BEFORE_OR_DURING_UPLOAD_REASONS] } }] },
+      orderBy: { id: 'desc' },
+      take: MAX_EVIDENCE_CHECKS,
+      select: { id: true, runId: true },
+    });
+    let sentNothing = 0;
+    for (const attempt of ambiguous) {
+      if (await this.uploadEvidence.sentNoByte({ runId: attempt.runId, attemptId: attempt.id })) sentNothing += 1;
+    }
+    return pasted + attempts - sentNothing;
   }
 }

@@ -99,6 +99,10 @@
     "./schedules": {
       "types": "./src/schedules/index.ts",
       "default": "./dist/schedules/index.js"
+    },
+    "./platforms": {
+      "types": "./src/platforms/index.ts",
+      "default": "./dist/platforms/index.js"
     }
   },
   "typesVersions": {
@@ -174,6 +178,9 @@
       ],
       "schedules": [
         "./src/schedules/index.ts"
+      ],
+      "platforms": [
+        "./src/platforms/index.ts"
       ]
     }
   },

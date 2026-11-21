@@ -4,6 +4,7 @@ import { PathsModule } from '@studio/core/paths';
 import { RedactionModule } from '@studio/core/redaction';
 import { WatcherCurationModule } from '../curation/watcher-curation.module';
 import { noMockFault } from '../mocks/mock-fault';
+import { WatcherPlatformsModule } from '../platforms/watcher-platforms.module';
 import { WatcherScheduleModule } from '../schedules/watcher-schedule.module';
 import { WatcherModule } from '../watcher.module';
 import { DaemonLoop } from './daemon-loop';
@@ -34,6 +35,11 @@ export interface WatcherDaemonModuleOptions {
  * curations; it reads SQLite only through core `SchedulesReadModule`, writes `cursor.json` and
  * `slots.jsonl`, and creates one `run.json` at `pending` per fired slot. It shares the engine's
  * `CLOCK` through the same `WatcherModule` registration object.
+ * `WatcherPlatformsModule` (SPEC 0007 R4-03) hosts the publish step the loop calls first between
+ * runs and the metrics poll it calls after the schedule step; it reads SQLite only, through core
+ * `PlatformsReadModule` and two `findMany`/`findUnique` reads, and writes its own platform files,
+ * `publications.jsonl` and, on refresh under `token.lock`, the Keychain item. It shares the same
+ * `CLOCK`.
  */
 @Module({})
 export class WatcherDaemonModule {
@@ -48,6 +54,7 @@ export class WatcherDaemonModule {
         RedactionModule,
         WatcherCurationModule.register({ stop: options.shutdown }),
         WatcherScheduleModule.register({ clock: watcher }),
+        WatcherPlatformsModule.register({ clock: watcher }),
       ],
       providers: [
         { provide: DAEMON_SHUTDOWN, useValue: options.shutdown },

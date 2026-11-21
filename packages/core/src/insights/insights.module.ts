@@ -4,6 +4,7 @@ import { CostEntryRepository } from '../costs/cost-entry.repository';
 import { MonthToDateSpend } from '../costs/month-to-date.service';
 import { PathsModule } from '../paths/paths.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AttemptUploadEvidence } from './attempt-upload-evidence.reader';
 import { InsightsRepository } from './insights.repository';
 import { GetStudioInsightsHandler } from './queries/get-studio-insights.handler';
 import { RunHistoryReader } from './run-history.reader';
@@ -16,6 +17,6 @@ import { RunHistoryReader } from './run-history.reader';
  */
 @Module({
   imports: [CqrsModule, PathsModule, PrismaModule],
-  providers: [CostEntryRepository, MonthToDateSpend, InsightsRepository, RunHistoryReader, GetStudioInsightsHandler],
+  providers: [CostEntryRepository, MonthToDateSpend, AttemptUploadEvidence, InsightsRepository, RunHistoryReader, GetStudioInsightsHandler],
 })
 export class InsightsModule {}

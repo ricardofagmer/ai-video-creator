@@ -9,12 +9,13 @@ import layout from '@/features/common/layout.module.css';
 import { localTodayIso } from '../metric-labels';
 import { browserMetricsApi } from '../metrics-api';
 import styles from '../metrics.module.css';
+import { PUBLICATION_URL_INPUT_ID } from '../publication-link';
 
 interface PublicationAddFormProps {
   runId: string;
 }
 
-const URL_ID = 'publicacao-link';
+const URL_ID = PUBLICATION_URL_INPUT_ID;
 const PUBLISHED_ON_ID = 'publicacao-data';
 
 /**

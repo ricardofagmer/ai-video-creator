@@ -8,6 +8,7 @@ export * from './limits';
 export * from './manifest';
 export * from './markdown';
 export * from './now';
+export * from './publications';
 export * from './qa';
 export * from './run-file';
 export * from './run-state';

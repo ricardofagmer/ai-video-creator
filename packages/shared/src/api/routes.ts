@@ -66,13 +66,22 @@
  * | GET | /schedules/:scheduleId | - | 200 ScheduleView (R3) |
  * | PATCH | /schedules/:scheduleId | PatchScheduleRequest | 200 ScheduleView (R3) |
  * | GET | /insights | - | 200 InsightsView, read-only (R4, rev 6) |
+ * | GET | /platforms | - | 200 PlatformsView, three PlatformView (R4, rev 7) |
+ * | PATCH | /platforms/:platform/gate | GateChangeRequest | 200 PlatformView (R4, rev 7) |
+ * | POST | /platforms/:platform/connection | - | 201 ConnectionStartView (R4, rev 7) |
+ * | GET | /platforms/:platform/connection/callback | ConnectionCallbackQuery | 303 to `/contas?resultado=...` (R4, rev 7; browser only, not in the BFF table) |
+ * | DELETE | /platforms/:platform/connection | - | 200 PlatformView (R4, rev 7) |
+ * | GET | /runs/:runId/publish | - | 200 RunPublishView (R4, rev 7) |
+ * | POST | /runs/:runId/publish/:platform | PublishRequest | 202 PublishAttemptView; 200 when `idempotencyKey` repeats (R4, rev 7) |
+ * | DELETE | /runs/:runId/publish/attempts/:attemptId | - | 200 PublishAttemptView `cancelled`; 409 once claimed (R4, rev 7) |
  *
  * Errors use `ApiError`: 400 request shape, 401 no session or wrong passphrase, 403 refused Host
  * or Origin, 404 unknown id, 409 state conflict (e.g. a live watcher owns the run), 413 upload too
  * large, 416 artifact byte range outside the file, 422 domain validation, 429 login rate limit,
  * 503 dependency (e.g. no passphrase set).
  * State-changing requests from a browser must carry an allowlisted `Origin` (the web's origin).
- * No route publishes to any platform. Every R2 row needs the session (none is public) and every
+ * The api uploads nothing: a publish route only records the owner's request, and the watcher
+ * uploads between runs (SPEC 0007 L2). Every R2 row needs the session (none is public) and every
  * non-GET R2 row the allowlisted `Origin`; `decidedBy`, `createdBy`, timestamps and
  * `correlationId` come from the session, the server clock and `x-request-id`, never from a body.
  * R2 adds 409 and 422 reasons and 503 `embedding-unavailable` and `month-spend-unavailable`
@@ -83,7 +92,13 @@
  * revision 5 (SPEC 0006 section 4.4, `API_CONTRACT_REVISION = 5`), all additive; their refusal
  * reasons are `apiRev5ErrorReasons`. `recordedBy`, `importedBy`, `createdBy` and `correlationId`
  * come from the session and `x-request-id`. No R3 route fetches a URL, publishes, sets a run
- * status, or writes a schedule's `cursor.json` or `slots.jsonl`.
+ * status, or writes a schedule's `cursor.json` or `slots.jsonl`. Rows marked "rev 7" are contract
+ * revision 7 (SPEC 0007 section 4.4, `API_CONTRACT_REVISION = 7`), all additive; their refusal
+ * reasons are `apiRev7ErrorReasons`. `:platform` is checked with `PlatformSchema` and `:attemptId`
+ * with `PublishAttemptIdSchema`. The callback is reached by the browser directly from the platform,
+ * keeps the session guard (L6) and is the only rev 7 row absent from the web's BFF route table. The
+ * api calls a platform only in connect (code exchange, one identity call) and disconnect (one
+ * best-effort revoke); no rev 7 route sends video bytes.
  */
 export const apiRouteSegments = {
   health: 'health',
@@ -122,6 +137,18 @@ export const apiRouteSegments = {
   schedules: 'schedules',
   /** R4 (rev 6): controller base of `GET /insights`. */
   insights: 'insights',
+  /** R4 (rev 7): controller base of the platform routes. */
+  platforms: 'platforms',
+  /** R4 (rev 7): last segment of `PATCH /platforms/:platform/gate`. */
+  platformGate: 'gate',
+  /** R4 (rev 7): segment of the connection routes, after `platforms/:platform`. */
+  platformConnection: 'connection',
+  /** R4 (rev 7): last segment of `GET /platforms/:platform/connection/callback`. */
+  platformConnectionCallback: 'callback',
+  /** R4 (rev 7): segment of the publish routes, after `runs/:runId`. */
+  publish: 'publish',
+  /** R4 (rev 7): segment of the cancel route, after `runs/:runId/publish`. */
+  publishAttempts: 'attempts',
 };
 
 export const apiPaths = {
@@ -180,4 +207,13 @@ export const apiPaths = {
   schedules: (): string => '/schedules',
   schedule: (scheduleId: string): string => `/schedules/${encodeURIComponent(scheduleId)}`,
   insights: (): string => '/insights',
+  platforms: (): string => '/platforms',
+  platformGate: (platform: string): string => `/platforms/${encodeURIComponent(platform)}/gate`,
+  platformConnection: (platform: string): string => `/platforms/${encodeURIComponent(platform)}/connection`,
+  platformConnectionCallback: (platform: string): string => `/platforms/${encodeURIComponent(platform)}/connection/callback`,
+  runPublish: (runId: string): string => `/runs/${encodeURIComponent(runId)}/publish`,
+  runPublishPlatform: (runId: string, platform: string): string =>
+    `/runs/${encodeURIComponent(runId)}/publish/${encodeURIComponent(platform)}`,
+  runPublishAttempt: (runId: string, attemptId: string): string =>
+    `/runs/${encodeURIComponent(runId)}/publish/attempts/${encodeURIComponent(attemptId)}`,
 };

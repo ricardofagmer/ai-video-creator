@@ -2,8 +2,10 @@ import { type Command } from 'commander';
 import { type CommandDependencies } from '../commands/command-dependencies.js';
 import { insightsCommand, nestInsightsSource } from '../commands/insights.command.js';
 import { metricsImportCommand } from '../commands/metrics-import.command.js';
+import { metricsSyncCommand } from '../commands/metrics-sync.command.js';
 import { schedulesChangeCommand, schedulesListCommand, schedulesShowCommand } from '../commands/schedules.command.js';
 import { nestMetricsImporter } from '../metrics/nest-metrics-importer.js';
+import { nestPlatformGateway } from '../platforms/nest-platform-gateway.js';
 import { nestScheduleGateway } from '../schedules/nest-schedule-gateway.js';
 import { type ScheduleChange } from '../schedules/schedule-gateway.js';
 import { parseInsightsOptions, parseMetricsImportOptions, parseScheduleId } from './arguments.js';
@@ -41,9 +43,12 @@ function addScheduleCommands(program: Command, dependencies: CommandDependencies
 }
 
 function addMetricsCommands(program: Command, dependencies: CommandDependencies, report: ExitCodeSink): void {
-  program
-    .command('metrics')
-    .description('métricas das plataformas')
+  const metrics = program.command('metrics').description('métricas das plataformas');
+  metrics
+    .command('sync')
+    .description('grava as métricas que o watcher coletou das plataformas, pelo mesmo caminho da importação (SPEC 0007)')
+    .action(async () => report(await metricsSyncCommand(nestPlatformGateway, dependencies)));
+  metrics
     .command('import')
     .description('importa o CSV exportado por uma plataforma (até 2 MiB), pelo mesmo caminho do web')
     .argument('<arquivo>', 'arquivo CSV da plataforma')
@@ -65,7 +70,7 @@ function addInsightsCommand(program: Command, dependencies: CommandDependencies,
 
 /**
  * SPEC 0006 R3-07: `studio schedules list|show|pause|resume|delete` and `studio metrics import`;
- * PRD 0001 R4 goal 4: `studio insights`.
+ * SPEC 0007 R4-06: `studio metrics sync`; PRD 0001 R4 goal 4: `studio insights`.
  */
 export function addOutsideSignalCommands(program: Command, dependencies: CommandDependencies, report: ExitCodeSink): void {
   addScheduleCommands(program, dependencies, report);

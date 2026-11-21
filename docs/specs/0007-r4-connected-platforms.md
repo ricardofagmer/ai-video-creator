@@ -149,7 +149,7 @@ Reading rule:
 | `defaultGates` | youtube `{ metrics: 'enabled', publish: 'enabled' }`; instagram and tiktok `{ metrics: 'awaiting-review', publish: 'awaiting-review' }` |
 | `platformPublishSupport` | `{ youtube: true, instagram: false, tiktok: true }` (OD8). The Instagram `publish` gate stays `awaiting-review` and cannot be enabled |
 | `CapabilityStatusSchema` | `z.enum(['unsupported', 'awaiting-review', 'not-configured', 'disconnected', 'connected', 'needs-reconnect'])` (derived, section 5.3) |
-| `ReconnectReasonSchema` | `z.enum(['token-revoked', 'refresh-expired', 'scope-missing', 'account-changed'])` |
+| `ReconnectReasonSchema` | `z.enum(['token-revoked', 'refresh-expired', 'scope-missing', 'account-changed', 'token-missing'])` |
 | `PlatformModeSchema` | `z.enum(['mock', 'live'])` |
 | `PublishStateSchema` | `z.enum(['queued', 'uploading', 'processing', 'sent-to-inbox', 'published', 'failed', 'cancelled', 'expired', 'outcome-unknown', 'inbox-unconfirmed'])`. Open: the first four. All others are terminal |
 | `PublishFailureReasonSchema` | `z.enum(['run-not-approved', 'gate-closed', 'mode-mismatch', 'account-not-connected', 'token-revoked', 'scope-missing', 'quota-exhausted', 'rate-limited', 'artifact-missing', 'artifact-changed', 'media-rejected', 'metadata-rejected', 'policy-rejected', 'account-not-eligible', 'network', 'platform-unavailable', 'watcher-interrupted', 'internal-error'])` |
@@ -420,7 +420,10 @@ gives the status `not-configured`; nothing falls back.
 | Instagram (Instagram Login, OD8, U4) | `instagram_business_basic` | `instagram_business_manage_insights` | none: publishing is not supported (OD8) |
 | TikTok | `user.info.basic` | `video.list` | `video.upload` (Q2) |
 
-Enabling a second capability later marks the account `needs-reconnect` / `scope-missing`.
+Enabling a second capability later leaves the account's stored `capabilities` without it, so that
+capability shows `disconnected` ("Conta não conectada") by the section 5.3 table until the owner
+connects again with the new scope; the other capabilities stay as they are. (Rev 2 review fix
+C11: an earlier sentence here said `needs-reconnect` / `scope-missing`, which contradicted 5.3.)
 
 **Instagram redirect fallback (U3).** The Instagram ticket starts with an owner-run check in the
 Meta dashboard. Ranked: (a) `http://127.0.0.1:4311/...` accepted: nothing changes. (b) only
@@ -439,8 +442,8 @@ the browser cannot load it (the api speaks only `http`), but its address bar hol
 | Service | `com.videostudio.platform-tokens` |
 | Account | the platform name: `youtube`, `instagram`, `tiktok` (one account per platform, B1) |
 | Label | `Video Studio - <Platform> account tokens` |
-| Password | base64url of the JSON token bundle `{ format: 1, platform, connectionId, accessToken, accessExpiresAt, refreshToken, refreshExpiresAt, scopes, obtainedAt }`; at most 16 KiB |
-| Read | `/usr/bin/security find-generic-password -s <service> -a <platform> -w`, as today (`keychain.ts:38-40`), with a 16 KiB output bound |
+| Password | base64url of the JSON token bundle `{ format: 1, platform, connectionId, accessToken, accessExpiresAt, refreshToken, refreshExpiresAt, scopes, obtainedAt }`; each token at most 1,024 characters and the encoded bundle at most 3,600 bytes, so the `security -i` command line stays under 3,800 bytes (rev 2 review fix S5) |
+| Read | `/usr/bin/security find-generic-password -s <service> -a <platform> -w`, as today (`keychain.ts:38-40`), with an output bound just above the 3,600-byte bundle |
 | Write | `add-generic-password -U -s ... -a ... -l ... -T /usr/bin/security -w <value>` sent as one command line on the **stdin** of `/usr/bin/security -i`, never in argv (Q5, B10) |
 | Delete | `delete-generic-password -s <service> -a <platform>` (no secret in argv) |
 
@@ -470,6 +473,21 @@ the token from memory and makes no further call for that platform until `connect
 It does not delete the Keychain item: reconnect replaces it, disconnect deletes it. Open publish
 attempts for that platform fail with `token-revoked`. The web banner and `studio status` show
 "Reconecte a conta".
+
+**Token missing.** When the watcher, needing a token, finds no Keychain item for a connection that
+`account.json` (read again) shows as connected in `live` mode, it treats the token as lost (a
+failed reconnect write, or an item deleted by hand) and takes the same path with `token-missing`:
+`health.json` `needs-reconnect`, no further call until `connectionId` changes, open attempts fail
+with `token-revoked`. Detection happens on use, not on a timer. A mock account never has an item,
+so it is only blocked for that call. Only `errSecItemNotFound` (exit 44) counts as missing; a
+locked Keychain or a timeout is a vault failure and writes nothing. The watcher must run as the
+owner's LaunchAgent: a process without the login keychain in its search list also gets exit 44 and
+would mark the connection lost until the owner reconnects.
+
+**Rollback note (review fix round 4).** `token-missing` widens `ReconnectReasonSchema`. A build
+from before that change reads a `health.json` carrying it as corrupt: the watcher moves the file
+aside (R7) and the api's status reads fail until then. Roll back the whole monorepo together, and
+remove or move aside each `accounts/<platform>/health.json` that names `token-missing` first.
 
 ### 5.3 Gates (OD2)
 
@@ -568,6 +586,14 @@ at the end. The run page and `studio runs show` render "O que saiu da máquina" 
 `manifest.json.egress` followed by these lines, for example "20/11/2026 10:02 YouTube: vídeo
 final enviado (84 MB), público; ativos biométricos confirmados: voz-ricardo@3." `report.md` is
 not rewritten (L5).
+
+**Wave 4 decisions (live clients, owner 2026-11-20).**
+- **YouTube paid placement.** Since the 2026-11-16 API revision `paidProductPlacementDetails.hasPaidProductPlacement` has no default on upload. The upload sends it as `false` (part `paidProductPlacementDetails`); the owner changes it on YouTube for a sponsored video.
+- **TikTok post link.** `user.info.basic` returns `display_name`, not the handle, so `publicationUrl()` cannot build a link. When the status answer is `published`, the client makes one `video/query` call for `id,share_url`; `video.list` already covers that field, so no scope is added. The link goes on the `published` status. The watcher keeps it in `state.json` `publicationUrl` (optional, at most `metricsBounds.urlChars`) only when `parsePublicationUrl` recognizes it for the same platform and video id. Core checks it again and uses it before rebuilding a link. The query needs `video.list`, which is the TikTok metrics scope: while that gate is not granted, the query answers `scope-missing`, which is an expected skip, not a fault. A failed or skipped link query leaves the link out and the owner pastes it (R3); the published state stands. This replaces the OD6 wording "captured when TikTok reports it": the link is captured when the post is public and `share_url` is returned.
+- **Stored upload refs.** The watcher's stored-ref pattern accepts `~`, which TikTok's `publish_id` carries, so a restart keeps the inbox follow-up.
+- **Instagram tokens.** K3 is kept. The graph calls send the token in a Bearer header and the long-lived exchange in a POST body, although Meta's pages show only query parameters. If AC 63 shows Instagram refuses that form, Instagram stays `awaiting-review` and the owner decides again.
+
+**Rollback note (wave 4).** `state.json` gains the optional key `publicationUrl`. A build from before wave 4 reads a `state.json` carrying it as corrupt (the schema is strict). Roll back the whole monorepo together, after any TikTok attempt in `published` has been synced.
 
 ### 5.5 The watcher platform step
 
@@ -937,8 +963,10 @@ Only questions whose answer changes the design. **Answered 2026-11-20 by the own
 - Human gates before any external effect:
   1. The owner's answers to Q1 to Q5 froze the spec (done 2026-11-20).
   2. Migration execution: the local SQLite file, `prisma migrate deploy` through
-     `scripts/install.sh`, a file copy first, the owner's explicit confirmation. It adds one
-     table, three indexes and four columns with defaults; no existing row changes.
+     `scripts/install.sh`, a file copy first, the owner's explicit confirmation. Two migrations:
+     `20261120120000_r4_connected_platforms` adds one table, three indexes and four columns with
+     defaults; `20261120180000_r4_publish_metadata_hash` (review fixes) adds the nullable column
+     `publication_attempts.metadata_sha256`. No existing row changes.
   3. Final checks and the security review: the final checkpoint questions.
   4. Per platform: the owner creates the developer app, stores its credentials with
      `studio secrets set`, switches that platform to live mode and opens its gate. Each is a

@@ -16,6 +16,8 @@ import { type z } from 'zod';
 import { CurrentPrincipal } from '../auth/auth.decorators';
 import { RequestContext, type Principal } from '../platform/request-context';
 import { ZodValidationPipe } from '../platform/zod-validation.pipe';
+import { PublishAttemptSync } from '../publishing/publish-attempt.sync';
+import { MetricInboxSync } from './metric-inbox.sync';
 import { MetricsResponseAssembler } from './metrics-response.assembler';
 
 type RunParams = z.output<typeof RunParamsSchema>;
@@ -26,7 +28,9 @@ type RunParams = z.output<typeof RunParamsSchema>;
  * Recording a publication is a record of something the owner did elsewhere: the URL is handed to
  * core, which parses and rebuilds it and never fetches it (K6); this controller neither logs nor
  * echoes it. `recordedBy` comes from the session and `correlationId` from `x-request-id`, never
- * from the body. No route here sets a run status.
+ * from the body. No route here sets a run status. Rev 7 (SPEC 0007 sections 5.4 and 5.6): the list
+ * first runs `PublishAttemptSync` for the run, so a studio publication the watcher finished is
+ * linked, then `MetricInboxSync`, so pulled snapshots are in force before the read.
  */
 @Controller(apiRouteSegments.runs)
 export class RunPublicationsController {
@@ -35,11 +39,16 @@ export class RunPublicationsController {
     private readonly queryBus: QueryBus,
     private readonly context: RequestContext,
     private readonly views: MetricsResponseAssembler,
+    private readonly publishAttempts: PublishAttemptSync,
+    private readonly metricInbox: MetricInboxSync,
   ) {}
 
   /** Each publication with its snapshot in force (latest `asOfDate`, `form` over `csv`) and up to 20 older. */
   @Get(`:runId/${apiRouteSegments.publications}`)
   async list(@Param(new ZodValidationPipe(RunParamsSchema)) params: RunParams): Promise<RunPublicationsView> {
+    // In this order: a publication linked by the attempt sync can then receive its pulled snapshot.
+    await this.publishAttempts.syncBeforeRead(params.runId);
+    await this.metricInbox.syncBeforeRead();
     return this.views.publications(await this.queryBus.execute(new GetRunPublicationsQuery(params.runId)));
   }
 

@@ -30,6 +30,7 @@ import {
   parseStopTarget,
 } from './arguments.js';
 import { addOutsideSignalCommands } from './outside-signal-commands.js';
+import { addPlatformCommands } from './platform-commands.js';
 import { addTraceCommands } from '../traces/trace-commands.js';
 
 type ExitCodeSink = (code: number) => void;
@@ -84,7 +85,7 @@ function addServiceCommands(program: Command, dependencies: CommandDependencies,
     });
   program
     .command('doctor')
-    .description('verifica web, api, watcher, ffmpeg, curadorias, agendamentos, banco, armazenamento, referências e o modelo e o índice de busca')
+    .description('verifica web, api, watcher, ffmpeg, curadorias, agendamentos, banco, armazenamento, referências, plataformas e o modelo e o índice de busca')
     .option('--rebuild-index', 'reconstrói o índice de execuções a partir das pastas')
     .action(async (options: unknown) => report(await doctorCommand(parseDoctorOptions(options), dependencies)));
 }
@@ -111,9 +112,9 @@ function addSetupCommands(program: Command, dependencies: CommandDependencies, r
 
   program
     .command('secrets')
-    .description('chaves de provedores no Keychain')
+    .description('chaves de provedores e credenciais dos aplicativos das plataformas no Keychain')
     .command('set')
-    .description('guarda uma chave no Keychain (o valor é pedido pelo macOS, nunca na linha de comando)')
+    .description('guarda uma chave ou credencial no Keychain (o valor é pedido pelo macOS, nunca na linha de comando)')
     .argument('<nome>', 'nome da chave')
     .action(async (name: unknown) => report(await secretsSetCommand(parseSecretName(name), dependencies)));
 
@@ -183,6 +184,7 @@ function buildProgram(dependencies: CommandDependencies, report: ExitCodeSink): 
   addSetupCommands(program, dependencies, report);
   addModelCommands(program, dependencies, report);
   addOutsideSignalCommands(program, dependencies, report);
+  addPlatformCommands(program, dependencies, report);
   addTraceCommands(program, dependencies, report);
   return program;
 }

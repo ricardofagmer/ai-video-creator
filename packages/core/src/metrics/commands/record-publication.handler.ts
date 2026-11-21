@@ -48,6 +48,11 @@ export class RecordPublicationHandler implements ICommandHandler<RecordPublicati
       recordedBy: input.recordedBy,
       correlationId: input.correlationId,
       recordedAt: now,
+      // A pasted link is always `manual` (SPEC 0007 section 4.5); only `PublishAttemptSync` writes
+      // `studio` and `mock` rows.
+      origin: 'manual',
+      attemptId: null,
+      platformMediaId: null,
     };
     const run = this.tail.then(() => this.insert(candidate));
     // The chain only orders the writes; each caller still receives its own result or error.

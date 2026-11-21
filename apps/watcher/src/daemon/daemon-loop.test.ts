@@ -95,8 +95,18 @@ class LoopFakes {
     },
   };
 
+  /** The platform steps are required collaborators (finding C11); here they never find work (their order is `daemon-loop.platform-steps.test.ts`). */
+  readonly publish = {
+    sweep: async (): Promise<void> => undefined,
+    claimNext: async (): Promise<boolean> => false,
+  };
+
+  readonly metricsPoll = {
+    run: async (): Promise<boolean> => false,
+  };
+
   loop(): DaemonLoop {
-    return new DaemonLoop(this.engine, this.scanner, this.curations, this.schedules, this.busy, this.shutdown.signal);
+    return new DaemonLoop(this.engine, this.scanner, this.curations, this.schedules, this.busy, this.shutdown.signal, this.publish, this.metricsPoll);
   }
 }
 

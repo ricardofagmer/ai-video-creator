@@ -9,3 +9,9 @@ export function publicationHref(storedUrl: string): string | null {
   const parsed = parsePublicationUrl(storedUrl);
   return parsed.status === 'recognized' && parsed.url.startsWith('https://') ? parsed.url : null;
 }
+
+/**
+ * The id of the R3 "Link do vídeo publicado" input. OD8 sends the owner there from the publish
+ * dialog: Instagram is posted in the app and its link pasted here.
+ */
+export const PUBLICATION_URL_INPUT_ID = 'publicacao-link';

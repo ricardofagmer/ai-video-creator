@@ -9,6 +9,9 @@
 // SPEC 0006 (R3-02, migration `20261119120000_r3_outside_signals`) adds `run_publications`,
 // `metric_imports`, `platform_metric_snapshots` and `asset_versions.quality_platform_sample_size`,
 // again by `CREATE TABLE`, `CREATE INDEX` and `ADD COLUMN` only.
+// SPEC 0007 (R4-01, migration `20261120120000_r4_connected_platforms`) adds `publication_attempts`
+// and the columns `run_publications.origin`, `attempt_id`, `platform_media_id` and
+// `metric_imports.origin`, again by `CREATE TABLE`, `CREATE INDEX` and `ADD COLUMN` only (K8).
 //
 // Conventions: TypeScript model names, snake_case plural tables (@@map) and snake_case columns
 // (@map). Enumerations are TEXT columns validated by the zod contracts of `@studio/shared` and by
@@ -222,6 +225,7 @@ model RunOutcome {
   run                RunIndexEntry     @relation(fields: [runId], references: [id], onDelete: Restrict)
   assets             RunOutcomeAsset[]
   publications       RunPublication[]
+  publishAttempts    PublicationAttempt[]
 
   @@index([decision])
   @@map("run_outcomes")
@@ -352,8 +356,9 @@ model CurationDecision {
 // ---------------------------------------------------------------------------------------------
 // Outside signals (SPEC 0006 sections 4.5, 5.1 to 5.3): where an approved run was published and
 // the platform metrics the owner typed or imported. Written only by the api/CLI command handlers
-// of the core `metrics` module; the watcher neither reads nor writes these tables (ADR 0003).
-// No URL is ever fetched; no CSV file, title or caption is stored.
+// of the core `metrics` module; the watcher writes none of these tables (ADR 0003) and, since
+// SPEC 0007 (L2), reads `run_publications` to list its poll targets. No URL is ever fetched; no CSV
+// file, title or caption is stored.
 // ---------------------------------------------------------------------------------------------
 
 /// One published video of an approved run (section 5.1). The run must have an `approved`
@@ -375,6 +380,15 @@ model RunPublication {
   /// From `x-request-id`; null when the CLI wrote the row without one.
   correlationId   String?                  @map("correlation_id")
   recordedAt      DateTime                 @map("recorded_at")
+  /// `manual` | `studio` | `mock` (SPEC 0007 section 4.5), checked by zod in the handlers: an added
+  /// column carries no table CHECK (K8). Existing rows read `manual`.
+  origin          String                   @default("manual")
+  /// The `publication_attempts` row that created a `studio` or `mock` publication; null for `manual`.
+  /// Not a relation, as in the SQL.
+  attemptId       String?                  @map("attempt_id")
+  /// The platform's numeric media id when it differs from `platformVideoId` (Instagram), resolved
+  /// by the poller; null until known.
+  platformMediaId String?                  @map("platform_media_id")
   outcome         RunOutcome               @relation(fields: [runId], references: [runId], onDelete: Restrict)
   snapshots       PlatformMetricSnapshot[]
 
@@ -406,9 +420,70 @@ model MetricImport {
   importedBy    String   @map("imported_by")
   correlationId String?  @map("correlation_id")
   importedAt    DateTime @map("imported_at")
+  /// `upload` | `api` (SPEC 0007 section 4.5, Q3): a CSV upload or a pulled batch ingested by
+  /// `IngestMetricBatch`. Checked by zod in the handlers (K8). Existing rows read `upload`.
+  origin        String   @default("upload")
 
   @@index([fileSha256])
   @@map("metric_imports")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Connected platforms (SPEC 0007 sections 4.5, 5.4): one row per studio publish attempt. Written
+// only by the api/CLI command handlers (`RequestPublish`, `PublishAttemptSync`); the watcher reads
+// `run_publications` and `run_outcomes` and writes no table (K1). No title, caption, tag, account
+// label or token column exists: the owner's text lives only in `request.json` (section 4.6).
+// Guards Prisma cannot express live only in the migration SQL: the CHECK constraints on `platform`,
+// `mode` and `state`, and the partial unique index `publication_attempts_open_key` (one open
+// attempt per run and platform).
+// ---------------------------------------------------------------------------------------------
+
+/// One click on "Publicar em {plataforma}" (section 5.4). The foreign key to `run_outcomes` means
+/// an attempt cannot exist for an unreviewed run; the handler also requires `decision = 'approved'`.
+model PublicationAttempt {
+  /// `PublishAttemptId` (ULID); also the folder name `platform/publish/<attemptId>/`.
+  id                   String     @id
+  runId                String     @map("run_id")
+  /// `youtube` | `instagram` | `tiktok` (CHECK).
+  platform             String
+  /// The `account.json` connection the request was made against.
+  connectionId         String     @map("connection_id")
+  /// `mock` | `live` (CHECK).
+  mode                 String
+  /// The dialog's ULID; a repeated key returns the stored attempt (unique index).
+  idempotencyKey       String     @unique @map("idempotency_key")
+  /// `PublishStateSchema` (CHECK); copied from `state.json` by `PublishAttemptSync`.
+  state                String
+  /// `PublishFailureReasonSchema`, set when `state` is `failed`.
+  reasonId             String?    @map("reason_id")
+  artifactSha256       String     @map("artifact_sha256")
+  /// `BigInt` because a `final.mp4` may reach 4 GiB, above a 32-bit `Int`.
+  artifactBytes        BigInt     @map("artifact_bytes")
+  /// `public` | `unlisted` | `private`; the only metadata field stored here.
+  visibility           String
+  aiDisclosure         Boolean    @map("ai_disclosure")
+  /// `publishMetadataSha256(request.json metadata)`, hex; a hash, never the owner's text. The
+  /// watcher refuses to upload when it differs from `request.json` or is null (older rows).
+  metadataSha256       String?    @map("metadata_sha256")
+  /// JSON array of the confirmed `assetId@version` refs (OD4).
+  biometricRefsJson    String     @default("[]") @map("biometric_refs_json")
+  biometricConfirmedAt DateTime   @map("biometric_confirmed_at")
+  /// The `decidedAt` of the final decision in force at the request (section 5.10).
+  approvalDecidedAt    DateTime   @map("approval_decided_at")
+  /// The `run_publications` row created on `published`; not a relation, as in the SQL.
+  publicationId        String?    @map("publication_id")
+  /// From the session, never from a request body.
+  requestedBy          String     @map("requested_by")
+  /// `api` | `cli`.
+  createdBy            String     @map("created_by")
+  correlationId        String?    @map("correlation_id")
+  requestedAt          DateTime   @map("requested_at")
+  expiresAt            DateTime   @map("expires_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+  outcome              RunOutcome @relation(fields: [runId], references: [runId], onDelete: Restrict)
+
+  @@index([runId])
+  @@map("publication_attempts")
 }
 
 /// One snapshot of a publication's cumulative metrics as of `asOfDate` (section 5.2). Keyed

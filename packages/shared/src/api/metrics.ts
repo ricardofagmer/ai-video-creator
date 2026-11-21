@@ -1,9 +1,16 @@
 import { z } from 'zod';
-import { IsoDateSchema, IsoDateTimeSchema, MetricImportIdSchema, PublicationIdSchema, RunIdSchema } from '../common/ids';
+import { IsoDateSchema, IsoDateTimeSchema, MetricImportIdSchema, PublicationIdSchema, PublishAttemptIdSchema, RunIdSchema } from '../common/ids';
 import { METRIC_HISTORY_SHOWN, metricsBounds, platformVideoIdPatterns } from '../metrics/constants';
-import { MetricRowIssueSchema, PlatformSchema, type MetricImportRefusedReason } from '../metrics/enums';
+import {
+  MetricRowIssueSchema,
+  MetricSnapshotOriginSchema,
+  PlatformSchema,
+  PublicationOriginSchema,
+  type MetricImportRefusedReason,
+} from '../metrics/enums';
 import { PublicationSchema } from '../metrics/publication';
 import { MetricSnapshotSchema, PlatformMetricsSchema } from '../metrics/snapshot';
+import { PollStopReasonSchema } from '../platforms/enums';
 import { PageLimitQuerySchema, pageOf, type ApiRev5ErrorReason } from './common';
 
 /*
@@ -32,8 +39,42 @@ export const CreatePublicationRequestSchema = z
   .strict();
 export type CreatePublicationRequest = z.infer<typeof CreatePublicationRequestSchema>;
 
-/** `POST /runs/:runId/publications` (201): the stored row. */
-export const PublicationViewSchema = PublicationSchema;
+/**
+ * Rev 7 (SPEC 0007 sections 5.5 and 5.9): the polling line of a publication. `active`: polled on the
+ * OD3 cadence, next on `nextPollOn` ("Próxima coleta: amanhã"). `stopped`: never polled again, for
+ * `stopReason` ("Coleta encerrada: 180 dias"). `not-polled`: the platform's `metrics` status is not
+ * `connected`, or the publication is simulated while the platform is live (B6).
+ * Rule: `stopReason` is set exactly when `state` is `stopped`; `nextPollOn` only when `active`.
+ */
+export const PublicationPollingViewSchema = z
+  .object({
+    state: z.enum(['active', 'stopped', 'not-polled']),
+    lastPolledOn: IsoDateSchema.nullable(),
+    nextPollOn: IsoDateSchema.nullable(),
+    stopReason: PollStopReasonSchema.nullable(),
+  })
+  .strict()
+  .superRefine((polling, context) => {
+    if ((polling.state === 'stopped') !== (polling.stopReason !== null)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['stopReason'], message: 'stopReason is set exactly when state is stopped' });
+    }
+    if (polling.state !== 'active' && polling.nextPollOn !== null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ['nextPollOn'], message: 'nextPollOn is set only while active' });
+    }
+  });
+export type PublicationPollingView = z.infer<typeof PublicationPollingViewSchema>;
+
+/**
+ * `POST /runs/:runId/publications` (201): the stored row. Rev 7 adds `origin`, `attemptId` (the
+ * studio attempt that created it, AC 49) and `polling`. A rev 7 api always sets them; they are
+ * optional so a rev 6 body still parses, and a reader treats an absent `origin` as `manual`, an
+ * absent `attemptId` as null and an absent `polling` as unknown.
+ */
+export const PublicationViewSchema = PublicationSchema.extend({
+  origin: PublicationOriginSchema.optional(),
+  attemptId: PublishAttemptIdSchema.nullable().optional(),
+  polling: PublicationPollingViewSchema.nullable().optional(),
+});
 export type PublicationView = z.infer<typeof PublicationViewSchema>;
 
 /** `DELETE /runs/:runId/publications/:publicationId` (200); 409 `publication-has-metrics` when it has snapshots. */
@@ -48,8 +89,20 @@ export type RemovePublicationResponse = z.infer<typeof RemovePublicationResponse
 export const SaveMetricSnapshotRequestSchema = PlatformMetricsSchema;
 export type SaveMetricSnapshotRequest = z.infer<typeof SaveMetricSnapshotRequestSchema>;
 
-/** One stored snapshot. `engagementRate` is derived on read by the web with `engagementRate`. */
-export const MetricSnapshotViewSchema = MetricSnapshotSchema;
+/**
+ * One stored snapshot. `engagementRate` is derived on read by the web with `engagementRate`. Rev 7
+ * adds `origin` (SPEC 0007 sections 4.1 and 5.6): `form` for source `form`, `api` when the
+ * snapshot's import has `origin = 'api'`, `csv-upload` otherwise. Optional so a rev 6 body still
+ * parses; a reader derives an absent one from `source` (`form`, else `csv-upload`).
+ * Rule: `origin` is `form` exactly when `source` is `form`.
+ */
+export const MetricSnapshotViewSchema = MetricSnapshotSchema.extend({
+  origin: MetricSnapshotOriginSchema.optional(),
+}).superRefine((snapshot, context) => {
+  if (snapshot.origin !== undefined && (snapshot.origin === 'form') !== (snapshot.source === 'form')) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['origin'], message: 'origin is form exactly when source is form' });
+  }
+});
 export type MetricSnapshotView = z.infer<typeof MetricSnapshotViewSchema>;
 
 /**

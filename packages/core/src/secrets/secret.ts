@@ -6,6 +6,19 @@ export const REDACTED_TEXT = '<redacted>';
 
 export type SecretSource = 'environment' | 'keychain';
 
+/** A value held in memory whose exact occurrences the redactor replaces; it never exposes the value. */
+export interface RedactableValue {
+  replaceOccurrences(text: string, replacement: string): { text: string; count: number };
+}
+
+/**
+ * A value registered with the redactor at run time (a platform token, SPEC 0007 section 5.2).
+ * `hasSameValue` lets the registry keep one copy per value without either side revealing it.
+ */
+export interface RevealedRedactableValue extends RedactableValue {
+  hasSameValue(other: RedactableValue): boolean;
+}
+
 /**
  * A provider key held in memory only (PRD 12). The value lives in an ES private field, so it is
  * not an own enumerable property: `JSON.stringify`, spread, `Object.keys`, template literals,
@@ -13,7 +26,7 @@ export type SecretSource = 'environment' | 'keychain';
  * the value is `revealForProviderCall`, which only live provider adapters call when they build
  * the outgoing request.
  */
-export class Secret {
+export class Secret implements RedactableValue {
   readonly #value: string;
 
   constructor(

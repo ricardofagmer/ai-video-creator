@@ -31,7 +31,7 @@ export interface ReviewRecomputeContext {
 
 /** What committed before a `metrics` recomputation; ids only, for the failure log line. */
 export interface MetricsRecomputeContext {
-  change: 'publication-recorded' | 'snapshot-saved' | 'metrics-imported';
+  change: 'publication-recorded' | 'snapshot-saved' | 'metrics-imported' | 'metrics-batch-ingested';
   correlationId: string | null;
 }
 

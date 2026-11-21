@@ -7,7 +7,8 @@ import type { ReactElement } from 'react';
 
 /**
  * design/telas/01: Catálogo · Receitas · Execuções; rev 3 (SPEC 0003 section 5.3) adds Comparações;
- * SPEC 0006 adds Agendamentos (section 5.7) and Métricas, the CSV import (section 5.9).
+ * SPEC 0006 adds Agendamentos (section 5.7) and Métricas, the CSV import (section 5.9); SPEC 0007
+ * adds Contas, the connected platforms (section 5.9).
  */
 const links = [
   { href: '/catalogo', label: 'Catálogo' },
@@ -17,6 +18,7 @@ const links = [
   { href: '/agendamentos', label: 'Agendamentos' },
   { href: '/metricas/importar', label: 'Métricas' },
   { href: '/indicadores', label: 'Indicadores' },
+  { href: '/contas', label: 'Contas' },
 ];
 
 function isActive(pathname: string, href: string): boolean {

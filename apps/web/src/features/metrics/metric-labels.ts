@@ -1,4 +1,13 @@
-import { platformSignalRules, type MetricRowIssue, type MetricSource, type Platform } from '@studio/shared/metrics';
+import { type PublicationPollingView } from '@studio/shared/api';
+import {
+  platformSignalRules,
+  type MetricRowIssue,
+  type MetricSnapshotOrigin,
+  type MetricSource,
+  type Platform,
+  type PublicationOrigin,
+} from '@studio/shared/metrics';
+import { pollRules, type PollStopReason } from '@studio/shared/platforms';
 
 /*
  * pt-BR texts of the metrics screens (SPEC 0006 section 5.9). Every value shown with them is a
@@ -13,10 +22,55 @@ export const platformLabels: Readonly<Record<Platform, string>> = {
 
 export const platformOrder: readonly Platform[] = ['youtube', 'instagram', 'tiktok'];
 
-export const metricSourceLabels: Readonly<Record<MetricSource, string>> = {
+const metricSourceLabels: Readonly<Record<MetricSource, string>> = {
   csv: 'CSV',
   form: 'Formulário',
 };
+
+/** Rev 7 (SPEC 0007 section 4.1): how a snapshot arrived; a pulled one keeps source `csv` and shows `api`. */
+const metricSnapshotOriginLabels: Readonly<Record<MetricSnapshotOrigin, string>> = {
+  form: 'Formulário',
+  'csv-upload': 'CSV',
+  api: 'API da plataforma',
+};
+
+/** The "Origem" cell of one snapshot; a rev 6 body without `origin` reads it from `source`. */
+export function snapshotOriginLabel(snapshot: { source: MetricSource; origin?: MetricSnapshotOrigin }): string {
+  return snapshot.origin === undefined ? metricSourceLabels[snapshot.source] : metricSnapshotOriginLabels[snapshot.origin];
+}
+
+/** Rev 7 (SPEC 0007 sections 4.1 and 5.9): where a publication came from; `mock` is the "simulado" badge. */
+export const publicationOriginLabels: Readonly<Record<PublicationOrigin, string>> = {
+  manual: 'Link colado',
+  studio: 'Publicado pelo estúdio',
+  mock: 'simulado',
+};
+
+const pollStopTexts: Readonly<Record<PollStopReason, string>> = {
+  'window-closed': `Coleta encerrada: ${pollRules.stopAfterDay} dias`,
+  'not-found': 'Coleta encerrada: vídeo não encontrado na plataforma',
+  'not-owned': 'Coleta encerrada: o vídeo não é da conta conectada',
+  'publication-removed': 'Coleta encerrada: publicação removida',
+};
+
+/** `yyyy-mm-dd` one day after `isoDate`, by calendar arithmetic in UTC so no time zone moves it. */
+function nextIsoDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ? isoDate : new Date(date.getTime() + 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * SPEC 0007 section 5.9, the polling line of a publication: "Próxima coleta: amanhã" while active,
+ * "Coleta encerrada: 180 dias" once stopped. `todayIso` is the Mac's local date, injected.
+ */
+export function pollingLineText(polling: PublicationPollingView, todayIso: string): string {
+  if (polling.state === 'stopped') return polling.stopReason === null ? 'Coleta encerrada' : pollStopTexts[polling.stopReason];
+  if (polling.state === 'not-polled') return 'Sem coleta automática: registre as métricas pelo formulário ou por CSV.';
+  const next = polling.nextPollOn;
+  if (next === null || next <= todayIso) return 'Próxima coleta: hoje';
+  if (next === nextIsoDate(todayIso)) return 'Próxima coleta: amanhã';
+  return `Próxima coleta: ${formatIsoDate(next)}`;
+}
 
 /** Why an import row was skipped, completing "Linha N: ...". */
 export const metricRowIssueTexts: Readonly<Record<MetricRowIssue, string>> = {

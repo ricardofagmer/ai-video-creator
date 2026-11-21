@@ -15,14 +15,15 @@ interface RunPublicationsCardProps {
 
 /**
  * "Publicações" on the page of an approved run (SPEC 0006 section 5.9, AC 37, R3-AC-03): where the
- * owner published the video, and its platform metrics typed in or imported from a CSV. A record
- * of what the owner did elsewhere: nothing here publishes, approves or promotes anything.
+ * video was published, and its platform metrics typed in, imported from a CSV or pulled from the
+ * platform. Rev 7 (SPEC 0007 section 5.9) lists studio and mock uploads beside pasted links;
+ * publishing itself is the publish card's. Nothing here publishes, approves or promotes anything.
  */
 export function RunPublicationsCard({ runId, data }: RunPublicationsCardProps): ReactElement {
   return (
     <Card
       title="Publicações"
-      description="Registre onde você publicou este vídeo para que as métricas das plataformas entrem na nota das versões que ele usou. O estúdio não publica nada."
+      description="Onde este vídeo foi publicado, pelo estúdio ou por você, e as métricas que entram na nota das versões que ele usou. Publicou por fora? Cole o link abaixo."
     >
       {data.status === 'failed' ? (
         <Alert variant="warning">{`Não foi possível carregar as publicações. ${data.message}`}</Alert>
