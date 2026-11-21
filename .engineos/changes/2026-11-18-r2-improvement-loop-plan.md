@@ -45,9 +45,9 @@ Risk is high for these reasons:
 - [x] ADR 0004 (local embedding runtime) written, with at least one rejected alternative (status `proposed` until the R2-03 vetting report is approved)
 - [x] Every open decision recorded below
 - [x] R2-03 dependency vetting report approved by the owner before any `package.json` or lockfile change (option L)
-- [ ] Migration execution: scoped owner confirmation before the next `scripts/install.sh` (it runs `prisma migrate deploy`)
-- [ ] Security review and critic pass at the final gate (risk high)
-- [ ] R1-FP and R2-FP checks together at the final gate, with the owner's approval
+- [x] Migration execution: scoped owner confirmation before the next `scripts/install.sh` (it runs `prisma migrate deploy`) (applied: `_prisma_migrations` shows it finished (read-only check 2026-11-21); no scoped-confirmation row in this record)
+- [ ] Security review and critic pass at the final gate (risk high) -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
+- [x] R1-FP and R2-FP checks together at the final gate, with the owner's approval (R4 final gate 2026-11-20 ran the whole monorepo green: typecheck 13/13, lint 13/13, tests 11/11, build 10/10 (`2026-11-20-r4-implementation.md` line 29))
 - [x] Prototype preview choice asked before any R2 production code (declined)
 
 ## Human decisions

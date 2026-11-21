@@ -125,7 +125,7 @@ final-gate review (`security-reviewer` and `critic`).
   `agents.service.ts` at 300 lines. RC-1: an interrupted live call records a worst-case cost row
   (`curator-cost.recorder.ts`); `worstCaseInputChars` moved to `@studio/core/agents`. RW-3: dead
   refresh branch removed. Additive core API: `GroundCheckResult` failure gains `skippedChecks`.
-- [ ] Final checks (lint, typecheck, build, tests, the 24 evals), `security-reviewer` and `critic`:
+- [ ] Final checks (lint, typecheck, build, tests, the 24 evals), `security-reviewer` and `critic`: Lint, typecheck, build and tests later ran green at the R4 final gate; the 24 evals, `security-reviewer` and `critic` stay -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
   deferred to release. Kernel checkpoint 2026-11-19: `checks: skip`, `security: skip`,
   `offers: skip`, reasons `not-release`; security_reasons `risk:high`,
   `security-path:apps/watcher/src/curation/curation-spend.guard.ts`.
@@ -144,7 +144,7 @@ final-gate review (`security-reviewer` and `critic`).
 - Vetting 0001 phase 2 check 3 done 2026-11-19: onnxruntime-node 1.31.1 ships `bin/napi-v6/darwin/arm64` (dylib + binding); `script/install.js` requirements list nothing for darwin/arm64 (only linux/x64 cuda12 from the NuGet feed); postinstall stays blocked and is the only ignored build script.
 - Migrations `20261118120000_r2_improvement_loop` and `20261118180000_curator`: authored, not
   executed; execution needs the owner's scoped confirmation.
-- [ ] Migration `20261118180000_curator` execution: owner's scoped confirmation (not before the R2 migration)
+- [x] Migration `20261118180000_curator` execution: owner's scoped confirmation (not before the R2 migration) (applied: `_prisma_migrations` shows it finished (read-only check 2026-11-21); no scoped-confirmation row in this record)
 
 ## Human decisions
 2026-11-19 | Ricardo Fagmer | SPEC 0005 Q1 cost ledger: "Add source_kind column (Recommended)" | approved | docs/specs/0005-curator.md section 15

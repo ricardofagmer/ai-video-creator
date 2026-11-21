@@ -66,14 +66,14 @@ PRD 0001 R1 goals; ADRs 0001-0003 accepted 2026-11-18.
 - [x] R1-04 checks (inspection): seven steps in `stepOrder`; missing declared output fails the postcondition (`execute.step.ts:25`); no raw fs write in `apps/watcher/src`
 - [x] R1-11 checks (inspection): key held only in `Secret.#value`; Keychain argv fixed, value never on argv; redactor failure carries no input; cost total is a recomputed sum
 - [x] Waves 5-10 inspection (supervisor, per return): scope by edit time, no `any`/`as` silencing, no raw run-file writes outside C5 (scratch-folder writes only), no `ricardo-clone` reference, no secret value in code
-- [ ] R1-FP: `pnpm install` (vet `@node-rs/argon2`, `pino`, `ink`, `commander`, `next` ranges first), then build in order shared, core, video, toolbox, api, watcher, cli, web
+- [x] R1-FP: `pnpm install` (vet `@node-rs/argon2`, `pino`, `ink`, `commander`, `next` ranges first), then build in order shared, core, video, toolbox, api, watcher, cli, web (R4 final gate 2026-11-20 ran the whole monorepo green: typecheck 13/13, lint 13/13, tests 11/11, build 10/10 (`2026-11-20-r4-implementation.md` line 29))
 - [ ] R1-FP: typecheck, lint and tests of every package; `studio --help` (ESM to CJS named imports); `scripts/install.sh --dry-run` and shellcheck
 - [ ] R1-FP: `studio catalog seed` twice (created, then unchanged); regenerate or retire R1-04 fixture pins
 - [ ] R1-FP: one mock run per recipe to `review` (AC 3, 29), CLI pause visible in the web within 2 s (AC 14), SIGTERM crash-resume (criterion 13)
 - [ ] R1-FP: confirm the six Mastra API assumptions (R1-13) and the Next 15 assumptions (R1-19, R1-20)
-- [ ] Typecheck, lint, build and tests of all wave 1-4 packages, plus `dev:fixture` and its fault variants: final gate (R1-FP)
-- [ ] Critic pass at the final gate (wave 4 risk high: credential handling)
-- [ ] Security review at the final gate: R1-05 path guards, by-reference biometric path, MIME trust (no magic-byte check), api session and BFF allowlist, CLI child processes, install/uninstall scripts
+- [x] Typecheck, lint, build and tests of all wave 1-4 packages, plus `dev:fixture` and its fault variants: final gate (R1-FP) (R4 final gate 2026-11-20 ran the whole monorepo green: typecheck 13/13, lint 13/13, tests 11/11, build 10/10 (`2026-11-20-r4-implementation.md` line 29))
+- [ ] Critic pass at the final gate (wave 4 risk high: credential handling) -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
+- [ ] Security review at the final gate: R1-05 path guards, by-reference biometric path, MIME trust (no magic-byte check), api session and BFF allowlist, CLI child processes, install/uninstall scripts -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
 
 ## Open items from wave 3
 - Resolved by owner (SPEC 0002 rev 2): cancel signal added to `AgentsPort.run` (supervisor edit in
@@ -83,8 +83,8 @@ PRD 0001 R1 goals; ADRs 0001-0003 accepted 2026-11-18.
 - Partial indexes, CHECKs and triggers are invisible to Prisma; later migrations must re-add them after a table redefinition
 
 ## User checklist
-- [ ] Decide whether `video-studio` becomes its own git repository (`git init`), then run the stack init above
-- [ ] Approve `pnpm install` when the first build check is wanted (final gate, R1-FP)
+- [x] Decide whether `video-studio` becomes its own git repository (`git init`), then run the stack init above (done: `video-studio` is the git repository `ricardofagmer/ai-video-creator`)
+- [x] Approve `pnpm install` when the first build check is wanted (final gate, R1-FP) (done: `pnpm install` 2026-11-19, see `2026-11-19-curator-implementation.md`)
 - [ ] Set the ElevenLabs per-character price in the price table (live TTS fails closed until then)
 - [ ] Decide the review experience for videos made with the cloned voice (the web withholds the player today)
 - [ ] Decide whether R1 needs a C10 register-by-reference route and CLI gate/review commands, or both stay as they are

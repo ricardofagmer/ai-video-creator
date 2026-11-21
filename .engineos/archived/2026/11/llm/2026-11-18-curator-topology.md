@@ -1,4 +1,7 @@
 ---
+name: 2026-11-18-curator-topology
+status: done
+completed: 2026-11-21
 domain: llm
 risk: medium
 spec: docs/specs/0004-curator-agent-topology.md
