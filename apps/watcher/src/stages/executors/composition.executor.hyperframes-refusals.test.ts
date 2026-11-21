@@ -81,6 +81,8 @@ describe('composition HyperFrames rev 2 refusals stop before any start', () => {
         current.ports.missingFolders.add(hyperframesPaths(current.dataHomeRoot)[folder]);
 
         await assertRefusedBeforeAnyStart(current, 'runtime-not-prepared');
+        // AC 100: the folders answer before Chrome is verified (SPEC 0008 section 18.3).
+        assert.deepEqual(current.ports.chromeVerifications, []);
       });
     }
 

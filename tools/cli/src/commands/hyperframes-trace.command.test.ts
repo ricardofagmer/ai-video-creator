@@ -28,6 +28,7 @@ import { type SandboxDenial } from '../hyperframes/hyperframes-ports.js';
 import { HyperframesConfirmationError, HyperframesStepRefusedError } from '../hyperframes/hyperframes.errors.js';
 import {
   TRACE_CHROME_CHANGED_AFTER_TEXT,
+  TRACE_CHROME_UNREADABLE_AFTER_TEXT,
   TRACE_PROBE_FILE_REMOVED_TEXT,
   traceChromeBeforeText,
   traceInformationalDenialText,
@@ -550,6 +551,27 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
         assert.ok(studio.printer.text().includes(TRACE_CHROME_CHANGED_AFTER_TEXT));
       });
     }
+
+    it('writes a failing record with a zero hash and the finding when the binary is unreadable after the render (AC 99)', async () => {
+      const shellPath = await seedChrome(studio);
+      await seedConfig(studio);
+      const fake = confirmedPorts(
+        [],
+        atStart(START.render, async () => {
+          await rm(shellPath);
+        }),
+      );
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.unhealthy);
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'fail');
+      assert.equal(trace.renderExitCode, 0);
+      assert.equal(trace.chromeSha256, '0'.repeat(64));
+      assert.ok(trace.findings.includes(TRACE_CHROME_UNREADABLE_AFTER_TEXT));
+      assert.equal(trace.findings.includes(TRACE_CHROME_CHANGED_AFTER_TEXT), false);
+    });
 
     it('fails with a finding and starts no render when the binary changes after the verification, before the render', async () => {
       const shellPath = await seedChrome(studio);

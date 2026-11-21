@@ -151,6 +151,9 @@ export async function engineRuntime(ports: HyperframesStagePorts, settings: Engi
   if (state !== 'ready') return refuse(state);
   if (files.chrome.status !== 'present') return refuse('chrome-missing');
   const paths = hyperframesPaths(ports.dataHomeRoot);
+  // Before the Chrome check, so a missing cache/ answers runtime-not-prepared, not chrome-missing (SPEC 0008 section 18.3).
+  const folders = await preparedFolders(ports, paths);
+  if (folders.status === 'refused') return folders;
   if (!(await chromeUnchanged(ports, files.chrome.value, paths.cacheDir))) return refuse('chrome-missing');
   let binPath: string;
   try {
@@ -160,8 +163,6 @@ export async function engineRuntime(ports: HyperframesStagePorts, settings: Engi
     return refuse('pin-mismatch');
   }
   if (!ports.sandboxExecExists()) return refuse('sandbox-unavailable');
-  const folders = await preparedFolders(ports, paths);
-  if (folders.status === 'refused') return folders;
   const chrome = await chromePaths(ports, folders.value.cacheDir, files.chrome.value.executablePath);
   if (chrome.status === 'refused') return chrome;
   const sandbox = await sandboxPaths(ports, settings, paths);

@@ -4,7 +4,7 @@ status: active
 owner: Ricardo Fagmer
 spec: pending (SPEC 0008, after the pin approval)
 domain: backend
-security_review: done
+security_review: pending
 preview: pending
 risk: medium
 new_feature: true
@@ -166,3 +166,11 @@ advisory; 0.9.17 (the newest release at least 14 days old) pins `undici` 7.25.0 
 | 2026-11-21 | Ricardo Fagmer | — | R4H-FP security: "Run reviewer and scan" — read-only `security-reviewer` over the SPEC 0008 diff plus `apps/api/src/auth/rev7-routes.guard.test.ts`, and `engineos compliance diff` once |
 | 2026-11-21 | Ricardo Fagmer | security-accept | After "New branch and PR" then "same branch": "Mark done (accepted)" — `security_review` set to `done` on the recorded acceptance of F1 to F4 (residual risk, not fixed); the secret and injection scans at commit, push and PR still apply. Seed-entry CI fix: "Skip, let CI run it" — the test file was not run locally |
 | 2026-11-21 | Ricardo Fagmer | — | PR #2 CI (run 44914642913): core seed tests green; 1 watcher failure in `hyperframes-template-copy.test.ts` (AC 96), a test bug — three tests read `sizeBytes` before the lazy `listingEdit` set it, so the limit stayed 0. Fixed in the test only (size passed as a function); repair attempt 1 of 2, not run locally |
+| 2026-11-21 | Ricardo Fagmer | — | Next wave "Fix the HyperFrames code gaps": G1 "Write a failing record", G2 "Check folders first", G3 "Mux uses ffmpegBin", G4-G7 "Spec text only" — recorded as SPEC 0008 section 18 (rev 3). Risk high (sandbox/trace code), autonomy A3; `security_review` back to `pending` for the rev 3 code (`security-reviewer` and `critic` at the final gate) |
+
+## Rev 3 gaps (SPEC 0008 section 18, 2026-11-21)
+- G1 `tools/cli/src/hyperframes/network-trace.ts`: an unreadable binary after the render no longer throws; the record is written with `result: 'fail'`, `chromeSha256` of 64 zeros and `TRACE_CHROME_UNREADABLE_AFTER_TEXT` (`hyperframes-texts.ts`). Test: AC 99 in `hyperframes-trace.command.test.ts`.
+- G2 `apps/watcher/src/stages/composition/hyperframes-preparation.ts`: `preparedFolders` runs before `chromeUnchanged`. Test: AC 100 assertion (no Chrome verification) in `composition.executor.hyperframes-refusals.test.ts`.
+- G3 `apps/watcher/src/stages/process/runner/hyperframes.handlers.ts`: the mux runs `runtime.ffmpegBin`; schema unchanged. Test: AC 101 in `hyperframes.handlers.test.ts`.
+- Not changed: ffprobe is also sent twice (`tools.ffprobePath` for the picture probe, `runtime.ffprobeBin` in the sandbox); outside the owner's G3 decision.
+- Validation: not run; supervisor inline (`dispatch=none`).
