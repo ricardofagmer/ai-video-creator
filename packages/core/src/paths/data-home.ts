@@ -2,6 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { isAbsolute, join, normalize } from 'node:path';
 import { AbsolutePathSchema, EmbeddingModelManifestSchema } from '@studio/shared/catalog';
 import { CURATIONS_FOLDER_NAME } from '@studio/shared/curation';
+import { PLATFORM_FOLDER_NAME } from '@studio/shared/platforms';
 import { SCHEDULES_FOLDER_NAME } from '@studio/shared/schedules';
 
 /**
@@ -45,6 +46,9 @@ export class InvalidModelRefError extends Error {
  * section 23): the api creates each `curations/<id>/` folder once; the watcher writes inside it
  * after its claim. `schedules` (SPEC 0006 section 4.6, docs/RUN-FORMAT.md section 24): the api or
  * CLI writes `schedule.json`; the watcher writes `cursor.json` and `slots.jsonl` beside it.
+ * `platform` (SPEC 0007 section 4.6, docs/RUN-FORMAT.md section 26): connected accounts, gates,
+ * publish requests, the poll cursor and the metrics inbox; the api or CLI and the watcher each
+ * write their own files inside it, through `@studio/shared/platforms/files`.
  */
 export class DataHome {
   readonly db: string;
@@ -54,6 +58,7 @@ export class DataHome {
   readonly models: string;
   readonly curations: string;
   readonly schedules: string;
+  readonly platform: string;
   readonly embeddingModels: string;
   readonly databaseFile: string;
 
@@ -65,6 +70,7 @@ export class DataHome {
     this.models = join(root, 'models');
     this.curations = join(root, CURATIONS_FOLDER_NAME);
     this.schedules = join(root, SCHEDULES_FOLDER_NAME);
+    this.platform = join(root, PLATFORM_FOLDER_NAME);
     this.embeddingModels = join(this.models, 'embeddings');
     this.databaseFile = join(this.db, DATABASE_FILE_NAME);
   }
@@ -102,15 +108,17 @@ export function resolveDataHome(source: DataHomeSource): DataHome {
 }
 
 /**
- * Creates the four D5 data folders, `curations/` and `schedules/` if absent (idempotent); never
- * touches existing content. `curations/` (SPEC 0005 B13, L5) and `schedules/` (SPEC 0006 section
- * 4.6) are created here because two processes write inside each at run time, the api and the
- * watcher. It deliberately does not create `models/`: its only
- * writers are the installer and `studio models fetch` (docs/RUN-FORMAT.md section 22), and every
- * process, the watcher included, runs this at start.
+ * Creates the four D5 data folders, `curations/`, `schedules/` and `platform/` if absent
+ * (idempotent); never touches existing content. `curations/` (SPEC 0005 B13, L5), `schedules/`
+ * (SPEC 0006 section 4.6) and `platform/` (SPEC 0007 section 4.6) are created here because two
+ * processes write inside each at run time, the api and the watcher. All are `0700`. It
+ * deliberately does not create `models/`: its only writers are the installer and `studio models
+ * fetch` (docs/RUN-FORMAT.md section 22), and every process, the watcher included, runs this at
+ * start.
  */
 export async function ensureDataHomeDirectories(dataHome: DataHome): Promise<void> {
-  for (const directory of [dataHome.db, dataHome.assets, dataHome.runs, dataHome.logs, dataHome.curations, dataHome.schedules]) {
+  const directories = [dataHome.db, dataHome.assets, dataHome.runs, dataHome.logs, dataHome.curations, dataHome.schedules, dataHome.platform];
+  for (const directory of directories) {
     await mkdir(directory, { recursive: true, mode: DATA_HOME_DIRECTORY_MODE });
   }
 }

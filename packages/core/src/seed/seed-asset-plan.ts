@@ -26,6 +26,8 @@ export interface SeedAssetUnit {
 }
 
 export function seedProvenance(origin: SeedOrigin, author: string): Provenance {
+  // C1 seed provenance names only the two absorbed sources; a studio-authored asset was made here.
+  if (origin === 'studio') return { source: { type: 'created-here' }, author, capturedAt: null };
   return { source: { type: 'seed', origin }, author, capturedAt: null };
 }
 

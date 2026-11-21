@@ -73,6 +73,20 @@ export function formatDuration(milliseconds: number): string {
   return minutes === 0 ? `${seconds}s` : `${minutes}min ${String(seconds).padStart(2, '0')}s`;
 }
 
+const instantFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** "20/11/2026 10:02" from an ISO instant, in the Mac's local time, as the web shows it. */
+export function formatInstant(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : instantFormatter.format(date).replace(',', '');
+}
+
 /** Cuts to `width` characters so table columns stay aligned; never wraps. */
 export function fitText(text: string, width: number): string {
   if (text.length <= width) return text.padEnd(width);

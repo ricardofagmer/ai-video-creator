@@ -4,7 +4,7 @@ status: active
 owner: Ricardo Fagmer
 spec: n/a — two manifest edits plus the lockfile, owner-approved dependency change
 domain: devops
-security_review: pending
+security_review: done
 risk: medium
 new_feature: false
 release: false
@@ -54,3 +54,18 @@ limit (`JSON_BODY_LIMIT` 1mb, apps/api/src/platform/api-config.ts) and the loopb
 - 2026-11-19 Ricardo Fagmer: final checks — Skip for now. [validation] pending — final-stage user approval required.
 - 2026-11-19 Ricardo Fagmer: merge into feat/r3-outside-signals (--no-ff), frozen install, `@studio/*` checks and `pnpm audit --prod` — approved; run from the R3 session.
 - 2026-11-19: zod residual (GHSA-mrhx-c7xc-m3w5) resolved by the zod 4 migration (`b5ff010`), merged into feat/r3-outside-signals as `6f286b0`; `pnpm audit --prod` clean.
+- 2026-11-20 Ricardo Fagmer: security review approved ("Run the review") before opening the R4 PR, with the result to be recorded and the PR opened if clean.
+
+## Security review (2026-11-20)
+Read-only security-reviewer on `2d744ec`; pins also checked at HEAD `a1ab5b5`. Verdict **CLEAR**, no findings.
+- **Lockfile:** all 146 added and 72 removed resolutions are registry entries with sha512 integrity hashes, and each traces to remotion 4.0.541 or an override.
+- **Install scripts:** only `esbuild@0.28.1` has a postinstall, and it is already on `onlyBuiltDependencies`.
+- **undici 6.29.1 override:** keeps provider-utils' safe DNS lookup and manual redirects, with the same TLS and proxy behavior as 5.29.0.
+- **deepmerge-ts 8.0.2:** keeps the `__proto__` guard.
+- **postcss 8.5.33:** a build-time minor bump.
+- **Remotion licensing:** `@remotion/licensing` sends nothing, because no `licenseKey` is passed.
+- **Package names:** no typosquats.
+- **Secrets:** none added.
+- **Pins at HEAD:** the three overrides still hold, and no vulnerable version remains.
+
+Not verified, because the review had no network access: live advisories, registry integrity and provenance, and the 48 non-darwin optional packages that are not installed. Hygiene note: stale pre-upgrade folders remain in `node_modules/.pnpm` (remotion 4.0.300, ws 8.17.1, undici 5.29.0). A clean reinstall removes them before any packaging step.

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { type MetricImportView } from '@studio/shared/api';
-import { type Platform } from '@studio/shared/metrics';
+import { type MetricImportOrigin, type Platform } from '@studio/shared/metrics';
 import { PrismaService, type PrismaTransaction } from '../prisma';
 import { toMetricImportView } from './metrics.mapper';
 
@@ -15,6 +15,8 @@ export interface NewMetricImport {
   importedBy: string;
   correlationId: string | null;
   importedAt: Date;
+  /** `upload` for a CSV upload, `api` for a pulled batch (SPEC 0007 section 4.5, Q3). */
+  origin: MetricImportOrigin;
 }
 
 export interface MetricImportRows {
@@ -52,9 +54,16 @@ export class MetricImportRepository {
         importedBy: record.importedBy,
         correlationId: record.correlationId,
         importedAt: record.importedAt,
+        origin: record.origin,
       },
       select: { id: true },
     });
+  }
+
+  /** Section 5.6 step 2: a pulled batch whose bytes were already ingested, whatever its day. */
+  async hasFileHash(fileSha256: string, db: PrismaTransaction = this.prisma): Promise<boolean> {
+    const row = await db.metricImport.findFirst({ where: { fileSha256 }, select: { id: true } });
+    return row !== null;
   }
 
   /** Newest first, keyed by the time-ordered id; `cursor` is the last id of the previous page. */

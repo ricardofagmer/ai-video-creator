@@ -10,6 +10,8 @@ export const RESULT_MARKER = '@@tool-runner-result@@';
 
 const absolutePath = z.string().min(1).max(4096).startsWith('/');
 const seconds = z.number().nonnegative().max(36_000);
+/** An unprivileged loopback port (SPEC 0008 section 17.5). */
+const studioPort = z.number().int().min(1024).max(65535);
 
 const toolPaths = z.object({ ffmpegPath: z.string().min(1).max(4096), ffprobePath: z.string().min(1).max(4096) }).strict();
 
@@ -147,6 +149,51 @@ export const NarrationAssembleRequestSchema = z
   })
   .strict();
 
+const HyperframesVariableValueSchema = z.union([z.string().max(500), z.number().finite(), z.boolean()]);
+
+/** SPEC 0008 section 4.4: one sandboxed HyperFrames render of a staged template copy. */
+export const HyperframesRenderRequestSchema = z
+  .object({
+    command: z.literal('hyperframes-render'),
+    tools: toolPaths,
+    /** The private staged copy, never the store or the repository. */
+    templateDir: absolutePath,
+    variables: z
+      .record(z.string().regex(/^[a-z][A-Za-z0-9]{0,39}$/), HyperframesVariableValueSchema)
+      .refine((value) => Object.keys(value).length <= 32),
+    width: z.number().int().min(16).max(7680),
+    height: z.number().int().min(16).max(7680),
+    fps: z.number().int().min(1).max(120),
+    /** The narration length; the result is cut to it. */
+    durationS: z.number().positive().max(3600),
+    audio: absolutePath,
+    output: absolutePath,
+    scratchDir: absolutePath,
+    runtime: z
+      .object({
+        binPath: absolutePath,
+        browserPath: absolutePath,
+        configDir: absolutePath,
+        cacheDir: absolutePath,
+        homeDir: absolutePath,
+        sandboxProfilePath: absolutePath,
+        ownerConfigDir: absolutePath,
+        // SPEC 0008 section 17.5: sandbox parameters, each a real path resolved by the parent.
+        ownerHomeDir: absolutePath,
+        studioRoot: absolutePath,
+        dataHomeRoot: absolutePath,
+        hyperframesRoot: absolutePath,
+        chromeDir: absolutePath,
+        ffmpegBin: absolutePath,
+        ffprobeBin: absolutePath,
+        apiPort: studioPort,
+        webPort: studioPort,
+      })
+      .strict(),
+  })
+  .strict();
+export type HyperframesRenderRequest = z.infer<typeof HyperframesRenderRequestSchema>;
+
 export const ToolRunnerRequestSchema = z.discriminatedUnion('command', [
   MediaReviewRequestSchema,
   MusicBedRequestSchema,
@@ -158,6 +205,7 @@ export const ToolRunnerRequestSchema = z.discriminatedUnion('command', [
   LiveCaptureRequestSchema,
   PageTextRequestSchema,
   NarrationAssembleRequestSchema,
+  HyperframesRenderRequestSchema,
 ]);
 export type ToolRunnerRequest = z.infer<typeof ToolRunnerRequestSchema>;
 

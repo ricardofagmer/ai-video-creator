@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title"],
+  "properties": {
+    "title": { "type": "string", "maxLength": 120 },
+    "hook": { "type": "string", "maxLength": 200 },
+    "disclosure": { "type": "string", "maxLength": 200 },
+    "accent": { "type": "string", "format": "color", "default": "#f97316" },
+    "durationS": { "type": "number", "default": 30 }
+  }
+}

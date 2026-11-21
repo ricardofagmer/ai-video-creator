@@ -165,6 +165,7 @@ export class ImportMetricsHandler implements ICommandHandler<ImportMetricsComman
       importedBy: context.importedBy,
       correlationId: context.correlationId,
       importedAt: context.now,
+      origin: 'upload',
     });
     for (const write of plan.writes) {
       await writes.upsertCsvSnapshot({ publicationId: write.publicationId, asOfDate: context.asOfDate, importId, metrics: write.metrics, recordedAt: context.now });

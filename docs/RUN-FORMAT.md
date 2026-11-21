@@ -35,6 +35,7 @@ runs/<runId>/
   cost.json                billed sessions and the run total
   qa/                      summary.json, media-review.json, review-<subject>.json
   report.md                what was made, decisions, what left the machine, what to listen for
+  publications.jsonl       append-only, after approval: studio uploads to platforms (section 25)
 ```
 
 `<NN>` is the stage number with two digits; stages are numbered 1..N continuously across phases.
@@ -74,6 +75,10 @@ The SPEC 0002 rev 3 amendments keep `format: 1` as well: `egress.jsonl` is an ad
 (a reader of an older run treats a missing `egress.jsonl` as empty), and the egress `measure`
 field is optional (a manifest written before rev 3 still validates; every rev 3 writer sets it).
 
+The SPEC 0007 amendments keep `format: 1` too: `publications.jsonl` is an additional, optional file
+(a reader of an older run treats a missing `publications.jsonl` as empty), and the files under
+`<data home>/platform/` (section 26) carry their own `"format": 1`.
+
 ## 4. Who writes what
 
 | File or store | Writer | Rule |
@@ -91,7 +96,16 @@ field is optional (a manifest written before rev 3 still validates; every rev 3 
 | `schedules/<id>/fire.lock`, `fire.lock.takeover` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6, R3 security review L1 and M1): O_EXCL create holding the owner's pid, held for one evaluation of one schedule, removed only by its owner; a stale lock is replaced only under `fire.lock.takeover` |
 | `schedules/<id>/fired/<slotMs>` | Watcher | Amended 2026-11-19 (SPEC 0006 section 4.6, R3 security re-review 2): O_EXCL claim holding the claimant's pid, created before the slot's run is written; removed only by its claimant after its own run write failed |
 | SQLite (catalog, recipes, outcomes, run index) | Nest command handlers, run by the api or by the CLI booting the same modules | The watcher only reads it; the run index is rebuilt from run folders and the files win |
-| SQLite `run_publications`, `platform_metric_snapshots`, `metric_imports`, quality columns | Nest command handlers (api or CLI) | Amended 2026-11-19 (SPEC 0006 K1): the watcher does not read or write them |
+| SQLite `run_publications`, `platform_metric_snapshots`, `metric_imports`, quality columns | Nest command handlers (api or CLI) | Amended 2026-11-19 (SPEC 0006 K1): the watcher does not write them. Amended 2026-11-20 (SPEC 0007 L2): the watcher reads `run_publications` and `run_outcomes` to list its poll targets |
+| Keychain items of service `com.videostudio.platform-tokens` | api or CLI (create at connect, delete at disconnect); watcher (replace on refresh) | Amended 2026-11-20 (SPEC 0007 sections 4.6 and 5.2): every write and delete holds `platform/accounts/<platform>/token.lock`; no token value is ever written to a file, SQLite, a run file, a log or an event (K3) |
+| `platform/gates.json`, `platform/accounts/<p>/account.json`, `platform/publish/<id>/request.json`, `platform/publish/<id>/cancel` | api or CLI | Amended 2026-11-20 (SPEC 0007 section 4.6): `request.json` is written once, only by `RequestPublish`, and never edited; `cancel` is an O_EXCL marker created only while no `claim` exists (section 26) |
+| `platform/accounts/<p>/health.json`, `platform/publish/<id>/claim`, `platform/publish/<id>/state.json`, `platform/polls/cursor.json` | Watcher | Amended 2026-11-20 (SPEC 0007 section 4.6): written only between runs; `claim` is an O_EXCL file holding the claimant's pid and is never removed (section 26) |
+| `platform/accounts/<p>/token.lock` | api, CLI or watcher | Amended 2026-11-20 (SPEC 0007 section 5.2): O_EXCL holding the owner's pid, held for one Keychain write or delete; stale after 60 s and removed by its finder (section 26) |
+| `platform/metrics-inbox/<batchId>.json` | Watcher creates (temp file, then link); `IngestMetricBatch` (api or CLI) deletes after its transaction commits | Amended 2026-11-20 (SPEC 0007 K2): the one stated exception to one writer per file, like `control.json`; never edited (section 26) |
+| `runs/<runId>/publications.jsonl` | Watcher | Amended 2026-11-20 (SPEC 0007 sections 4.3 and 5.4): append-only; only for a run whose status is `approved`; no other run-folder file is touched after approval (section 25) |
+| SQLite `publication_attempts`, `run_publications.origin`, `attempt_id`, `platform_media_id`, `metric_imports.origin` | Nest command handlers (api or CLI) | Amended 2026-11-20 (SPEC 0007 section 4.5, K1): the watcher writes no table |
+| `hyperframes/engine.json`, `hyperframes/chrome.json`, `hyperframes/trace.json`, `hyperframes/config/` | CLI | Amended 2026-11-20 (SPEC 0008 section 4.5): `engine.json` only by `studio hyperframes enable` / `disable`, `chrome.json` only by `chrome install`, `trace.json` only by `trace`, `config/config.json` seeded once before any HyperFrames process starts; the watcher reads them and writes nothing there (section 27) |
+| `hyperframes/cache/` | The pinned HyperFrames process | Amended 2026-11-20 (SPEC 0008 sections 4.5 and 5.5): Chrome lives here, filled only by the owner-confirmed `chrome install`; no studio code writes inside it, `home/` stays empty (section 27) |
 | Mastra storage | None | Agents keep no state of their own (D18) |
 
 ## 5. Ids
@@ -796,3 +810,195 @@ files read as `{ status: 'absent' }` or `{ status: 'present', value }`; `listSch
 the ULID-named folders oldest first and ignores links and other names. The api imports only
 `createSchedule`, `rewriteScheduleFile` and the readers; the watcher only `writeScheduleCursor`,
 `appendSlotLine` and the readers.
+
+## 25. `publications.jsonl`
+
+Numbered after section 24 so existing references stay valid (added by SPEC 0007, sections 4.3,
+5.4 and 5.5; owner decisions OD4 and OD5). Executable form: `RunPublicationLineSchema` in
+`@studio/shared/run-format` (also re-exported by `@studio/shared/platforms`), written and read only
+through `appendRunPublicationLine` and `readRunPublicationLines` in `@studio/shared/run-files`.
+
+`runs/<runId>/publications.jsonl` is the owner-visible record of what left the machine **after**
+approval: one line per studio upload event. It is separate from `egress.jsonl` because a
+publication has no `stepKey` and happens after the run ended, and `ProviderNameSchema` and
+`EgressEntrySchema` stay closed (SPEC 0007 L7). An optional file: `format` stays 1 and a missing
+file reads as an empty page.
+
+| Item | Rule |
+|---|---|
+| Writer | The watcher only, append-only (section 2), and only for a run whose status is `approved`. No other run-folder file is touched after approval |
+| When | `upload-started` before the first byte leaves (so a crash never loses the record); then exactly one closing line: `published`, `sent-to-inbox`, `failed` or `outcome-unknown`. An attempt that never started an upload (cancelled, expired, refused at the watcher's re-check) writes no line |
+| Readers | The api (`RunPublishView.leftTheMachine`, the newest 100 lines), the web run page and `studio runs show`, which render "O que saiu da máquina" from `manifest.json.egress` followed by these lines. `report.md` is not rewritten (SPEC 0007 L5) |
+| Content | Sizes, the hash, the visibility and the confirmed biometric refs only: never a title, caption, tag, URL, path, account label or token |
+
+Each line (`RunPublicationLineSchema`, strict): `at` (ISO instant), `attemptId` (ULID), `platform`
+(`youtube` \| `instagram` \| `tiktok`), `mode` (`mock` \| `live`), `event` (`upload-started` \|
+`published` \| `sent-to-inbox` \| `failed` \| `outcome-unknown`), `sizeBytes` (positive, at most
+4 GiB), `artifactSha256` (lowercase hex, always `final.mp4`), `visibility` (`public` \| `unlisted`
+\| `private`), `biometricRefs[]` (`assetId@version`, at most 64, the set the owner confirmed),
+`platformVideoId` (at most 40 characters, or null), `reasonId` (`PublishFailureReason`, or null).
+Rules: `reasonId` is set exactly when `event` is `failed`; a `published` line names
+`platformVideoId`.
+
+## 26. `<data home>/platform/`
+
+Added by SPEC 0007 (sections 4.2, 4.3, 4.6 and 5.2). Executable form: `@studio/shared/platforms`
+(constants, enums, file schemas and the pure functions `pollDue`, `capabilityStatus`,
+`applyGateChange`, `canTransitionPublishState`, browser-safe) and `@studio/shared/platforms/files`
+(Node-only helpers). `platform/` is an eighth data-home folder beside `db/`, `assets/`, `runs/`,
+`logs/`, `models/`, `curations/` and `schedules/`; mode `0700` for every folder and `0600` for every
+file. Connected accounts, gates and the poll cursor are files, not tables, because the watcher must
+write two of them and never writes SQLite (K1).
+
+```text
+platform/gates.json                          api or CLI: the owner's gate changes
+         accounts/<platform>/account.json    api or CLI: connect, reconnect, disconnect
+                             health.json     watcher: token health, backoff, last poll
+                             token.lock      api, CLI or watcher: O_EXCL, held for a Keychain write
+         publish/<attemptId>/request.json    api or CLI: written once by RequestPublish
+                             cancel          api or CLI: O_EXCL marker, only before the claim
+                             claim           watcher: O_EXCL, the claimant's pid; never removed
+                             state.json      watcher: atomic rewrite
+         polls/cursor.json                   watcher
+         metrics-inbox/<batchId>.json        watcher creates once; IngestMetricBatch deletes
+```
+
+| Item | Rule |
+|---|---|
+| Ids and paths | `<platform>` is checked with `PlatformSchema`; `attemptId` and `batchId` are ULIDs validated before any join. The helpers resolve only the names above, inside a folder named `platform`, and refuse anything else (`PlatformPathError`, code `path-outside-run`) |
+| Secrets | No file here holds a token, an OAuth code, a `state`, a PKCE verifier or a client secret. Tokens live only in the Keychain service `com.videostudio.platform-tokens` (one item per platform) and in process memory (K3) |
+| Owner text | The publish title, caption and tags exist only in `request.json`; they go to the platform and nowhere else (not SQLite, logs, events, responses or `publications.jsonl`) |
+| Writers | Section 4. The api and CLI import only `writeGatesFile`, `writeAccountFile`, `createPublishRequest`, `createCancelMarker` and `deleteMetricBatch`; the watcher only `writeHealthFile`, `claimPublishAttempt`, `writePublishState`, `writePollCursor` and `createMetricBatch`; all three use `acquireTokenLock` and `releaseTokenLock` |
+| Conventions | Section 2 applies: UTF-8, atomic whole-file writes, strict objects. JSON files carry `"format": 1` and section 3 applies. An unreadable file is skipped with a reason, never guessed |
+| Logs and events | Ids, counts, states, reason ids and byte counts only (SPEC 0007 K7) |
+
+**`gates.json`** (`GatesFileSchema`): `format`, `gates` (one `{ metrics, publish }` entry per
+platform, each `awaiting-review` \| `enabled`), `updatedAt`, `updatedBy`. Absent reads as
+`defaultGates`: YouTube both `enabled`; Instagram and TikTok both `awaiting-review`. Only the owner
+changes a gate; Instagram `publish` cannot be enabled (`platformPublishSupport`, OD8).
+
+**`account.json`** (`AccountFileSchema`): `format`, `platform`, `connectionId` (ULID, new on every
+connect), `state` (`connected` \| `disconnected`), `mode`, `accountLabel` (at most 100, shown and
+never logged), `platformAccountId` (`[A-Za-z0-9_.-]{1,64}`), `scopes[]` (at most 12),
+`capabilities[]` (unique), `connectedAt`, `connectedBy`, `disconnectedAt` (set exactly when
+`disconnected`), `correlationId`.
+
+**`health.json`** (`HealthFileSchema`): `format`, `platform`, `connectionId` (the connection it
+applies to), `token` (`ok` \| `needs-reconnect`), `reconnectReason` (set exactly when
+`needs-reconnect`), `checkedAt`, `backoff` (`{ reasonId, level 1-5, until }` or null),
+`lastPollAt`.
+
+**`token.lock`**: an O_EXCL file holding the owner's decimal pid. Held around every Keychain write
+or delete of the platform's tokens; the watcher re-reads `account.json` after taking it and writes
+nothing when the account is `disconnected` or its `connectionId` changed. A live lock is `held`
+even for the same pid. A lock older than 60 s, or whose owner is gone, is stale and removed by its
+finder (still the same inode), with no takeover protocol.
+
+**`request.json`** (`PublishRequestFileSchema`): `format`, `attemptId`, `runId`, `platform`,
+`connectionId`, `mode`, `requestedAt`, `expiresAt` (requested + 2 h), `requestedBy`, `createdBy`
+(`api` \| `cli`), `correlationId`, `artifact` (`{ sha256, sizeBytes }` of `final.mp4`, at most
+4 GiB), `approvalDecidedAt`, `metadata` (`{ title 1-100, caption 0-2200, tags[] at most 30 of
+[letters, digits, _]{1,50}, visibility, aiDisclosure }`), `biometric` (`{ refs[] at most 64,
+confirmedAt }`).
+
+**`cancel`** and **`claim`**: `cancel` is an empty O_EXCL marker the api or CLI creates only while
+no `claim` exists; `claim` is the watcher's O_EXCL file with its pid. The watcher checks `cancel`
+again right after creating `claim`, so a cancel that races the claim wins and no byte is sent. A
+claim is never removed: a claimed attempt is never uploaded again (K5).
+
+**`state.json`** (`PublishStateFileSchema`): `format`, `attemptId`, `state` (`queued` \|
+`uploading` \| `processing` \| `sent-to-inbox` open; `published` \| `failed` \| `cancelled` \|
+`expired` \| `outcome-unknown` \| `inbox-unconfirmed` terminal), `since`, `bytesSent` (at most
+`bytesTotal`), `bytesTotal`, `reasonId` (set exactly when `failed`), `platformVideoId`,
+`platformMediaId`, `publishedAt` (a `published` state names it and `platformVideoId`),
+`followUntil` (set while `sent-to-inbox`), and the optional `publicationUrl` (amended 2026-11-20,
+SPEC 0007 wave 4: the post link a platform reported for a `published` attempt, written only when
+`parsePublicationUrl` recognizes it for the same platform and video id; absent otherwise). Moves are forward only (`canTransitionPublishState`):
+terminal states never change, `cancelled` and `expired` only from `queued`.
+
+**`cursor.json`** (`PollCursorFileSchema`): `format`, `updatedAt`, `entries` keyed by
+`publicationId`: `{ lastPolledOn, stopped (PollStopReason or null), strikes 0-3,
+platformMediaId }`. Due days follow `pollDue` (daily through day 30, weekly to day 180, then
+`window-closed`); missed days are never replayed.
+
+**`metrics-inbox/<batchId>.json`** (`MetricBatchFileSchema`): `format`, `batchId` (equal to the
+file name), `platform`, `mode`, `asOfDate` (the local day of the pull), `pulledAt`, `rows[]` (1-50,
+one per publication, each `{ publicationId, metrics }` in the shared `PlatformMetrics` shape). At
+most 256 KiB. Written to a temp name and hard-linked into place, so a batch is never replaced and
+never seen partial; a batch that fails to read is left in place and logged
+`metrics.batch-refused`.
+
+Reading and writing in code:
+
+```ts
+import { GatesFileSchema, capabilityStatus, defaultGates, pollDue, platformFileNames } from '@studio/shared/platforms';
+import {
+  acquireTokenLock,
+  claimPublishAttempt,
+  createCancelMarker,
+  createMetricBatch,
+  createPublishRequest,
+  listMetricBatchIds,
+  listPublishAttemptIds,
+  readAccountFile,
+  readMetricBatch,
+  writePublishState,
+} from '@studio/shared/platforms/files';
+```
+
+The helpers take the absolute `platform/` root (`DataHome.platform`). They raise the run-file typed
+errors of section 19 plus `PublishAttemptExistsError`, `MetricBatchExistsError` and
+`MetricBatchRefusedError`. Optional files read as `{ status: 'absent' }` or
+`{ status: 'present', value }`; the list helpers return ULID-named entries oldest first and ignore
+links, temp files and other names.
+
+## 27. `<data home>/hyperframes/`
+
+Added by SPEC 0008 (sections 4.2, 4.5, 5.5 and 5.6; owner decisions OD3 to OD5). Executable form:
+`@studio/shared/hyperframes` (constants, file schemas, `engineState`, `hyperframesPaths`, template
+checks, variable resolution) and the Node-only `@studio/shared/hyperframes/files`.
+
+```
+<data home>/hyperframes/engine.json     CLI: enable, disable
+                        chrome.json     CLI: chrome install
+                        trace.json      CLI: trace
+                        config/         CLI: config.json seeded once, before any process starts
+                        cache/          the HyperFrames process only (Chrome lives under it)
+                        home/           nobody; stays empty (the process's HOME)
+```
+
+Folders `0700`, files `0600`. The folder does not exist until the owner runs a `studio hyperframes`
+command; `DataHome` and `ensureDataHomeDirectories` do not create it. An absent folder means the
+engine is off. Removing the data home removes this folder, Chrome included.
+
+**`engine.json`** (`HyperframesEngineFileSchema`): `format: 1`, `state` (`disabled` or `enabled`),
+`updatedAt`, `updatedBy`. `enable` writes `enabled` only when `engineState` would be `ready`;
+`disable` always works.
+
+**`chrome.json`** (`HyperframesChromeFileSchema`): `format: 1`, `version` (`158.0.8127.36`, the
+pinned `chrome-headless-shell`), `executablePath` (inside `cache/`, refused anywhere else), `sha256`,
+`sizeBytes`, `installedAt`, `installedBy`. A path outside `cache/` or a missing binary reads as
+`chrome-missing`.
+
+**`trace.json`** (`HyperframesTraceFileSchema`): `format: 1`, `result` (`pass` or `fail`), `at`,
+`by`, `pin`, `chromeSha256`, `profileSha256`, `templateContentHash`, `controlDenied`,
+`renderExitCode`, `outputOk`, `deniedNetwork`, `ownerConfigDirDenied`, `findings[]` (at most 20, 200
+characters each). The record of the owner-run network trace (SPEC 0008 section 5.6).
+
+`engineState`, first match: no `engine.json` or `state: 'disabled'` gives `engine-disabled`; no
+`chrome.json`, or its binary is missing, gives `chrome-missing`; no `config/config.json` gives
+`runtime-not-prepared`; no valid `trace.json` gives `trace-missing`; a trace that did not pass, or
+whose pin, Chrome hash or sandbox profile hash differs from the current one, gives `trace-stale`;
+otherwise `ready`. An unreadable, linked or invalid file is never read as present.
+
+Reading and writing in code:
+
+```ts
+import { engineState, hyperframesPaths, HYPERFRAMES_PIN } from '@studio/shared/hyperframes';
+import { readHyperframesEngineFiles, writeEngineFile } from '@studio/shared/hyperframes/files';
+```
+
+The helpers take the absolute data home root and resolve every path through `hyperframesPaths`,
+so none reaches outside `hyperframes/`. Writers raise the run-file typed errors of section 19 and
+`HyperframesPathError`; readers answer `{ status: 'absent' }`, `{ status: 'invalid' }` or
+`{ status: 'present', value }`.

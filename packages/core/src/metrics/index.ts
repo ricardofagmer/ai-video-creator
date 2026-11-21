@@ -1,4 +1,10 @@
 export { ImportMetricsCommand } from './commands/import-metrics.command';
+export {
+  IngestMetricBatchCommand,
+  IngestMetricBatchInputSchema,
+  type IngestMetricBatchInput,
+  type MetricBatchIngestSummary,
+} from './commands/ingest-metric-batch.command';
 export { RecordPublicationCommand } from './commands/record-publication.command';
 export { RemovePublicationCommand } from './commands/remove-publication.command';
 export { SaveMetricSnapshotCommand } from './commands/save-metric-snapshot.command';

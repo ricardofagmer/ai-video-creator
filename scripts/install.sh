@@ -735,7 +735,38 @@ assert_plist_path() {
   esac
 }
 
-# Template with its header comment removed (it documents the placeholders) and the four
+# The watcher's studio ports (SPEC 0008 U15): the A9 default when the variable is unset or empty,
+# else the value the CLI and the api accept (4 or 5 digits, 1024 to 65535). An invalid value stops
+# the install, as `studio` refuses it, instead of a watcher that restarts in a loop under KeepAlive.
+WATCHER_API_PORT=''
+WATCHER_WEB_PORT=''
+
+watcher_port() {
+  local variable="$1" value="$2" default="$3"
+  if [ -z "$value" ]; then
+    printf '%s' "$default"
+    return 0
+  fi
+  case "$value" in
+    [0-9][0-9][0-9][0-9] | [0-9][0-9][0-9][0-9][0-9]) ;;
+    *) die "$variable não é uma porta (1024 a 65535): $value" ;;
+  esac
+  # 10# keeps a leading zero from being read as octal.
+  if [ $((10#$value)) -lt 1024 ] || [ $((10#$value)) -gt 65535 ]; then
+    die "$variable fora do intervalo 1024 a 65535: $value"
+  fi
+  printf '%s' "$((10#$value))"
+}
+
+resolve_watcher_ports() {
+  WATCHER_API_PORT="$(watcher_port VIDEO_STUDIO_API_PORT "${VIDEO_STUDIO_API_PORT:-}" "$STUDIO_DEFAULT_API_PORT")"
+  WATCHER_WEB_PORT="$(watcher_port VIDEO_STUDIO_WEB_PORT "${VIDEO_STUDIO_WEB_PORT:-}" "$STUDIO_DEFAULT_WEB_PORT")"
+  if [ "$WATCHER_API_PORT" = "$WATCHER_WEB_PORT" ]; then
+    die "VIDEO_STUDIO_API_PORT e VIDEO_STUDIO_WEB_PORT não podem ser a mesma porta: $WATCHER_API_PORT"
+  fi
+}
+
+# Template with its header comment removed (it documents the placeholders) and the six
 # placeholders replaced. Fails when a placeholder survives.
 render_plist() {
   local content
@@ -747,8 +778,10 @@ render_plist() {
   content="${content//__WATCHER_MAIN__/$WATCHER_MAIN}"
   content="${content//__WORKING_DIR__/$WATCHER_DIR}"
   content="${content//__LOGS_DIR__/$DATA_HOME/logs}"
+  content="${content//__API_PORT__/$WATCHER_API_PORT}"
+  content="${content//__WEB_PORT__/$WATCHER_WEB_PORT}"
   case "$content" in
-    *__NODE_BIN__* | *__WATCHER_MAIN__* | *__WORKING_DIR__* | *__LOGS_DIR__*)
+    *__NODE_BIN__* | *__WATCHER_MAIN__* | *__WORKING_DIR__* | *__LOGS_DIR__* | *__API_PORT__* | *__WEB_PORT__*)
       die 'um marcador do modelo do plist não foi substituído.' ;;
   esac
   printf '%s\n' "$content"
@@ -760,8 +793,9 @@ step_launchd() {
   if [ ! -f "$PLIST_TEMPLATE" ]; then
     die "modelo do plist não encontrado: $PLIST_TEMPLATE"
   fi
+  resolve_watcher_ports
   if [ "$DRY_RUN" -eq 1 ]; then
-    info "(simulação) node: ${NODE_BIN:-<node do Homebrew>}; watcher: $WATCHER_MAIN; logs: $DATA_HOME/logs"
+    info "(simulação) node: ${NODE_BIN:-<node do Homebrew>}; watcher: $WATCHER_MAIN; logs: $DATA_HOME/logs; portas api $WATCHER_API_PORT, web $WATCHER_WEB_PORT"
     info "(simulação) geraria o plist a partir de $PLIST_TEMPLATE, validaria com plutil -lint e gravaria $PLIST_PATH (644) se o conteúdo mudou; então:"
     run launchctl bootout "$LAUNCHD_SERVICE_TARGET"
     run launchctl bootstrap "gui/$UID" "$PLIST_PATH"

@@ -1,9 +1,11 @@
 import { Module, type DynamicModule, type ModuleMetadata, type Provider } from '@nestjs/common';
 import { AgentsModule, AgentsService } from '@studio/core/agents';
+import { AssetStoreModule } from '@studio/core/asset-store';
 import { readOnlyAgentToolSet } from '@studio/core/agents/tools';
 import { CatalogReadModule } from '@studio/core/catalog';
 import { CostLedgerService, CostsReadModule } from '@studio/core/costs';
 import { LearningNotesReader, LearningsReadModule } from '@studio/core/learnings';
+import { PathsModule } from '@studio/core/paths';
 import { ProviderModeService, ProvidersModule } from '@studio/core/providers';
 import { catalogAssetResolverProvider } from './adapters/catalog/catalog-asset-resolver.adapter';
 import { SystemClock, type WatcherProcess } from './engine/clock';
@@ -75,7 +77,8 @@ function agentsBinding(selection: PortSelection): Provider {
  */
 function portImports(selection: PortSelection): NonNullable<ModuleMetadata['imports']> {
   if (selection.kind === 'mock') return [];
-  const readSide = [CatalogReadModule, ProvidersModule, CostsReadModule, LearningsReadModule];
+  // `PathsModule` and `AssetStoreModule` give the stages `DataHome` and the read-only `FolderReader` (SPEC 0008).
+  const readSide = [CatalogReadModule, ProvidersModule, CostsReadModule, LearningsReadModule, PathsModule, AssetStoreModule];
   return usesCoreAgents(selection) ? [...readSide, AgentsModule.register({ toolSet: readOnlyAgentToolSet })] : readSide;
 }
 

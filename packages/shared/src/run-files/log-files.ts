@@ -2,6 +2,7 @@ import { type SessionId } from '../common/ids';
 import { RunEventSchema, type RunEvent } from '../run-format/events';
 import { runFileNames, sessionStreamPath } from '../run-format/layout';
 import { EgressEntrySchema, type EgressEntry } from '../run-format/manifest';
+import { RunPublicationLineSchema, type RunPublicationLine } from '../run-format/publications';
 import { SessionLineSchema, type SessionLine } from '../run-format/sessions';
 import { appendJsonLine } from './atomic-write';
 import { readJsonLines, type JsonLinesPage } from './read';
@@ -48,4 +49,25 @@ export async function appendEgressEntry(runDir: string, entry: EgressEntry): Pro
  */
 export async function readEgressEntries(runDir: string, fromByte = 0): Promise<JsonLinesPage<EgressEntry>> {
   return readJsonLines(resolveInsideRun(runDir, runFileNames.egress), EgressEntrySchema, fromByte);
+}
+
+/**
+ * Appends one line to `publications.jsonl` (SPEC 0007 sections 4.3 and 5.5). Watcher only, and only
+ * for a run whose status is `approved`; the caller checks the status, as it does before any upload.
+ * `upload-started` is appended before the first byte leaves, so a crash never loses the record.
+ */
+export async function appendRunPublicationLine(runDir: string, line: RunPublicationLine): Promise<void> {
+  await appendJsonLine(resolveInsideRun(runDir, runFileNames.publications), RunPublicationLineSchema, line);
+}
+
+/**
+ * Publication lines from a byte offset. A run without `publications.jsonl` (never published by the
+ * studio, or written before SPEC 0007) reads as an empty page.
+ */
+export async function readRunPublicationLines(
+  runDir: string,
+  fromByte = 0,
+  maxBytes?: number,
+): Promise<JsonLinesPage<RunPublicationLine>> {
+  return readJsonLines(resolveInsideRun(runDir, runFileNames.publications), RunPublicationLineSchema, fromByte, maxBytes);
 }

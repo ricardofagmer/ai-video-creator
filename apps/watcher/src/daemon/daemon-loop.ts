@@ -3,6 +3,8 @@ import { type RunId } from '@studio/shared/run-format';
 import { CurationStep } from '../curation/curation-step';
 import { EngineError } from '../engine/engine.errors';
 import { errorName } from '../platform/error-name';
+import { MetricsPollStep } from '../platforms/metrics-poll.step';
+import { PublishStep } from '../platforms/publish.step';
 import { RunEngine } from '../engine/run-engine';
 import { BusyIntervalTracker } from '../schedules/busy-interval.tracker';
 import { ScheduleStep } from '../schedules/schedule-step';
@@ -19,6 +21,9 @@ interface FailureStreak {
 
 /** A failed `runs/` scan is not "no run": a curation is claimed only on `none` (C5-AC-10). */
 type NextRun = { kind: 'none' } | { kind: 'scan-failed' } | { kind: 'candidate'; candidate: RunCandidate };
+
+type PublishIdleStep = Pick<PublishStep, 'sweep' | 'claimNext'>;
+type MetricsPollIdleStep = Pick<MetricsPollStep, 'run'>;
 
 /**
  * The daemon loop (SPEC 0002 R1-09, A8): scan `runs/`, execute the first startable run through
@@ -37,6 +42,13 @@ type NextRun = { kind: 'none' } | { kind: 'scan-failed' } | { kind: 'candidate';
  * run, so the loop scans again at once and executes it. A failed scan evaluates nothing. Each run
  * execution and each curation that ran is recorded in `BusyIntervalTracker`, so a slot that fell
  * due meanwhile and is evaluated more than `lateGraceMs` late is `missed` / `watcher-busy`.
+ *
+ * Platforms (SPEC 0007 section 5.5, OD5): `publish/` is swept once at start, after the curation
+ * sweep. On the same `none` answer the idle steps run in order: `publish.claimNext()` (the owner is
+ * waiting), `schedules.evaluate()`, `metricsPoll.run()` (bounded to one call per platform), then
+ * `curations.claimNext()`. The publish step and the poll run under `busy.track`, so a run, an upload
+ * and a curation never overlap; an upload that ran or a poll that called a platform sends the loop
+ * back to scanning `runs/` at once.
  */
 @Injectable()
 export class DaemonLoop {
@@ -52,14 +64,20 @@ export class DaemonLoop {
     @Inject(ScheduleStep) private readonly schedules: Pick<ScheduleStep, 'evaluate'>,
     @Inject(BusyIntervalTracker) private readonly busy: Pick<BusyIntervalTracker, 'track'>,
     @Inject(DAEMON_SHUTDOWN) private readonly shutdown: AbortSignal,
+    // Required (finding C11): a graph without the platform steps fails at bootstrap instead of
+    // running a daemon that silently never publishes or polls.
+    @Inject(PublishStep) private readonly publish: PublishIdleStep,
+    @Inject(MetricsPollStep) private readonly metricsPoll: MetricsPollIdleStep,
   ) {}
 
   async run(): Promise<void> {
     if (this.active) throw new DaemonLoopAlreadyRunningError();
     this.active = true;
-    this.logger.log({ event: 'watcher.loop-started', scanIntervalMs: RUN_SCAN_INTERVAL_MS, maxConcurrentRuns: 1 });
+    this.logger.log({ event: 'watcher.loop-started', scanIntervalMs: RUN_SCAN_INTERVAL_MS, maxConcurrentRuns: 1, platformSteps: 'wired' });
     try {
       await this.curations.sweepStale();
+      // Section 5.5 crash safety: an upload whose claimant died is closed before anything new is claimed.
+      await this.publish.sweep();
       while (!this.shutdown.aborted) {
         const next = await this.nextRun();
         if (next.kind === 'candidate') {
@@ -79,9 +97,14 @@ export class DaemonLoop {
     this.logger.log({ event: 'watcher.loop-stopped', reason: 'shutdown' });
   }
 
-  /** Schedules before curations (B5); a curation that found nothing to claim was not busy. */
+  /**
+   * Publish, schedules, metrics poll, curations (SPEC 0007 section 5.5, B5). A step that found
+   * nothing to do was not busy; one that worked sends the loop back to scanning `runs/`.
+   */
   private async idleWork(): Promise<boolean> {
+    if (await this.busy.track(() => this.publish.claimNext(), (claimed) => claimed)) return true;
     if (await this.schedules.evaluate()) return true;
+    if (await this.busy.track(() => this.metricsPoll.run(), (called) => called)) return true;
     return this.busy.track(() => this.curations.claimNext(), (ran) => ran);
   }
 

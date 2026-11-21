@@ -1,4 +1,6 @@
+import { sandboxExecExists } from '@studio/hyperframes';
 import { ExitCode } from '../errors/exit-codes.js';
+import { hyperframesChecks, readHyperframesStatus } from '../hyperframes/hyperframes-status.js';
 import { toErrorReport } from '../errors/error-report.js';
 import { checkCurations } from '../doctor/curation-checks.js';
 import { scheduleChecks } from '../doctor/schedule-checks.js';
@@ -6,7 +8,9 @@ import { checkCostIndex, checkDatabase, checkReferences, checkStoreSize, rebuild
 import { checkLine, hasFailure, type DoctorCheck } from '../doctor/doctor-check.js';
 import { INDEX_CHECK_LABEL, MODEL_CHECK_LABEL, checkSearch } from '../doctor/search-checks.js';
 import { checkApi, checkTool, checkWatcher, checkWeb } from '../doctor/service-checks.js';
-import { withSearchContext, type CliSearchContext } from '../nest/cli-context.js';
+import { platformChecks, publishAttemptCheck } from '../doctor/platform-checks.js';
+import { withSearchContext, type CliContext, type CliSearchContext } from '../nest/cli-context.js';
+import { readPlatforms, syncAllAttempts } from '../platforms/nest-platform-gateway.js';
 import { scanSchedules } from '../schedules/schedule-scan.js';
 import { type CommandDependencies } from './command-dependencies.js';
 
@@ -56,6 +60,36 @@ async function searchSections(context: CliSearchContext, dependencies: CommandDe
   }
 }
 
+/**
+ * SPEC 0007 section 5.9: the publish attempts after `PublishAttemptSync` (the same reconcile the
+ * api runs before its reads), then one line per platform with the web's status words. An
+ * unreadable platform file fails `doctor`; a platform waiting on the owner is a warning.
+ */
+async function platformSections(context: CliContext, signal: AbortSignal): Promise<DoctorSection[]> {
+  const sections = [await guarded('envios às plataformas', async () => only(publishAttemptCheck(await syncAllAttempts(context))), signal)];
+  try {
+    sections.push(...platformChecks(await readPlatforms(context), new Date()).map(only));
+  } catch (error) {
+    if (signal.aborted) throw error;
+    sections.push(only({ label: 'plataformas', status: 'failed', detail: toErrorReport(error).message }));
+  }
+  return sections;
+}
+
+/**
+ * SPEC 0008 section 7: the same lines as `studio hyperframes status`. HyperFrames is opt-in, so an
+ * unreadable state is a warning, never a failure of `doctor`.
+ */
+async function hyperframesSections(dependencies: CommandDependencies): Promise<DoctorSection[]> {
+  try {
+    const status = await readHyperframesStatus(dependencies.settings, { now: new Date(), sandboxAvailable: sandboxExecExists() });
+    return hyperframesChecks(status).map(only);
+  } catch (error) {
+    if (dependencies.signal.aborted) throw error;
+    return [only({ label: 'HyperFrames', status: 'warning', detail: `não verificado: ${toErrorReport(error).message}` })];
+  }
+}
+
 /** Database-backed checks share one booted context; a boot failure marks the database failed. */
 async function dataSections(options: DoctorOptions, dependencies: CommandDependencies): Promise<DoctorSection[]> {
   const { signal } = dependencies;
@@ -66,6 +100,7 @@ async function dataSections(options: DoctorOptions, dependencies: CommandDepende
       sections.push(await guarded('referências', () => checkReferences(context, signal), signal));
       if (options.rebuildIndex) sections.push(await guarded('reconstrução do índice', async () => only(await rebuildRunIndex(context)), signal));
       sections.push(await guarded('custos e índice', async () => only(await checkCostIndex(context, signal)), signal));
+      sections.push(...(await platformSections(context, signal)));
       sections.push(...(await searchSections(context, dependencies)));
       return sections;
     });
@@ -79,9 +114,11 @@ async function dataSections(options: DoctorOptions, dependencies: CommandDepende
  * `studio doctor [--rebuild-index]`: web, api, watcher, ffmpeg/ffprobe, database, store size and
  * unreachable references, curations that failed before any model call, schedule files, fired run
  * folders and active schedules without a running watcher (SPEC 0006 section 5.7), then cost
- * indexing of settled runs (SPEC 0002 rev 2), then the search
- * model and index lines (SPEC 0003 section 7). Read-only apart from the index tables (cost_entries,
- * run index) and stale pid records; it never downloads the model nor embeds. Exit 6 when any check
+ * indexing of settled runs (SPEC 0002 rev 2), then the publish attempts and one line per platform
+ * (SPEC 0007 section 5.9), then the search model and index lines (SPEC 0003 section 7). Read-only
+ * apart from the index tables (cost_entries, run index), stale pid records and the
+ * `PublishAttemptSync` reconcile of `publication_attempts`; it never downloads the model nor embeds,
+ * and it makes no platform call. Exit 6 when any check
  * fails; the search model lines are at most warnings, so a missing model never fails it (R2-AC-27).
  */
 export async function doctorCommand(options: DoctorOptions, dependencies: CommandDependencies): Promise<number> {
@@ -98,6 +135,7 @@ export async function doctorCommand(options: DoctorOptions, dependencies: Comman
   const watcherRunning = watcher.check.status === 'ok';
   const scheduleRoots = { schedulesRoot: settings.dataHome.schedules, runsRoot: settings.dataHome.runs };
   sections.push(await guarded('agendamentos', async () => scheduleChecks(await scanSchedules(scheduleRoots, signal), watcherRunning), signal));
+  sections.push(...(await hyperframesSections(dependencies)));
   sections.push(...(await dataSections(options, dependencies)));
 
   dependencies.printer.line(`Diagnóstico do studio (dados em ${settings.dataHome.root})`);

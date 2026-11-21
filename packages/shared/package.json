@@ -2,7 +2,7 @@
   "name": "@studio/shared",
   "version": "0.1.0",
   "private": true,
-  "description": "Frozen zod contracts shared by web, api, watcher and CLI (SPEC 0002 C1-C7, C10), plus the absorbed ace contracts (R1-23), the curation protocol (SPEC 0005) and the metrics and schedule protocols (SPEC 0006); run-files, curation/files and schedules/files are Node-only",
+  "description": "Frozen zod contracts shared by web, api, watcher and CLI (SPEC 0002 C1-C7, C10), plus the absorbed ace contracts (R1-23), the curation protocol (SPEC 0005), the metrics and schedule protocols (SPEC 0006), the platform protocol (SPEC 0007) and the HyperFrames protocol (SPEC 0008); run-files, curation/files, schedules/files, platforms/files and hyperframes/files are Node-only",
   "sideEffects": false,
   "exports": {
     "./catalog": {
@@ -57,6 +57,22 @@
       "types": "./src/schedules/files/index.ts",
       "node": "./dist/schedules/files/index.js"
     },
+    "./platforms": {
+      "types": "./src/platforms/index.ts",
+      "default": "./dist/platforms/index.js"
+    },
+    "./platforms/files": {
+      "types": "./src/platforms/files/index.ts",
+      "node": "./dist/platforms/files/index.js"
+    },
+    "./hyperframes": {
+      "types": "./src/hyperframes/index.ts",
+      "default": "./dist/hyperframes/index.js"
+    },
+    "./hyperframes/files": {
+      "types": "./src/hyperframes/files/index.ts",
+      "node": "./dist/hyperframes/files/index.js"
+    },
     "./telemetry": {
       "types": "./src/telemetry/index.ts",
       "default": "./dist/telemetry/index.js"
@@ -76,7 +92,11 @@
       "curation/files": ["./src/curation/files/index.ts"],
       "metrics": ["./src/metrics/index.ts"],
       "schedules": ["./src/schedules/index.ts"],
-      "schedules/files": ["./src/schedules/files/index.ts"]
+      "schedules/files": ["./src/schedules/files/index.ts"],
+      "platforms": ["./src/platforms/index.ts"],
+      "platforms/files": ["./src/platforms/files/index.ts"],
+      "hyperframes": ["./src/hyperframes/index.ts"],
+      "hyperframes/files": ["./src/hyperframes/files/index.ts"]
     }
   },
   "scripts": {

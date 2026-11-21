@@ -19,6 +19,7 @@ import {
 } from '@studio/shared/catalog';
 import { InvalidAssetInputError, type InputIssue } from './catalog.errors';
 import { type PreparedContent } from './asset-content';
+import { assertHyperframesTemplateDetails } from './hyperframes-template.check';
 
 /** C1 kind-specific schema per kind, so `details` is checked before any byte is stored. */
 const DETAILS_SCHEMA_BY_KIND: Readonly<Record<AssetKind, z.ZodTypeAny>> = {
@@ -77,6 +78,8 @@ export function parseAssetKind(input: unknown): AssetKind {
 export function parseMetadata(input: unknown, kind: AssetKind): AssetVersionMetadata {
   const metadata = parseInput(AssetVersionMetadataSchema, input, 'metadata');
   parseInput(DETAILS_SCHEMA_BY_KIND[kind], metadata.details, 'metadata.details');
+  // SPEC 0008 section 5.4: HyperFrames template rules; a no-op for every other kind and engine.
+  assertHyperframesTemplateDetails(kind, metadata.details);
   return metadata;
 }
 

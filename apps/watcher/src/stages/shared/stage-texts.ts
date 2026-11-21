@@ -1,3 +1,4 @@
+import { HYPERFRAMES_PIN, type HyperframesRefusalReason } from '@studio/shared/hyperframes';
 import { type ProviderName, type StageId } from '@studio/shared/run-format';
 
 /**
@@ -34,6 +35,7 @@ export const stageTexts = {
   elevenLabsVoiceMissingWhatToDo: 'Defina ELEVENLABS_VOICE_ID no ambiente do watcher e retome a execução.',
   templateNotRenderable: (ref: string): string => `O modelo ${ref} não é renderizável pelo @ace/video nesta versão.`,
   templateNotRenderableWhatToDo: 'Vincule um modelo Remotion suportado (ToolDemo, AiBattle, AutomationBlueprint ou ProductTour16x9) ou use o modo simulado.',
+  hyperframesRendering: (ref: string): string => `Renderizando o modelo ${ref} (HyperFrames).`,
   templateNotBound: 'Nenhum modelo (template) vinculado à receita.',
   templateNotBoundWhatToDo: 'Vincule um modelo à receita e retome a execução.',
   brandKitNotBound: 'Nenhum brand kit vinculado à receita para o diretor de cenas.',
@@ -53,3 +55,48 @@ export const stageTexts = {
   reviewerUnavailableWarning: 'Revisão automática indisponível; revise com atenção.',
   planFallbackWhatToDo: 'Plano padrão da receita usado; confira o plano antes de aprovar.',
 };
+
+/** SPEC 0008 section 5.7: what stopped a HyperFrames render, and what the owner does next. */
+export function hyperframesRefusalText(reason: HyperframesRefusalReason, ref: string): { message: string; whatToDo: string } {
+  switch (reason) {
+    case 'engine-disabled':
+      return {
+        message: 'O motor HyperFrames está desligado.',
+        whatToDo: 'Rode `studio hyperframes status` e siga os passos, ou vincule um modelo Remotion.',
+      };
+    case 'chrome-missing':
+      return { message: 'O Chrome do HyperFrames não está instalado.', whatToDo: 'Rode `studio hyperframes chrome install`.' };
+    case 'runtime-not-prepared':
+      return { message: 'A pasta de configuração do HyperFrames não foi preparada.', whatToDo: 'Rode `studio hyperframes chrome install`.' };
+    case 'trace-missing':
+    case 'trace-stale':
+      return {
+        message: 'A verificação de rede do HyperFrames não foi feita para esta versão.',
+        whatToDo: 'Rode `studio hyperframes trace` e depois `studio hyperframes enable`.',
+      };
+    case 'pin-mismatch':
+      return {
+        message: `A versão instalada do HyperFrames não é a aprovada (${HYPERFRAMES_PIN}).`,
+        whatToDo: 'Reinstale as dependências do estúdio.',
+      };
+    case 'sandbox-unavailable':
+      return {
+        message: 'O isolamento de rede do macOS não está disponível.',
+        whatToDo: 'O motor HyperFrames não roda sem ele. Use um modelo Remotion.',
+      };
+    case 'template-not-flat':
+    case 'template-not-self-contained':
+      return { message: `O modelo ${ref} não segue as regras de um modelo HyperFrames.`, whatToDo: 'Corrija o modelo e crie uma nova versão.' };
+    case 'canvas-mismatch':
+      return { message: `O modelo ${ref} não renderiza no formato desta receita.`, whatToDo: 'Use o formato do modelo ou vincule outro modelo.' };
+    case 'duration-out-of-range':
+      return { message: `A narração tem duração fora do intervalo do modelo ${ref}.`, whatToDo: 'Ajuste o roteiro ou vincule outro modelo.' };
+    case 'variable-missing':
+    case 'variable-undeclared':
+    case 'variable-type':
+      return {
+        message: `As variáveis do modelo ${ref} não puderam ser preenchidas.`,
+        whatToDo: 'Confira `templateVariables` na etapa de composição da receita.',
+      };
+  }
+}

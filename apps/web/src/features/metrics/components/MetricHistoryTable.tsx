@@ -2,7 +2,7 @@ import { Table, type TableColumn } from '@studio/ui';
 import { type MetricSnapshotView } from '@studio/shared/api';
 import { engagementRate } from '@studio/shared/metrics';
 import type { ReactElement } from 'react';
-import { formatCount, formatIsoDate, formatPercentValue, formatRate, metricSourceLabels } from '../metric-labels';
+import { formatCount, formatIsoDate, formatPercentValue, formatRate, snapshotOriginLabel } from '../metric-labels';
 
 interface MetricRow {
   snapshot: MetricSnapshotView;
@@ -16,7 +16,7 @@ const columns: readonly TableColumn<MetricRow>[] = [
     rowHeader: true,
     render: (row) => (row.inForce ? `${formatIsoDate(row.snapshot.asOfDate)} (em vigor)` : formatIsoDate(row.snapshot.asOfDate)),
   },
-  { key: 'source', header: 'Origem', render: (row) => metricSourceLabels[row.snapshot.source] },
+  { key: 'source', header: 'Origem', render: (row) => snapshotOriginLabel(row.snapshot) },
   { key: 'views', header: 'Visualizações', align: 'end', render: (row) => formatCount(row.snapshot.metrics.views) },
   { key: 'likes', header: 'Curtidas', align: 'end', render: (row) => formatCount(row.snapshot.metrics.likes) },
   { key: 'comments', header: 'Comentários', align: 'end', render: (row) => formatCount(row.snapshot.metrics.comments) },
@@ -27,7 +27,8 @@ const columns: readonly TableColumn<MetricRow>[] = [
 
 /**
  * The snapshot in force and the older ones of one publication (SPEC 0006 sections 5.2 and 5.9),
- * newest first. `engagementRate` is derived on read with the shared function, never stored.
+ * newest first. `engagementRate` is derived on read with the shared function, never stored. Rev 7
+ * (SPEC 0007 section 4.1): "Origem" tells a form, a CSV upload and a pulled API snapshot apart.
  */
 export function MetricHistoryTable({
   inForce,

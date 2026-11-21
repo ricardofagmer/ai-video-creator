@@ -1,8 +1,10 @@
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { DATA_HOME_ENV_VAR, resolveDataHome, type DataHome } from '@studio/core/paths';
+import { platformMockFaultVariable, platformModeVariable } from '@studio/core/platforms';
 import { mockFaultVariable, modeVariable } from '@studio/core/providers';
 import { SEED_SOURCE_ROOT_ENV_VAR } from '@studio/core/seed';
+import { PlatformSchema } from '@studio/shared/platforms';
 import { ProviderNameSchema } from '@studio/shared/run-format';
 import { CliConfigurationError } from '../errors/cli.errors.js';
 
@@ -46,6 +48,11 @@ export interface CliSettings {
   childEnvironment: Readonly<Record<string, string>>;
   /** Names of provider-key variables that are set; never their values. */
   keyVariablesSet: readonly string[];
+  /**
+   * The owner's home folder. Only `studio hyperframes trace` uses it, to name the owner's
+   * `~/.hyperframes` as the folder the sandbox denies (SPEC 0008 section 4.6); nothing reads it.
+   */
+  homeDirectory: string;
 }
 
 export interface CliSettingsSource {
@@ -64,10 +71,16 @@ function readPort(environment: CliSettingsSource['environment'], variable: strin
   return parsed.data;
 }
 
-/** Studio variables a child may need: data home, seed root and the provider mock/live switches. */
+/**
+ * Studio variables a child may need: data home, seed root, the provider mock/live switches and the
+ * platform mock/live switches (SPEC 0007 section 5.8), so a started api runs each platform in the
+ * same mode as the CLI and an account is never seen in the other mode. The platform app
+ * credentials are not passed: the api reads them from the Keychain, like the provider keys.
+ */
 function studioVariableNames(): string[] {
   const providerVariables = ProviderNameSchema.options.flatMap((provider) => [modeVariable(provider), mockFaultVariable(provider)]);
-  return [DATA_HOME_ENV_VAR, SEED_SOURCE_ROOT_ENV_VAR, ...providerVariables];
+  const platformVariables = PlatformSchema.options.flatMap((platform) => [platformModeVariable(platform), platformMockFaultVariable(platform)]);
+  return [DATA_HOME_ENV_VAR, SEED_SOURCE_ROOT_ENV_VAR, ...providerVariables, ...platformVariables];
 }
 
 function childEnvironmentOf(environment: CliSettingsSource['environment']): Record<string, string> {
@@ -92,5 +105,6 @@ export function readCliSettings(source: CliSettingsSource, keyVariableNames: rea
     studioRoot: resolve(source.cliDirectory, '..', '..', '..'),
     childEnvironment: childEnvironmentOf(environment),
     keyVariablesSet: keyVariableNames.filter((name) => (environment[name] ?? '').trim() !== ''),
+    homeDirectory: source.homeDirectory,
   };
 }

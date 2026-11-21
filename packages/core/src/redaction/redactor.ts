@@ -1,5 +1,5 @@
 import { type JsonValue } from '@studio/shared/run-format';
-import { type Secret } from '../secrets/secret';
+import { type RedactableValue } from '../secrets/secret';
 import { BIOMETRIC_REPLACEMENT, SECRET_PATTERNS, SECRET_REPLACEMENT } from './redaction.patterns';
 
 /** Per string; larger text is refused, not truncated, so nothing unredacted slips past a cut. */
@@ -70,7 +70,7 @@ export class CompiledRedaction {
   private readonly biometricPattern: RegExp | null;
 
   constructor(
-    private readonly secrets: readonly Secret[],
+    private readonly secrets: readonly RedactableValue[],
     biometricPaths: readonly string[],
     homeDirectory: string,
   ) {

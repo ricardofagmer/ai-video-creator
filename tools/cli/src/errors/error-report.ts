@@ -4,6 +4,7 @@ import { CostsError } from '@studio/core/costs';
 import { EmbeddingsError } from '@studio/core/embeddings';
 import { MetricsError } from '@studio/core/metrics';
 import { InvalidDataHomeError } from '@studio/core/paths';
+import { PlatformError } from '@studio/core/platforms';
 import { QualityError } from '@studio/core/quality';
 import { RecipesError } from '@studio/core/recipes';
 import { ReviewError } from '@studio/core/review';
@@ -62,7 +63,8 @@ function hasSafeMessage(error: unknown): error is Error {
     error instanceof EmbeddingsError ||
     error instanceof QualityError ||
     error instanceof ScheduleError ||
-    error instanceof MetricsError
+    error instanceof MetricsError ||
+    error instanceof PlatformError
   );
 }
 

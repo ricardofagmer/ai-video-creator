@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CatalogModule } from '@studio/core/catalog';
 import { CostsModule } from '@studio/core/costs';
+import { InsightsModule } from '@studio/core/insights';
 import { MetricsModule } from '@studio/core/metrics';
 import { PathsModule } from '@studio/core/paths';
+import { PlatformsModule } from '@studio/core/platforms';
 import { PrismaModule } from '@studio/core/prisma';
 import { QualityModule } from '@studio/core/quality';
 import { RedactionModule } from '@studio/core/redaction';
@@ -23,7 +25,10 @@ import { PassphraseHashRepository } from '../passphrase/passphrase-hash.reposito
  * that search or index by meaning boot it, through `CliSearchModule`. `MetricsModule` backs
  * `studio metrics import` and `SchedulesModule` the schedule commands and the status line (SPEC 0006
  * R3-07): the same handlers as the api, so `schedule.json` and the metrics tables keep their writers
- * and the CLI never writes `cursor.json` or `slots.jsonl` (ADR 0003).
+ * and the CLI never writes `cursor.json` or `slots.jsonl` (ADR 0003). `PlatformsModule` backs
+ * `studio platforms`, `studio runs publish` and the platform lines (SPEC 0007 section 5.9): the
+ * same writers of `gates.json`, `account.json`, `request.json` and `publication_attempts` as the
+ * api; the CLI sends no connect command (connect is web-only) and never writes a watcher file (K2).
  */
 @Module({
   imports: [
@@ -39,6 +44,8 @@ import { PassphraseHashRepository } from '../passphrase/passphrase-hash.reposito
     QualityModule,
     MetricsModule,
     SchedulesModule,
+    InsightsModule,
+    PlatformsModule,
   ],
   providers: [PassphraseHashRepository],
 })

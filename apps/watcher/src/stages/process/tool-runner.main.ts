@@ -1,6 +1,8 @@
 import { BlockedError } from '@studio/shared/ace';
 import { ExternalToolError, InputError, ProviderError } from '@ace/toolbox/dist/errors';
+import { HyperframesProcessFailedError, HyperframesProcessStartError, HyperframesRuntimeError, createSpawnProcessPort } from '@studio/hyperframes';
 import { NavigationRefusedError, liveCapture, pageText, render } from './runner/browser.handlers';
+import { hyperframesRender, realHyperframesRenderPorts } from './runner/hyperframes.handlers';
 import { captionBurn, fades, mediaReview, musicBed, narrationAssemble, slateRender, testCapture } from './runner/media.handlers';
 import { RESULT_MARKER, ToolRunnerRequestSchema, type RunnerErrorKind, type ToolRunnerReply, type ToolRunnerRequest } from './tool-runner.protocol';
 
@@ -41,11 +43,17 @@ async function dispatch(request: ToolRunnerRequest): Promise<unknown> {
       return liveCapture(request);
     case 'page-text':
       return pageText(request);
+    case 'hyperframes-render':
+      // No signal of its own: a stop kills this runner's process group, sandbox and Chrome included.
+      return hyperframesRender(request, realHyperframesRenderPorts(createSpawnProcessPort()));
   }
 }
 
 function errorKind(error: unknown): RunnerErrorKind {
   if (error instanceof BlockedError || error instanceof NavigationRefusedError) return 'blocked';
+  if (error instanceof HyperframesProcessFailedError || error instanceof HyperframesProcessStartError) return 'tool';
+  // Sandbox, pin or Chrome missing: the watcher checks these before the start, so reaching here is a refusal.
+  if (error instanceof HyperframesRuntimeError) return 'blocked';
   if (error instanceof InputError) return 'input';
   if (error instanceof ProviderError) return 'provider';
   if (error instanceof ExternalToolError) return 'tool';

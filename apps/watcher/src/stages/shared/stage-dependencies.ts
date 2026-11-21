@@ -4,6 +4,7 @@ import { type ProviderName } from '@studio/shared/run-format';
 import { type Secret } from '@studio/core/secrets';
 import { type RunManifestBuilder } from '../../adapters/manifest/run-manifest.builder';
 import { type Clock } from '../../engine/clock';
+import { type HyperframesStagePorts } from '../composition/hyperframes-stage.ports';
 import { type ToolRunner } from '../process/tool-runner.client';
 import { type CatalogLookup } from './catalog-lookup';
 import { type StageSettings } from './stage-settings';
@@ -28,4 +29,6 @@ export interface StageDependencies {
   catalog: CatalogLookup;
   assetResolver: AssetResolverPort;
   manifestBuilder: RunManifestBuilder;
+  /** SPEC 0008: the gate files, the pinned runtime and the template folder reader. */
+  hyperframes: HyperframesStagePorts;
 }

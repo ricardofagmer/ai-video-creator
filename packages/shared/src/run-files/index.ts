@@ -11,6 +11,7 @@ export {
   type RunFileErrorCode,
 } from './errors';
 export * from './log-files';
+export * from './process-identity';
 export * from './read';
 export * from './run-paths';
 export * from './run-state-files';

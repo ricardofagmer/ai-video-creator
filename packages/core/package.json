@@ -88,6 +88,10 @@
       "types": "./src/curation/index.ts",
       "default": "./dist/curation/index.js"
     },
+    "./insights": {
+      "types": "./src/insights/index.ts",
+      "default": "./dist/insights/index.js"
+    },
     "./metrics": {
       "types": "./src/metrics/index.ts",
       "default": "./dist/metrics/index.js"
@@ -95,6 +99,10 @@
     "./schedules": {
       "types": "./src/schedules/index.ts",
       "default": "./dist/schedules/index.js"
+    },
+    "./platforms": {
+      "types": "./src/platforms/index.ts",
+      "default": "./dist/platforms/index.js"
     }
   },
   "typesVersions": {
@@ -162,11 +170,17 @@
       "curation": [
         "./src/curation/index.ts"
       ],
+      "insights": [
+        "./src/insights/index.ts"
+      ],
       "metrics": [
         "./src/metrics/index.ts"
       ],
       "schedules": [
         "./src/schedules/index.ts"
+      ],
+      "platforms": [
+        "./src/platforms/index.ts"
       ]
     }
   },

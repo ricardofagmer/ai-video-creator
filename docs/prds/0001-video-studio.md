@@ -543,9 +543,9 @@ All twelve questions of the first draft were answered by the owner on 2026-11-18
 as D5-D16 in section 0. One item remains to settle in the SPEC; it does not change the design:
 
 1. **Source of the Spesia Python tools**: `video_tool.py` and `captions.py` are named in the Spesia
-   `RELATORIO.md` but were not found in `ai-creator-engine`. Their files must be located before the
-   TypeScript port (D15) can match their behaviour; until then the port is specified from the
-   behaviour the report describes.
+   `RELATORIO.md` but were not found in `ai-creator-engine`. **Resolved 2026-11-19 (R4 goal 6):**
+   they live in the owner's local `fagmer-video-*` skill folders; the four D15 commands are at
+   parity and eight other subcommands stay unported (`docs/vetting/0003-spesia-tools-parity.md`).
 
 ## 17. Next artifacts
 

@@ -48,6 +48,24 @@ export type PublicationId = z.infer<typeof PublicationIdSchema>;
 export const MetricImportIdSchema = z.string().regex(ulidPattern, 'importId must be a ULID');
 export type MetricImportId = z.infer<typeof MetricImportIdSchema>;
 
+/**
+ * One connected platform account (SPEC 0007 section 4.2). A reconnect issues a new one, so the
+ * watcher can tell a refreshed token of an older connection from the current one.
+ */
+export const ConnectionIdSchema = z.string().regex(ulidPattern, 'connectionId must be a ULID');
+export type ConnectionId = z.infer<typeof ConnectionIdSchema>;
+
+/**
+ * One publish attempt (SPEC 0007 section 4.2): the `publication_attempts` row id and the folder
+ * name under `<data home>/platform/publish/`, so it is validated before any path join.
+ */
+export const PublishAttemptIdSchema = z.string().regex(ulidPattern, 'attemptId must be a ULID');
+export type PublishAttemptId = z.infer<typeof PublishAttemptIdSchema>;
+
+/** One pulled metrics batch (SPEC 0007 section 4.2); it names `platform/metrics-inbox/<batchId>.json`. */
+export const MetricBatchIdSchema = z.string().regex(ulidPattern, 'batchId must be a ULID');
+export type MetricBatchId = z.infer<typeof MetricBatchIdSchema>;
+
 /** Copied from the api's `x-request-id`; allowlisted because the header is external input. */
 export const CorrelationIdSchema = z
   .string()

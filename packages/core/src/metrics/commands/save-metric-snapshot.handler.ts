@@ -55,6 +55,7 @@ export class SaveMetricSnapshotHandler implements ICommandHandler<SaveMetricSnap
       correlationId: input.correlationId,
     });
     await this.quality.recomputeAfterMetrics({ change: 'snapshot-saved', correlationId: input.correlationId });
-    return snapshot;
+    // SPEC 0007 section 5.6: a form snapshot's origin is always `form`.
+    return { ...snapshot, origin: 'form' };
   }
 }

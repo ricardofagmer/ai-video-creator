@@ -1,0 +1,54 @@
+name: CI
+
+# Typecheck, lint, test and build of the Video Studio workspace on every pull request and on main.
+# `pull_request` (never `pull_request_target`) runs fork code without secrets or write access.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  checks:
+    name: typecheck, lint, test, build
+    # The studio is a single-Mac app (Keychain, launchd, Electron shell): check on the same OS.
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Reads the version from package.json `packageManager` (pnpm@10.12.1).
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # Install scripts run only for the `onlyBuiltDependencies` allowlist in pnpm-workspace.yaml.
+      - run: pnpm install --frozen-lockfile
+
+      # The @studio/* scope matches the owner's local check command; @ace/* packages are not gated yet.
+      - name: Typecheck
+        run: pnpm exec turbo run typecheck --filter='@studio/*'
+
+      - name: Lint
+        run: pnpm exec turbo run lint --filter='@studio/*'
+
+      - name: Test
+        run: pnpm exec turbo run test --filter='@studio/*'
+
+      - name: Build
+        run: pnpm exec turbo run build --filter='@studio/*'

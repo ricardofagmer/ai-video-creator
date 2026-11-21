@@ -1,11 +1,12 @@
 import { AssetIdSchema, ComparisonIdSchema, CurationIdSchema, LearningNoteIdSchema } from '@studio/shared/catalog';
 import { IsoDateSchema, PublicationIdSchema, metricsBounds } from '@studio/shared/metrics';
+import { PlatformSchema, PublishAttemptIdSchema } from '@studio/shared/platforms';
 import { RecipeIdSchema } from '@studio/shared/recipes';
 import { RunIdSchema } from '@studio/shared/run-format';
 import { ScheduleIdSchema } from '@studio/shared/schedules';
 
 /**
- * The C10 route table (`packages/shared/src/api/routes.ts`, rev 5) as an
+ * The C10 route table (`packages/shared/src/api/routes.ts`, rev 7) as an
  * allowlist. The BFF and the server-side helper forward a request only when its method and path
  * match one row here, with every parameter segment checked against its C1/C2/C3 id schema; the
  * forwarded path is rebuilt from the validated segments, so `..`, encoded slashes and any other
@@ -107,6 +108,19 @@ const rows: readonly RouteRow[] = [
   { id: 'schedules.create', method: 'POST', pattern: 'schedules', body: 'json' },
   { id: 'schedules.get', method: 'GET', pattern: 'schedules/:scheduleId' },
   { id: 'schedules.patch', method: 'PATCH', pattern: 'schedules/:scheduleId', body: 'json' },
+  // Rev 6 (PRD 0001 R4 goal 4): the section 14 success metrics, read-only.
+  { id: 'insights.get', method: 'GET', pattern: 'insights' },
+  // Rev 7 (SPEC 0007 section 4.4): connected platforms and assisted publishing. The OAuth callback
+  // `GET platforms/:platform/connection/callback` is deliberately absent: the platform sends the
+  // browser straight to the api, never through the BFF. No row here uploads: a publish request is
+  // recorded by the api and sent by the watcher between runs.
+  { id: 'platforms.list', method: 'GET', pattern: 'platforms' },
+  { id: 'platforms.gate', method: 'PATCH', pattern: 'platforms/:platform/gate', body: 'json' },
+  { id: 'platforms.connect', method: 'POST', pattern: 'platforms/:platform/connection' },
+  { id: 'platforms.disconnect', method: 'DELETE', pattern: 'platforms/:platform/connection' },
+  { id: 'runs.publish', method: 'GET', pattern: 'runs/:runId/publish' },
+  { id: 'runs.publish-request', method: 'POST', pattern: 'runs/:runId/publish/:platform', body: 'json' },
+  { id: 'runs.publish-cancel', method: 'DELETE', pattern: 'runs/:runId/publish/attempts/:attemptId' },
 ];
 
 export const apiRoutes: readonly ApiRoute[] = rows.map((row) => ({
@@ -132,6 +146,8 @@ const parameterCheckers: Readonly<Record<string, (value: string) => boolean>> = 
   publicationId: (value) => PublicationIdSchema.safeParse(value).success,
   asOfDate: (value) => IsoDateSchema.safeParse(value).success,
   scheduleId: (value) => ScheduleIdSchema.safeParse(value).success,
+  platform: (value) => PlatformSchema.safeParse(value).success,
+  attemptId: (value) => PublishAttemptIdSchema.safeParse(value).success,
 };
 
 export interface MatchedApiRoute {

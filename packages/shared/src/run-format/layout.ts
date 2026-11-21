@@ -25,6 +25,11 @@ export const runFileNames = {
   qaSummary: 'qa/summary.json',
   qaMediaReview: 'qa/media-review.json',
   report: 'report.md',
+  /**
+   * Append-only "what left the machine" after approval: one line per studio upload event (SPEC 0007
+   * section 4.3). Optional; a reader treats a missing file as empty, so `format` stays 1.
+   */
+  publications: 'publications.jsonl',
 };
 
 export interface StageLocation {

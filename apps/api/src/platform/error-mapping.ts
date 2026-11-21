@@ -7,13 +7,14 @@ import { CurationError, InvalidCurationInputError } from '@studio/core/curation'
 import { EmbeddingsError, InvalidSemanticSearchError } from '@studio/core/embeddings';
 import { InvalidLearningInputError, LearningsError } from '@studio/core/learnings';
 import { InvalidMetricsInputError, MetricsError } from '@studio/core/metrics';
+import { InvalidPlatformInputError, PlatformClientError, PlatformError } from '@studio/core/platforms';
 import { InvalidPromotionInputError, PromotionError } from '@studio/core/promotion';
 import { QualityError } from '@studio/core/quality';
 import { InvalidRecipeInputError, RecipesError } from '@studio/core/recipes';
 import { InvalidReviewInputError, RequiredChecklistUncheckedError, ReviewError, ReviewNotAllowedError } from '@studio/core/review';
 import { InvalidRunInputError, RunsError } from '@studio/core/runs';
 import { InvalidScheduleInputError, ScheduleError } from '@studio/core/schedules';
-import { apiRev4ErrorReasons, apiRev5ErrorReasons, type ApiErrorCode, type ApiIssue } from '@studio/shared/api';
+import { apiRev4ErrorReasons, apiRev5ErrorReasons, apiRev7ErrorReasons, type ApiErrorCode, type ApiIssue } from '@studio/shared/api';
 import { RunFileError, type RunFileErrorCode } from '@studio/shared/run-files';
 import { ApiError, LoginRateLimitedError, RequestValidationError } from './api.errors';
 
@@ -88,7 +89,8 @@ function domainIssues(error: unknown): ApiIssue[] | undefined {
     error instanceof InvalidCurationInputError ||
     error instanceof InvalidSemanticSearchError ||
     error instanceof InvalidMetricsInputError ||
-    error instanceof InvalidScheduleInputError
+    error instanceof InvalidScheduleInputError ||
+    error instanceof InvalidPlatformInputError
   ) {
     return error.issues.slice(0, 50).map((issue) => ({ path: issue.path.slice(0, 200), message: issue.message.slice(0, 500) }));
   }
@@ -159,6 +161,35 @@ function mapRev5Error(error: MetricsError | ScheduleError): MappedError {
   };
 }
 
+/** C10 rev 7 (SPEC 0007 section 4.4): the frozen status of each platform and publish reason. */
+const rev7ReasonStatus: Readonly<Record<string, number>> = apiRev7ErrorReasons;
+
+/** Rev 7 adds 502 `oauth-exchange-failed`: the platform, a dependency, did not complete the exchange. */
+const rev7StatusCodes: Readonly<Record<number, ApiErrorCode>> = { ...statusCodes, 502: 'dependency' };
+
+/**
+ * Platform errors carry their C10 `reason` (SPEC 0007 section 4.4), used as is, and the status is
+ * the frozen rev 7 one (`oauth-state-invalid` 400, `oauth-exchange-failed` 502, `keychain-unavailable`
+ * 503, `publish-visibility-not-allowed` 422, `publish-attempt-not-found` 404, the rest 409;
+ * `platform-publish-unsupported` is Instagram publish, OD8). A reason outside the table takes its
+ * category: `invalid-platform-input` 422, `platform-file-corrupt`, `platform-row-corrupt` and
+ * `publish-request-write-failed` 500. Platform messages carry ids, platform names, states and
+ * reason ids only (K7); an internal one gets the fixed text so no file detail reaches a client.
+ */
+function mapPlatformError(error: PlatformError): MappedError {
+  const target = categoryStatus[error.category];
+  const statusCode = rev7ReasonStatus[error.reason] ?? target.statusCode;
+  const isInternal = error.category === 'internal';
+  return {
+    statusCode,
+    code: isInternal ? 'internal' : (rev7StatusCodes[statusCode] ?? target.code),
+    reason: error.reason,
+    message: isInternal ? 'Internal error' : error.message,
+    issues: domainIssues(error),
+    expected: !isInternal,
+  };
+}
+
 function mapHttpException(error: HttpException): MappedError {
   const statusCode = error.getStatus();
   const code = statusCodes[statusCode] ?? (statusCode >= 500 ? 'internal' : 'validation');
@@ -183,6 +214,7 @@ export function mapError(error: unknown): MappedError {
   }
   if (error instanceof CurationError) return mapCurationError(error);
   if (error instanceof MetricsError || error instanceof ScheduleError) return mapRev5Error(error);
+  if (error instanceof PlatformError) return mapPlatformError(error);
   if (
     error instanceof CatalogError ||
     error instanceof RecipesError ||
@@ -197,7 +229,10 @@ export function mapError(error: unknown): MappedError {
     error instanceof LearningsError ||
     error instanceof ComparisonsError ||
     error instanceof EmbeddingsError ||
-    error instanceof QualityError
+    error instanceof QualityError ||
+    // Rev 7: core converts every connect and disconnect client failure into a `PlatformError`, so
+    // one reaching here is unanticipated; 503 `platform-client` with the client's id-only message.
+    error instanceof PlatformClientError
   ) {
     return mapDomainError(error);
   }

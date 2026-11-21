@@ -2,22 +2,30 @@ import { copyFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PriceNotAvailableError } from '@studio/core/costs';
 import { ScenesOutputSchema, ScriptOutputSchema } from '@studio/shared/agents';
+import { type TemplateDetails } from '@studio/shared/catalog';
 import type { StageExecutionContext, StageExecutionResult, StageFailure, StagePlanningContext } from '@studio/shared/ports';
 import { newSessionId, resolveInsideRun } from '@studio/shared/run-files';
 import { type DeclaredOutput, type StageEstimate, type WaitingCause } from '@studio/shared/run-format';
-import { boundTemplate } from '../agents/packet-sources';
+import { type HyperframesRefusalReason } from '@studio/shared/hyperframes';
+import { boundTemplate, brandKitSummary } from '../agents/packet-sources';
+import { recordRenderFinished, recordRenderRefused } from '../composition/hyperframes-events';
+import { engineRuntime, templateFitsRun, templateVariables } from '../composition/hyperframes-preparation';
+import { stageTemplateCopy } from '../composition/hyperframes-template-copy';
 import { renderPlan, rendersOnCanvas, templateIdOf, type StagedFile } from '../composition/render-plan.mapper';
 import { MediaWriteResultSchema, RenderResultSchema } from '../process/tool-runner.protocol';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
+import { boundOfKind } from '../shared/catalog-lookup';
 import { withScratchDir } from '../shared/scratch-dir';
 import { CapturesIndexSchema, NarrationIndexSchema, type NarrationIndex } from '../shared/stage-artifacts';
 import { priceForEstimate } from '../shared/stage-estimates';
 import { readOptionalStageInput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { commandTimeoutMs, needsPerson, reportedSuccess, stageFailed, toolFailure, type CheckEvidenceMap } from '../shared/stage-results';
 import { mediaToolPaths } from '../shared/stage-settings';
-import { stageTexts } from '../shared/stage-texts';
+import { hyperframesRefusalText, stageTexts } from '../shared/stage-texts';
 
 const AUDIO_NAME = 'narration.wav';
+
+type BoundTemplate = { ref: string; details: TemplateDetails };
 
 type RenderOutcome = { status: 'ok'; renderSeconds: number } | { status: 'failed'; failure: StageFailure };
 
@@ -77,9 +85,19 @@ export class CompositionExecutor extends BaseStageExecutor {
     });
   }
 
+  /** SPEC 0008 section 5.1: the bound template's engine picks the render; `templateIdOf` is Remotion's only. */
   private async renderTemplate(context: StageExecutionContext, outputs: StageOutputSink, narration: NarrationIndex): Promise<RenderOutcome> {
     const template = await boundTemplate(context, this.dependencies.catalog);
     if (template === null) return { status: 'failed', failure: this.ownerFailure(context, stageTexts.templateNotBound, stageTexts.templateNotBoundWhatToDo) };
+    switch (template.details.engine) {
+      case 'remotion':
+        return this.renderRemotion(context, outputs, narration, template);
+      case 'hyperframes':
+        return this.renderHyperframes(context, outputs, narration, template);
+    }
+  }
+
+  private async renderRemotion(context: StageExecutionContext, outputs: StageOutputSink, narration: NarrationIndex, template: BoundTemplate): Promise<RenderOutcome> {
     const templateId = templateIdOf(template.details.compositionId);
     const { canvas } = context.recipe.format;
     if (templateId === null || !rendersOnCanvas(templateId, canvas)) {
@@ -126,6 +144,77 @@ export class CompositionExecutor extends BaseStageExecutor {
     return rendered;
   }
 
+  /**
+   * SPEC 0008 section 5.2: the eight pre-start checks in order, each stopping as `needs-person`
+   * with nothing spawned, then one sandboxed `hyperframes-render` of the staged copy.
+   */
+  private async renderHyperframes(context: StageExecutionContext, outputs: StageOutputSink, narration: NarrationIndex, template: BoundTemplate): Promise<RenderOutcome> {
+    const { settings, hyperframes, runner } = this.dependencies;
+    const subject = { runId: context.runId, stepKey: context.stepKey, templateRef: template.ref };
+    const refuse = (reason: HyperframesRefusalReason): RenderOutcome => {
+      recordRenderRefused(subject, reason);
+      const text = hyperframesRefusalText(reason, template.ref);
+      return { status: 'failed', failure: this.ownerFailure(context, text.message, text.whatToDo) };
+    };
+    const runtime = await engineRuntime(hyperframes, settings);
+    if (runtime.status === 'refused') return refuse(runtime.reason);
+    const { canvas, fps } = context.recipe.format;
+    const misfit = templateFitsRun(template.details, { canvas, fps, narrationS: narration.durationS });
+    if (misfit !== null) return refuse(misfit);
+    const script = await readOptionalStageInput(context, 'script', ScriptOutputSchema);
+    if (script === null) return { status: 'failed', failure: this.ownerFailure(context, stageTexts.missingInput('script'), stageTexts.missingInputWhatToDo) };
+    const brandKit = await brandKitSummary(context, this.dependencies.catalog);
+    const variables = templateVariables({
+      details: template.details,
+      recipeValues: context.params['templateVariables'],
+      script,
+      disclosure: disclosureLine(context),
+      narrationS: narration.durationS,
+      accent: brandKit?.palette[0]?.hex ?? null,
+    });
+    if (variables.status === 'refused') return refuse(variables.reason);
+    const pricing = this.renderPrice(context, narration.durationS);
+    if (pricing.status === 'refused') return { status: 'failed', failure: pricing.failure };
+    const bound = boundOfKind(context, 'template', 'template');
+    if (bound === null) return { status: 'failed', failure: this.ownerFailure(context, stageTexts.templateNotBound, stageTexts.templateNotBoundWhatToDo) };
+
+    const variableCount = Object.keys(variables.value).length;
+    const rendered = await withScratchDir(settings, async (directory): Promise<RenderOutcome> => {
+      const templateDir = join(directory, 'template');
+      const staged = await stageTemplateCopy(bound.asset, templateDir, hyperframes, context.signal);
+      if (staged.status === 'refused') return refuse('template-not-self-contained');
+      context.report({ kind: 'tool', text: stageTexts.hyperframesRendering(template.ref) });
+      const output = join(directory, 'composition.mp4');
+      const result = await runner.run(
+        {
+          command: 'hyperframes-render',
+          tools: mediaToolPaths(settings),
+          templateDir,
+          variables: variables.value,
+          width: template.details.canvas.width,
+          height: template.details.canvas.height,
+          fps: template.details.fps,
+          durationS: narration.durationS,
+          audio: resolveInsideRun(context.runDir, narration.audioPath),
+          output,
+          scratchDir: directory,
+          runtime: runtime.value,
+        },
+        RenderResultSchema,
+        { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+      );
+      if (result.status === 'failed') {
+        recordRenderFinished(subject, { ok: false, renderSeconds: null, variableCount });
+        return { status: 'failed', failure: toolFailure(result, context) };
+      }
+      await outputs.adoptFile('composition', output);
+      recordRenderFinished(subject, { ok: true, renderSeconds: result.result.renderSeconds, variableCount });
+      return { status: 'ok', renderSeconds: result.result.renderSeconds };
+    });
+    if (rendered.status === 'ok') await this.recordRender(context, rendered.renderSeconds);
+    return rendered;
+  }
+
   /** The render is priced before it runs; a missing price stops before any work (R1-11). */
   private renderPrice(context: StageExecutionContext, durationS: number): { status: 'priced' } | { status: 'refused'; failure: StageFailure } {
     try {
@@ -161,6 +250,11 @@ export class CompositionExecutor extends BaseStageExecutor {
   private ownerStop(context: StageExecutionContext, message: string, whatToDo: string): StageExecutionResult {
     return stageFailed(this.ownerFailure(context, message, whatToDo));
   }
+}
+
+/** The AI-voice disclosure line of the Remotion render, as the `disclosure` template variable. */
+function disclosureLine(context: StageExecutionContext): string {
+  return context.brief.language === 'pt-BR' ? 'Voz gerada por IA.' : 'AI-generated voice.';
 }
 
 /** The renderer's static server sees only these copies (toolbox `startStaticServer` serves one folder). */

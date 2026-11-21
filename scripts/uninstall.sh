@@ -7,16 +7,22 @@
 #   --dry-run      lists what would be removed and removes nothing.
 #   --purge        also deletes the data home, after showing its path and size and only when the
 #                  owner types the confirmation word. Without it the data home is kept.
-#   --remove-keys  offers to delete each studio Keychain entry, asking once per entry.
+#   --remove-keys  offers to delete each studio Keychain entry (provider keys and the platform app
+#                  credentials), asking once per entry.
+#
+# Always deletes the connected-platform token items (SPEC 0007 section 5.2, service
+# com.videostudio.platform-tokens, accounts youtube, instagram and tiktok) after the watcher and the
+# api are stopped, and reports each one: they authorize posting on the owner's accounts and are
+# useless without the studio. Only item attributes are ever read; no token value is printed.
 #
 # Removes the menu-bar app (SPEC 0006 R3-08, ADR 0005 decision 5) only when ~/Applications/Video
 # Studio.app carries the bundle id com.videostudio.shell, after unregistering its login item and
 # asking it to quit, plus its build output apps/shell/out/. Removes the launchd agent and its plist,
 # stops web and api, and removes the `studio` link only when it points into this repository. It
 # never touches the repository sources, node_modules, the Electron download cache, Homebrew
-# packages, files registered by reference outside the data home, or the Keychain without
-# --remove-keys. It refuses to run as root. Rerunning it is safe: whatever is already gone is
-# reported and skipped.
+# packages, files registered by reference outside the data home, or the provider keys and app
+# credentials in the Keychain without --remove-keys. It refuses to run as root. Rerunning it is
+# safe: whatever is already gone is reported and skipped.
 
 set -Eeuo pipefail
 
@@ -24,8 +30,15 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
 
-readonly TOTAL_STEPS=6
+readonly TOTAL_STEPS=7
 readonly PURGE_WORD='APAGAR'
+# SPEC 0007 section 5.2: one token item per platform, the account being the platform name. Same
+# literal as core PLATFORM_TOKEN_KEYCHAIN_SERVICE (packages/core/src/platforms/vault/token-vault.port.ts).
+readonly PLATFORM_TOKEN_SERVICE='com.videostudio.platform-tokens'
+PLATFORM_TOKEN_ACCOUNTS=(youtube instagram tiktok)
+# SPEC 0007 section 5.2: the six app credentials share the provider-key service (core
+# PLATFORM_CLIENT_SECRET_NAMES); offered under --remove-keys like the provider keys.
+PLATFORM_CLIENT_ACCOUNTS=(youtube-oauth-client-id youtube-oauth-client-secret instagram-app-id instagram-app-secret tiktok-client-key tiktok-client-secret)
 # Bounded wait for the app run with --unregister-login-item, which exits on its own.
 readonly UNREGISTER_WAIT_SECONDS=15
 
@@ -34,6 +47,7 @@ REMOVE_KEYS=0
 SHELL_RESULT='não verificado'
 DATA_HOME_RESULT='mantida'
 KEYS_RESULT='não tocadas'
+TOKENS_RESULT='não verificados'
 
 usage() {
   cat <<'USAGE'
@@ -285,23 +299,62 @@ step_data_home() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# 6. Keychain (only with --remove-keys, one question per entry)
+# 6. Platform tokens in the Keychain (always; one report line per platform)
 # ---------------------------------------------------------------------------------------------
 
 # Without -w or -g, `security` prints item attributes only, never the value; output is discarded.
-keychain_entry_exists() {
-  /usr/bin/security find-generic-password -s "$STUDIO_KEYCHAIN_SERVICE" -a "$1" >/dev/null 2>&1
+# $1 is the service, $2 the account; both are literals of this script, never caller text.
+keychain_item_exists() {
+  /usr/bin/security find-generic-password -s "$1" -a "$2" >/dev/null 2>&1
 }
 
+# The watcher (launchd, step 2) and the api (step 3) are stopped by now, so no process refreshes or
+# rewrites a token while it is deleted. In --dry-run nothing is deleted; each line says what would be.
+step_platform_tokens() {
+  begin_step 6 "$TOTAL_STEPS" "tokens das plataformas no Keychain ($PLATFORM_TOKEN_SERVICE)"
+  local account removed=0 absent=0 failed=0
+  for account in "${PLATFORM_TOKEN_ACCOUNTS[@]}"; do
+    if ! keychain_item_exists "$PLATFORM_TOKEN_SERVICE" "$account"; then
+      info "sem token: $account"
+      absent=$((absent + 1))
+      continue
+    fi
+    if [ "$DRY_RUN" -eq 1 ]; then
+      run /usr/bin/security delete-generic-password -s "$PLATFORM_TOKEN_SERVICE" -a "$account"
+      continue
+    fi
+    if /usr/bin/security delete-generic-password -s "$PLATFORM_TOKEN_SERVICE" -a "$account" >/dev/null 2>&1; then
+      info "token apagado: $account"
+      removed=$((removed + 1))
+    else
+      warn "não foi possível apagar o token de $account; apague o item $PLATFORM_TOKEN_SERVICE / $account no Acesso às Chaves."
+      failed=$((failed + 1))
+    fi
+  done
+  if [ "$DRY_RUN" -eq 1 ]; then
+    TOKENS_RESULT='simulação'
+  else
+    TOKENS_RESULT="$removed apagado(s), $absent ausente(s), $failed com falha"
+  fi
+  if [ "$removed" -gt 0 ]; then
+    info 'a autorização do Video Studio continua listada na sua conta de cada plataforma até você removê-la nas configurações de lá.'
+    info 'se a pasta de dados foi mantida e o studio for reinstalado, conecte as contas de novo pela página Contas.'
+  fi
+}
+
+# ---------------------------------------------------------------------------------------------
+# 7. Keychain keys (only with --remove-keys, one question per entry)
+# ---------------------------------------------------------------------------------------------
+
 step_keychain() {
-  begin_step 6 "$TOTAL_STEPS" 'chaves no Keychain'
+  begin_step 7 "$TOTAL_STEPS" 'chaves no Keychain'
   local account removed=0
   if [ "$REMOVE_KEYS" -eq 0 ]; then
     info 'não tocadas (use --remove-keys para revisar uma a uma).'
     return 0
   fi
-  for account in "${STUDIO_KEYCHAIN_ACCOUNTS[@]}"; do
-    if ! keychain_entry_exists "$account"; then
+  for account in "${STUDIO_KEYCHAIN_ACCOUNTS[@]}" "${PLATFORM_CLIENT_ACCOUNTS[@]}"; do
+    if ! keychain_item_exists "$STUDIO_KEYCHAIN_SERVICE" "$account"; then
       info "sem item: $account"
       continue
     fi
@@ -331,6 +384,7 @@ print_summary() {
   info "Agente launchd:  removido ($STUDIO_LAUNCHD_LABEL)"
   info 'Comando studio:  link deste repositório removido'
   info "Pasta de dados:  $DATA_HOME_RESULT"
+  info "Tokens:          $TOKENS_RESULT"
   info "Chaves:          $KEYS_RESULT"
   info 'Fontes do repositório, node_modules, cache do Electron e pacotes do Homebrew não foram tocados.'
 }
@@ -352,6 +406,7 @@ main() {
   step_stop_services
   step_remove_link
   step_data_home
+  step_platform_tokens
   step_keychain
   print_summary
 }

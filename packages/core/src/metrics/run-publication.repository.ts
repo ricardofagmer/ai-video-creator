@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, type RunPublication } from '@prisma/client';
+import { type PublicationView } from '@studio/shared/api';
 import { metricsBounds, type Platform, type Publication } from '@studio/shared/metrics';
+import { type PublicationOrigin } from '@studio/shared/platforms';
 import { PrismaService, type PrismaTransaction } from '../prisma';
-import { toPublication } from './metrics.mapper';
+import { toPublication, toPublicationView } from './metrics.mapper';
 
 /** Video ids per `IN (...)` query; well under SQLite's bound-parameter limit. */
 const VIDEO_IDS_PER_QUERY = 500;
@@ -19,6 +21,11 @@ export interface NewPublication {
   recordedBy: string;
   correlationId: string | null;
   recordedAt: Date;
+  /** `manual` for a pasted link (SPEC 0007 section 4.5); `studio` and `mock` rows come from an attempt. */
+  origin: PublicationOrigin;
+  /** The attempt that created a `studio` or `mock` row; null exactly for `manual`. */
+  attemptId: string | null;
+  platformMediaId: string | null;
 }
 
 export function isUniqueConstraintError(error: unknown): boolean {
@@ -69,7 +76,7 @@ export class RunPublicationRepository {
   }
 
   /** The unique index refuses a video already linked; callers map that to their domain error. */
-  async insert(publication: NewPublication, db: PrismaTransaction): Promise<Publication> {
+  async insert(publication: NewPublication, db: PrismaTransaction): Promise<PublicationView> {
     const row = await db.runPublication.create({
       data: {
         id: publication.publicationId,
@@ -81,9 +88,12 @@ export class RunPublicationRepository {
         recordedBy: publication.recordedBy,
         correlationId: publication.correlationId,
         recordedAt: publication.recordedAt,
+        origin: publication.origin,
+        attemptId: publication.attemptId,
+        platformMediaId: publication.platformMediaId,
       },
     });
-    return toPublication(row);
+    return toPublicationView(row);
   }
 
   /** The publication only when it belongs to `runId`, so a route never reaches another run's row. */
@@ -97,12 +107,35 @@ export class RunPublicationRepository {
     await db.runPublication.delete({ where: { id: publicationId }, select: { id: true } });
   }
 
-  /** The run page's publications, oldest first; at most `maxPublicationsPerRun` exist. */
-  async listByRun(runId: string, db: PrismaTransaction = this.prisma): Promise<Publication[]> {
-    const rows = await db.runPublication.findMany({
+  /**
+   * The run page's publication rows, oldest first; at most `maxPublicationsPerRun` exist. Rows, not
+   * views, so the caller can add the polling line before mapping with `toPublicationView`.
+   */
+  async listRowsByRun(runId: string, db: PrismaTransaction = this.prisma): Promise<RunPublication[]> {
+    return db.runPublication.findMany({
       where: { runId },
       orderBy: [{ recordedAt: 'asc' }, { id: 'asc' }],
       take: metricsBounds.maxPublicationsPerRun,
+    });
+  }
+
+  /**
+   * A pulled batch's matching set (SPEC 0007 section 5.6): publications of `platform` among
+   * `publicationIds`, restricted by the batch mode so a simulated number lands only on a simulated
+   * publication and a live number never does (B6). A batch holds at most 50 rows.
+   */
+  async findForBatch(
+    batch: { platform: Platform; mode: 'mock' | 'live'; publicationIds: readonly string[] },
+    db: PrismaTransaction = this.prisma,
+  ): Promise<Publication[]> {
+    if (batch.publicationIds.length === 0) return [];
+    const rows = await db.runPublication.findMany({
+      where: {
+        platform: batch.platform,
+        id: { in: [...new Set(batch.publicationIds)] },
+        origin: batch.mode === 'mock' ? 'mock' : { not: 'mock' },
+      },
+      orderBy: { id: 'asc' },
     });
     return rows.map(toPublication);
   }

@@ -79,6 +79,9 @@ export class QualityScoreRepository {
    */
   async readPlatformSnapshots(db: PrismaTransaction = this.prisma): Promise<PlatformSnapshotFact[]> {
     const rows = await db.platformMetricSnapshot.findMany({
+      // SPEC 0007 B6, AC 59: simulated publications never reach a baseline or `p_i`, so a mock
+      // number cannot move a real score and every score equals its value without them.
+      where: { publication: { origin: { not: 'mock' } } },
       orderBy: [{ publicationId: 'asc' }, { asOfDate: 'asc' }, { source: 'asc' }],
       select: platformSnapshotFactSelect,
     });
