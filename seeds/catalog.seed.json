@@ -138,6 +138,28 @@
       "sceneSchemaFile": null
     },
     {
+      "type": "template",
+      "assetId": "title-card-hf-template",
+      "name": "Cartão de título 9:16 (HyperFrames)",
+      "summary": "Cartão de título vertical com chamada, título e aviso, animado só com CSS.",
+      "tags": ["template", "hyperframes", "vertical", "title"],
+      "origin": "studio",
+      "notes": "Studio-authored HyperFrames composition TitleCard (SPEC 0008 OD7 a). Self-contained: CSS animation only, data-no-timeline, system fonts, no script and no remote reference. The composition is 30 s long; durationS times the closing fade and the render is cut to the narration.",
+      "sourceFolder": "video-studio/seeds/templates/hyperframes/title-card",
+      "details": {
+        "engine": "hyperframes",
+        "compositionId": "TitleCard",
+        "canvas": { "width": 1080, "height": 1920 },
+        "aspect": "9:16",
+        "fps": 30,
+        "duration": { "minSec": 3, "maxSec": 30 },
+        "cameraMoves": [],
+        "transitions": []
+      },
+      "inputSchemaFile": "video-studio/seeds/templates/hyperframes/title-card.input.schema.json",
+      "sceneSchemaFile": null
+    },
+    {
       "type": "brand-kit",
       "assetId": "fagmer-brand",
       "name": "Identidade Fagmer",

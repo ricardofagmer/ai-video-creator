@@ -7,6 +7,7 @@ import { buildDraftVersion, parseAssetId, parseAssetKind, parseMetadata } from '
 import { toAssetVersion, toCreateData } from '../asset-version.mapper';
 import { AssetVersionRepository, isUniqueConstraintError } from '../asset-version.repository';
 import { AssetAlreadyExistsError } from '../catalog.errors';
+import { HyperframesTemplateCheck } from '../hyperframes-template.check';
 import { CreateAssetCommand } from './create-asset.command';
 
 @CommandHandler(CreateAssetCommand)
@@ -17,6 +18,7 @@ export class CreateAssetHandler implements ICommandHandler<CreateAssetCommand, A
     private readonly prisma: PrismaService,
     private readonly versions: AssetVersionRepository,
     private readonly content: AssetContentService,
+    private readonly hyperframes: HyperframesTemplateCheck,
   ) {}
 
   async execute(command: CreateAssetCommand): Promise<AssetVersion> {
@@ -26,6 +28,7 @@ export class CreateAssetHandler implements ICommandHandler<CreateAssetCommand, A
     const metadata = parseMetadata(input.metadata, kind);
     // Checked before bytes are written, so a duplicate id leaves no orphan blob in the common case.
     if ((await this.versions.findAsset(assetId)) !== null) throw new AssetAlreadyExistsError(assetId);
+    await this.hyperframes.assertNewContent(kind, metadata.details, input.content);
 
     const prepared = await this.content.prepare({
       kind,

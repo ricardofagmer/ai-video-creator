@@ -3,12 +3,14 @@ import { JsonObjectSchema } from '../common/json';
 import { KebabIdSchema, RelativePathSchema } from '../common/ids';
 import { AssetRefSchema, TagSchema } from './asset-kind';
 import { AspectRatioSchema, CanvasSchema, DurationRangeSchema, FpsSchema, HexColorSchema } from './media';
+import { TemplateEngineSchema } from './template-engine';
 
 /** Kind-specific fields of PRD 5.2, one schema per `AssetKind`. */
 
 export const TemplateDetailsSchema = z
   .object({
-    engine: z.enum(['remotion', 'hyperframes']),
+    /** Engine rules live in `@studio/shared/hyperframes`, never as a refinement here (SPEC 0008 K13). */
+    engine: TemplateEngineSchema,
     compositionId: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, 'expected a composition id'),
     canvas: CanvasSchema,
     aspect: AspectRatioSchema,

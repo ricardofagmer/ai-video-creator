@@ -5,6 +5,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AssetContentService } from './asset-content';
 import { AssetVersionRepository } from './asset-version.repository';
 import { CatalogAssetResolver } from './catalog-asset-resolver';
+import { HyperframesTemplateCheck } from './hyperframes-template.check';
 import { CreateAssetHandler } from './commands/create-asset.handler';
 import { SaveAssetVersionHandler } from './commands/save-asset-version.handler';
 import { SetAssetStatusHandler } from './commands/set-asset-status.handler';
@@ -24,6 +25,7 @@ import { SearchAssetsHandler } from './queries/search-assets.handler';
     AssetVersionRepository,
     AssetContentService,
     CatalogAssetResolver,
+    HyperframesTemplateCheck,
     CreateAssetHandler,
     SaveAssetVersionHandler,
     SetAssetStatusHandler,

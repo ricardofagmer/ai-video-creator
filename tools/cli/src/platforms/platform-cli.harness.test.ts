@@ -208,7 +208,7 @@ export async function createTempStudio(): Promise<TempStudio> {
   const dataHome = new DataHome(root);
   const printer = new CapturingPrinter();
   const dependencies: CommandDependencies = {
-    settings: { dataHome, ports: { web: 4310, api: 4311 }, studioRoot: root, childEnvironment: {}, keyVariablesSet: [] },
+    settings: { dataHome, ports: { web: 4310, api: 4311 }, studioRoot: root, childEnvironment: {}, keyVariablesSet: [], homeDirectory: root },
     printer,
     signal: new AbortController().signal,
   };

@@ -1,0 +1,96 @@
+;; Render sandbox of a HyperFrames process (SPEC 0008 section 4.6, OD5 answer b; rev 2 section
+;; 17.4, OD9, OD10 (a)).
+;; Rev 1 fixed two rules: no non-loopback address is reachable, and the owner's ~/.hyperframes
+;; (passed as OWNER_HYPERFRAMES_DIR) can be neither read nor written. Rev 2 keeps (allow default)
+;; and every rev 1 rule and only adds targeted denies (finding M1 of section 17.1).
+;; No owner path, home folder name or port number is written here (K15): each comes from a -D
+;; parameter built by buildSandboxArgs, as a real path (K16). System daemon paths and Apple service
+;; names are the only literals.
+;; Apple does not document this language (U4, U9 to U14): this text is the starting point and
+;; changes only to make the owner-run trace pass. Every exception added later is written here with
+;; its reason and listed in the trace findings. A rule is never removed silently. The sha-256 of
+;; this file is part of the trace record, so any edit makes the trace stale until it is rerun.
+;; Rule groups are in this order because the last matching rule is assumed to decide (U9).
+;; No exception has been added yet. In particular the resolver socket (mDNSResponder) stays denied,
+;; so no host name can leave the Mac as a DNS query.
+(version 1)
+(allow default)
+
+;; rev 1: network. No non-loopback address; no resolver socket.
+(deny network*)
+(allow network* (local ip "localhost:*"))
+(allow network* (remote ip "localhost:*"))
+(allow network* (remote unix-socket))
+(deny network* (remote unix-socket (path-literal "/private/var/run/mDNSResponder")))
+
+;; rev 2 (M1): the studio's own loopback services. Sandboxed code must not call the studio api or
+;; web, which act with the owner's authority; the ports come from parameters.
+(deny network-outbound (remote ip (string-append "localhost:" (param "STUDIO_API_PORT"))))
+(deny network-outbound (remote ip (string-append "localhost:" (param "STUDIO_WEB_PORT"))))
+
+;; rev 2 (M1): unix sockets under the owner's home and of known daemons (Docker, the launchd
+;; per-user sockets that carry ssh-agent); the render's own folders are allowed again because the
+;; data home usually sits under the home.
+(deny network-outbound (remote unix-socket (subpath (param "OWNER_HOME"))))
+(deny network-outbound (remote unix-socket (path-literal "/private/var/run/docker.sock")))
+(deny network-outbound (remote unix-socket (regex #"^/private/tmp/com\.apple\.launchd\.[^/]+/")))
+(allow network-outbound (remote unix-socket (subpath (param "SCRATCH_DIR"))))
+(allow network-outbound (remote unix-socket (subpath (param "HF_CACHE_DIR"))))
+(allow network-outbound (remote unix-socket (subpath (param "HF_HOME_DIR"))))
+
+;; rev 2 (M1): only four programs may be started: node, the pinned Chrome, ffmpeg and ffprobe.
+;; No /usr/bin/open, no osascript, no shell.
+(deny process-exec*)
+(allow process-exec*
+  (literal (param "NODE_BIN"))
+  (literal (param "CHROME_BIN"))
+  (literal (param "FFMPEG_BIN"))
+  (literal (param "FFPROBE_BIN")))
+
+;; rev 2 (M1): brokers that open URLs or send requests on a caller's behalf, so a URL cannot leave
+;; the Mac through LaunchServices, Apple events or nsurlsessiond without a network denial.
+(deny mach-lookup
+  (global-name "com.apple.coreservices.launchservicesd")
+  (global-name "com.apple.lsd.open")
+  (global-name "com.apple.lsd.mapdb")
+  (global-name "com.apple.lsd.modifydb")
+  (global-name "com.apple.coreservices.appleevents")
+  (global-name "com.apple.nsurlsessiond")
+  (global-name "com.apple.nsurlstorage-cache")
+  (global-name "com.apple.cfnetwork.cfnetworkagent")
+  ;; rev 2 (OD10 (a)): the Keychain services, so sandboxed code cannot ask securityd for an item.
+  ;; Under the U12 fallback: if Chrome cannot start without them, they are removed with a comment
+  ;; here and a finding in the trace.
+  (global-name "com.apple.SecurityServer")
+  (global-name "com.apple.securityd.xpc"))
+(deny appleevent-send)
+
+;; rev 2 (M1): writes only where a render works: its scratch folder, the staged template copy and
+;; the hyperframes cache/, config/ and home/ folders, plus the device nodes the processes need.
+;; The gate files (engine.json, chrome.json, trace.json) sit outside these folders, so they stay
+;; read-only. The Chrome cache root is write-denied after the allow, so the binary and its
+;; libraries cannot be swapped from inside the sandbox (L1).
+(deny file-write*)
+(allow file-write*
+  (subpath (param "SCRATCH_DIR"))
+  (subpath (param "TEMPLATE_DIR"))
+  (subpath (param "HF_CACHE_DIR"))
+  (subpath (param "HF_CONFIG_DIR"))
+  (subpath (param "HF_HOME_DIR"))
+  (literal "/dev/null")
+  (literal "/dev/zero")
+  (literal "/dev/dtracehelper"))
+(deny file-write* (subpath (param "CHROME_DIR")))
+
+;; rev 2 (M1): reads of secrets and of the studio's data: ssh keys, Keychain files, the studio
+;; root's .env files and the data home outside hyperframes/. The data home itself stays visible to
+;; metadata lookups so paths under HF_ROOT still resolve, and HF_ROOT is readable again.
+(deny file-read* (subpath (string-append (param "OWNER_HOME") "/.ssh")))
+(deny file-read* (subpath (string-append (param "OWNER_HOME") "/Library/Keychains")))
+(deny file-read* (regex (string-append "^" (regex-quote (param "STUDIO_ROOT")) "/(.*/)?[.]env[^/]*$")))
+(deny file-read* (subpath (param "DATA_HOME")))
+(allow file-read-metadata (literal (param "DATA_HOME")))
+(allow file-read* (subpath (param "HF_ROOT")))
+
+;; rev 1, kept last so no rule above can reopen it.
+(deny file-read* file-write* (subpath (param "OWNER_HYPERFRAMES_DIR")))

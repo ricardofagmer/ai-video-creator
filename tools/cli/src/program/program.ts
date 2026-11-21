@@ -29,6 +29,7 @@ import {
   parseServiceName,
   parseStopTarget,
 } from './arguments.js';
+import { addHyperframesCommands } from './hyperframes-commands.js';
 import { addOutsideSignalCommands } from './outside-signal-commands.js';
 import { addPlatformCommands } from './platform-commands.js';
 import { addTraceCommands } from '../traces/trace-commands.js';
@@ -186,6 +187,7 @@ function buildProgram(dependencies: CommandDependencies, report: ExitCodeSink): 
   addOutsideSignalCommands(program, dependencies, report);
   addPlatformCommands(program, dependencies, report);
   addTraceCommands(program, dependencies, report);
+  addHyperframesCommands(program, dependencies, report);
   return program;
 }
 

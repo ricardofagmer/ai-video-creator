@@ -48,6 +48,11 @@ export interface CliSettings {
   childEnvironment: Readonly<Record<string, string>>;
   /** Names of provider-key variables that are set; never their values. */
   keyVariablesSet: readonly string[];
+  /**
+   * The owner's home folder. Only `studio hyperframes trace` uses it, to name the owner's
+   * `~/.hyperframes` as the folder the sandbox denies (SPEC 0008 section 4.6); nothing reads it.
+   */
+  homeDirectory: string;
 }
 
 export interface CliSettingsSource {
@@ -100,5 +105,6 @@ export function readCliSettings(source: CliSettingsSource, keyVariableNames: rea
     studioRoot: resolve(source.cliDirectory, '..', '..', '..'),
     childEnvironment: childEnvironmentOf(environment),
     keyVariablesSet: keyVariableNames.filter((name) => (environment[name] ?? '').trim() !== ''),
+    homeDirectory: source.homeDirectory,
   };
 }

@@ -19,8 +19,12 @@ import { SECRET_NAMES } from '../secrets/secret-names';
  * can hold a secret value: credentials are named, never stored (PRD 12).
  */
 
-/** The two seed origins C1 `ProvenanceSourceSchema` allows (PRD 5.5). */
-const SeedOriginSchema = z.enum(['ai-creator-engine', 'spesia-run']);
+/**
+ * Where a seed entry comes from. `ai-creator-engine` and `spesia-run` are the two seed origins C1
+ * `ProvenanceSourceSchema` allows (PRD 5.5); `studio` marks an asset authored in this repository
+ * (SPEC 0008 OD7 a), recorded as "created here" provenance, not as a seed origin.
+ */
+const SeedOriginSchema = z.enum(['ai-creator-engine', 'spesia-run', 'studio']);
 export type SeedOrigin = z.infer<typeof SeedOriginSchema>;
 
 /** Environment variable NAME, the same shape C1 accepts for `ModelIdReference`. */

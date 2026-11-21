@@ -104,6 +104,8 @@ The SPEC 0007 amendments keep `format: 1` too: `publications.jsonl` is an additi
 | `platform/metrics-inbox/<batchId>.json` | Watcher creates (temp file, then link); `IngestMetricBatch` (api or CLI) deletes after its transaction commits | Amended 2026-11-20 (SPEC 0007 K2): the one stated exception to one writer per file, like `control.json`; never edited (section 26) |
 | `runs/<runId>/publications.jsonl` | Watcher | Amended 2026-11-20 (SPEC 0007 sections 4.3 and 5.4): append-only; only for a run whose status is `approved`; no other run-folder file is touched after approval (section 25) |
 | SQLite `publication_attempts`, `run_publications.origin`, `attempt_id`, `platform_media_id`, `metric_imports.origin` | Nest command handlers (api or CLI) | Amended 2026-11-20 (SPEC 0007 section 4.5, K1): the watcher writes no table |
+| `hyperframes/engine.json`, `hyperframes/chrome.json`, `hyperframes/trace.json`, `hyperframes/config/` | CLI | Amended 2026-11-20 (SPEC 0008 section 4.5): `engine.json` only by `studio hyperframes enable` / `disable`, `chrome.json` only by `chrome install`, `trace.json` only by `trace`, `config/config.json` seeded once before any HyperFrames process starts; the watcher reads them and writes nothing there (section 27) |
+| `hyperframes/cache/` | The pinned HyperFrames process | Amended 2026-11-20 (SPEC 0008 sections 4.5 and 5.5): Chrome lives here, filled only by the owner-confirmed `chrome install`; no studio code writes inside it, `home/` stays empty (section 27) |
 | Mastra storage | None | Agents keep no state of their own (D18) |
 
 ## 5. Ids
@@ -949,3 +951,54 @@ errors of section 19 plus `PublishAttemptExistsError`, `MetricBatchExistsError` 
 `MetricBatchRefusedError`. Optional files read as `{ status: 'absent' }` or
 `{ status: 'present', value }`; the list helpers return ULID-named entries oldest first and ignore
 links, temp files and other names.
+
+## 27. `<data home>/hyperframes/`
+
+Added by SPEC 0008 (sections 4.2, 4.5, 5.5 and 5.6; owner decisions OD3 to OD5). Executable form:
+`@studio/shared/hyperframes` (constants, file schemas, `engineState`, `hyperframesPaths`, template
+checks, variable resolution) and the Node-only `@studio/shared/hyperframes/files`.
+
+```
+<data home>/hyperframes/engine.json     CLI: enable, disable
+                        chrome.json     CLI: chrome install
+                        trace.json      CLI: trace
+                        config/         CLI: config.json seeded once, before any process starts
+                        cache/          the HyperFrames process only (Chrome lives under it)
+                        home/           nobody; stays empty (the process's HOME)
+```
+
+Folders `0700`, files `0600`. The folder does not exist until the owner runs a `studio hyperframes`
+command; `DataHome` and `ensureDataHomeDirectories` do not create it. An absent folder means the
+engine is off. Removing the data home removes this folder, Chrome included.
+
+**`engine.json`** (`HyperframesEngineFileSchema`): `format: 1`, `state` (`disabled` or `enabled`),
+`updatedAt`, `updatedBy`. `enable` writes `enabled` only when `engineState` would be `ready`;
+`disable` always works.
+
+**`chrome.json`** (`HyperframesChromeFileSchema`): `format: 1`, `version` (`158.0.8127.36`, the
+pinned `chrome-headless-shell`), `executablePath` (inside `cache/`, refused anywhere else), `sha256`,
+`sizeBytes`, `installedAt`, `installedBy`. A path outside `cache/` or a missing binary reads as
+`chrome-missing`.
+
+**`trace.json`** (`HyperframesTraceFileSchema`): `format: 1`, `result` (`pass` or `fail`), `at`,
+`by`, `pin`, `chromeSha256`, `profileSha256`, `templateContentHash`, `controlDenied`,
+`renderExitCode`, `outputOk`, `deniedNetwork`, `ownerConfigDirDenied`, `findings[]` (at most 20, 200
+characters each). The record of the owner-run network trace (SPEC 0008 section 5.6).
+
+`engineState`, first match: no `engine.json` or `state: 'disabled'` gives `engine-disabled`; no
+`chrome.json`, or its binary is missing, gives `chrome-missing`; no `config/config.json` gives
+`runtime-not-prepared`; no valid `trace.json` gives `trace-missing`; a trace that did not pass, or
+whose pin, Chrome hash or sandbox profile hash differs from the current one, gives `trace-stale`;
+otherwise `ready`. An unreadable, linked or invalid file is never read as present.
+
+Reading and writing in code:
+
+```ts
+import { engineState, hyperframesPaths, HYPERFRAMES_PIN } from '@studio/shared/hyperframes';
+import { readHyperframesEngineFiles, writeEngineFile } from '@studio/shared/hyperframes/files';
+```
+
+The helpers take the absolute data home root and resolve every path through `hyperframesPaths`,
+so none reaches outside `hyperframes/`. Writers raise the run-file typed errors of section 19 and
+`HyperframesPathError`; readers answer `{ status: 'absent' }`, `{ status: 'invalid' }` or
+`{ status: 'present', value }`.

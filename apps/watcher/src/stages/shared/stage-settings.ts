@@ -14,6 +14,23 @@ const optionalText = z
   .optional()
   .or(z.literal('').transform((): undefined => undefined));
 
+/*
+ * The studio's loopback ports, read with the same names, defaults and bounds as the CLI and the api
+ * (`VIDEO_STUDIO_API_PORT`, `VIDEO_STUDIO_WEB_PORT`). The HyperFrames sandbox denies both
+ * (SPEC 0008 section 17.5, B11); an unset or empty variable takes the A9 default.
+ */
+const DEFAULT_API_PORT = 4311;
+const DEFAULT_WEB_PORT = 4310;
+
+const optionalPort = z
+  .string()
+  .trim()
+  .regex(/^[0-9]{4,5}$/)
+  .transform((value) => Number.parseInt(value, 10))
+  .refine((port) => port >= 1024 && port <= 65535)
+  .optional()
+  .or(z.literal('').transform((): undefined => undefined));
+
 const StageSettingsSchema = z
   .object({
     PATH: z.string().min(1).max(8192),
@@ -25,6 +42,8 @@ const StageSettingsSchema = z
     LOCAL_VOICE_SCRIPT: optionalText,
     ELEVENLABS_VOICE_ID: optionalText,
     ELEVENLABS_MODEL_ID: optionalText,
+    VIDEO_STUDIO_API_PORT: optionalPort,
+    VIDEO_STUDIO_WEB_PORT: optionalPort,
   })
   .strip();
 
@@ -37,6 +56,8 @@ export interface StageSettings {
   ffprobePath: string;
   localVoice: { pythonPath: string; scriptPath: string } | null;
   elevenLabs: { voiceId: string | null; modelId: string };
+  /** The studio's loopback ports, 1024 to 65535; the HyperFrames sandbox denies both (SPEC 0008 B11). */
+  studioPorts: { api: number; web: number };
 }
 
 /** Seed default of the `elevenlabs-voice` row (`seeds/catalog.seed.json`, `defaultModelId`). */
@@ -70,6 +91,7 @@ export function readStageSettings(environment: Readonly<Record<string, string | 
     ffprobePath: values.FFPROBE_PATH ?? 'ffprobe',
     localVoice,
     elevenLabs: { voiceId: values.ELEVENLABS_VOICE_ID ?? null, modelId: values.ELEVENLABS_MODEL_ID ?? DEFAULT_ELEVENLABS_MODEL_ID },
+    studioPorts: { api: values.VIDEO_STUDIO_API_PORT ?? DEFAULT_API_PORT, web: values.VIDEO_STUDIO_WEB_PORT ?? DEFAULT_WEB_PORT },
   };
 }
 

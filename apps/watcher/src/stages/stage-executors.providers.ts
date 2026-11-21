@@ -1,11 +1,14 @@
 import { type Provider } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
+import { FolderReader } from '@studio/core/asset-store';
+import { DataHome } from '@studio/core/paths';
 import { ProviderModeService } from '@studio/core/providers';
 import type { AgentsPort } from '@studio/shared/agents';
 import type { AssetResolverPort, CostLedgerPort, StageExecutorPort } from '@studio/shared/ports';
 import { RunManifestBuilder } from '../adapters/manifest/run-manifest.builder';
 import { type Clock } from '../engine/clock';
 import { AGENTS, ASSET_RESOLVER, CLOCK, COST_LEDGER, STAGE_EXECUTORS } from '../engine/engine.tokens';
+import { realHyperframesStagePorts } from './composition/hyperframes-stage.ports';
 import { ToolRunner } from './process/tool-runner.client';
 import { CatalogLookup } from './shared/catalog-lookup';
 import { STAGE_SETTINGS, readStageSettings, type StageSettings } from './shared/stage-settings';
@@ -30,6 +33,8 @@ export const stageExecutorProviders: Provider[] = [
       assetResolver: AssetResolverPort,
       manifestBuilder: RunManifestBuilder,
       settings: StageSettings,
+      dataHome: DataHome,
+      folders: FolderReader,
     ): readonly StageExecutorPort[] =>
       createStageExecutors({
         agents,
@@ -41,7 +46,8 @@ export const stageExecutorProviders: Provider[] = [
         catalog: new CatalogLookup(queries),
         assetResolver,
         manifestBuilder,
+        hyperframes: realHyperframesStagePorts(dataHome, folders),
       }),
-    inject: [AGENTS, COST_LEDGER, ProviderModeService, CLOCK, QueryBus, ASSET_RESOLVER, RunManifestBuilder, STAGE_SETTINGS],
+    inject: [AGENTS, COST_LEDGER, ProviderModeService, CLOCK, QueryBus, ASSET_RESOLVER, RunManifestBuilder, STAGE_SETTINGS, DataHome, FolderReader],
   },
 ];

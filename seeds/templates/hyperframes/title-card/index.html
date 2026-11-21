@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+  Cartao de titulo 9:16 (HyperFrames), studio-authored seed template (SPEC 0008 OD7 a).
+  Self-contained: no script, no remote reference, system fonts only. HyperFrames 0.9.72 reads the
+  variable declarations from data-composition-variables, writes each value into the element named
+  by data-var-text, and exposes every value as a CSS custom property whose name is the id in
+  lower case (durationS becomes --durations). The composition length is fixed at 30 s (U1): the
+  render is cut to the narration, and durationS only times the closing fade.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Cartao de titulo</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div
+      id="title-card"
+      class="card"
+      data-composition-id="TitleCard"
+      data-start="0"
+      data-duration="30"
+      data-width="1080"
+      data-height="1920"
+      data-fps="30"
+      data-no-timeline
+      data-composition-variables='[{"id":"title","type":"string","label":"Title","default":""},{"id":"hook","type":"string","label":"Hook","default":""},{"id":"disclosure","type":"string","label":"Disclosure","default":""},{"id":"accent","type":"color","label":"Accent","default":"#f97316"},{"id":"durationS","type":"number","label":"Duration (s)","default":30,"min":3,"max":30}]'
+    >
+      <div class="accent-bar" aria-hidden="true"></div>
+      <main class="content">
+        <p class="hook" data-var-text="hook"></p>
+        <h1 class="title" data-var-text="title"></h1>
+      </main>
+      <footer class="disclosure" data-var-text="disclosure"></footer>
+    </div>
+  </body>
+</html>

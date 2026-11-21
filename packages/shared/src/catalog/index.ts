@@ -7,6 +7,7 @@ export * from './learning-note';
 export * from './media';
 export * from './provenance';
 export * from './quality-score';
+export * from './template-engine';
 export {
   AbsolutePathSchema,
   ComparisonIdSchema,

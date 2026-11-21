@@ -1,0 +1,118 @@
+import assert from 'node:assert/strict';
+import { type HyperframesRuntime } from '@studio/hyperframes';
+
+/*
+ * Shared fixtures for the `@studio/hyperframes` unit tests and the tool-runner handler tests
+ * (SPEC 0008 sections 4.4 and 4.5). The package has no test script of its own, so its tests live
+ * in the watcher, which depends on it. Every path here is a plain string: nothing is read, created
+ * or started from it.
+ */
+
+/** Values planted in the parent environment; none may reach a child environment (AC 67). */
+export const PARENT_ENV_SENTINELS: Readonly<Record<string, string>> = Object.freeze({
+  ANTHROPIC_API_KEY: 'sentinel-anthropic-key-planted',
+  ELEVENLABS_API_KEY: 'sentinel-elevenlabs-key-planted',
+  STUDIO_ARBITRARY_PARENT_VARIABLE: 'sentinel-arbitrary-variable-planted',
+});
+
+/** The eleven keys of section 4.5, sorted; no other key may exist in a render environment. */
+export const RENDER_ENV_KEYS: readonly string[] = Object.freeze(
+  [
+    'DO_NOT_TRACK',
+    'HOME',
+    'HYPERFRAMES_BROWSER_PATH',
+    'HYPERFRAMES_CACHE_DIR',
+    'HYPERFRAMES_CONFIG_DIR',
+    'HYPERFRAMES_NO_TELEMETRY',
+    'HYPERFRAMES_NO_UPDATE_CHECK',
+    'HYPERFRAMES_SKIP_SKILLS',
+    'LANG',
+    'PATH',
+    'TMPDIR',
+  ].sort(),
+);
+
+export function runtimeFixture(overrides: Partial<HyperframesRuntime> = {}): HyperframesRuntime {
+  return {
+    nodePath: '/fixture/runner/bin/node',
+    binPath: '/fixture/workspace/node_modules/.pnpm/hyperframes@0.9.72/node_modules/hyperframes/bin/hyperframes.mjs',
+    browserPath: '/fixture/data-home/hyperframes/cache/browser/headless-shell',
+    configDir: '/fixture/data-home/hyperframes/config',
+    cacheDir: '/fixture/data-home/hyperframes/cache',
+    homeDir: '/fixture/data-home/hyperframes/home',
+    tmpDir: '/fixture/scratch/render-0001',
+    path: '/fixture/tools/bin:/usr/bin:/bin',
+    sandboxProfilePath: '/fixture/workspace/packages/hyperframes/sandbox/render.sb',
+    ownerConfigDir: '/fixture/owner-home/.hyperframes',
+    ...overrides,
+  };
+}
+
+/** The section 4.5 table restated as the oracle for `buildRenderEnv` and the recorded child env. */
+export function expectedRenderEnv(runtime: HyperframesRuntime): Record<string, string> {
+  return {
+    PATH: runtime.path,
+    LANG: 'C.UTF-8',
+    HOME: runtime.homeDir,
+    TMPDIR: runtime.tmpDir,
+    HYPERFRAMES_NO_TELEMETRY: '1',
+    DO_NOT_TRACK: '1',
+    HYPERFRAMES_NO_UPDATE_CHECK: '1',
+    HYPERFRAMES_SKIP_SKILLS: '1',
+    HYPERFRAMES_CONFIG_DIR: runtime.configDir,
+    HYPERFRAMES_CACHE_DIR: runtime.cacheDir,
+    HYPERFRAMES_BROWSER_PATH: runtime.browserPath,
+  };
+}
+
+/** The frozen argv of section 4.4 restated as the oracle (OD5 answer b); the command is separate. */
+export function expectedRenderArgs(options: { runtime: HyperframesRuntime; variablesFile: string; output: string }): string[] {
+  const { runtime } = options;
+  return [
+    '-f',
+    runtime.sandboxProfilePath,
+    '-D',
+    `OWNER_HYPERFRAMES_DIR=${runtime.ownerConfigDir}`,
+    runtime.nodePath,
+    runtime.binPath,
+    'render',
+    '--variables-file',
+    options.variablesFile,
+    '--strict-variables',
+    '--strict',
+    '--crf',
+    '18',
+    '-o',
+    options.output,
+  ];
+}
+
+/**
+ * Runs `action` with `values` set in the parent's `process.env`, then restores every key to what it
+ * was (deleted when it was absent), whether the action resolved or threw.
+ */
+export async function withParentEnv<T>(values: Readonly<Record<string, string>>, action: () => Promise<T> | T): Promise<T> {
+  const previous = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(values)) {
+    previous.set(key, process.env[key]);
+    process.env[key] = value;
+  }
+  try {
+    return await action();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+/** Fails unless no value and no key of `env` carries one of the planted parent sentinels. */
+export function assertNoParentSentinel(env: Readonly<Record<string, string>>, sentinels: Readonly<Record<string, string>>): void {
+  for (const [key, sentinel] of Object.entries(sentinels)) {
+    assert.ok(!Object.hasOwn(env, key), `child environment carries the parent key ${key}`);
+    for (const value of Object.values(env)) {
+      assert.ok(!value.includes(sentinel), `child environment carries the parent value of ${key}`);
+    }
+  }
+}

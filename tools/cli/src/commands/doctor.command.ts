@@ -1,4 +1,6 @@
+import { sandboxExecExists } from '@studio/hyperframes';
 import { ExitCode } from '../errors/exit-codes.js';
+import { hyperframesChecks, readHyperframesStatus } from '../hyperframes/hyperframes-status.js';
 import { toErrorReport } from '../errors/error-report.js';
 import { checkCurations } from '../doctor/curation-checks.js';
 import { scheduleChecks } from '../doctor/schedule-checks.js';
@@ -74,6 +76,20 @@ async function platformSections(context: CliContext, signal: AbortSignal): Promi
   return sections;
 }
 
+/**
+ * SPEC 0008 section 7: the same lines as `studio hyperframes status`. HyperFrames is opt-in, so an
+ * unreadable state is a warning, never a failure of `doctor`.
+ */
+async function hyperframesSections(dependencies: CommandDependencies): Promise<DoctorSection[]> {
+  try {
+    const status = await readHyperframesStatus(dependencies.settings, { now: new Date(), sandboxAvailable: sandboxExecExists() });
+    return hyperframesChecks(status).map(only);
+  } catch (error) {
+    if (dependencies.signal.aborted) throw error;
+    return [only({ label: 'HyperFrames', status: 'warning', detail: `não verificado: ${toErrorReport(error).message}` })];
+  }
+}
+
 /** Database-backed checks share one booted context; a boot failure marks the database failed. */
 async function dataSections(options: DoctorOptions, dependencies: CommandDependencies): Promise<DoctorSection[]> {
   const { signal } = dependencies;
@@ -119,6 +135,7 @@ export async function doctorCommand(options: DoctorOptions, dependencies: Comman
   const watcherRunning = watcher.check.status === 'ok';
   const scheduleRoots = { schedulesRoot: settings.dataHome.schedules, runsRoot: settings.dataHome.runs };
   sections.push(await guarded('agendamentos', async () => scheduleChecks(await scanSchedules(scheduleRoots, signal), watcherRunning), signal));
+  sections.push(...(await hyperframesSections(dependencies)));
   sections.push(...(await dataSections(options, dependencies)));
 
   dependencies.printer.line(`Diagnóstico do studio (dados em ${settings.dataHome.root})`);
