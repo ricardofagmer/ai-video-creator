@@ -1,8 +1,9 @@
 ---
 name: 2026-11-20-hyperframes-templates
-status: active
+status: done
+completed: 2026-11-21
 owner: Ricardo Fagmer
-spec: pending (SPEC 0008, after the pin approval)
+spec: docs/specs/0008-r4-hyperframes-templates.md
 domain: backend
 security_review: done
 preview: pending
@@ -26,7 +27,7 @@ Out: any install, any render, any change to the Remotion path.
 
 ## Checklist
 - [x] Static vetting of `hyperframes` (identity, provenance, versions, manifest, tree, advisories, Chrome, hosts): `docs/vetting/0005-hyperframes-dependency.md`
-- [ ] Network trace of one render: not run (owner choice); required by SPEC 0008 before the first render ships
+- [x] Network trace of one render: run as O3 (AC 98), `pass` at 2026-11-21T18:25:23Z (see the O3 row below)
 - [x] Owner approves the exact pin: `hyperframes` 0.9.72 exact (2026-11-20)
 - [x] SPEC 0008 (frozen rev 1), ADR 0008 (proposed) and tickets R4H-01 to R4H-07 plus graph
 - [x] O1 install approval (2026-11-21); ticket 02 install done, see "Install record (R4H-02)"
@@ -45,7 +46,7 @@ Out: any install, any render, any change to the Remotion path.
 - [x] Owner-run O2 Chrome install (AC 84): Chrome 158.0.8127.36 installed, `chrome.json` written (2026-11-21)
 - [x] Owner-run O3 network trace (AC 98): `pass` at 2026-11-21T18:25:23Z after two design fixes (spec 18.6: network rule, `HYPERFRAMES_CHROME_SANDBOX=0`; spec 18.7: C1 proven by EPERM, macOS 27 logs no profile denial); render exit 0, video correct, other network denials 0, `~/.hyperframes` reads denied 0
 - [x] Owner-run O4 part 1: `studio hyperframes enable` (2026-11-21); watcher restarted on the 18.6 build
-- [ ] Owner-run O4 part 2: first live render with a recipe version binding `title-card-hf-template@1` (AC 85, last sentence): not done; needs `studio catalog seed`, `studio start`, a recipe version and a live run
+- [x] Owner-run O4 part 2 (AC 85, last sentence), 2026-11-21: `title-card-hf-template@1` seeded by the owner and activated (approval 16:26); recipe `tool-demo-9x16@2` saved (template `title-card-hf-template@1`, duration 15-25 s, every other v1 binding kept); run `01M7ZS72MFZGE1TX7JBVE8S67B` reached `review` at 19:29:35Z, 14/14 stages, US$ 0.00, nothing left the machine. Evidence: watcher event `hyperframes.render-finished` ok, pin 0.9.72, `renderSeconds` 68.532, 5 variables; `composition.mp4` and `final.mp4` H.264 1080x1920 30 fps + AAC, 20.0 s; frame at 3 s shows the title card. Deviation: only the render was live (`VIDEO_STUDIO_RENDER_MODE=live` in the watcher launch agent); writer, voice and capture stayed mock (owner: "Render live, rest mock"), so "live run" in AC 85 holds for the HyperFrames render only
 
 ## Final proof record, rev 2 (R4H-12, 2026-11-21)
 Owner: "Final tests now" after commit 7d93404 turned PR #1 CI red at watcher typecheck (all errors in test files). Expectation updates only: no new test file, no new `it`/`describe`, no deleted, skipped or weakened assertion, no production file.
@@ -178,6 +179,10 @@ advisory; 0.9.17 (the newest release at least 14 days old) pins `undici` 7.25.0 
 | 2026-11-21 | Ricardo Fagmer | — | O3 first run failed (C1 timeout, Chrome SIGTRAP): "Apply both fixes" (spec 18.6) |
 | 2026-11-21 | Ricardo Fagmer | — | O3 second run: control denial not in the log (macOS 27.3 logs no `sandbox-exec` profile denial): "Exit code is proof" (spec 18.7, AC 107-108); third run `pass`; owner ran `studio hyperframes enable` |
 | 2026-11-21 | Ricardo Fagmer | — | First live render not yet run: "Ship fixes now, O4 later" — trace fixes go on a new branch and PR; the record stays active until the first live render reaches review |
+| 2026-11-21 | Ricardo Fagmer | — | O4 part 2 setup: "Render live, rest mock" — `VIDEO_STUDIO_RENDER_MODE=live` added to the watcher launch agent; writer and voice stay mock (no cost, no provider calls) |
+| 2026-11-21 | Ricardo Fagmer | — | Recipe v2 blocked (the editor lists only active versions; the template was a draft): "Activate template only", then "open the browser and do this" — Claude activated `title-card-hf-template@1` and saved `tool-demo-9x16@2` in the owner's Chrome; Música kept on because v1's pinned drafts carry over |
+| 2026-11-21 | Ricardo Fagmer | — | Close: "Branch, commit, PR" — record closed and archived on `chore/r4h-close-record`; "Keep live render" — `VIDEO_STUDIO_RENDER_MODE=live` stays in the watcher launch agent |
+| 2026-11-21 | Ricardo Fagmer | — | Run gates: "Approve plan and script" — Claude approved the plan gate of `01M7ZS72MFZGE1TX7JBVE8S67B`; no script gate appeared; the run reached `review` |
 
 ## Rev 3 gaps (SPEC 0008 section 18, 2026-11-21)
 - G1 `tools/cli/src/hyperframes/network-trace.ts`: an unreadable binary after the render no longer throws; the record is written with `result: 'fail'`, `chromeSha256` of 64 zeros and `TRACE_CHROME_UNREADABLE_AFTER_TEXT` (`hyperframes-texts.ts`). Test: AC 99 in `hyperframes-trace.command.test.ts`.
