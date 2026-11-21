@@ -565,12 +565,36 @@ shell_node_ready() {
   info "node >= $SHELL_MIN_NODE_MAJOR.$SHELL_MIN_NODE_MINOR ok."
 }
 
-# A configured port when it is a number, else the A9 default; package-app.mjs checks the range.
-shell_port() {
-  if is_number "$1"; then
-    printf '%s' "$1"
-  else
-    printf '%s' "$2"
+# The studio ports (SPEC 0008 U15): the A9 default when the variable is unset or empty, else the
+# value the CLI and the api accept (4 or 5 digits, 1024 to 65535). `main` resolves them once,
+# before step 1, so an invalid value stops the install before anything changes, as `studio`
+# refuses it, instead of a menu-bar app built for a default port (step 12), a watcher that
+# restarts in a loop under KeepAlive (step 13) or a summary that names the wrong address.
+STUDIO_API_PORT=''
+STUDIO_WEB_PORT=''
+
+studio_port() {
+  local variable="$1" value="$2" default="$3"
+  if [ -z "$value" ]; then
+    printf '%s' "$default"
+    return 0
+  fi
+  case "$value" in
+    [0-9][0-9][0-9][0-9] | [0-9][0-9][0-9][0-9][0-9]) ;;
+    *) die "$variable não é uma porta (1024 a 65535): $value" ;;
+  esac
+  # 10# keeps a leading zero from being read as octal.
+  if [ $((10#$value)) -lt 1024 ] || [ $((10#$value)) -gt 65535 ]; then
+    die "$variable fora do intervalo 1024 a 65535: $value"
+  fi
+  printf '%s' "$((10#$value))"
+}
+
+resolve_studio_ports() {
+  STUDIO_API_PORT="$(studio_port VIDEO_STUDIO_API_PORT "${VIDEO_STUDIO_API_PORT:-}" "$STUDIO_DEFAULT_API_PORT")"
+  STUDIO_WEB_PORT="$(studio_port VIDEO_STUDIO_WEB_PORT "${VIDEO_STUDIO_WEB_PORT:-}" "$STUDIO_DEFAULT_WEB_PORT")"
+  if [ "$STUDIO_API_PORT" = "$STUDIO_WEB_PORT" ]; then
+    die "VIDEO_STUDIO_API_PORT e VIDEO_STUDIO_WEB_PORT não podem ser a mesma porta: $STUDIO_API_PORT"
   fi
 }
 
@@ -691,7 +715,7 @@ install_shell_app() {
 
 step_menu_bar_app() {
   begin_step 12 "$TOTAL_STEPS" 'app do menu (opcional)'
-  local web_port api_port stamp
+  local stamp
   if [ "$SKIP_SHELL" -eq 1 ]; then
     info 'pulada (--skip-shell): nada foi baixado, construído ou copiado.'
     SHELL_STATE='pulado (--skip-shell)'
@@ -700,15 +724,13 @@ step_menu_bar_app() {
   if ! shell_node_ready; then
     return 0
   fi
-  web_port="$(shell_port "${VIDEO_STUDIO_WEB_PORT:-}" "$STUDIO_DEFAULT_WEB_PORT")"
-  api_port="$(shell_port "${VIDEO_STUDIO_API_PORT:-}" "$STUDIO_DEFAULT_API_PORT")"
-  stamp="$(shell_build_stamp "$web_port" "$api_port")"
+  stamp="$(shell_build_stamp "$STUDIO_WEB_PORT" "$STUDIO_API_PORT")"
   if shell_app_unchanged "$stamp"; then
     info "sem mudança: $SHELL_APP_PATH"
     SHELL_STATE="sem mudança ($SHELL_APP_PATH)"
     return 0
   fi
-  if ! ask_shell_build || ! build_shell_app "$web_port" "$api_port" || ! install_shell_app; then
+  if ! ask_shell_build || ! build_shell_app "$STUDIO_WEB_PORT" "$STUDIO_API_PORT" || ! install_shell_app; then
     return 0
   fi
   if [ "$DRY_RUN" -eq 0 ] && ! printf '%s\n' "$stamp" >"$SHELL_STAMP_FILE"; then
@@ -735,37 +757,6 @@ assert_plist_path() {
   esac
 }
 
-# The watcher's studio ports (SPEC 0008 U15): the A9 default when the variable is unset or empty,
-# else the value the CLI and the api accept (4 or 5 digits, 1024 to 65535). An invalid value stops
-# the install, as `studio` refuses it, instead of a watcher that restarts in a loop under KeepAlive.
-WATCHER_API_PORT=''
-WATCHER_WEB_PORT=''
-
-watcher_port() {
-  local variable="$1" value="$2" default="$3"
-  if [ -z "$value" ]; then
-    printf '%s' "$default"
-    return 0
-  fi
-  case "$value" in
-    [0-9][0-9][0-9][0-9] | [0-9][0-9][0-9][0-9][0-9]) ;;
-    *) die "$variable não é uma porta (1024 a 65535): $value" ;;
-  esac
-  # 10# keeps a leading zero from being read as octal.
-  if [ $((10#$value)) -lt 1024 ] || [ $((10#$value)) -gt 65535 ]; then
-    die "$variable fora do intervalo 1024 a 65535: $value"
-  fi
-  printf '%s' "$((10#$value))"
-}
-
-resolve_watcher_ports() {
-  WATCHER_API_PORT="$(watcher_port VIDEO_STUDIO_API_PORT "${VIDEO_STUDIO_API_PORT:-}" "$STUDIO_DEFAULT_API_PORT")"
-  WATCHER_WEB_PORT="$(watcher_port VIDEO_STUDIO_WEB_PORT "${VIDEO_STUDIO_WEB_PORT:-}" "$STUDIO_DEFAULT_WEB_PORT")"
-  if [ "$WATCHER_API_PORT" = "$WATCHER_WEB_PORT" ]; then
-    die "VIDEO_STUDIO_API_PORT e VIDEO_STUDIO_WEB_PORT não podem ser a mesma porta: $WATCHER_API_PORT"
-  fi
-}
-
 # Template with its header comment removed (it documents the placeholders) and the six
 # placeholders replaced. Fails when a placeholder survives.
 render_plist() {
@@ -778,8 +769,8 @@ render_plist() {
   content="${content//__WATCHER_MAIN__/$WATCHER_MAIN}"
   content="${content//__WORKING_DIR__/$WATCHER_DIR}"
   content="${content//__LOGS_DIR__/$DATA_HOME/logs}"
-  content="${content//__API_PORT__/$WATCHER_API_PORT}"
-  content="${content//__WEB_PORT__/$WATCHER_WEB_PORT}"
+  content="${content//__API_PORT__/$STUDIO_API_PORT}"
+  content="${content//__WEB_PORT__/$STUDIO_WEB_PORT}"
   case "$content" in
     *__NODE_BIN__* | *__WATCHER_MAIN__* | *__WORKING_DIR__* | *__LOGS_DIR__* | *__API_PORT__* | *__WEB_PORT__*)
       die 'um marcador do modelo do plist não foi substituído.' ;;
@@ -793,9 +784,8 @@ step_launchd() {
   if [ ! -f "$PLIST_TEMPLATE" ]; then
     die "modelo do plist não encontrado: $PLIST_TEMPLATE"
   fi
-  resolve_watcher_ports
   if [ "$DRY_RUN" -eq 1 ]; then
-    info "(simulação) node: ${NODE_BIN:-<node do Homebrew>}; watcher: $WATCHER_MAIN; logs: $DATA_HOME/logs; portas api $WATCHER_API_PORT, web $WATCHER_WEB_PORT"
+    info "(simulação) node: ${NODE_BIN:-<node do Homebrew>}; watcher: $WATCHER_MAIN; logs: $DATA_HOME/logs; portas api $STUDIO_API_PORT, web $STUDIO_WEB_PORT"
     info "(simulação) geraria o plist a partir de $PLIST_TEMPLATE, validaria com plutil -lint e gravaria $PLIST_PATH (644) se o conteúdo mudou; então:"
     run launchctl bootout "$LAUNCHD_SERVICE_TARGET"
     run launchctl bootstrap "gui/$UID" "$PLIST_PATH"
@@ -870,11 +860,7 @@ step_seed() {
 # ---------------------------------------------------------------------------------------------
 
 web_url() {
-  local port="${VIDEO_STUDIO_WEB_PORT:-$STUDIO_DEFAULT_WEB_PORT}"
-  if ! is_number "$port"; then
-    port="$STUDIO_DEFAULT_WEB_PORT"
-  fi
-  printf 'http://127.0.0.1:%s' "$port"
+  printf 'http://127.0.0.1:%s' "$STUDIO_WEB_PORT"
 }
 
 print_summary() {
@@ -936,6 +922,7 @@ main() {
   if [ "$DRY_RUN" -eq 1 ]; then
     say 'Modo simulação (--dry-run): só leitura de estado; nada é instalado, gravado ou registrado.'
   fi
+  resolve_studio_ports
   step_platform
   step_homebrew_dependencies
   step_pnpm
