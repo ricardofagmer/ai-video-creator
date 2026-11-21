@@ -9,13 +9,14 @@ import { MockPlatformClient, type MockPlatformProfile } from '../clients/mock/mo
 import { mockPlatformProfiles } from '../clients/mock/mock-profiles';
 import { PlatformClientRegistry, type PlatformClients } from '../clients/platform-client.registry';
 import { type PlatformModeSettings } from '../platform-modes.config';
+import { PlatformRefusedError } from '../platforms.errors';
 import { AccountStore } from '../stores/platform-file.stores';
 import { PublicationLinker } from './publication-linker';
 
 /*
  * The canonical URL rebuild of a published attempt (SPEC 0007 section 5.4 "Result"): the client
  * builds it, `parsePublicationUrl` checks it, and a URL that does not round-trip to the same
- * platform and video id is never stored. Live mode with no delivered client is skipped, not guessed.
+ * platform and video id is never stored. A platform the registry refuses is skipped, not guessed.
  */
 
 const ATTEMPT_ID = '01JD2Q7F3M8V5K9X4T6R2N0B1C';
@@ -117,13 +118,33 @@ describe('PublicationLinker.planUrl', () => {
     assert.deepEqual(plan, { status: 'skipped', reason: 'url-not-buildable' });
   });
 
-  it('skips as client-unavailable in live mode while no live client is delivered', async () => {
-    const platforms: readonly Platform[] = ['youtube', 'instagram', 'tiktok'];
-    for (const platform of platforms) {
+  it('rebuilds the URL with the delivered live clients, offline, and skips TikTok', async () => {
+    const youtubeId = mockYoutubeVideoId(ATTEMPT_ID);
+    const instagramShortcode = 'DAbCdEf1234';
+    const cases: readonly { platform: Platform; videoId: string; expected: unknown }[] = [
+      { platform: 'youtube', videoId: youtubeId, expected: { status: 'ready', platformVideoId: youtubeId, url: `https://www.youtube.com/watch?v=${youtubeId}` } },
+      {
+        platform: 'instagram',
+        videoId: instagramShortcode,
+        expected: { status: 'ready', platformVideoId: instagramShortcode, url: `https://www.instagram.com/reel/${instagramShortcode}/` },
+      },
+      // The live TikTok label is a display name, not a handle, so no URL is built from it.
+      { platform: 'tiktok', videoId: mockTiktokVideoId(ATTEMPT_ID), expected: { status: 'skipped', reason: 'url-not-buildable' } },
+    ];
+    for (const { platform, videoId, expected } of cases) {
       const liveOne: PlatformModeSettings = { ...allMock, [platform]: { mode: 'live' } };
       const linker = new PublicationLinker(new PlatformClientRegistry(liveOne, offlineContext), accounts);
-      const plan = await linker.planUrl(platform, mockTiktokVideoId(ATTEMPT_ID));
-      assert.deepEqual(plan, { status: 'skipped', reason: 'client-unavailable' }, platform);
+      assert.deepEqual(await linker.planUrl(platform, videoId), expected, platform);
     }
+  });
+
+  it('skips as client-unavailable when the registry refuses the platform', async () => {
+    const refusing: PlatformClients = {
+      clientFor: (platform) => {
+        throw new PlatformRefusedError('platform-not-configured', platform);
+      },
+    };
+    const plan = await new PublicationLinker(refusing, accounts).planUrl('youtube', mockYoutubeVideoId(ATTEMPT_ID));
+    assert.deepEqual(plan, { status: 'skipped', reason: 'client-unavailable' });
   });
 });
