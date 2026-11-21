@@ -37,9 +37,9 @@ Risk is high because the change touches the session-guarded api surface and how 
 - [x] SPEC 0002 rev 4 written, with the contract delta and tickets
 - [x] Shared contracts frozen by one owner before dependent writers start (R1-24)
 - [x] api, watcher and web rev 4 tickets integrated by read-only inspection (R1-25 to R1-27, all DEGRADED, not compiled)
-- [ ] Security review at the final gate (biometric streaming, by-reference path validation, heartbeat route)
-- [ ] Critic pass at the final gate (risk high)
-- [ ] Typecheck, lint, build and tests at R1-FP
+- [ ] Security review at the final gate (biometric streaming, by-reference path validation, heartbeat route) -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
+- [ ] Critic pass at the final gate (risk high) -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
+- [x] Typecheck, lint, build and tests at R1-FP (R4 final gate 2026-11-20 ran the whole monorepo green: typecheck 13/13, lint 13/13, tests 11/11, build 10/10 (`2026-11-20-r4-implementation.md` line 29))
 
 ## Human decisions
 2026-11-18 | Ricardo Fagmer | scope: "Contract additions (spec rev 4)" only; internal fixes, R1-FP and R2 planning not chosen | approved | this record

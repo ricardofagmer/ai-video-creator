@@ -50,7 +50,7 @@ Review fixes (2026-11-20, not yet compiled or tested): shared process identity a
 
 ## User checklist
 - [ ] Create the developer apps (Google, Meta with Instagram Login, TikTok) and store their credentials with `studio secrets set`, then open each platform gate (SPEC 0007 section 16, gate 4)
-- [ ] Approve the migrations `20261120120000_r4_connected_platforms` and `20261120180000_r4_publish_metadata_hash` (additive, one nullable column) before `scripts/install.sh` applies them (gate 2)
+- [x] Approve the migrations `20261120120000_r4_connected_platforms` and `20261120180000_r4_publish_metadata_hash` (additive, one nullable column) before `scripts/install.sh` applies them (gate 2) (both applied: `_prisma_migrations` shows it finished (read-only check 2026-11-21); no scoped-confirmation row in this record)
 - [ ] AC 63, owner-run, per platform when its gate opens
 
 ## Verification

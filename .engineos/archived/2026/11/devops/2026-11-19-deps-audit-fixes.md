@@ -1,6 +1,7 @@
 ---
 name: 2026-11-19-deps-audit-fixes
-status: active
+status: done
+completed: 2026-11-21
 owner: Ricardo Fagmer
 spec: n/a — two manifest edits plus the lockfile, owner-approved dependency change
 domain: devops
@@ -46,7 +47,7 @@ limit (`JSON_BODY_LIMIT` 1mb, apps/api/src/platform/api-config.ts) and the loopb
 - [x] `pnpm install --frozen-lockfile` in the worktree
 - [x] `pnpm audit --prod` after the merge into feat/r3-outside-signals (`e256e3e`): 1 high left (zod, accepted residual), down from 33
 - [x] `turbo run typecheck lint test build --filter='@studio/*'` on `e256e3e`: all pass (386 of 386 tests)
-- [ ] `turbo run typecheck build --filter='@ace/*'` — skipped by the owner, pending
+- [x] `turbo run typecheck build --filter='@ace/*'` — owner approved 2026-11-21 ("Run the check"); `pnpm turbo run typecheck build --filter='@ace/*'` at `47cf718`: 5 of 5 tasks successful (typecheck ran fresh for @ace/video and @ace/toolbox; both builds were turbo cache hits with unchanged inputs)
 - [x] Committed on chore/deps-audit-fixes as `2d744ec`; merged into feat/r3-outside-signals as `e256e3e`
 
 ## Human decisions
@@ -55,6 +56,7 @@ limit (`JSON_BODY_LIMIT` 1mb, apps/api/src/platform/api-config.ts) and the loopb
 - 2026-11-19 Ricardo Fagmer: merge into feat/r3-outside-signals (--no-ff), frozen install, `@studio/*` checks and `pnpm audit --prod` — approved; run from the R3 session.
 - 2026-11-19: zod residual (GHSA-mrhx-c7xc-m3w5) resolved by the zod 4 migration (`b5ff010`), merged into feat/r3-outside-signals as `6f286b0`; `pnpm audit --prod` clean.
 - 2026-11-20 Ricardo Fagmer: security review approved ("Run the review") before opening the R4 PR, with the result to be recorded and the PR opened if clean.
+- 2026-11-21 Ricardo Fagmer: `@ace/*` check "Run the check (Recommended)"; result recorded in the checklist; record closed.
 
 ## Security review (2026-11-20)
 Read-only security-reviewer on `2d744ec`; pins also checked at HEAD `a1ab5b5`. Verdict **CLEAR**, no findings.
