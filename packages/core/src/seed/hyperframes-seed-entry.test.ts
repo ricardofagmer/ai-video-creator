@@ -18,8 +18,22 @@ import { SEED_MANIFEST_RELATIVE_PATH } from './seed-source';
  * files are read; the store used by the folder check is a fresh temporary folder.
  */
 
-const WORKSPACE_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
+/*
+ * Seed paths start with the repository folder name the owner's workspace uses (`video-studio/`).
+ * A checkout can sit under any folder name (CI checks out into `ai-video-creator/`), so the test
+ * drops that leading segment and roots the paths at this checkout instead of at its parent.
+ */
+const REPOSITORY_ROOT = resolve(__dirname, '..', '..', '..', '..');
+const REPOSITORY_FOLDER_PREFIX = 'video-studio/';
 const HYPERFRAMES_SEED_ASSET_ID = 'title-card-hf-template';
+
+function withinRepository(seedPath: string): string {
+  return seedPath.startsWith(REPOSITORY_FOLDER_PREFIX) ? seedPath.slice(REPOSITORY_FOLDER_PREFIX.length) : seedPath;
+}
+
+function repositoryRootedManifest(raw: string): unknown {
+  return JSON.parse(raw, (_key, value: unknown) => (typeof value === 'string' ? withinRepository(value) : value));
+}
 
 describe('HyperFrames seed entry (AC 76)', () => {
   let dataHomeRoot: string;
@@ -35,8 +49,9 @@ describe('HyperFrames seed entry (AC 76)', () => {
   });
 
   async function planHyperframesEntry(): Promise<SeedAssetPlan> {
-    const manifest = SeedManifestSchema.parse(JSON.parse(await readFile(join(WORKSPACE_ROOT, SEED_MANIFEST_RELATIVE_PATH), 'utf8')));
-    const unit = seedAssetUnits(manifest, WORKSPACE_ROOT).find((candidate) => candidate.entryId === HYPERFRAMES_SEED_ASSET_ID);
+    const raw = await readFile(join(REPOSITORY_ROOT, withinRepository(SEED_MANIFEST_RELATIVE_PATH)), 'utf8');
+    const manifest = SeedManifestSchema.parse(repositoryRootedManifest(raw));
+    const unit = seedAssetUnits(manifest, REPOSITORY_ROOT).find((candidate) => candidate.entryId === HYPERFRAMES_SEED_ASSET_ID);
     if (unit === undefined) assert.fail(`the seed manifest must hold ${HYPERFRAMES_SEED_ASSET_ID}`);
     return unit.plan();
   }

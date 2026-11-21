@@ -29,7 +29,7 @@ import { PictureCheckError, hyperframesRender, parsePictureProbe, pictureMismatc
 
 const SENTINEL_VALUE = 'sentinel-variable-value-ac81';
 const SENTINEL_PATH = 'sentinel-staged-path-ac81';
-/** Refused by Node's spawn argument check, so no ffmpeg process is ever created. */
+/** Refused by Node's spawn argument check; the handler must never start it (the mux runs `runtime.ffmpegBin`). */
 const UNSTARTABLE_FFMPEG = '';
 const FFPROBE_FIXTURE = '/fixture/tools/ffprobe';
 const NARRATION_S = 12.5;
@@ -248,7 +248,9 @@ describe('hyperframesRender', () => {
 
       assert.ok(error instanceof ExternalToolError);
       assert.equal(error instanceof PictureCheckError, false);
-      assert.equal(error.tool, UNSTARTABLE_FFMPEG);
+      // AC 101: the mux runs the resolved runtime.ffmpegBin (a fixture path that does not exist), never tools.ffmpegPath.
+      assert.equal(error.tool, world.request.runtime.ffmpegBin);
+      assert.notEqual(error.tool, world.request.tools.ffmpegPath);
       assert.equal(probeCalls.length, 1);
     });
 

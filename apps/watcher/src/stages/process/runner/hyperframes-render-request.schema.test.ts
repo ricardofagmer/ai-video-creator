@@ -75,6 +75,14 @@ describe('HyperframesRenderRequestSchema (section 4.4)', () => {
     assert.equal(HyperframesRenderRequestSchema.safeParse({ ...validRequest(), runtime }).success, false);
   });
 
+  it('accepts studio ports at both ends of the 1024 to 65535 range', () => {
+    for (const port of [1024, 65535]) {
+      const runtime = { ...validRuntime(), apiPort: port, webPort: port };
+
+      assert.equal(HyperframesRenderRequestSchema.safeParse({ ...validRequest(), runtime }).success, true, `the port ${port} was refused`);
+    }
+  });
+
   it('rejects a relative staged template path', () => {
     assert.equal(HyperframesRenderRequestSchema.safeParse({ ...validRequest(), templateDir: 'staged-template' }).success, false);
   });
@@ -107,4 +115,41 @@ describe('HyperframesRenderRequestSchema (section 4.4)', () => {
       assert.equal(HyperframesRenderRequestSchema.safeParse({ ...validRequest(), ...override }).success, false, JSON.stringify(override));
     }
   });
+});
+
+/* SPEC 0008 section 17.5 (rev 2), AC 89: the strict `runtime` object requires the nine sandbox fields. */
+const REV2_PATH_FIELDS = ['ownerHomeDir', 'studioRoot', 'dataHomeRoot', 'hyperframesRoot', 'chromeDir', 'ffmpegBin', 'ffprobeBin'] as const;
+const REV2_PORT_FIELDS = ['apiPort', 'webPort'] as const;
+
+function runtimeWithout(field: string): Record<string, string | number> {
+  return Object.fromEntries(Object.entries(validRuntime()).filter(([name]) => name !== field));
+}
+
+describe('HyperframesRenderRequestSchema runtime sandbox fields (AC 89)', () => {
+  for (const field of [...REV2_PATH_FIELDS, ...REV2_PORT_FIELDS]) {
+    it(`rejects a runtime missing ${field}`, () => {
+      const request = { ...validRequest(), runtime: runtimeWithout(field) };
+
+      assert.equal(HyperframesRenderRequestSchema.safeParse(request).success, false);
+      assert.equal(ToolRunnerRequestSchema.safeParse(request).success, false);
+    });
+  }
+
+  for (const field of REV2_PATH_FIELDS) {
+    it(`rejects a relative ${field}`, () => {
+      const request = { ...validRequest(), runtime: { ...validRuntime(), [field]: 'relative/path' } };
+
+      assert.equal(HyperframesRenderRequestSchema.safeParse(request).success, false);
+    });
+  }
+
+  for (const field of REV2_PORT_FIELDS) {
+    it(`rejects ${field} outside 1024 to 65535, fractional or not a number`, () => {
+      for (const port of [1023, 65536, 0, -4311, 4311.5, '4311']) {
+        const request = { ...validRequest(), runtime: { ...validRuntime(), [field]: port } };
+
+        assert.equal(HyperframesRenderRequestSchema.safeParse(request).success, false, `${field}=${String(port)} was accepted`);
+      }
+    });
+  }
 });

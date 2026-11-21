@@ -18,6 +18,7 @@ import { HYPERFRAMES_CLI_ACTOR } from './cli-runtime.js';
 import { type HyperframesSystemPort, type SandboxDenial } from './hyperframes-ports.js';
 import {
   TRACE_CHROME_CHANGED_AFTER_TEXT,
+  TRACE_CHROME_UNREADABLE_AFTER_TEXT,
   TRACE_PROBE_FILE_REMOVED_TEXT,
   traceChromeBeforeText,
   traceControlNotRefusedText,
@@ -120,6 +121,12 @@ function boundFindings(findings: readonly string[]): string[] {
 
 type ChromeHashCheck = { status: 'same'; sha256: string } | { status: 'changed'; sha256: string } | { status: 'unreadable' };
 
+/**
+ * `chromeSha256` when the binary could not be read after the render (SPEC 0008 section 18.2): the
+ * schema needs a sha-256, and no binary hashes to all zeros, so `engineState` never reads it as ready.
+ */
+const UNREADABLE_CHROME_SHA256 = '0'.repeat(64);
+
 /** The hash of the binary the render runs, computed from its bytes and compared with `chrome.json`. */
 async function checkChromeHash(browserPath: string, recorded: RecordedChromeBinary): Promise<ChromeHashCheck> {
   try {
@@ -183,8 +190,8 @@ export async function runNetworkTrace(inputs: NetworkTraceInputs, ports: Network
   const output = join(scratchDir, 'picture.mp4');
   const renderExitCode = chromeBefore.status === 'same' ? await renderOnce({ templateDir, variablesFile, output, runtime }, ports) : RENDER_NOT_STARTED;
   // The record's hash is computed from the binary after the render, never copied from chrome.json (L1).
+  // An unreadable binary still gets a failing record, so the controls and log evidence are kept (section 18.2).
   const chromeAfter = await checkChromeHash(runtime.browserPath, inputs.chrome);
-  if (chromeAfter.status === 'unreadable') throw new HyperframesChromeMissingError('unreadable');
 
   // Step 3: the system log for the whole window, controls included.
   await ports.system.pause(LOG_FLUSH_MS, ports.signal);
@@ -214,6 +221,7 @@ export async function runNetworkTrace(inputs: NetworkTraceInputs, ports: Network
     } else findings.push('vídeo: o ffprobe não leu o arquivo renderizado');
   }
   if (chromeAfter.status === 'changed') findings.push(TRACE_CHROME_CHANGED_AFTER_TEXT);
+  else if (chromeAfter.status === 'unreadable') findings.push(TRACE_CHROME_UNREADABLE_AFTER_TEXT);
   const credentials = await credentialFileCount(runtime.configDir);
   if (credentials > 0) findings.push(`configuração: ${credentials} arquivo(s) credentials* na pasta do estúdio`);
   if (verdict.ownerFolderDenied > 0) findings.push(`leituras negadas da sua pasta ~/.hyperframes: ${verdict.ownerFolderDenied}`);
@@ -238,7 +246,7 @@ export async function runNetworkTrace(inputs: NetworkTraceInputs, ports: Network
     at: ports.now().toISOString(),
     by: HYPERFRAMES_CLI_ACTOR,
     pin: HYPERFRAMES_PIN,
-    chromeSha256: chromeAfter.sha256,
+    chromeSha256: chromeAfter.status === 'unreadable' ? UNREADABLE_CHROME_SHA256 : chromeAfter.sha256,
     profileSha256: inputs.profileSha256,
     templateContentHash: inputs.templateContentHash,
     controlDenied,

@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
-import { SANDBOX_EXEC_PATH, sandboxProfile } from '@studio/hyperframes';
+import { SANDBOX_EXEC_PATH, sandboxProfile, type HyperframesProcessRequest } from '@studio/hyperframes';
 import { HYPERFRAMES_PIN, type HyperframesTraceFile } from '@studio/shared/hyperframes';
 import { readTraceFile } from '@studio/shared/hyperframes/files';
 import { CliError, TerminalRequiredError } from '../errors/cli.errors.js';
@@ -25,6 +26,13 @@ import {
 } from '../hyperframes/hyperframes-cli.harness.test.js';
 import { type SandboxDenial } from '../hyperframes/hyperframes-ports.js';
 import { HyperframesConfirmationError, HyperframesStepRefusedError } from '../hyperframes/hyperframes.errors.js';
+import {
+  TRACE_CHROME_CHANGED_AFTER_TEXT,
+  TRACE_CHROME_UNREADABLE_AFTER_TEXT,
+  TRACE_PROBE_FILE_REMOVED_TEXT,
+  traceChromeBeforeText,
+  traceInformationalDenialText,
+} from '../hyperframes/hyperframes-texts.js';
 import { hyperframesTraceCommand } from './hyperframes-trace.command.js';
 
 /*
@@ -49,9 +57,81 @@ async function seedPrerequisites(studio: HyperframesTestStudio): Promise<void> {
   await seedConfig(studio);
 }
 
-/** Fake ports for a confirmed trace; `exitCodes` answers C1 to C5, then the render (unscripted starts exit 0). */
-function confirmedPorts(exitCodes: readonly number[] = []): FakeHyperframesPorts {
-  return createFakePorts({ interactive: true, answers: [CONFIRMATION], processPort: new ScriptedProcessPort(exitCodes) });
+type RunHook = (request: HyperframesProcessRequest) => Promise<void>;
+
+/**
+ * Fake ports for a confirmed trace; `exitCodes` answers C1 to C5, then the render (unscripted starts
+ * exit 0). `onRun` acts like the child at each start, before its exit code is answered.
+ */
+function confirmedPorts(exitCodes: readonly number[] = [], onRun: RunHook | null = null): FakeHyperframesPorts {
+  return createFakePorts({ interactive: true, answers: [CONFIRMATION], processPort: new ScriptedProcessPort(exitCodes, onRun) });
+}
+
+/** The order of the six starts of a trace (SPEC 0008 section 17.9): C1 to C5, then the render. */
+const START = { C1: 0, C2: 1, C3: 2, C4: 3, C5: 4, render: 5 } as const;
+const PROBED_CONTROLS = ['C2', 'C3', 'C4', 'C5'] as const;
+/** Exit code of a control whose operation worked, i.e. the sandbox did not refuse it. */
+const NOT_REFUSED = 10;
+const CONTROL_TIMED_OUT = 11;
+
+/** A hook that runs `action` at the given start only (0-based, see `START`). */
+function atStart(startIndex: number, action: RunHook): RunHook {
+  let started = 0;
+  return async (request) => {
+    const current = started;
+    started += 1;
+    if (current === startIndex) await action(request);
+  };
+}
+
+/** Exit codes for C1 to C5 that refuse every control except `startIndex`, which answers `exitCode`. */
+function controlExitCodes(startIndex: number, exitCode: number): number[] {
+  return [START.C1, START.C2, START.C3, START.C4, START.C5].map((index) => (index === startIndex ? exitCode : 0));
+}
+
+function sha256Hex(bytes: Buffer): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+/** Same size as before, one byte different. */
+async function changeOneByte(file: string): Promise<Buffer> {
+  const bytes = await readFile(file);
+  bytes.writeUInt8(bytes.readUInt8(0) ^ 0x01, 0);
+  await writeFile(file, bytes);
+  return bytes;
+}
+
+/** Same bytes as before, plus one. */
+async function appendOneByte(file: string): Promise<Buffer> {
+  const bytes = Buffer.concat([await readFile(file), Buffer.from('x')]);
+  await writeFile(file, bytes);
+  return bytes;
+}
+
+const BINARY_CHANGES: readonly { name: string; change: (file: string) => Promise<Buffer> }[] = [
+  { name: 'its size differs', change: appendOneByte },
+  { name: 'one byte differs at the same size', change: changeOneByte },
+];
+
+/** The `-f` and `-D` arguments of a start: everything before the node path (the `NODE_BIN` value). */
+function sandboxArgumentPrefix(args: readonly string[]): readonly string[] {
+  const nodeBinArgument = args.find((argument) => argument.startsWith('NODE_BIN='));
+  assert.ok(nodeBinArgument !== undefined, 'no NODE_BIN parameter');
+  const nodeIndex = args.indexOf(nodeBinArgument.slice('NODE_BIN='.length));
+  assert.ok(nodeIndex > 0, 'the node path is not in the argument list');
+  return args.slice(0, nodeIndex);
+}
+
+/** A value a run hook observes during the command; read after the command returns. */
+interface Observed<Value> {
+  value: Value | null;
+}
+
+/** The target of a control start: its last argument (targets reach the script as arguments). */
+function controlTarget(request: HyperframesProcessRequest): string {
+  const target = request.args.at(-1);
+  assert.ok(target !== undefined, 'a control start without arguments');
+  return target;
 }
 
 async function storedTrace(studio: HyperframesTestStudio): Promise<HyperframesTraceFile> {
@@ -397,6 +477,298 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       const trace = await storedTrace(studio);
       assert.equal(trace.ownerConfigDirDenied, 1);
       assert.equal(trace.deniedNetwork, 0);
+    });
+  });
+
+  describe('Chrome integrity (SPEC 0008 section 17.9, AC 92)', () => {
+    for (const { name, change } of BINARY_CHANGES) {
+      it(`refuses with the chrome-missing text, starts no process and writes no trace.json when ${name} from chrome.json`, async () => {
+        const shellPath = await seedChrome(studio);
+        await seedConfig(studio);
+        await change(shellPath);
+        const fake = confirmedPorts();
+
+        const error = await rejectionOf(hyperframesTraceCommand(fake.ports, studio.dependencies));
+
+        assert.ok(error instanceof HyperframesStepRefusedError);
+        assert.ok(error.message.includes(CHROME_MISSING_TEXT));
+        assert.equal(fake.processPort.requests.length, 0);
+        assert.equal(fake.processAdaptersOpened(), 0);
+        assert.equal(existsSync(studio.paths.traceFile), false);
+        assert.deepEqual(fake.events.events, []);
+      });
+    }
+
+    it('records as chromeSha256 the hash of the binary bytes after the render, not the chrome.json value', async () => {
+      const shellPath = await seedChrome(studio);
+      await seedConfig(studio);
+      const bytesAfterRender: Observed<Buffer> = { value: null };
+      const fake = confirmedPorts(
+        [],
+        atStart(START.render, async () => {
+          bytesAfterRender.value = await changeOneByte(shellPath);
+        }),
+      );
+
+      await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.ok(bytesAfterRender.value !== null, 'the render was not started');
+      const trace = await storedTrace(studio);
+      assert.equal(trace.chromeSha256, sha256Hex(bytesAfterRender.value));
+      assert.notEqual(trace.chromeSha256, SEEDED_CHROME_SHA256);
+    });
+
+    it('records the hash of the unchanged binary bytes when nothing changed', async () => {
+      const shellPath = await seedChrome(studio);
+      await seedConfig(studio);
+      const fake = confirmedPorts();
+
+      await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'pass');
+      assert.equal(trace.chromeSha256, sha256Hex(await readFile(shellPath)));
+    });
+
+    for (const { name, change } of BINARY_CHANGES) {
+      it(`fails with a finding when the binary changes during the render and ${name}`, async () => {
+        const shellPath = await seedChrome(studio);
+        await seedConfig(studio);
+        const fake = confirmedPorts(
+          [],
+          atStart(START.render, async () => {
+            await change(shellPath);
+          }),
+        );
+
+        const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+        assert.equal(exitCode, ExitCode.unhealthy);
+        const trace = await storedTrace(studio);
+        assert.equal(trace.result, 'fail');
+        assert.equal(trace.renderExitCode, 0);
+        assert.ok(trace.findings.includes(TRACE_CHROME_CHANGED_AFTER_TEXT));
+        assert.ok(studio.printer.text().includes(TRACE_CHROME_CHANGED_AFTER_TEXT));
+      });
+    }
+
+    it('writes a failing record with a zero hash and the finding when the binary is unreadable after the render (AC 99)', async () => {
+      const shellPath = await seedChrome(studio);
+      await seedConfig(studio);
+      const fake = confirmedPorts(
+        [],
+        atStart(START.render, async () => {
+          await rm(shellPath);
+        }),
+      );
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.unhealthy);
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'fail');
+      assert.equal(trace.renderExitCode, 0);
+      assert.equal(trace.chromeSha256, '0'.repeat(64));
+      assert.ok(trace.findings.includes(TRACE_CHROME_UNREADABLE_AFTER_TEXT));
+      assert.equal(trace.findings.includes(TRACE_CHROME_CHANGED_AFTER_TEXT), false);
+    });
+
+    it('fails with a finding and starts no render when the binary changes after the verification, before the render', async () => {
+      const shellPath = await seedChrome(studio);
+      await seedConfig(studio);
+      const changedBytes: Observed<Buffer> = { value: null };
+      const fake = confirmedPorts(
+        [],
+        atStart(START.C5, async () => {
+          changedBytes.value = await changeOneByte(shellPath);
+        }),
+      );
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.unhealthy);
+      assert.ok(changedBytes.value !== null, 'C5 was not started');
+      assert.equal(fake.processPort.requests.length, 5);
+      assert.equal(
+        fake.processPort.requests.some((request) => request.args.includes('render')),
+        false,
+      );
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'fail');
+      assert.notEqual(trace.renderExitCode, 0);
+      assert.ok(trace.findings.includes(traceChromeBeforeText('changed')));
+      assert.equal(trace.chromeSha256, sha256Hex(changedBytes.value));
+      assert.deepEqual(fake.system.probedFiles, []);
+    });
+  });
+
+  describe('trace controls (SPEC 0008 section 17.9, AC 93)', () => {
+    it('starts C1 to C5 and the render with the same -f and -D arguments, each followed by the node path', async () => {
+      await seedPrerequisites(studio);
+      const fake = confirmedPorts();
+
+      await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      const requests = fake.processPort.requests;
+      assert.equal(requests.length, 6);
+      const render = requests[START.render];
+      assert.ok(render !== undefined);
+      const renderPrefix = sandboxArgumentPrefix(render.args);
+      // `-f <profile>` and the seventeen `-D NAME=value` pairs of section 17.5.
+      assert.equal(renderPrefix.length, 36);
+      assert.deepEqual(
+        renderPrefix.filter((_, index) => index % 2 === 0),
+        ['-f', ...Array.from({ length: 17 }, () => '-D')],
+      );
+      for (const [index, request] of requests.entries()) {
+        assert.deepEqual(sandboxArgumentPrefix(request.args), renderPrefix, `start ${index}`);
+      }
+      for (const control of requests.slice(START.C1, START.render)) {
+        assert.equal(control.args[renderPrefix.length + 1], '-e');
+      }
+    });
+
+    it('passes when C2 to C5 are all refused (exit 0) besides the rev 1 conditions', async () => {
+      await seedPrerequisites(studio);
+      const fake = confirmedPorts([0, 0, 0, 0, 0, 0]);
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.ok);
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'pass');
+      assert.deepEqual(trace.findings, []);
+    });
+
+    for (const control of PROBED_CONTROLS) {
+      it(`fails with a finding naming ${control} when ${control} is not refused`, async () => {
+        await seedPrerequisites(studio);
+        const fake = confirmedPorts(controlExitCodes(START[control], NOT_REFUSED));
+
+        const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+        assert.equal(exitCode, ExitCode.unhealthy);
+        const trace = await storedTrace(studio);
+        assert.equal(trace.result, 'fail');
+        // `controlDenied` keeps its rev 1 meaning: C1 denied and logged.
+        assert.equal(trace.controlDenied, true);
+        const named = trace.findings.filter((finding) => finding.startsWith(`controle ${control}:`));
+        assert.equal(named.length, 1);
+        assert.ok(named[0]?.includes(String(NOT_REFUSED)));
+        for (const other of PROBED_CONTROLS.filter((id) => id !== control)) {
+          assert.equal(
+            trace.findings.some((finding) => finding.startsWith(`controle ${other}:`)),
+            false,
+            other,
+          );
+        }
+      });
+    }
+
+    it('fails with a finding naming C5 when the C5 connection timed out instead of being refused', async () => {
+      await seedPrerequisites(studio);
+      const fake = confirmedPorts(controlExitCodes(START.C5, CONTROL_TIMED_OUT));
+
+      await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'fail');
+      assert.ok(trace.findings.some((finding) => finding.startsWith('controle C5:') && finding.includes(String(CONTROL_TIMED_OUT))));
+    });
+
+    it('removes and reports a file left by C3, and fails', async () => {
+      await seedPrerequisites(studio);
+      const probeFile: Observed<string> = { value: null };
+      const fake = confirmedPorts(
+        controlExitCodes(START.C3, NOT_REFUSED),
+        atStart(START.C3, async (request) => {
+          probeFile.value = controlTarget(request);
+          await writeFile(probeFile.value, '');
+        }),
+      );
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.unhealthy);
+      assert.ok(probeFile.value !== null, 'C3 was not started');
+      assert.equal(dirname(probeFile.value), studio.paths.root);
+      assert.equal(existsSync(probeFile.value), false);
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'fail');
+      assert.ok(trace.findings.includes(TRACE_PROBE_FILE_REMOVED_TEXT));
+      assert.ok(studio.printer.text().includes(TRACE_PROBE_FILE_REMOVED_TEXT));
+    });
+
+    it('removes and reports a file left by C3 even when C3 exited as refused', async () => {
+      await seedPrerequisites(studio);
+      const probeFile: Observed<string> = { value: null };
+      const fake = confirmedPorts(
+        [],
+        atStart(START.C3, async (request) => {
+          probeFile.value = controlTarget(request);
+          await writeFile(probeFile.value, '');
+        }),
+      );
+
+      await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.ok(probeFile.value !== null, 'C3 was not started');
+      assert.equal(existsSync(probeFile.value), false);
+      const trace = await storedTrace(studio);
+      assert.ok(trace.findings.includes(TRACE_PROBE_FILE_REMOVED_TEXT));
+    });
+
+    it('lists non-network denials no control caused as informational findings and still passes', async () => {
+      await seedPrerequisites(studio);
+      const fake = confirmedPorts();
+      const machLookup: SandboxDenial = { process: 'chrome-headless-shell', operation: 'mach-lookup', target: 'com.example.unlisted-service' };
+      const preferenceRead: SandboxDenial = { process: 'node', operation: 'file-read-data', target: '/Library/Preferences/com.example.plist' };
+      fake.system.logRead = { status: 'read', denials: [controlDenial(), machLookup, preferenceRead] };
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.ok);
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'pass');
+      assert.equal(trace.deniedNetwork, 0);
+      const expected = [
+        traceInformationalDenialText('chrome-headless-shell mach-lookup com.example.unlisted-service'),
+        traceInformationalDenialText('node file-read-data /Library/Preferences/com.example.plist'),
+      ];
+      assert.deepEqual(trace.findings, expected);
+      for (const finding of expected) assert.ok(studio.printer.text().includes(finding));
+    });
+
+    it('does not report the denials caused by C2 to C5 as findings and still passes', async () => {
+      await seedPrerequisites(studio);
+      const apiPort = studio.dependencies.settings.ports.api;
+      const system: Observed<FakeHyperframesPorts['system']> = { value: null };
+      const fake = confirmedPorts(
+        [],
+        atStart(START.C3, async (request) => {
+          // The C3 target is random; the log is read after the controls, so it can name it here.
+          if (system.value === null) throw new Error('fake ports not ready');
+          system.value.logRead = {
+            status: 'read',
+            denials: [
+              controlDenial(),
+              { process: 'node', operation: 'process-exec*', target: '/usr/bin/true' },
+              { process: 'node', operation: 'file-write-create', target: controlTarget(request) },
+              { process: 'node', operation: 'file-read-data', target: studio.dataHomeRoot },
+              { process: 'node', operation: 'network-outbound', target: `127.0.0.1:${apiPort}` },
+            ],
+          };
+        }),
+      );
+      system.value = fake.system;
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.ok);
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'pass');
+      assert.equal(trace.deniedNetwork, 0);
+      assert.deepEqual(trace.findings, []);
     });
   });
 });

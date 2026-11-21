@@ -117,6 +117,8 @@ export function traceChromeBeforeText(status: 'changed' | 'unreadable'): string 
 
 export const TRACE_CHROME_CHANGED_AFTER_TEXT = 'Chrome: o binário mudou durante a renderização (sha-256 ou tamanho diferente de chrome.json)';
 
+export const TRACE_CHROME_UNREADABLE_AFTER_TEXT = 'Chrome: o binário não pôde ser lido depois da renderização';
+
 /** A denial of another kind that no control caused: the profile working, shown without changing the result. */
 export function traceInformationalDenialText(description: string): string {
   return `informativo (não muda o resultado): negado ${description}`;

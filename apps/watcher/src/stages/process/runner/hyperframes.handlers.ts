@@ -143,8 +143,9 @@ export async function hyperframesRender(request: HyperframesRenderRequest, ports
   if (mismatches.length > 0) throw new PictureCheckError(mismatches);
 
   const duration = request.durationS.toFixed(3);
+  // The same resolved ffmpeg the sandbox allows, not the unresolved setting (SPEC 0008 section 18.1 G3).
   await runTool(
-    request.tools.ffmpegPath,
+    runtime.ffmpegBin,
     [
       ...FFMPEG_WRITE_ARGS,
       '-i', picture,

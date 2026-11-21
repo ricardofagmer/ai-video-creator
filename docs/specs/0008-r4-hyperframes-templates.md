@@ -1,6 +1,6 @@
 # SPEC 0008 — R4: HyperFrames templates next to Remotion (PRD R4 goal 5)
 
-Status: **rev 2 frozen by the owner, 2026-11-21, with OD10 (a)** (rev 1 was frozen on 2026-11-20; its contracts stand
+Status: **rev 3 (section 18) decided by the owner, 2026-11-21; rev 2 frozen by the owner, 2026-11-21, with OD10 (a)** (rev 1 was frozen on 2026-11-20; its contracts stand
 except where section 17 says otherwise). The owner answered OD4 to OD7 on 2026-11-20, each with the
 recommended answer (section 15): OD4 (a), OD5 (b), OD6 (a), OD7 (a). The contracts below stand
 as written. Written by the spec author for the supervisor. Risk: medium (a new
@@ -1196,3 +1196,48 @@ restores rev 1, and the engine stays off either way until a trace passes. Human 
 owner froze rev 2 with OD10 (a) on 2026-11-21 (done); the final checkpoint for R4H-FP2; O3; O4. Review
 at the final gate: `security-reviewer` re-reads the profile, the argv, the verify, the lint and
 the copy against M1 and L1 to L3.
+
+## 18. Revision 3: gaps found by the AC 86-96 tests (2026-11-21)
+
+The section 17.13 tests (commit `ffe93b2`) and their inspection found seven places where the
+code and section 17 disagree. The owner decided each one on 2026-11-21. Three change code; four
+amend only this text, because the code already does the safer thing. Contracts, file schemas
+and refusal ids are unchanged (K18). Risk: high (sandbox and trace code). Autonomy A3.
+
+### 18.1 Owner decisions (binding, 2026-11-21)
+
+| Id | Finding | Decision |
+|---|---|---|
+| G1 | `network-trace.ts` throws when the Chrome binary cannot be read after the render, so no `trace.json` is written and the controls and log evidence are lost | **Write a failing record.** See 18.2 |
+| G2 | The watcher verifies Chrome before it checks the `config/`, `cache/` and `home/` folders, so a missing `cache/` answers `chrome-missing` and the AC 89 `runtime-not-prepared` case cannot happen | **Check the folders first.** See 18.3 |
+| G3 | The `hyperframes-render` request carries ffmpeg twice: the sandbox runs `runtime.ffmpegBin` (the resolved real path), while the mux after the render runs `tools.ffmpegPath` (the setting), so they can name different binaries | **The mux uses `runtime.ffmpegBin`.** `tools.ffmpegPath` stays in the request schema, so the request contract does not change |
+| G4 | The trace's checks inside `runNetworkTrace` use `hashChromeBinary`, which has no `cacheDir` containment check | **Text only.** The trace command runs the full `verifyChromeBinary` (containment included) before the trace starts, which is the 17.9 "before step 1" check; the checks inside the trace are the 17.9 step 2 and step 4 hashes |
+| G5 | A file left by C3 makes the trace fail even when C3 exited 0 | **Text only.** A file that exists after C3 means the write succeeded, so C3 was not refused whatever its exit code. 17.9 "reports it" means: removed, reported as a finding, and `pass` is false |
+| G6 | `resolveExecutable` is stricter than 17.5 (it also requires an executable regular file, skips directories and ignores relative search path entries) | **Text only.** The stricter behaviour is intended and AC 88 is read with it |
+| G7 | AC 86 says "the six rev 1 rules after it" | **Text only.** It means the five rev 1 network rules plus the final deny |
+
+### 18.2 G1: unreadable Chrome after the render
+
+When `hashChromeBinary` cannot read the binary after the render, the trace still runs steps 3 to
+5 and writes `trace.json` with `result: 'fail'` and the finding "Chrome: o binário não pôde ser
+lido depois da renderização". `chromeSha256` must hold a sha-256 (K18), so it is 64 zeros: a
+value no Chrome binary has, so `engineState` never answers `ready` from that record. A binary that
+fails `verifyChromeBinary` before step 1 still starts nothing and writes no `trace.json` (AC 92).
+
+### 18.3 G2: folder check order
+
+In the watcher preparation, after `engineState` answers `ready` and `chrome.json` is present, the
+`config/`, `cache/` and `home/` real-path check (missing folder: `runtime-not-prepared`) runs
+before `verifyChromeBinary`. All other checks keep their order.
+
+### 18.4 Acceptance criteria (continue section 17.13)
+
+| AC | Criterion | Source |
+|---|---|---|
+| 99 | Fake trace with a binary that passes the check before the render and is unreadable after it: `trace.json` is written with `result: 'fail'`, `chromeSha256` of 64 zeros and the G1 finding; the controls' findings are kept | G1, K18 |
+| 100 | Watcher preparation with a ready gate, a present `chrome.json` and a missing `cache/`: `runtime-not-prepared`, zero starts, and `verifyChromeBinary` is not called | G2, AC 89 |
+| 101 | `hyperframesRender` muxes with `runtime.ffmpegBin`; `tools.ffmpegPath` is not started by it. `HyperframesRenderRequestSchema` is byte-identical to rev 2 | G3, K18 |
+
+Rollback: revert the rev 3 commit; rev 2 behaviour returns. The engine stays off until a trace
+passes (AC 98), either way. Validation: the final checkpoint of the release; `security-reviewer`
+and `critic` at the final gate (risk high).
