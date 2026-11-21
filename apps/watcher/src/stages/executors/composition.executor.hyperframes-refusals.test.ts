@@ -86,6 +86,32 @@ describe('composition HyperFrames rev 2 refusals stop before any start', () => {
       });
     }
 
+    // AC 102: a media program the sandbox could have replaced never runs outside it (section 18.5).
+    it('refuses sandbox-unavailable when ffmpeg resolves inside the hyperframes cache folder', async () => {
+      const current = await open();
+      current.ports.resolvedExecutables.set('ffmpeg', join(hyperframesPaths(current.dataHomeRoot).cacheDir, 'ffmpeg'));
+
+      await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
+    });
+
+    it('refuses sandbox-unavailable when ffprobe resolves anywhere under the data home', async () => {
+      const current = await open();
+      current.ports.resolvedExecutables.set('ffprobe', join(current.dataHomeRoot, 'runs', 'ffprobe'));
+
+      await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
+    });
+
+    for (const folder of ['configDir', 'homeDir'] as const) {
+      it(`refuses sandbox-unavailable when ffmpeg resolves inside a ${folder} symlinked outside the data home`, async () => {
+        const current = await open();
+        const outside = join('/elsewhere', `hyperframes-${folder}`);
+        current.ports.redirectedFolders.set(hyperframesPaths(current.dataHomeRoot)[folder], outside);
+        current.ports.resolvedExecutables.set('ffmpeg', join(outside, 'bin', 'ffmpeg'));
+
+        await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
+      });
+    }
+
     it('refuses sandbox-unavailable when the studio api port is below 1024', async () => {
       const current = await open({ studioPorts: { api: 80, web: 4310 } });
 

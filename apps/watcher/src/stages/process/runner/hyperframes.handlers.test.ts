@@ -29,8 +29,14 @@ import { PictureCheckError, hyperframesRender, parsePictureProbe, pictureMismatc
 
 const SENTINEL_VALUE = 'sentinel-variable-value-ac81';
 const SENTINEL_PATH = 'sentinel-staged-path-ac81';
-/** Refused by Node's spawn argument check; the handler must never start it (the mux runs `runtime.ffmpegBin`). */
+/**
+ * The unresolved settings: the handler must never use them (SPEC 0008 sections 18.1 G3 and 18.5).
+ * The empty ffmpeg setting is refused by Node's spawn argument check. The mux tries
+ * `runtime.ffmpegBin` instead, a fixture path that does not exist, so the spawn fails with ENOENT.
+ */
 const UNSTARTABLE_FFMPEG = '';
+const FFPROBE_SETTING = '/fixture/settings/ffprobe';
+/** `runtime.ffprobeBin`, the resolved path the picture probe must use. */
 const FFPROBE_FIXTURE = '/fixture/tools/ffprobe';
 const NARRATION_S = 12.5;
 const FPS = 30;
@@ -48,7 +54,7 @@ async function createRenderWorld(): Promise<RenderWorld> {
   await mkdir(scratchDir);
   const request: HyperframesRenderRequest = {
     command: 'hyperframes-render',
-    tools: { ffmpegPath: UNSTARTABLE_FFMPEG, ffprobePath: FFPROBE_FIXTURE },
+    tools: { ffmpegPath: UNSTARTABLE_FFMPEG, ffprobePath: FFPROBE_SETTING },
     templateDir,
     variables: { title: `Title ${SENTINEL_VALUE}`, hook: 'A short hook', accentColor: '#ff0055', sceneCount: 3, showLogo: true },
     width: 1080,
@@ -226,6 +232,7 @@ describe('hyperframesRender', () => {
         assert.ok(error instanceof PictureCheckError, 'a mux that ran would reject with a plain ExternalToolError instead');
         assert.deepEqual([...error.checks], [check]);
         assert.equal(processPort.requests.length, 1);
+        // AC 103: the picture probe runs runtime.ffprobeBin, never the tools.ffprobePath setting.
         assert.deepEqual(probeCalls, [{ ffprobePath: FFPROBE_FIXTURE, file: join(world.request.scratchDir, 'picture.mp4') }]);
         assert.equal(await exists(world.request.output), false);
       });

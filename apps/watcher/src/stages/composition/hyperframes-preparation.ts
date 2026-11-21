@@ -131,8 +131,22 @@ async function sandboxPaths(ports: HyperframesStagePorts, settings: EngineRuntim
 }
 
 /**
- * Check 1: the gate files, the Chrome binary (section 17.6), the pin and `sandbox-exec`, then every
- * sandbox parameter of section 17.5 resolved to a real path. The answer is the render's runtime.
+ * The media programs run outside the sandbox after the render, so neither may sit in a folder the
+ * sandbox writes: the real `config/`, `cache/` and `home/` (checked on their own, since a symlink
+ * may place them outside the data home) or anywhere under the data home. The scratch folder and
+ * the staged template need no check: they are created after the programs are resolved, so a
+ * resolved program cannot be inside them (section 18.5).
+ */
+function mediaProgramsOutsideWritableFolders(sandbox: SandboxPaths, folders: PreparedFolders): boolean {
+  const writableFolders = [sandbox.dataHomeRoot, folders.configDir, folders.cacheDir, folders.homeDir];
+  return [sandbox.ffmpegBin, sandbox.ffprobeBin].every((program) => writableFolders.every((folder) => !isInsideFolder(folder, program)));
+}
+
+/**
+ * Check 1, in order: the gate files; the `config/`, `cache/` and `home/` folders (section 18.3);
+ * the Chrome binary (section 17.6); the pin and `sandbox-exec`; then every sandbox parameter of
+ * section 17.5 resolved to a real path, with the media programs outside every folder the sandbox
+ * writes (section 18.5), and the studio ports. The answer is the render's runtime.
  */
 export async function engineRuntime(ports: HyperframesStagePorts, settings: EngineRuntimeSettings): Promise<Checked<HyperframesRuntimeRequest>> {
   const files = await ports.readEngineFiles(ports.dataHomeRoot);
@@ -167,6 +181,7 @@ export async function engineRuntime(ports: HyperframesStagePorts, settings: Engi
   if (chrome.status === 'refused') return chrome;
   const sandbox = await sandboxPaths(ports, settings, paths);
   if (sandbox.status === 'refused') return sandbox;
+  if (!mediaProgramsOutsideWritableFolders(sandbox.value, folders.value)) return refuse('sandbox-unavailable');
   const { api: apiPort, web: webPort } = settings.studioPorts;
   if (!isStudioPort(apiPort) || !isStudioPort(webPort)) return refuse('sandbox-unavailable');
   return {
