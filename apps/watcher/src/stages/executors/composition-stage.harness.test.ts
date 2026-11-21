@@ -40,7 +40,7 @@ import type {
 import { readRunFile, resolveInsideRun } from '@studio/shared/run-files';
 import { type Activity, type ProviderName, type StageInput, type StageLocation } from '@studio/shared/run-format';
 import { RunManifestBuilder } from '../../adapters/manifest/run-manifest.builder';
-import { type HyperframesStagePorts } from '../composition/hyperframes-stage.ports';
+import { type HyperframesStagePorts, type RealFolder } from '../composition/hyperframes-stage.ports';
 import { ToolRunner, type ToolRunOutcome } from '../process/tool-runner.client';
 import { type RunnerErrorKind, type ToolRunnerRequest } from '../process/tool-runner.protocol';
 import { CatalogLookup } from '../shared/catalog-lookup';
@@ -69,6 +69,9 @@ export const BRAND_KIT_REF = 'studio-brand@1';
 export const BRAND_ACCENT = '#123abc';
 export const FAKE_BIN_PATH = '/opt/studio-test/node_modules/hyperframes/bin/hyperframes.mjs';
 export const FAKE_PROFILE = { path: '/opt/studio-test/sandbox/render.sb', sha256: 'b'.repeat(64) };
+/** SPEC 0008 section 17.5 (rev 2): the monorepo root and the folder the fake resolves ffmpeg and ffprobe in. */
+export const FAKE_STUDIO_ROOT = '/opt/studio-test';
+export const FAKE_TOOLS_DIR = '/opt/studio-test/tools';
 export const CHROME_SHA256 = 'a'.repeat(64);
 export const RENDER_SECONDS = 12.5;
 export const PRICE_PER_RENDER_SECOND = 0.01;
@@ -372,6 +375,35 @@ export class RecordingHyperframesPorts implements HyperframesStagePorts {
     this.calls.push('listTemplateFiles');
     return this.listingEdit(await listFolder(source.absolutePath));
   }
+
+  /*
+   * SPEC 0008 sections 17.5 and 17.6 (rev 2): the Chrome re-hash and the real-path resolution.
+   * In memory: Chrome always matches `chrome.json` and every path is already real, so the
+   * request's paths equal the harness's own folders.
+   */
+  async verifyChromeBinary(): Promise<void> {
+    this.calls.push('verifyChromeBinary');
+  }
+
+  async resolveExecutable(nameOrPath: string): Promise<string> {
+    return nameOrPath.startsWith('/') ? nameOrPath : join(FAKE_TOOLS_DIR, nameOrPath);
+  }
+
+  async realPathOfExistingPrefix(path: string): Promise<string> {
+    return path;
+  }
+
+  async realPath(path: string): Promise<string> {
+    return path;
+  }
+
+  async realFolder(path: string): Promise<RealFolder> {
+    return { status: 'present', realPath: path };
+  }
+
+  studioRoot(): string {
+    return FAKE_STUDIO_ROOT;
+  }
 }
 
 export class RecordingLedger implements CostLedgerPort {
@@ -625,6 +657,7 @@ export async function createCompositionHarness(options: CompositionHarnessOption
     ffprobePath: 'ffprobe',
     localVoice: null,
     elevenLabs: { voiceId: null, modelId: 'eleven_multilingual_v2' },
+    studioPorts: { api: 4311, web: 4310 },
   };
   const runner = new RecordingToolRunner(settings);
   const ports = new RecordingHyperframesPorts(dataHomeRoot);

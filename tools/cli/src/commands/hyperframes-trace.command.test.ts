@@ -49,8 +49,8 @@ async function seedPrerequisites(studio: HyperframesTestStudio): Promise<void> {
   await seedConfig(studio);
 }
 
-/** Fake ports for a confirmed trace; `exitCodes` answers the control, then the render. */
-function confirmedPorts(exitCodes: readonly number[] = [0, 0]): FakeHyperframesPorts {
+/** Fake ports for a confirmed trace; `exitCodes` answers C1 to C5, then the render (unscripted starts exit 0). */
+function confirmedPorts(exitCodes: readonly number[] = []): FakeHyperframesPorts {
   return createFakePorts({ interactive: true, answers: [CONFIRMATION], processPort: new ScriptedProcessPort(exitCodes) });
 }
 
@@ -185,18 +185,23 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       assert.equal(trace.at, NOW.toISOString());
     });
 
-    it('runs the control under the sandbox first, then one sandboxed render, and probes the output', async () => {
+    it('runs the five controls under the sandbox first, then one sandboxed render, and probes the output', async () => {
       await seedPrerequisites(studio);
       const fake = confirmedPorts();
 
       await hyperframesTraceCommand(fake.ports, studio.dependencies);
 
-      const [control, render] = fake.processPort.requests;
-      assert.equal(fake.processPort.requests.length, 2);
-      assert.ok(control !== undefined && render !== undefined);
-      assert.equal(control.command, SANDBOX_EXEC_PATH);
-      assert.ok(control.args.includes('-e'));
-      assert.equal(control.args.includes('render'), false);
+      // SPEC 0008 section 17.9 (rev 2): controls C1 to C5, each one `node -e`, then the render.
+      const requests = fake.processPort.requests;
+      assert.equal(requests.length, 6);
+      const controls = requests.slice(0, 5);
+      const render = requests[5];
+      for (const control of controls) {
+        assert.equal(control.command, SANDBOX_EXEC_PATH);
+        assert.ok(control.args.includes('-e'));
+        assert.equal(control.args.includes('render'), false);
+      }
+      assert.ok(render !== undefined);
       assert.equal(render.command, SANDBOX_EXEC_PATH);
       assert.ok(render.args.includes('render'));
       assert.ok(render.args.includes('--strict'));
@@ -210,7 +215,7 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
 
       await hyperframesTraceCommand(fake.ports, studio.dependencies);
 
-      const [, render] = fake.processPort.requests;
+      const render = fake.processPort.requests.at(-1);
       assert.ok(render !== undefined);
       assert.ok(render.args.includes(`OWNER_HYPERFRAMES_DIR=${join(studio.homeDirectory, '.hyperframes')}`));
       for (const key of ['HOME', 'HYPERFRAMES_CONFIG_DIR', 'HYPERFRAMES_CACHE_DIR', 'HYPERFRAMES_BROWSER_PATH']) {
@@ -271,7 +276,8 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
 
     it('fails with a finding when the render exits non-zero, and does not probe a picture', async () => {
       await seedPrerequisites(studio);
-      const fake = confirmedPorts([0, 3]);
+      // C1 to C5 refused (exit 0), then the render exits 3.
+      const fake = confirmedPorts([0, 0, 0, 0, 0, 3]);
 
       const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
 

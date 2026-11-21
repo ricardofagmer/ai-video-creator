@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -36,7 +37,13 @@ import {
 
 export const NOW = new Date('2026-11-21T12:00:00.000Z');
 export const CONTROL_TARGET = '192.0.2.1:9';
-export const SEEDED_CHROME_SHA256 = 'c'.repeat(64);
+/** What the placeholder browser binary holds; it is only hashed or stat-ed, never run. */
+const PLACEHOLDER_SHELL_BYTES = 'placeholder browser bytes';
+/*
+ * SPEC 0008 section 17.6 (rev 2): the trace re-hashes Chrome against `chrome.json`, so the seeded
+ * record carries the sha-256 and size of the placeholder bytes it names.
+ */
+export const SEEDED_CHROME_SHA256 = createHash('sha256').update(PLACEHOLDER_SHELL_BYTES).digest('hex');
 /** Folder name the pinned build unpacks into under `cache/chrome/`. */
 export const PINNED_BUILD_FOLDER = `mac_arm-${HYPERFRAMES_CHROME_VERSION}`;
 export const SHELL_FILE_NAME = 'chrome-headless-shell';
@@ -67,13 +74,19 @@ export async function createHyperframesStudio(): Promise<HyperframesTestStudio> 
   await mkdir(templateDir, { recursive: true });
   await writeFile(join(templateDir, 'index.html'), '<!doctype html><html><head><link rel="stylesheet" href="style.css"></head><body></body></html>\n');
   await writeFile(join(templateDir, 'style.css'), 'body { margin: 0; }\n');
+  // SPEC 0008 section 17.5 (B12, rev 2): the CLI resolves ffmpeg and ffprobe by name on its child
+  // PATH. Placeholder executables in the temp root stand in for them; every start is faked, so
+  // they are only found and resolved, never run.
+  const toolsDirectory = join(root, 'tools');
+  await mkdir(toolsDirectory, { recursive: true });
+  for (const name of ['ffmpeg', 'ffprobe']) await writeFile(join(toolsDirectory, name), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
   const printer = new CapturingPrinter();
   const dependencies: CommandDependencies = {
     settings: {
       dataHome: new DataHome(dataHomeRoot),
       ports: { web: 4310, api: 4311 },
       studioRoot,
-      childEnvironment: { PATH: '/usr/bin:/bin' },
+      childEnvironment: { PATH: `${toolsDirectory}:/usr/bin:/bin` },
       keyVariablesSet: [],
       homeDirectory,
     },
@@ -187,7 +200,7 @@ export function createFakePorts(options: { interactive: boolean; answers?: strin
 }
 
 /** A placeholder file standing in for the browser binary; it is only hashed or stat-ed, never run. */
-export async function writePlaceholderShell(studio: HyperframesTestStudio, buildFolder: string, content = 'placeholder browser bytes'): Promise<string> {
+export async function writePlaceholderShell(studio: HyperframesTestStudio, buildFolder: string, content = PLACEHOLDER_SHELL_BYTES): Promise<string> {
   const shellPath = join(studio.paths.cacheDir, 'chrome', buildFolder, 'chrome-headless-shell-mac-arm64', SHELL_FILE_NAME);
   await mkdir(dirname(shellPath), { recursive: true });
   await writeFile(shellPath, content);
@@ -203,7 +216,7 @@ export async function seedChrome(studio: HyperframesTestStudio, sha256 = SEEDED_
     version: HYPERFRAMES_CHROME_VERSION,
     executablePath: shellPath,
     sha256,
-    sizeBytes: 1_000,
+    sizeBytes: Buffer.byteLength(PLACEHOLDER_SHELL_BYTES),
     installedAt: '2026-11-21T09:00:00.000Z',
     installedBy: 'cli',
   });

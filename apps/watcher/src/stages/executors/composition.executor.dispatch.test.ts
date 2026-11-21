@@ -16,6 +16,8 @@ import {
   RENDER_SECONDS,
   STEP_KEY,
   VARIABLES_INPUT_SCHEMA,
+  FAKE_STUDIO_ROOT,
+  FAKE_TOOLS_DIR,
   chromeExecutablePath,
   createCompositionHarness,
   eventRecords,
@@ -230,6 +232,16 @@ describe('a ready HyperFrames render (SPEC 0008 section 5.2)', () => {
         homeDir: paths.homeDir,
         sandboxProfilePath: FAKE_PROFILE.path,
         ownerConfigDir: join(current.ownerHome, '.hyperframes'),
+        // SPEC 0008 section 17.5 (rev 2): the nine sandbox inputs, real paths from the harness ports.
+        ownerHomeDir: current.ownerHome,
+        studioRoot: FAKE_STUDIO_ROOT,
+        dataHomeRoot: current.dataHomeRoot,
+        hyperframesRoot: paths.root,
+        chromeDir: join(paths.cacheDir, 'chrome'),
+        ffmpegBin: join(FAKE_TOOLS_DIR, 'ffmpeg'),
+        ffprobeBin: join(FAKE_TOOLS_DIR, 'ffprobe'),
+        apiPort: 4311,
+        webPort: 4310,
       },
     });
     assert.equal(HyperframesRenderRequestSchema.safeParse(request).success, true);

@@ -7,7 +7,7 @@ import { HyperframesRenderRequestSchema, ToolRunnerRequestSchema } from '../tool
  * request before anything runs, so every rejected shape here means no file written and no start.
  */
 
-function validRuntime(): Record<string, string> {
+function validRuntime(): Record<string, string | number> {
   return {
     binPath: '/fixture/workspace/node_modules/hyperframes/bin/hyperframes.mjs',
     browserPath: '/fixture/data-home/hyperframes/cache/browser/headless-shell',
@@ -16,6 +16,16 @@ function validRuntime(): Record<string, string> {
     homeDir: '/fixture/data-home/hyperframes/home',
     sandboxProfilePath: '/fixture/workspace/packages/hyperframes/sandbox/render.sb',
     ownerConfigDir: '/fixture/owner-home/.hyperframes',
+    // SPEC 0008 section 17.5 (rev 2): the nine strict sandbox fields.
+    ownerHomeDir: '/fixture/owner-home',
+    studioRoot: '/fixture/workspace',
+    dataHomeRoot: '/fixture/data-home',
+    hyperframesRoot: '/fixture/data-home/hyperframes',
+    chromeDir: '/fixture/data-home/hyperframes/cache/chrome',
+    ffmpegBin: '/fixture/tools/ffmpeg',
+    ffprobeBin: '/fixture/tools/ffprobe',
+    apiPort: 4311,
+    webPort: 4310,
   };
 }
 

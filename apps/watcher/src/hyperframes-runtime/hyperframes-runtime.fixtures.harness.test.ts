@@ -44,6 +44,16 @@ export function runtimeFixture(overrides: Partial<HyperframesRuntime> = {}): Hyp
     path: '/fixture/tools/bin:/usr/bin:/bin',
     sandboxProfilePath: '/fixture/workspace/packages/hyperframes/sandbox/render.sb',
     ownerConfigDir: '/fixture/owner-home/.hyperframes',
+    // SPEC 0008 section 17.5 (rev 2): the nine sandbox inputs, each a real path or a port.
+    ownerHomeDir: '/fixture/owner-home',
+    studioRoot: '/fixture/workspace',
+    dataHomeRoot: '/fixture/data-home',
+    hyperframesRoot: '/fixture/data-home/hyperframes',
+    chromeDir: '/fixture/data-home/hyperframes/cache/chrome',
+    ffmpegBin: '/fixture/tools/bin/ffmpeg',
+    ffprobeBin: '/fixture/tools/bin/ffprobe',
+    apiPort: 4311,
+    webPort: 4310,
     ...overrides,
   };
 }
@@ -65,14 +75,37 @@ export function expectedRenderEnv(runtime: HyperframesRuntime): Record<string, s
   };
 }
 
-/** The frozen argv of section 4.4 restated as the oracle (OD5 answer b); the command is separate. */
-export function expectedRenderArgs(options: { runtime: HyperframesRuntime; variablesFile: string; output: string }): string[] {
+/**
+ * The frozen argv restated as the oracle: section 4.4 (OD5 answer b) with the seventeen `-D` pairs
+ * of section 17.5 (rev 2) in their frozen order, 47 arguments in all; the command is separate.
+ */
+export function expectedRenderArgs(options: {
+  runtime: HyperframesRuntime;
+  templateDir: string;
+  variablesFile: string;
+  output: string;
+}): string[] {
   const { runtime } = options;
   return [
     '-f',
     runtime.sandboxProfilePath,
-    '-D',
-    `OWNER_HYPERFRAMES_DIR=${runtime.ownerConfigDir}`,
+    '-D', `OWNER_HYPERFRAMES_DIR=${runtime.ownerConfigDir}`,
+    '-D', `OWNER_HOME=${runtime.ownerHomeDir}`,
+    '-D', `STUDIO_ROOT=${runtime.studioRoot}`,
+    '-D', `DATA_HOME=${runtime.dataHomeRoot}`,
+    '-D', `HF_ROOT=${runtime.hyperframesRoot}`,
+    '-D', `HF_CONFIG_DIR=${runtime.configDir}`,
+    '-D', `HF_CACHE_DIR=${runtime.cacheDir}`,
+    '-D', `HF_HOME_DIR=${runtime.homeDir}`,
+    '-D', `CHROME_DIR=${runtime.chromeDir}`,
+    '-D', `SCRATCH_DIR=${runtime.tmpDir}`,
+    '-D', `TEMPLATE_DIR=${options.templateDir}`,
+    '-D', `NODE_BIN=${runtime.nodePath}`,
+    '-D', `CHROME_BIN=${runtime.browserPath}`,
+    '-D', `FFMPEG_BIN=${runtime.ffmpegBin}`,
+    '-D', `FFPROBE_BIN=${runtime.ffprobeBin}`,
+    '-D', `STUDIO_API_PORT=${runtime.apiPort}`,
+    '-D', `STUDIO_WEB_PORT=${runtime.webPort}`,
     runtime.nodePath,
     runtime.binPath,
     'render',

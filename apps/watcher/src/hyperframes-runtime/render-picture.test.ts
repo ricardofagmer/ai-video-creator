@@ -53,7 +53,10 @@ describe('renderPicture (AC 66, AC 67)', () => {
     const [start] = processPort.requests;
     assert.ok(start !== undefined);
     assert.equal(start.command, '/usr/bin/sandbox-exec');
-    assert.deepEqual([...start.args], expectedRenderArgs({ runtime: request.runtime, variablesFile: request.variablesFile, output: request.output }));
+    assert.deepEqual(
+      [...start.args],
+      expectedRenderArgs({ runtime: request.runtime, templateDir: request.templateDir, variablesFile: request.variablesFile, output: request.output }),
+    );
     assert.equal(start.cwd, request.templateDir);
     assert.deepEqual({ ...start.env }, expectedRenderEnv(request.runtime));
     assertNoParentSentinel(start.env, PARENT_ENV_SENTINELS);
@@ -126,15 +129,21 @@ describe('pinnedBinPath (AC 66, AC 68)', () => {
   it('gives a render argv that starts the pinned bin by its absolute real path, never by name from PATH', () => {
     const runtime = runtimeFixture({ binPath: pinnedBinPath() });
 
-    const { command, args } = buildRenderArgv({ variablesFile: '/fixture/variables.json', output: '/fixture/picture.mp4', runtime });
+    const { command, args } = buildRenderArgv({
+      templateDir: '/fixture/staged-template',
+      variablesFile: '/fixture/variables.json',
+      output: '/fixture/picture.mp4',
+      runtime,
+    });
 
     assert.equal(command, '/usr/bin/sandbox-exec');
     assert.ok(!args.includes('hyperframes'));
     assert.ok(!args.includes('npx'));
-    const bin = args[5];
+    // SPEC 0008 section 17.5: after `-f <profile>` and the seventeen `-D` pairs (36 arguments).
+    const bin = args[37];
     assert.ok(bin !== undefined && isAbsolute(bin));
     assert.equal(bin, realpathSync(bin));
-    assert.equal(args[4], runtime.nodePath);
+    assert.equal(args[36], runtime.nodePath);
   });
 });
 

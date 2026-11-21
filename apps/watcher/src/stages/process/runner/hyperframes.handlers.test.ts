@@ -66,6 +66,16 @@ async function createRenderWorld(): Promise<RenderWorld> {
       homeDir: '/fixture/data-home/hyperframes/home',
       sandboxProfilePath: '/fixture/workspace/packages/hyperframes/sandbox/render.sb',
       ownerConfigDir: '/fixture/owner-home/.hyperframes',
+      // SPEC 0008 section 17.5 (rev 2): the nine sandbox inputs the parent resolves.
+      ownerHomeDir: '/fixture/owner-home',
+      studioRoot: '/fixture/workspace',
+      dataHomeRoot: '/fixture/data-home',
+      hyperframesRoot: '/fixture/data-home/hyperframes',
+      chromeDir: '/fixture/data-home/hyperframes/cache/chrome',
+      ffmpegBin: '/fixture/tools/ffmpeg',
+      ffprobeBin: FFPROBE_FIXTURE,
+      apiPort: 4311,
+      webPort: 4310,
     },
   };
   return { root, request };
@@ -92,6 +102,11 @@ function fakeRenderPorts(options: { probe: PictureProbe | null; exitCodes?: read
       probePicture(ffprobePath: string, file: string): Promise<PictureProbe | null> {
         probeCalls.push({ ffprobePath, file });
         return Promise.resolve(options.probe);
+      },
+      // SPEC 0008 section 17.5 (rev 2): sandbox paths go through `realPath`; the fake answers each
+      // path unchanged, so the expectations below keep the request's own paths.
+      realPath(path: string): Promise<string> {
+        return Promise.resolve(path);
       },
     },
   };
@@ -146,7 +161,12 @@ describe('hyperframesRender', () => {
       assert.equal(start.cwd, world.request.templateDir);
       assert.deepEqual(
         [...start.args],
-        expectedRenderArgs({ runtime: expectedRuntimeOf(world.request), variablesFile: join(world.request.scratchDir, 'variables.json'), output: join(world.request.scratchDir, 'picture.mp4') }),
+        expectedRenderArgs({
+          runtime: expectedRuntimeOf(world.request),
+          templateDir: world.request.templateDir,
+          variablesFile: join(world.request.scratchDir, 'variables.json'),
+          output: join(world.request.scratchDir, 'picture.mp4'),
+        }),
       );
     });
 

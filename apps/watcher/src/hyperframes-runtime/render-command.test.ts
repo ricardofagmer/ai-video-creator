@@ -21,25 +21,30 @@ import {
 
 const VARIABLES_FILE = '/fixture/scratch/render-0001/variables.json';
 const PICTURE_FILE = '/fixture/scratch/render-0001/picture.mp4';
+const TEMPLATE_DIR = '/fixture/scratch/render-0001/staged-template';
 
 describe('buildRenderArgv (AC 66)', () => {
   it('runs the pinned bin with the runtime node under sandbox-exec with exactly the frozen render flags', () => {
     const runtime = runtimeFixture();
 
-    const command = buildRenderArgv({ variablesFile: VARIABLES_FILE, output: PICTURE_FILE, runtime });
+    const command = buildRenderArgv({ templateDir: TEMPLATE_DIR, variablesFile: VARIABLES_FILE, output: PICTURE_FILE, runtime });
 
     assert.equal(command.command, '/usr/bin/sandbox-exec');
     assert.equal(SANDBOX_EXEC_PATH, '/usr/bin/sandbox-exec');
-    assert.deepEqual([...command.args], expectedRenderArgs({ runtime, variablesFile: VARIABLES_FILE, output: PICTURE_FILE }));
+    assert.deepEqual(
+      [...command.args],
+      expectedRenderArgs({ runtime, templateDir: TEMPLATE_DIR, variablesFile: VARIABLES_FILE, output: PICTURE_FILE }),
+    );
   });
 
   it('keeps a path that contains spaces or looks like a flag as one positional argument', () => {
     const runtime = runtimeFixture({ ownerConfigDir: '/fixture/owner home/.hyperframes' });
     const output = '/fixture/scratch/a b/--no-strict.mp4';
 
-    const command = buildRenderArgv({ variablesFile: VARIABLES_FILE, output, runtime });
+    const command = buildRenderArgv({ templateDir: TEMPLATE_DIR, variablesFile: VARIABLES_FILE, output, runtime });
 
-    assert.equal(command.args.length, 15);
+    // SPEC 0008 section 17.5: `-f <profile>`, seventeen `-D` pairs, node, the bin and nine render flags.
+    assert.equal(command.args.length, 47);
     assert.equal(command.args.at(-1), output);
     assert.equal(command.args[3], 'OWNER_HYPERFRAMES_DIR=/fixture/owner home/.hyperframes');
   });
