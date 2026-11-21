@@ -1,7 +1,7 @@
 # 0006. Keep traces in local files and add an on-demand OTLP JSON file export
 
 Date: 2026-11-19
-Status: proposed; the owner chose option 2 (on-demand OTLP JSON file export) on 2026-11-19 (SPEC 0006 Q2, "On-demand OTLP file (Recommended)"). Acceptance follows review, as for ADRs 0001-0004.
+Status: accepted (owner, 2026-11-21). The owner chose option 2 (on-demand OTLP JSON file export) on 2026-11-19 (SPEC 0006 Q2, "On-demand OTLP file (Recommended)").
 
 Decider: Ricardo Fagmer. The decision is the owner's; this ADR recommends and does not decide
 (SPEC 0006 Q2). Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) section 12 ("Local-only ...

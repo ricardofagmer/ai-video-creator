@@ -1,7 +1,7 @@
 # 0005. Add a thin menu-bar shell that controls the api and web, and keep the watcher under launchd
 
 Date: 2026-11-19
-Status: proposed; the owner chose A2 + B1 + C1 (thin Electron menu-bar shell, watcher stays under launchd) on 2026-11-19 (SPEC 0006 Q1, "Electron menu-bar (Recommended)"). Vetting 0002 (`docs/vetting/0002-shell-runtime.md`) was approved with option P on 2026-11-19, and R3-08 part 2 was implemented by tickets 09 to 12 (see "Decision record (R3-08)"). Acceptance follows review, as for ADRs 0001-0004.
+Status: accepted (owner, 2026-11-21). The owner chose A2 + B1 + C1 (thin Electron menu-bar shell, watcher stays under launchd) on 2026-11-19 (SPEC 0006 Q1, "Electron menu-bar (Recommended)"). Vetting 0002 (`docs/vetting/0002-shell-runtime.md`) was approved with option P on 2026-11-19, and R3-08 part 2 was implemented by tickets 09 to 12 (see "Decision record (R3-08)").
 
 Decider: Ricardo Fagmer. The decision is the owner's; this ADR recommends and does not decide
 (SPEC 0006 Q1). Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) D4, D8, D9, section 3 (R3:
