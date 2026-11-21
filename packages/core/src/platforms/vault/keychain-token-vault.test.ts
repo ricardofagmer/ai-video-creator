@@ -160,16 +160,16 @@ describe('KeychainPlatformTokenVault with a fake security tool', () => {
     // Safety preflight 1: the object the vault reads `execFile` and `spawn` from at call time,
     // the CommonJS exports of `node:child_process`, now holds the installed mocks.
     const required: unknown = requireLikeTheVault('node:child_process');
-    assert.equal(exportOf(required, 'execFile'), execFileMock, 'require(node:child_process).execFile is not the fake');
-    assert.equal(exportOf(required, 'spawn'), spawnMock, 'require(node:child_process).spawn is not the fake');
+    assert.equal(exportOf(required, 'execFile'), execFileMock, 'CommonJS child_process.execFile is not the fake');
+    assert.equal(exportOf(required, 'spawn'), spawnMock, 'CommonJS child_process.spawn is not the fake');
     assert.equal(childProcess.execFile, execFileMock);
     assert.equal(childProcess.spawn, spawnMock);
 
     // Safety preflight 2: the ES module bindings answer with the same mocks, so the fake also holds
     // if a loader ever hands the vault the ESM view of the module.
     const live = await import('node:child_process');
-    assert.equal(live.execFile, execFileMock, 'import(node:child_process).execFile is not the fake');
-    assert.equal(live.spawn, spawnMock, 'import(node:child_process).spawn is not the fake');
+    assert.equal(live.execFile, execFileMock, 'ESM child_process.execFile is not the fake');
+    assert.equal(live.spawn, spawnMock, 'ESM child_process.spawn is not the fake');
 
     // Safety preflight 3, behavioural: a call through the patched module lands in the fake keychain.
     // The probe names a path that does not exist, never the security tool.
