@@ -80,12 +80,17 @@ async function bytesWritten(path: string): Promise<number> {
   }
 }
 
-async function assertRefusedWithinManifestSize(world: CopyWorld, sizeBytes: number): Promise<void> {
+/**
+ * `sizeBytes` may be a function: a `listingEdit` runs only when the stage asks for the listing, so a
+ * size it computes is known after `stage` returns, not when this helper is called.
+ */
+async function assertRefusedWithinManifestSize(world: CopyWorld, sizeBytes: number | (() => number)): Promise<void> {
   const outcome = await stage(world);
 
   assert.deepEqual(outcome, { status: 'refused' });
+  const limit = typeof sizeBytes === 'function' ? sizeBytes() : sizeBytes;
   const written = await bytesWritten(join(world.targetDir, BAD_FILE));
-  assert.ok(written <= sizeBytes, `the target holds ${written} bytes, more than the manifest's ${sizeBytes}`);
+  assert.ok(written <= limit, `the target holds ${written} bytes, more than the manifest's ${limit}`);
 }
 
 describe('stageTemplateCopy (AC 96, section 17.8)', () => {
@@ -165,7 +170,7 @@ describe('stageTemplateCopy (AC 96, section 17.8)', () => {
         return { ...entry, sizeBytes };
       });
 
-    await assertRefusedWithinManifestSize(world, sizeBytes);
+    await assertRefusedWithinManifestSize(world, () => sizeBytes);
   });
 
   it('refuses a source smaller than the manifest sizeBytes', async () => {
@@ -176,7 +181,7 @@ describe('stageTemplateCopy (AC 96, section 17.8)', () => {
         return { ...entry, sizeBytes };
       });
 
-    await assertRefusedWithinManifestSize(world, sizeBytes);
+    await assertRefusedWithinManifestSize(world, () => sizeBytes);
   });
 
   it('refuses a source of the manifest size whose hash differs and writes at most that many bytes', async () => {
@@ -187,7 +192,7 @@ describe('stageTemplateCopy (AC 96, section 17.8)', () => {
         return { ...entry, contentHash: '0'.repeat(64) };
       });
 
-    await assertRefusedWithinManifestSize(world, sizeBytes);
+    await assertRefusedWithinManifestSize(world, () => sizeBytes);
   });
 
   it('refuses a listing that names the same target twice instead of overwriting the first copy', async () => {
