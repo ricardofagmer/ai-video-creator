@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 import type { ProviderMode } from '@studio/shared/ace';
 import { ConfigError } from '../errors';
 import { findRepoRoot } from './repo-root';
+import { assertAbsoluteExecutable, resolveExecutable } from './tool-paths';
 
 export type CaptureViewport = 'desktop' | 'vertical';
 /** Which engine speaks real ("live") narration. */
@@ -76,10 +77,34 @@ function readViewport(): CaptureViewport {
   throw new ConfigError(`CAPTURE_VIEWPORT must be "desktop" or "vertical", got "${value}"`);
 }
 
+function writeProgress(message: string): void {
+  process.stderr.write(`${message}\n`);
+}
+
+/**
+ * ffmpeg/ffprobe as one absolute path, resolved on first use and then reused for the process. A set
+ * variable must be absolute (checked at load, so a bad value fails before any work); the default
+ * name is looked up on PATH once. Lazy so commands that never touch media do not need ffmpeg.
+ */
+function memoizedExecutable(variable: string, defaultName: string, log: (message: string) => void): () => string {
+  const value = readTrimmed(variable);
+  if (value !== undefined && !isAbsolute(value)) throw new ConfigError(`${variable} must be an absolute path, got "${value}"`);
+  let resolved: string | undefined;
+  return () => {
+    if (resolved !== undefined) return resolved;
+    const executable = resolveExecutable({ variable, value, defaultName, searchPath: process.env['PATH'] });
+    resolved = executable.path;
+    log(`${defaultName}: using ${resolved} (${executable.source === 'setting' ? variable : 'found on PATH'})`);
+    return resolved;
+  };
+}
+
 /** Loads <repoRoot>/.env (shell variables win) and reads the non-secret toolbox settings. */
-export function loadEnvironment(): ToolboxEnv {
+export function loadEnvironment(log: (message: string) => void = writeProgress): ToolboxEnv {
   const repoRoot = findRepoRoot();
   loadDotenv({ path: join(repoRoot, '.env'), quiet: true });
+  const ffmpeg = memoizedExecutable('FFMPEG_PATH', 'ffmpeg', log);
+  const ffprobe = memoizedExecutable('FFPROBE_PATH', 'ffprobe', log);
   return {
     repoRoot,
     runsDir: resolve(repoRoot, readTrimmed('ACE_RUNS_DIR') ?? 'runs'),
@@ -94,8 +119,12 @@ export function loadEnvironment(): ToolboxEnv {
     maxCostPerVideoUsd: readPositiveNumber('MAX_COST_PER_VIDEO_USD', DEFAULT_MAX_COST_USD),
     elevenLabsUsdPerChar: readPositiveNumber('ELEVENLABS_USD_PER_CHAR', DEFAULT_USD_PER_CHAR),
     defaultChannelId: readTrimmed('ACE_CHANNEL_ID') ?? 'default',
-    ffmpegPath: readTrimmed('FFMPEG_PATH') ?? 'ffmpeg',
-    ffprobePath: readTrimmed('FFPROBE_PATH') ?? 'ffprobe',
+    get ffmpegPath(): string {
+      return ffmpeg();
+    },
+    get ffprobePath(): string {
+      return ffprobe();
+    },
   };
 }
 
@@ -122,9 +151,9 @@ export function requireLocalVoiceConfig(repoRoot: string): LocalVoiceConfig {
   if (!python || !script) {
     throw new ConfigError(`VOICE_ENGINE=local needs ${missing.join(' and ')} (set them in .env or the shell)`);
   }
-  const pythonPath = resolve(repoRoot, python);
+  // The interpreter runs with the owner's rights, so it is never resolved against the repository or PATH.
+  const pythonPath = assertAbsoluteExecutable('LOCAL_VOICE_PYTHON', python);
   const scriptPath = resolve(repoRoot, script);
-  if (!existsSync(pythonPath)) throw new ConfigError(`LOCAL_VOICE_PYTHON does not exist: ${pythonPath}`);
   if (!existsSync(scriptPath)) throw new ConfigError(`LOCAL_VOICE_SCRIPT does not exist: ${scriptPath}`);
   return { pythonPath, scriptPath, language: readTrimmed('LOCAL_VOICE_LANG') ?? DEFAULT_LOCAL_VOICE_LANGUAGE };
 }

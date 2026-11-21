@@ -18,6 +18,7 @@ export {
   ArtifactTypeNotSupportedError,
   InvalidReviewInputError,
   PromoteBiometricRefusedError,
+  PromoteManifestMismatchError,
   PromoteSensitivityUnknownError,
   RequiredChecklistUncheckedError,
   ReviewError,

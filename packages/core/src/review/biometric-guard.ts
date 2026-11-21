@@ -3,7 +3,11 @@ import { QueryBus } from '@nestjs/cqrs';
 import { type AssetRef, type Sensitivity } from '@studio/shared/catalog';
 import { readRunManifest } from '@studio/shared/run-files';
 import { AssetVersionNotFoundError, GetAssetVersionQuery } from '../catalog';
-import { PromoteBiometricRefusedError, PromoteSensitivityUnknownError } from './review.errors';
+import {
+  PromoteBiometricRefusedError,
+  PromoteManifestMismatchError,
+  PromoteSensitivityUnknownError,
+} from './review.errors';
 import { type LoadedRun } from './review-run-access';
 
 /**
@@ -20,7 +24,8 @@ export class BiometricRunGuard {
       ...loaded.run.references,
     ]);
     const manifest = await readRunManifest(loaded.runDir);
-    if (manifest.status === 'present' && manifest.value.runId === loaded.runId) {
+    if (manifest.status === 'present') {
+      if (manifest.value.runId !== loaded.runId) throw new PromoteManifestMismatchError(loaded.runId);
       // The manifest records the sensitivity it pinned; a biometric entry refuses without a lookup.
       const pinnedBiometric = manifest.value.assets.find((asset) => asset.sensitivity === 'biometric');
       if (pinnedBiometric !== undefined) {

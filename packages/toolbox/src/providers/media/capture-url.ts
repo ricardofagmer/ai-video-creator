@@ -29,6 +29,16 @@ export function isHostAllowed(url: URL, allowedHosts: readonly string[]): boolea
   return !isLocalNetworkHost(hostname) && allowedHosts.includes(hostname);
 }
 
+/**
+ * Sub-requests of a captured page (images, scripts, fetch/XHR, media) may use any public CDN, so
+ * they skip the host allowlist, but they still must be https, carry no credentials and stay off
+ * loopback, link-local and private-network addresses.
+ */
+export function isPublicHttpsUrl(url: URL): boolean {
+  if (url.protocol !== 'https:' || url.username !== '' || url.password !== '') return false;
+  return !isLocalNetworkHost(url.hostname.toLowerCase());
+}
+
 /** Checks every capture target up front so no browser time is spent before a refusal. */
 export function assertCaptureTargetsAllowed(targets: readonly { sceneId: string; url: URL }[], allowedHosts: readonly string[]): void {
   const refused = targets.filter((target) => !isHostAllowed(target.url, allowedHosts) || target.url.username || target.url.password);

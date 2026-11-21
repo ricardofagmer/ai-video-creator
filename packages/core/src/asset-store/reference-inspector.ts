@@ -1,10 +1,8 @@
-import { lstat } from 'node:fs/promises';
 import { Injectable } from '@nestjs/common';
 import { DataHome } from '../paths/data-home';
-import { UnsafePathError } from './asset-store.errors';
 import { folderContentFrom, type FolderContent } from './folder-content';
 import { assertFolder, buildFolderEntries, listFolderFiles } from './folder-walk';
-import { hashFile, type HashedContent } from './hashing';
+import { hashRegularFile, type HashedContent } from './hashing';
 import { assertSafeSourcePath } from './path-guards';
 
 export interface InspectOptions {
@@ -23,8 +21,8 @@ export class ReferenceInspector {
 
   async inspectFile(absolutePath: string, options: InspectOptions): Promise<HashedContent> {
     const realPath = await assertSafeSourcePath(absolutePath, this.dataHome.assets);
-    if (!(await lstat(realPath)).isFile()) throw new UnsafePathError('not-a-file');
-    return hashFile(realPath, options);
+    // Checked and read through one handle: a swap after the check is refused (`openRegularFile`).
+    return hashRegularFile(realPath, options);
   }
 
   async inspectFolder(absolutePath: string, options: InspectOptions): Promise<FolderContent> {
@@ -32,7 +30,7 @@ export class ReferenceInspector {
     await assertFolder(realPath);
     const files = await listFolderFiles(realPath);
     const { entries, totalBytes } = await buildFolderEntries(files, { maxTotalBytes: options.maxBytes }, (file, remainingBytes) =>
-      hashFile(file.absolutePath, { maxBytes: remainingBytes, signal: options.signal }),
+      hashRegularFile(file.absolutePath, { maxBytes: remainingBytes, signal: options.signal }, file.identity),
     );
     return folderContentFrom(entries, totalBytes);
   }

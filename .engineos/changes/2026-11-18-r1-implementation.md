@@ -72,8 +72,8 @@ PRD 0001 R1 goals; ADRs 0001-0003 accepted 2026-11-18.
 - [ ] R1-FP: one mock run per recipe to `review` (AC 3, 29), CLI pause visible in the web within 2 s (AC 14), SIGTERM crash-resume (criterion 13)
 - [ ] R1-FP: confirm the six Mastra API assumptions (R1-13) and the Next 15 assumptions (R1-19, R1-20)
 - [x] Typecheck, lint, build and tests of all wave 1-4 packages, plus `dev:fixture` and its fault variants: final gate (R1-FP) (R4 final gate 2026-11-20 ran the whole monorepo green: typecheck 13/13, lint 13/13, tests 11/11, build 10/10 (`2026-11-20-r4-implementation.md` line 29))
-- [ ] Critic pass at the final gate (wave 4 risk high: credential handling) -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
-- [ ] Security review at the final gate: R1-05 path guards, by-reference biometric path, MIME trust (no magic-byte check), api session and BFF allowlist, CLI child processes, install/uninstall scripts -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
+- [ ] Critic pass at the final gate (wave 4 risk high: credential handling) -- RAN 2026-11-21 (owner: "Security review (8)"): 4 read-only security-reviewers MERGE WITH FIXES or CLEAR (0 critical, 0 high, 3 medium), critic REFUTED (2 major). Fixes made 2026-11-21 (all but critic major 2, which is the super-dev run); see "Baseline review (2026-11-21)" in `2026-11-18-r1-implementation.md`
+- [ ] Security review at the final gate: R1-05 path guards, by-reference biometric path, MIME trust (no magic-byte check), api session and BFF allowlist, CLI child processes, install/uninstall scripts -- RAN 2026-11-21 (owner: "Security review (8)"): 4 read-only security-reviewers MERGE WITH FIXES or CLEAR (0 critical, 0 high, 3 medium), critic REFUTED (2 major). Fixes made 2026-11-21 (all but critic major 2, which is the super-dev run); see "Baseline review (2026-11-21)" in `2026-11-18-r1-implementation.md`
 
 ## Open items from wave 3
 - Resolved by owner (SPEC 0002 rev 2): cancel signal added to `AgentsPort.run` (supervisor edit in
@@ -109,3 +109,38 @@ PRD 0001 R1 goals; ADRs 0001-0003 accepted 2026-11-18.
 2026-11-18 | Ricardo Fagmer (standing instruction, default taken) | R1-20: polling at 1 s without a query library; the web withholds the review player for runs with biometric or unknown-sensitivity material (owner to confirm the voice-clone review experience before R2); reject reason kept in `notes`; C10 additions (heartbeat, month spend, cursor, api biometric artifact guard) deferred past R1 | approved | docs/specs/0002-r1-studio-foundation.md rev 3
 2026-11-18 | Ricardo Fagmer (standing instruction, default taken) | R1-23: the 16:9 id goes in a new `RenderTemplateIdSchema`, not `TemplateIdSchema`, so the 9:16 `ace` pipeline never accepts a 16:9 run; `seeds/skills/**` path mentions left unchanged to keep skill versions | approved | docs/specs/0002-r1-studio-foundation.md rev 3
 2026-11-18 | Ricardo Fagmer | standing instruction "All waves 5-10, defaults": run waves 5-10 back to back, take the recommended option at each decision and record it here; stop before R1-FP | approved | docs/specs/0002-r1-studio-foundation.md rev 3
+2026-11-21 | Ricardo Fagmer | baseline security review and critic: "Security review (8)" (4 read-only `security-reviewer` instances on disjoint scopes plus 1 read-only `critic`, at `4226465`, files from `c52a849`; no scans, no runs) | approved | this record, "Baseline review (2026-11-21)"
+
+## Baseline review (2026-11-21)
+
+Scope: the current state (`4226465`) of every file that entered in the baseline commit `c52a849` (R1, R2, curator). Read-only; nothing executed. Coverage was by risk: core about 25%, web feature components grep-only, watcher gates and most stage executors unread.
+
+| Reviewer | Scope | Verdict |
+|---|---|---|
+| security-reviewer 1 | apps/api, apps/web, packages/ui | CLEAR (3 low) |
+| security-reviewer 2 | apps/watcher, tools/cli, scripts | MERGE WITH FIXES (3 low) |
+| security-reviewer 3 | packages/core | MERGE WITH FIXES (3 medium, 4 low) |
+| security-reviewer 4 | packages/shared, toolbox, video | MERGE WITH FIXES (3 low, 3 info) |
+| critic | R1, R2, curator vs SPEC 0002, 0003, 0005 | REFUTED (2 major, 4 minor, 1 nit) |
+
+Open fixes, most severe first:
+- [x] Critic major 1: crash-resume blocks on a reused pid after a reboot or forced exit (AC 13); `watcher.pid` is a bare pid and EPERM counts as alive (`packages/shared/src/run-files/run-state-files.ts:82`, `apps/watcher/src/daemon/run-classification.ts:71`). Fix: pid plus boot-time stamp via `isStampAlive`, update RUN-FORMAT section 14.
+- [ ] Critic major 2: no tests or evals cover R1, R2 or the curator (0 test files under watcher engine/curation and core agents/curation/costs/review/runs, confirmed 2026-11-21; the 24 curator evals were never written). The earlier "tests 11/11" ticks counted package runners, not these criteria. Needs an approved final gate.
+- [x] M1: biometric containment keys on the typed path and the caller's label; an `internal`-labelled file under the clone folder is copied into the store, and a symlinked spelling dodges redaction (`packages/core/src/catalog/asset-content.ts:106`, `redaction/redactor.ts:46`).
+- [x] M2: FrameSampleTool sends frames of renders that used a biometric avatar to Claude (`packages/core/src/agents/tools/frame-sample.tool.ts:83`); run the BiometricRunGuard first.
+- [x] M3: agent text is not checked against the pinned contentHash (`packages/core/src/agents/tools/asset-text.reader.ts:111`).
+- [x] Single-instance lock for the watcher (security 2 and critic minor 3): two watchers can claim one run, double paid calls and lose `cost.json` entries; a new watcher fails a live curation (`apps/watcher/src/engine/run-engine.ts:69`, `curation/curation-step.ts:61`).
+- [x] Recovery retries skip the preflight cost ceiling; patched params unbounded (`apps/watcher/src/engine/failure/recovery-allowlist.ts:37`).
+- [x] CLI dashboard prints terminal control sequences from model output (`tools/cli/src/ui/run-detail-view.tsx:17`).
+- [x] Live capture filters only navigations; sub-requests reach loopback/LAN (`packages/toolbox/src/providers/media/playwright-capture.ts:62`).
+- [x] ffmpeg/ffprobe inputs: add `-protocol_whitelist file` (toolbox) and pin the demuxer in `packages/core/src/agents/tools/ffmpeg-frames.ts:89`.
+- [x] Lost pause: `control.json` cleared after read (`apps/watcher/src/engine/run-engine.ts:79`).
+- [x] `curation.ended` append failure retries forever (`apps/watcher/src/curation/claimed-curation.ts:129`).
+- [x] Watcher opens SQLite read-write; enforce `query_only` (`packages/core/src/prisma/prisma.service.ts:27`).
+- [x] Lower: proxy refuses same-site GETs and forwards CORP (`apps/web/src/lib/bff/proxy.ts:78`); CSP and Permissions-Policy (`apps/web/next.config.ts:13`); upload magic-byte check (core `asset-content`); O_NOFOLLOW + fstat against the lstat/open race (`asset-store/content-store.ts:88`); redact before delimiting (`agents/agents.service.ts:240`); typed errors without absolute paths (`asset-store/path-guards.ts:57`); strict render schema (`packages/shared/src/ace/render.ts:14`); NaN guard in `cost-ceiling.check.ts:38`; symlink check in `resolveInsideRun`; tool paths resolved once, not per request.
+
+Fix evidence (2026-11-21, uncommitted on `main` until the owner approves the branch and PR):
+- 5 IMPLEMENT workers on disjoint scopes (web/CLI, core asset store, core agent tools, toolbox/render/tool runner, watcher/run files), then supervisor integration: writer `sceneId` and `capturesIndex` `captureId` bounded like the director; `BiometricRunGuard` refuses a manifest that names another run (`PromoteManifestMismatchError`); the 7 tool-running executors pass `readRoots` and drop per-request tool paths; `FFMPEG_PATH`, `FFPROBE_PATH` and `LOCAL_VOICE_PYTHON` must be absolute; stage reads use `resolveInsideRunReal`; RUN-FORMAT sections 12 and 14 updated; unused `WatcherPidTextSchema` removed.
+- Kept on purpose: the credential-assignment redaction pattern still accepts `<` and `/` (base64 secrets carry `/`); the tag-crossing case is closed by redacting each block before delimiting.
+- Checks run outside the sandbox (`uv_uptime` EPERM inside it): build of shared, core, toolbox and video; `turbo run typecheck` 13/13 packages; `turbo run lint` 14/14 tasks; tests shared 523/523, core 474/474, watcher 637/637, cli 195/195, api 169/169.
+- Not checked: `apps/web` has no test script (CSP nonce, video player and the 404 page need a browser look); `@ace/toolbox` has no test setup; the watcher daemon and api must be restarted to load the rebuilt packages; no reviewer has re-read the fixes.

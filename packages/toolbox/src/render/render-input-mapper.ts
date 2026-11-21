@@ -1,5 +1,5 @@
 import {
-  RenderInputSchema,
+  LocalRenderInputSchema,
   type AssetManifest,
   type NarrationManifest,
   type RenderInput,
@@ -44,7 +44,7 @@ export function toRenderInput(sources: RenderInputSources): RenderInput {
         : null,
     };
   });
-  return RenderInputSchema.parse({
+  return LocalRenderInputSchema.parse({
     template: sources.template,
     title: script.title,
     durationS,

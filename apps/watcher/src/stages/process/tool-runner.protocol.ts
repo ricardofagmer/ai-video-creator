@@ -4,7 +4,7 @@ import { z } from 'zod';
  * Wire contract between the stage executors and the tool runner child (`tool-runner.main.ts`).
  * The request travels on stdin; the child prints exactly one result line prefixed with
  * `RESULT_MARKER` on stdout. Paths are absolute and chosen by the executor; the runner never
- * picks a destination on its own.
+ * picks a destination on its own and refuses any path outside the envelope's roots.
  */
 export const RESULT_MARKER = '@@tool-runner-result@@';
 
@@ -13,7 +13,11 @@ const seconds = z.number().nonnegative().max(36_000);
 /** An unprivileged loopback port (SPEC 0008 section 17.5). */
 const studioPort = z.number().int().min(1024).max(65535);
 
-const toolPaths = z.object({ ffmpegPath: z.string().min(1).max(4096), ffprobePath: z.string().min(1).max(4096) }).strict();
+/**
+ * Deprecated and ignored: the runner resolves ffmpeg/ffprobe once at its own start
+ * (`runner/runner-tools.ts`). Still accepted so executors that send it keep matching the contract.
+ */
+const toolPaths = z.object({ ffmpegPath: z.string().min(1).max(4096), ffprobePath: z.string().min(1).max(4096) }).strict().optional();
 
 const wordTiming = z.object({ text: z.string().max(200), startS: seconds, endS: seconds }).strict();
 
@@ -208,6 +212,21 @@ export const ToolRunnerRequestSchema = z.discriminatedUnion('command', [
   HyperframesRenderRequestSchema,
 ]);
 export type ToolRunnerRequest = z.infer<typeof ToolRunnerRequestSchema>;
+
+const rootList = z.array(absolutePath).min(1).max(8);
+
+/**
+ * What the client writes on stdin: the request plus the folders its paths are confined to
+ * (`runner/path-confinement.ts`). `write` is the stage scratch root; `read` adds the folders the
+ * caller names, or is null when it named none.
+ */
+export const ToolRunnerEnvelopeSchema = z
+  .object({
+    request: ToolRunnerRequestSchema,
+    roots: z.object({ read: rootList.nullable(), write: rootList }).strict(),
+  })
+  .strict();
+export type ToolRunnerEnvelope = z.infer<typeof ToolRunnerEnvelopeSchema>;
 
 /** C9 `media-review` result as the toolbox returns it (`packages/toolbox/src/commands/media/README.md`). */
 export const MediaReviewResultSchema = z.object({

@@ -9,10 +9,13 @@ import {
   type Sensitivity,
   type Sha256,
 } from '@studio/shared/catalog';
-import { ContentStore } from '../asset-store/content-store';
+import { type HeadInspector } from '../asset-store/content-head';
+import { ContentStore, type PutFolderOptions } from '../asset-store/content-store';
 import { ReferenceInspector } from '../asset-store/reference-inspector';
+import { BiometricSourceGuard } from './biometric-source.guard';
 import {
   BiometricRequiresReferenceError,
+  ContentTypeMismatchError,
   InvalidAssetInputError,
   LayoutNotAllowedError,
   MimeTypeNotAllowedError,
@@ -24,6 +27,7 @@ import {
   isLayoutAllowed,
   isMimeTypeAllowed,
 } from './catalog.limits';
+import { contentMatchesMimeType, folderEntryMimeType } from './content-signature';
 
 /**
  * Where a version's bytes come from (PRD 5.3). `upload`, `inline`, `import-*` copy into the
@@ -71,15 +75,32 @@ export function assertBiometricStorage(sensitivity: Sensitivity, storageMode: As
   if (sensitivity === 'biometric' && storageMode !== 'reference') throw new BiometricRequiresReferenceError();
 }
 
+/** Declared MIME type against the leading bytes of a single file (upload, inline, import-file). */
+function fileHeadInspector(kind: AssetKind, mimeType: string): HeadInspector {
+  return (head) => {
+    if (!contentMatchesMimeType(mimeType, head)) throw new ContentTypeMismatchError(kind, mimeType, null);
+  };
+}
+
+/** Inside an imported folder each file is held to the type its extension claims. */
+function folderHeadInspector(kind: AssetKind): NonNullable<PutFolderOptions['inspectFileHead']> {
+  return (relativePath, head) => {
+    const mimeType = folderEntryMimeType(relativePath);
+    if (mimeType !== null && !contentMatchesMimeType(mimeType, head)) throw new ContentTypeMismatchError(kind, mimeType, relativePath);
+  };
+}
+
 /**
  * Boundary validation and byte handling for new content: layout and MIME allowlist per kind,
- * size limit per kind, biometric-by-reference, then a store write or a read-only inspection.
+ * size limit per kind, biometric-by-reference, biometric containment by location, then a store
+ * write (with a magic-byte check of the declared type) or a read-only inspection.
  */
 @Injectable()
 export class AssetContentService {
   constructor(
     private readonly store: ContentStore,
     private readonly references: ReferenceInspector,
+    private readonly biometricSources: BiometricSourceGuard,
   ) {}
 
   async prepare(request: PrepareContentRequest): Promise<PreparedContent> {
@@ -91,24 +112,37 @@ export class AssetContentService {
     if (!isMimeTypeAllowed(kind, layout, mimeType)) throw new MimeTypeNotAllowedError(kind, mimeType);
     const isReference = content.source === 'reference-file' || content.source === 'reference-folder';
     assertBiometricStorage(sensitivity, isReference ? 'reference' : 'store');
+    // The label is the caller's word; the location is checked too. Only a biometric-labelled
+    // reference may point at biometric material.
+    if (content.source !== 'upload' && content.source !== 'inline' && sensitivity !== 'biometric') {
+      await this.biometricSources.assertNotBiometricSource(content.absolutePath);
+    }
 
     const maxStored = MAX_STORED_BYTES_BY_KIND[kind];
     switch (content.source) {
       case 'upload': {
-        const hashed = await this.store.putStream(content.stream, { maxBytes: maxStored, signal });
+        const hashed = await this.store.putStream(content.stream, { maxBytes: maxStored, signal, inspectHead: fileHeadInspector(kind, mimeType) });
         return { ...hashed, mimeType, layout, storage: { mode: 'store' } };
       }
       case 'inline': {
         const bytes = Buffer.from(content.text, 'utf8');
-        const hashed = await this.store.putBytes(bytes, { maxBytes: Math.min(maxStored, MAX_INLINE_CONTENT_BYTES), signal });
+        const hashed = await this.store.putBytes(bytes, {
+          maxBytes: Math.min(maxStored, MAX_INLINE_CONTENT_BYTES),
+          signal,
+          inspectHead: fileHeadInspector(kind, mimeType),
+        });
         return { ...hashed, mimeType, layout, storage: { mode: 'store' } };
       }
       case 'import-file': {
-        const hashed = await this.store.putFile(content.absolutePath, { maxBytes: maxStored, signal });
+        const hashed = await this.store.putFile(content.absolutePath, { maxBytes: maxStored, signal, inspectHead: fileHeadInspector(kind, mimeType) });
         return { ...hashed, mimeType, layout, storage: { mode: 'store' } };
       }
       case 'import-folder': {
-        const folder = await this.store.putFolder(content.absolutePath, { maxTotalBytes: maxStored, signal });
+        const folder = await this.store.putFolder(content.absolutePath, {
+          maxTotalBytes: maxStored,
+          signal,
+          inspectFileHead: folderHeadInspector(kind),
+        });
         return { contentHash: folder.contentHash, sizeBytes: folder.sizeBytes, mimeType, layout, storage: { mode: 'store' } };
       }
       case 'reference-file': {

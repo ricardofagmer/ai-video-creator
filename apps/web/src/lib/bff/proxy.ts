@@ -4,6 +4,7 @@ import { CorrelationIdSchema } from '@studio/shared/run-format';
 import { type NextRequest } from 'next/server';
 import { webConfig } from '../config/web-config';
 import { matchApiRoute, type ApiRoute } from '../api/route-table';
+import { fetchSiteAllowed } from './fetch-site';
 
 /**
  * Backend-for-frontend in front of the local api (R1-19). The browser never calls the api's port:
@@ -46,6 +47,14 @@ const FORWARDED_RESPONSE_HEADERS = [
   REQUEST_ID_HEADER,
 ];
 
+/**
+ * Set by the proxy on everything it answers, whatever the api sent: no other origin may embed a
+ * BFF response (an artifact as `<video>`/`<img>` on another page included), even if the browser
+ * would otherwise send the session cookie with it.
+ */
+const RESOURCE_POLICY_HEADER = 'Cross-Origin-Resource-Policy';
+const RESOURCE_POLICY = 'same-origin';
+
 class BodyTooLargeError extends Error {
   constructor() {
     super('Request body exceeds the cap');
@@ -62,7 +71,7 @@ function correlationIdOf(request: NextRequest): string {
 function refusal(statusCode: number, code: ApiErrorCode, reason: string, correlationId: string): Response {
   return Response.json(
     { statusCode, code, reason, message: `Request refused by the web proxy: ${reason}`, correlationId },
-    { status: statusCode, headers: { 'Cache-Control': 'no-store', [REQUEST_ID_HEADER]: correlationId } },
+    { status: statusCode, headers: { 'Cache-Control': 'no-store', [RESOURCE_POLICY_HEADER]: RESOURCE_POLICY, [REQUEST_ID_HEADER]: correlationId } },
   );
 }
 
@@ -77,7 +86,6 @@ function logEvent(event: string, fields: Readonly<Record<string, string | number
  */
 function originAllowed(request: NextRequest): boolean {
   if (SAFE_METHODS.has(request.method)) return true;
-  if (request.headers.get('sec-fetch-site') === 'cross-site') return false;
   return request.headers.get('origin') === webConfig().webOrigin;
 }
 
@@ -146,6 +154,7 @@ function downstreamResponse(upstream: Response, route: ApiRoute): Response {
     const value = upstream.headers.get(name);
     if (value !== null) headers.set(name, value);
   }
+  headers.set(RESOURCE_POLICY_HEADER, RESOURCE_POLICY);
   if (route.session) {
     for (const cookie of upstream.headers.getSetCookie()) {
       if (cookie.startsWith(`${SESSION_COOKIE_NAME}=`)) headers.append('Set-Cookie', cookie);
@@ -160,7 +169,10 @@ export async function proxyToApi(request: NextRequest, segments: readonly string
   const matched = matchApiRoute(request.method, segments);
   if (matched === null) return refusal(404, 'not_found', 'route-not-allowed', correlationId);
   const { route } = matched;
-  if (!originAllowed(request)) return refusal(403, 'auth', 'origin-not-allowed', correlationId);
+  // One reason for both checks, so the page shows the pt-BR text it already has for it.
+  if (!fetchSiteAllowed(request.headers.get('sec-fetch-site')) || !originAllowed(request)) {
+    return refusal(403, 'auth', 'origin-not-allowed', correlationId);
+  }
 
   const search = route.query ? request.nextUrl.search : '';
   if (search.length > MAX_QUERY_LENGTH) return refusal(414, 'validation', 'query-too-long', correlationId);

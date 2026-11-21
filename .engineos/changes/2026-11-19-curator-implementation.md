@@ -125,7 +125,7 @@ final-gate review (`security-reviewer` and `critic`).
   `agents.service.ts` at 300 lines. RC-1: an interrupted live call records a worst-case cost row
   (`curator-cost.recorder.ts`); `worstCaseInputChars` moved to `@studio/core/agents`. RW-3: dead
   refresh branch removed. Additive core API: `GroundCheckResult` failure gains `skippedChecks`.
-- [ ] Final checks (lint, typecheck, build, tests, the 24 evals), `security-reviewer` and `critic`: Lint, typecheck, build and tests later ran green at the R4 final gate; the 24 evals, `security-reviewer` and `critic` stay -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
+- [ ] Final checks (lint, typecheck, build, tests, the 24 evals), `security-reviewer` and `critic`: Lint, typecheck, build and tests later ran green at the R4 final gate; the 24 evals, `security-reviewer` and `critic` stay -- RAN 2026-11-21 (owner: "Security review (8)"): 4 read-only security-reviewers MERGE WITH FIXES or CLEAR (0 critical, 0 high, 3 medium), critic REFUTED (2 major). Fixes made 2026-11-21 (all but critic major 2, which is the super-dev run); see "Baseline review (2026-11-21)" in `2026-11-18-r1-implementation.md`
   deferred to release. Kernel checkpoint 2026-11-19: `checks: skip`, `security: skip`,
   `offers: skip`, reasons `not-release`; security_reasons `risk:high`,
   `security-path:apps/watcher/src/curation/curation-spend.guard.ts`.

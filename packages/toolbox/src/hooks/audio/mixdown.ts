@@ -2,6 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { hookSpec } from '@studio/shared/ace';
 import { runTool } from '../../media/exec-tool';
+import { fileInputArgs } from '../../media/media-tools';
 import { encodeWavPcm24Stereo } from './stereo-wav';
 import type { StereoBuffer } from './synth';
 
@@ -102,11 +103,11 @@ function loudnormFilter(measured?: LoudnormMeasurement): string {
 }
 
 async function measureLoudnorm(ffmpegPath: string, inputPath: string, filter: string): Promise<LoudnormMeasurement> {
-  return parseLoudnormJson(await ffmpeg(ffmpegPath, ['-i', inputPath, '-af', filter, '-f', 'null', '-']));
+  return parseLoudnormJson(await ffmpeg(ffmpegPath, [...fileInputArgs(inputPath), '-af', filter, '-f', 'null', '-']));
 }
 
 export async function measureEbur128(ffmpegPath: string, inputPath: string): Promise<{ integratedLufs: number; truePeakDb: number }> {
-  const stderr = await ffmpeg(ffmpegPath, ['-i', inputPath, '-af', 'ebur128=peak=true', '-f', 'null', '-']);
+  const stderr = await ffmpeg(ffmpegPath, [...fileInputArgs(inputPath), '-af', 'ebur128=peak=true', '-f', 'null', '-']);
   const summary = stderr.slice(stderr.lastIndexOf('Summary:'));
   const integrated = /I:\s+(-?[\d.]+|-inf)\s+LUFS/.exec(summary);
   const peak = /True peak:\s+Peak:\s+(-?[\d.]+|-inf)\s+dBFS/.exec(summary);
@@ -128,9 +129,9 @@ export async function mixHookAudio(options: MixHookAudioOptions): Promise<MixHoo
   await writeFile(musicPath, encodeWavPcm24Stereo(options.music));
   await writeFile(sfxPath, encodeWavPcm24Stereo(options.sfx));
 
-  const voiceInputs = options.voiceClips.flatMap((clip) => ['-i', clip.path]);
+  const voiceInputs = options.voiceClips.flatMap((clip) => fileInputArgs(clip.path));
   await ffmpeg(options.ffmpegPath, [
-    '-i', musicPath, '-i', sfxPath, ...voiceInputs,
+    ...fileInputArgs(musicPath), ...fileInputArgs(sfxPath), ...voiceInputs,
     '-filter_complex', premixGraph(options.voiceClips, options.durationS),
     '-map', '[out]', '-ar', '48000', '-ac', '2', '-c:a', 'pcm_f32le', premixPath,
   ]);
@@ -138,14 +139,14 @@ export async function mixHookAudio(options: MixHookAudioOptions): Promise<MixHoo
   const premix = await measureLoudnorm(options.ffmpegPath, premixPath, loudnormFilter());
   const gainDb = hookSpec.targetLufs - Number.parseFloat(premix.input_i);
   await ffmpeg(options.ffmpegPath, [
-    '-i', premixPath,
+    ...fileInputArgs(premixPath),
     '-af', `volume=${gainDb.toFixed(2)}dB,alimiter=limit=${PRE_LIMIT.toFixed(4)}:attack=2:release=60:level=false`,
     '-ar', '48000', '-c:a', 'pcm_f32le', limitedPath,
   ]);
 
   const firstPass = await measureLoudnorm(options.ffmpegPath, limitedPath, loudnormFilter());
   await ffmpeg(options.ffmpegPath, [
-    '-i', limitedPath, '-af', loudnormFilter(firstPass),
+    ...fileInputArgs(limitedPath), '-af', loudnormFilter(firstPass),
     '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s24le', '-t', String(options.durationS), masterPath,
   ]);
 

@@ -11,7 +11,6 @@ import { NarrationIndexSchema } from '../shared/stage-artifacts';
 import { narrationCharacters, priceForEstimate } from '../shared/stage-estimates';
 import { readOptionalStageInput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { commandTimeoutMs, needsPerson, reportedSuccess, stageFailed, toolFailure, type CheckEvidenceMap } from '../shared/stage-results';
-import { mediaToolPaths } from '../shared/stage-settings';
 import { stageTexts } from '../shared/stage-texts';
 import { planVoice, speakLines, type NarrationLine, type ReadyVoice, type TtsProvider } from '../voice/narration-voice';
 
@@ -70,9 +69,9 @@ export class NarrationExecutor extends BaseStageExecutor {
       await this.recordSpeech(context, { provider: voice.provider, characters, usd: price.usd });
       const output = join(directory, 'narration.wav');
       const result = await this.dependencies.runner.run(
-        { command: 'narration-assemble', tools: mediaToolPaths(this.dependencies.settings), clips: spoken.clips, output },
+        { command: 'narration-assemble', clips: spoken.clips, output },
         NarrationAssembleResultSchema,
-        { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+        { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] },
       );
       if (result.status === 'failed') return { status: 'failed', failure: toolFailure(result, context) };
       await outputs.adoptFile('narration-audio', output);

@@ -5,7 +5,7 @@ import {
   readCostFile,
   readEgressEntries,
   readRunFile,
-  resolveInsideRun,
+  resolveInsideRunReal,
   writeCostFile,
   writeQaSummary,
   writeRunManifest,
@@ -62,7 +62,7 @@ export class PackageExecutor extends BaseStageExecutor {
     const subject = await readOptionalStageInput(context, 'qa-subject', QaSubjectSchema);
     const video = latestVideoInput(context);
     if (subject === null || !subject.passed || video === undefined) return ownerStop(stageTexts.qaNotPassed, stageTexts.qaNotPassedWhatToDo);
-    const videoPath = resolveInsideRun(context.runDir, subject.path);
+    const videoPath = await resolveInsideRunReal(context.runDir, subject.path);
     if (video.path !== subject.path || (await sha256OfFile(videoPath)) !== subject.contentHash) {
       return ownerStop(stageTexts.qaSubjectChanged, stageTexts.qaNotPassedWhatToDo);
     }
@@ -120,7 +120,7 @@ export class PackageExecutor extends BaseStageExecutor {
     const hashed: ManifestOutput[] = [];
     for (const name of DELIVERABLES) {
       const path = outputs.pathOf(name);
-      const absolutePath = resolveInsideRun(context.runDir, path);
+      const absolutePath = await resolveInsideRunReal(context.runDir, path);
       const file = await stat(absolutePath).catch((error: unknown) => {
         // An output skipped by the `missing-output` mock fault is absent; the engine postcondition reports it.
         if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;

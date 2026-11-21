@@ -6,6 +6,7 @@ import type { LocalVoiceConfig } from '../../config/env';
 import { ProviderError } from '../../errors';
 import { runTool } from '../../media/exec-tool';
 import { probeMedia } from '../../media/ffprobe';
+import { fileInputArgs } from '../../media/media-tools';
 import { estimateWordTimings } from '../../narration/estimate-word-timings';
 
 // The local model runs far slower than real time (about 25x on an Apple M5), so a 90 s
@@ -89,7 +90,7 @@ export class LocalVoiceProvider implements VoiceProvider {
         ffmpegPath,
         [
           '-hide_banner', '-loglevel', 'error', '-y',
-          ...clips.flatMap((clip) => ['-i', clip.path]),
+          ...clips.flatMap((clip) => fileInputArgs(clip.path)),
           '-filter_complex', `concat=n=${clips.length}:v=0:a=1`,
           '-ar', OUTPUT_SAMPLE_RATE, '-c:a', 'libmp3lame', '-b:a', OUTPUT_BITRATE,
           outPath,

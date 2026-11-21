@@ -104,7 +104,7 @@ export class RunScanner {
       if (!(error instanceof RunFileError)) throw error;
       return this.unreadable(runId, error.code, notices);
     }
-    const verdict = classifyRun(facts, this.daemonProcess.pid);
+    const verdict = classifyRun(facts);
     if (verdict.kind === 'owned') {
       this.notice(notices, `${runId}:owned:${verdict.ownerPid}`, () =>
         this.logger.warn({ event: 'run.refused', reason: 'live-owner', runId, ownerPid: verdict.ownerPid }),
@@ -155,7 +155,7 @@ export class RunScanner {
 
   /** Reads only what the status needs: control.json for held runs, approval.json for waiting ones. */
   private async factsOf(run: Pick<RunFile, 'runId' | 'state'>, runDir: string): Promise<RunFacts> {
-    const owner = await readWatcherState(runDir);
+    const owner = await readWatcherState(runDir, { selfPid: this.daemonProcess.pid });
     const held = resumableStatuses.includes(run.state.status);
     const control = held ? await readControlRequest(runDir) : null;
     const approval = run.state.status === 'waiting' ? await readApprovalFile(runDir) : noApproval;

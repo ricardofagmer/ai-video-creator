@@ -19,13 +19,3 @@ export const ControlRequestSchema = z
   })
   .strict();
 export type ControlRequest = z.infer<typeof ControlRequestSchema>;
-
-/** `runs/<runId>/watcher.pid`: the pid of the watcher executing the run, as decimal text. */
-export const WatcherPidTextSchema = z
-  .string()
-  .regex(/^[1-9][0-9]{0,9}\n?$/, 'watcher.pid holds one decimal pid')
-  .transform((text) => Number.parseInt(text, 10));
-
-export function formatWatcherPid(pid: number): string {
-  return `${pid}\n`;
-}

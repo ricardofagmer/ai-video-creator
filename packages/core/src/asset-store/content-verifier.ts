@@ -4,8 +4,8 @@ import { FolderManifestSchema, type AssetLayout, type FolderEntry, type Sha256 }
 import { AssetStoreError } from './asset-store.errors';
 import { ContentStore } from './content-store';
 import { folderContentFrom } from './folder-content';
+import { isErrnoException, toAssetStoreError } from './fs-errors';
 import { hashFile, sha256Hex } from './hashing';
-import { isErrnoException } from './path-guards';
 import { ReferenceInspector } from './reference-inspector';
 
 /** Upper bound for a re-hash; large references (checkpoints) are hashed in full (ADR 0003). */
@@ -42,7 +42,8 @@ export class ContentVerifier {
         : await this.rehashStoredFolder(contentHash, signal);
     } catch (error) {
       if (isMissingError(error)) return missing;
-      throw error;
+      // EACCES and other errno failures: typed and path-free, never Node's raw message.
+      throw toAssetStoreError(error);
     }
   }
 
@@ -55,7 +56,8 @@ export class ContentVerifier {
       return { status: 'hashed', contentHash: hashed.contentHash, sizeBytes: hashed.sizeBytes };
     } catch (error) {
       if (isMissingError(error)) return missing;
-      throw error;
+      // EACCES and other errno failures: typed and path-free, never Node's raw message.
+      throw toAssetStoreError(error);
     }
   }
 

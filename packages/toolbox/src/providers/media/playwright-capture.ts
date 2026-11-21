@@ -1,16 +1,18 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { chromium, type Browser } from 'playwright';
+import { chromium, type APIResponse, type Browser, type Route } from 'playwright';
 import { BlockedError, type CaptureResult } from '@studio/shared/ace';
 import type { CaptureViewport } from '../../config/env';
 import { ProviderError } from '../../errors';
-import { isHostAllowed } from './capture-url';
+import { isHostAllowed, isPublicHttpsUrl } from './capture-url';
 
 const MAX_RECORDING_S = 20;
 const MIN_RECORDING_S = 2;
 const NAVIGATION_TIMEOUT_MS = 30_000;
 const SCROLL_STEP_PX = 240;
+/** RFC 6455 "policy violation": the page asked for a WebSocket, which captures never open. */
+const WEBSOCKET_POLICY_CLOSE = 1008;
 const viewports: Record<CaptureViewport, { width: number; height: number }> = {
   desktop: { width: 1280, height: 800 },
   vertical: { width: 1080, height: 1920 },
@@ -24,9 +26,45 @@ export interface LiveCaptureRequest {
 }
 
 /**
+ * Decides one routed request of a capture. Navigations (main frame, iframes) must stay on the
+ * https allowlist; every other request (images, scripts, fetch/XHR, media) must be public https.
+ * Each redirect hop is checked by the same rule before the browser sees it, because a route
+ * handler only sees the first URL of a chain. Refused navigation hosts are appended to `refused`.
+ */
+async function guardCaptureRoute(route: Route, allowedHosts: readonly string[], refused: string[]): Promise<void> {
+  const target = route.request();
+  const isNavigation = target.isNavigationRequest();
+  const permitted = (url: URL): boolean => (isNavigation ? isHostAllowed(url, allowedHosts) : isPublicHttpsUrl(url));
+  const targetUrl = new URL(target.url());
+  if (!permitted(targetUrl)) {
+    if (isNavigation) refused.push(targetUrl.host);
+    await route.abort('blockedbyclient');
+    return;
+  }
+  let response: APIResponse;
+  try {
+    response = await route.fetch({ maxRedirects: 0 });
+  } catch {
+    // A failed upstream fetch (DNS, TLS, reset) fails only this request, as the browser would.
+    await route.abort('failed');
+    return;
+  }
+  const location = response.headers()['location'];
+  if (response.status() >= 300 && response.status() < 400 && location) {
+    const redirectUrl = new URL(location, targetUrl);
+    if (!permitted(redirectUrl)) {
+      if (isNavigation) refused.push(redirectUrl.host);
+      await route.abort('blockedbyclient');
+      return;
+    }
+  }
+  await route.fulfill({ response });
+}
+
+/**
  * Records a short webm of a public page. Every capture gets a fresh browser context:
- * no stored profile, cookies or sessions. Every navigation (main frame, iframes and each
- * redirect hop) must stay on the https allowlist and off local-network addresses.
+ * no stored profile, cookies or sessions. Requests follow `guardCaptureRoute`; WebSockets are
+ * closed before they connect, since `context.route` never sees them.
  */
 export class PlaywrightRecorder {
   private browser: Browser | null = null;
@@ -57,32 +95,8 @@ export class PlaywrightRecorder {
     let contextClosed = false;
     try {
       const refusedNavigations: string[] = [];
-      await context.route('**/*', async (route) => {
-        const target = route.request();
-        if (!target.isNavigationRequest()) {
-          await route.continue();
-          return;
-        }
-        const targetUrl = new URL(target.url());
-        if (!isHostAllowed(targetUrl, request.allowedHosts)) {
-          refusedNavigations.push(targetUrl.host);
-          await route.abort('blockedbyclient');
-          return;
-        }
-        // A route handler only sees the first URL of a redirect chain, so redirects are
-        // fetched without following and their target is checked before the browser sees it.
-        const response = await route.fetch({ maxRedirects: 0 });
-        const location = response.headers()['location'];
-        if (response.status() >= 300 && response.status() < 400 && location) {
-          const redirectUrl = new URL(location, targetUrl);
-          if (!isHostAllowed(redirectUrl, request.allowedHosts)) {
-            refusedNavigations.push(redirectUrl.host);
-            await route.abort('blockedbyclient');
-            return;
-          }
-        }
-        await route.fulfill({ response });
-      });
+      await context.route('**/*', (route) => guardCaptureRoute(route, request.allowedHosts, refusedNavigations));
+      await context.routeWebSocket(/.*/, (webSocket) => webSocket.close({ code: WEBSOCKET_POLICY_CLOSE, reason: 'blocked by capture policy' }));
       const page = await context.newPage();
       const startedAt = Date.now();
       try {

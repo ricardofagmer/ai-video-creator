@@ -1,4 +1,5 @@
 import { runTool } from './exec-tool';
+import { fileInputArgs } from './media-tools';
 
 const DETECT_TIMEOUT_MS = 10 * 60_000;
 const ENCODE_TIMEOUT_MS = 10 * 60_000;
@@ -46,7 +47,7 @@ function parseSilence(log: string, totalDurationS: number): Interval[] {
 export async function detectBlackAndSilence(ffmpegPath: string, videoPath: string, totalDurationS: number): Promise<DetectionReport> {
   const { stderr } = await runTool(
     ffmpegPath,
-    ['-hide_banner', '-nostats', '-i', videoPath, '-vf', 'blackdetect=d=1.0', '-af', 'silencedetect=n=-50dB:d=2', '-f', 'null', '-'],
+    ['-hide_banner', '-nostats', ...fileInputArgs(videoPath), '-vf', 'blackdetect=d=1.0', '-af', 'silencedetect=n=-50dB:d=2', '-f', 'null', '-'],
     DETECT_TIMEOUT_MS,
   );
   return { black: parseBlack(stderr), silence: parseSilence(stderr, totalDurationS) };
@@ -60,7 +61,7 @@ export async function encodePreview(ffmpegPath: string, inputPath: string, outpu
   await runTool(
     ffmpegPath,
     [
-      '-hide_banner', '-nostats', '-y', '-i', inputPath,
+      '-hide_banner', '-nostats', '-y', ...fileInputArgs(inputPath),
       '-vf', 'scale=720:1280',
       '-c:v', 'libx264', '-preset', 'medium', '-crf', '28', '-maxrate', '850k', '-bufsize', '1700k', '-pix_fmt', 'yuv420p',
       '-c:a', 'aac', '-b:a', '96k',

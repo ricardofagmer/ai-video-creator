@@ -27,13 +27,19 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 }
 
-/** `/a/b/`, `/a/b`, its `~/` form under the home folder and its URL-encoded form. */
+/**
+ * `/a/b/`, `/a/b`, its `~/` form under the home folder and its URL-encoded form, each in NFC and
+ * NFD: macOS file names are often decomposed while typed text is composed.
+ */
 function pathSpellings(path: string, homeDirectory: string): string[] {
   const trimmed = path.length > 1 ? path.replace(/\/+$/, '') : path;
-  const spellings = new Set<string>([trimmed]);
-  if (homeDirectory.length > 1 && trimmed.startsWith(`${homeDirectory}/`)) spellings.add(`~${trimmed.slice(homeDirectory.length)}`);
-  const encoded = encodeURI(trimmed);
-  if (encoded !== trimmed) spellings.add(encoded);
+  const spellings = new Set<string>();
+  for (const form of new Set([trimmed, trimmed.normalize('NFC'), trimmed.normalize('NFD')])) {
+    spellings.add(form);
+    if (homeDirectory.length > 1 && form.startsWith(`${homeDirectory}/`)) spellings.add(`~${form.slice(homeDirectory.length)}`);
+    const encoded = encodeURI(form);
+    if (encoded !== form) spellings.add(encoded);
+  }
   return [...spellings];
 }
 
@@ -48,7 +54,9 @@ function compileBiometricPattern(paths: readonly string[], homeDirectory: string
   if (spellings.length === 0) return null;
   // Longest first, so a nested registration is consumed by its longest spelling.
   const alternatives = [...new Set(spellings)].sort((left, right) => right.length - left.length).map(escapeRegExp);
-  return new RegExp(`(?:${alternatives.join('|')})(?![^/\\s"'<>,;)\\]}])(?:/[^\\s"'<>,;)\\]}]*)?`, 'g');
+  // Case-insensitive: the default macOS volume treats `/X/Clone` and `/x/clone` as one folder, and
+  // redacting a same-letters path on a case-sensitive volume errs on the safe side.
+  return new RegExp(`(?:${alternatives.join('|')})(?![^/\\s"'<>,;)\\]}])(?:/[^\\s"'<>,;)\\]}]*)?`, 'gi');
 }
 
 /** Counters of one top-level redaction call. */

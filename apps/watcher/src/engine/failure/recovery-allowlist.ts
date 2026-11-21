@@ -33,7 +33,11 @@ export const recoveryActionAllowlist: Readonly<Record<StepName, readonly Recover
   record: [RETRY_STEP_ACTION, NEEDS_PERSON_ACTION],
 };
 
-/** Where a retry of a failed step restarts the stage. */
+/**
+ * Where a retry of a failed step restarts the stage. Neither restart point reaches `preflight`, so
+ * `execute` runs the cost ceilings again with the estimate of the params in force before a retried
+ * attempt (`ExecuteStep`, baseline review).
+ */
 export function retryRestartStep(failedStep: StepName, kind: typeof RETRY_STEP_ACTION | typeof RETRY_WITH_PARAMS_ACTION): StepName {
   // A params patch must reach the input manifest, so `snapshot` records the params the rerun uses.
   if (kind === RETRY_WITH_PARAMS_ACTION) return 'snapshot';
@@ -59,10 +63,28 @@ export function tunableParamKeys(recipeParams: JsonObject): string[] {
 
 export type ParamsPatchVerdict = { status: 'accepted'; params: JsonObject } | { status: 'refused'; keys: string[] };
 
+/**
+ * How far a patched number may move from the recipe's value: up to this many times it. A patch is
+ * model output, and an unbounded count or duration would multiply the paid work of the retried
+ * `execute` (baseline review); the retry's estimate is checked against the ceilings as well.
+ */
+export const PATCHED_NUMBER_MAX_FACTOR = 2;
+
+/** A finite number in `[0, PATCHED_NUMBER_MAX_FACTOR x recipe value]`; a recipe value below 0 admits no patch. */
+function isBoundedNumber(value: number, recipeValue: number): boolean {
+  return Number.isFinite(value) && value >= 0 && value <= PATCHED_NUMBER_MAX_FACTOR * recipeValue;
+}
+
+function isAcceptedPatchValue(value: unknown, recipeValue: unknown): boolean {
+  if (typeof value !== typeof recipeValue) return false;
+  if (typeof value === 'number' && typeof recipeValue === 'number') return isBoundedNumber(value, recipeValue);
+  return true;
+}
+
 export function checkParamsPatch(input: { current: JsonObject; recipeParams: JsonObject; patch: StepParamsPatch }): ParamsPatchVerdict {
   const tunable = new Set(tunableParamKeys(input.recipeParams));
   const refused = Object.entries(input.patch)
-    .filter(([key, value]) => !tunable.has(key) || typeof value !== typeof input.recipeParams[key])
+    .filter(([key, value]) => !tunable.has(key) || !isAcceptedPatchValue(value, input.recipeParams[key]))
     .map(([key]) => key);
   if (refused.length > 0) return { status: 'refused', keys: refused };
   return { status: 'accepted', params: { ...input.current, ...input.patch } };

@@ -51,6 +51,8 @@ export class StageWorkspace {
   private boundAssets: readonly BoundAsset[] | null = null;
   /** Params after a `retry-with-params` patch, or as the last snapshot recorded them on resume. */
   private paramsInForce: JsonObject | null = null;
+  /** `preflight` passed the cost ceilings in this execution for the params in force. */
+  private costChecked = false;
 
   constructor(private readonly options: StageWorkspaceOptions) {}
 
@@ -88,8 +90,19 @@ export class StageWorkspace {
     return planningContextFor(this.options.active.snapshot, this.options.location, this.paramsInForce ?? this.recipeParams());
   }
 
+  /** New params invalidate the cost check: their estimate was never compared with the ceilings. */
   useParams(params: JsonObject): void {
     this.paramsInForce = params;
+    this.costChecked = false;
+  }
+
+  markCostChecked(): void {
+    this.costChecked = true;
+  }
+
+  /** Whether `preflight` checked the cost ceilings in this execution for the params in force. */
+  get costCheckedForParams(): boolean {
+    return this.costChecked;
   }
 
   rememberBrief(brief: StageBrief): void {

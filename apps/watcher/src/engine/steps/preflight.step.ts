@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type StepName } from '@studio/shared/run-format';
-import { CostCeilingCheck } from '../cost/cost-ceiling.check';
+import { CostCeilingCheck, isUsableUsd } from '../cost/cost-ceiling.check';
 import { PREFLIGHT_CHECKS } from '../engine.tokens';
 import { ownerTexts } from '../owner-texts';
 import { licenseDoubtAsset } from '../postconditions/asset-guards';
@@ -40,10 +40,12 @@ export class PreflightStep implements StepHandler {
     }
 
     const estimate = await workspace.executor.estimate(workspace.planningContext());
-    workspace.active.setStageEstimate(workspace.location.stageNumber, estimate);
+    // An invalid estimate is never recorded (run.json would refuse it); the cost check fails closed on it.
+    if (isUsableUsd(estimate.usd)) workspace.active.setStageEstimate(workspace.location.stageNumber, estimate);
 
     const cost = await this.costCeiling.check(workspace, estimate);
     if (cost.status === 'failed') return { kind: 'failed', failure: cost.failure, detail: failureDetail(cost.failure) };
+    workspace.markCostChecked();
 
     for (const check of this.checks) {
       const verdict = await check.check(workspace, signal);

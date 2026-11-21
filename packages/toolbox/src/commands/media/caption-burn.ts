@@ -8,7 +8,7 @@ import { runTool } from '../../media/exec-tool';
 import { probeMedia } from '../../media/ffprobe';
 import { filePathArg, numberArg, parseCommandArgs } from '../../media/media-args';
 import { prepareOutputFile, resolveInputFile } from '../../media/media-paths';
-import { ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS, H264_VIDEO_ARGS, type MediaToolPaths } from '../../media/media-tools';
+import { ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS, fileInputArgs, H264_VIDEO_ARGS, type MediaToolPaths } from '../../media/media-tools';
 import { parseSrt, type CaptionCue } from '../../media/srt';
 
 const MAX_CUES = 200;
@@ -106,8 +106,8 @@ export async function runCaptionBurn(tools: MediaToolPaths, rawArgs: unknown): P
       tools.ffmpegPath,
       [
         ...FFMPEG_WRITE_ARGS,
-        '-i', input,
-        ...images.flatMap((image) => ['-i', image.path]),
+        ...fileInputArgs(input),
+        ...images.flatMap((image) => fileInputArgs(image.path)),
         '-filter_complex', graph,
         '-map', `[${lastLabel}]`, '-map', '0:a?',
         ...H264_VIDEO_ARGS,

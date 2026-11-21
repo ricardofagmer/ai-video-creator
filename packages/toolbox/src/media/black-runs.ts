@@ -1,6 +1,6 @@
 import { runTool } from './exec-tool';
 import type { Interval } from './ffmpeg';
-import { ANALYSIS_TIMEOUT_MS, formatSeconds } from './media-tools';
+import { ANALYSIS_TIMEOUT_MS, fileInputArgs, formatSeconds } from './media-tools';
 
 const BLACK_PATTERN = /black_start:\s*([\d.]+)\s+black_end:\s*([\d.]+)\s+black_duration:\s*([\d.]+)/g;
 
@@ -11,7 +11,7 @@ const BLACK_PATTERN = /black_start:\s*([\d.]+)\s+black_end:\s*([\d.]+)\s+black_d
 export async function detectBlackRuns(ffmpegPath: string, filePath: string, minDurationS: number): Promise<Interval[]> {
   const { stderr } = await runTool(
     ffmpegPath,
-    ['-hide_banner', '-nostats', '-nostdin', '-i', filePath, '-map', '0:v:0', '-vf', `blackdetect=d=${formatSeconds(minDurationS)}`, '-an', '-f', 'null', '-'],
+    ['-hide_banner', '-nostats', '-nostdin', ...fileInputArgs(filePath), '-map', '0:v:0', '-vf', `blackdetect=d=${formatSeconds(minDurationS)}`, '-an', '-f', 'null', '-'],
     ANALYSIS_TIMEOUT_MS,
   );
   return Array.from(stderr.matchAll(BLACK_PATTERN), (match) => ({

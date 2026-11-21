@@ -68,6 +68,16 @@ export class RunOwnedByAnotherWatcherError extends EngineError {
   }
 }
 
+/** This process is executing the run already; a second, re-entrant execution is refused. */
+export class RunAlreadyExecutingError extends EngineError {
+  override readonly category = 'conflict';
+
+  constructor(readonly runId: RunId) {
+    super(`Run ${runId} is already executing in this watcher`);
+    this.name = 'RunAlreadyExecutingError';
+  }
+}
+
 export class IllegalRunTransitionError extends EngineError {
   override readonly category = 'internal';
 

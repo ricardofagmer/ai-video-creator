@@ -9,6 +9,7 @@ import {
   formatDuration,
   formatUsd,
 } from './format.js';
+import { stripTerminalControls } from './terminal-text.js';
 
 /** Where the run stands: the cursor's stage, or the last stage when the run is past its cursor. */
 export function currentStageLabel(snapshot: RunSnapshot): string {
@@ -19,8 +20,7 @@ export function currentStageLabel(snapshot: RunSnapshot): string {
 
 export const RUN_LIST_HEADER = `${fitText('ID', 26)}  ${fitText('STATUS', 16)}  ${fitText('ETAPA', 22)}  ${fitText('CUSTO', 10)}  TÍTULO`;
 
-/** One row of the run list; shared by `studio status` and the dashboard. */
-export function runListRow(result: RunReadResult): string {
+function runListRowText(result: RunReadResult): string {
   if (result.status === 'unreadable') return `${fitText(result.runId, 26)}  ${fitText(`ilegível (${result.problem})`, 16)}`;
   const { snapshot } = result;
   return [
@@ -30,6 +30,14 @@ export function runListRow(result: RunReadResult): string {
     fitText(formatUsd(snapshot.run.totals.costUsd), 10),
     snapshot.run.title,
   ].join('  ');
+}
+
+/**
+ * One row of the run list; shared by `studio status` and the dashboard. Titles are owner or model
+ * text, so the row leaves here without terminal controls whichever screen prints it.
+ */
+export function runListRow(result: RunReadResult): string {
+  return stripTerminalControls(runListRowText(result));
 }
 
 export function runListLines(recent: RecentRuns): string[] {
@@ -71,7 +79,16 @@ function stageLine(stage: StageRecord): string {
   return `  ${String(stage.number).padStart(2)} ${fitText(STAGE_LABELS[stage.stageId], 18)} ${STAGE_OUTCOME_LABELS[stage.outcome.status]}${detail}`;
 }
 
+/**
+ * The detail lines of one run, shared by `studio status <runId>` and the dashboard. Titles,
+ * reasons, notices and activity lines come from agents and files, so every line leaves here
+ * without terminal controls.
+ */
 export function runDetailLines(snapshot: RunSnapshot): string[] {
+  return runDetailLineTexts(snapshot).map(stripTerminalControls);
+}
+
+function runDetailLineTexts(snapshot: RunSnapshot): string[] {
   const { run } = snapshot;
   const lines = [
     `Execução ${run.runId}: ${run.title}`,

@@ -1,10 +1,17 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { readRunFile, readWatcherState, removeWatcherPid, writeWatcherPid, type WatcherState } from '@studio/shared/run-files';
+import {
+  claimWatcherPid,
+  readRunFile,
+  readWatcherState,
+  releaseWatcherPid,
+  removeStaleWatcherPid,
+  type WatcherState,
+} from '@studio/shared/run-files';
 import { formatStepKey, resumableStatuses, type RunFile, type RunId, type RunStatus } from '@studio/shared/run-format';
 import { ActiveRun } from './active-run';
 import { type Clock, type WatcherProcess } from './clock';
 import { RunControlService } from './control/run-control.service';
-import { ResumeNotRequestedError, RunNotRunnableError, RunOwnedByAnotherWatcherError } from './engine.errors';
+import { ResumeNotRequestedError, RunAlreadyExecutingError, RunNotRunnableError, RunOwnedByAnotherWatcherError } from './engine.errors';
 import { CLOCK, WATCHER_PROCESS } from './engine.tokens';
 import { GateKeeper } from './gates/gate-keeper';
 import { PlanRecorder } from './gates/plan-recorder';
@@ -51,10 +58,17 @@ function startModeOf(run: Readonly<RunFile>, owner: WatcherState, control: Contr
  * Takes one run folder from `pending`, or from where it was held, to where it stops: `review`, or
  * a held status (`waiting`, `paused`, `interrupted`, `failed`, `rejected`). It owns `watcher.pid`
  * for the whole execution and is the only path that writes run files (ADR 0003, C5).
+ *
+ * Ownership (RUN-FORMAT section 14, critic major 1): `watcher.pid` holds a pid plus boot-time stamp
+ * and is created with O_EXCL. A file naming this process's own pid was left by an earlier life of
+ * that pid (a reboot or a forced exit), never by this process, so it is stale like any dead owner;
+ * that this process is executing a run right now is known in memory instead.
  */
 @Injectable()
 export class RunEngine {
   private readonly logger = new Logger(RunEngine.name);
+  /** Run folders this process is executing now; `execute` refuses a second, re-entrant call. */
+  private readonly executing = new Set<string>();
 
   constructor(
     @Inject(StageRunner) private readonly stageRunner: StageRunner,
@@ -67,28 +81,42 @@ export class RunEngine {
 
   async execute(runDir: string): Promise<RunExecutionResult> {
     const run = await readRunFile(runDir);
-    const owner = await readWatcherState(runDir);
-    // A live watcher with `running` recorded is executing it now, even when that watcher is this process.
-    if (owner.status === 'alive' && (owner.pid !== this.watcherProcess.pid || run.state.status === 'running')) {
-      throw new RunOwnedByAnotherWatcherError(run.runId, owner.pid);
-    }
+    if (this.executing.has(runDir)) throw new RunAlreadyExecutingError(run.runId);
+    const owner = await readWatcherState(runDir, { selfPid: this.watcherProcess.pid });
+    if (owner.status === 'alive') throw new RunOwnedByAnotherWatcherError(run.runId, owner.pid);
 
-    await writeWatcherPid(runDir, this.watcherProcess.pid);
+    await this.claimRun(runDir, run);
+    this.executing.add(runDir);
     try {
       // Read after `watcher.pid` exists: the api writes control.json only while no watcher lives (A6).
       const control = await this.runControl.read(runDir);
       const mode = startModeOf(run, owner, control);
       const baseline = mode.kind === 'owner-resume' ? captureBaseline(run) : emptyBaseline;
       const active = new ActiveRun({ runDir, run, pid: this.watcherProcess.pid, clock: this.clock, baseline });
-      await this.runControl.clear(runDir);
+      // Only the request just read is cleared; one written since survives for the next check.
+      await this.runControl.clear(runDir, control);
       this.logger.log(`run ${run.runId} started (${mode.kind})`);
       await this.executeOwned(active, mode, control);
       const status = active.snapshot.state.status;
       this.logger.log(`run ${run.runId} stopped as ${status}`);
       return { runId: run.runId, status };
     } finally {
-      await removeWatcherPid(runDir);
+      this.executing.delete(runDir);
+      await releaseWatcherPid(runDir, this.watcherProcess.pid);
     }
+  }
+
+  /**
+   * Creates `watcher.pid` with O_EXCL. A file that is already there is removed only after it is
+   * judged stale again, then the create is tried once more; losing that race to another watcher is
+   * the same conflict as finding a live owner, and the next scan sees the run's new state.
+   */
+  private async claimRun(runDir: string, run: Readonly<RunFile>): Promise<void> {
+    const selfPid = this.watcherProcess.pid;
+    if ((await claimWatcherPid(runDir, selfPid)) === 'claimed') return;
+    if ((await removeStaleWatcherPid(runDir, { selfPid })) && (await claimWatcherPid(runDir, selfPid)) === 'claimed') return;
+    const holder = await readWatcherState(runDir, { selfPid });
+    throw new RunOwnedByAnotherWatcherError(run.runId, holder.status === 'absent' ? selfPid : holder.pid);
   }
 
   private async executeOwned(active: ActiveRun, mode: StartMode, control: ControlState): Promise<void> {

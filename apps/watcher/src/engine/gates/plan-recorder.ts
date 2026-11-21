@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PlanOutputSchema, type PlanOutput } from '@studio/shared/agents';
-import { RunFileError, readJsonFile, readStageBrief, resolveInsideRun, writeRunMarkdown } from '@studio/shared/run-files';
+import { RunFileError, readJsonFile, readStageBrief, resolveInsideRunReal, writeRunMarkdown } from '@studio/shared/run-files';
 import { type ActiveRun } from '../active-run';
 import { type StageBriefLearnings } from '../brief/learnings-section';
 import { type Clock } from '../clock';
@@ -82,7 +82,7 @@ export class PlanRecorder {
     const output = active.stage(stageNumber).outputs.find((candidate) => candidate.name === PLAN_OUTPUT_NAME);
     if (output === undefined) return null;
     try {
-      const plan = await readJsonFile(resolveInsideRun(active.runDir, output.path), PlanOutputSchema);
+      const plan = await readJsonFile(await resolveInsideRunReal(active.runDir, output.path), PlanOutputSchema);
       return plan.totalEstimateUsd >= 0 ? plan : null;
     } catch (error) {
       if (error instanceof RunFileError) return null;

@@ -15,7 +15,10 @@ ffprobe call goes through `media/exec-tool.ts` `runTool` (`execFile`, fixed argv
 | `caption-burn` | `runCaptionBurn(tools, args)` | `CaptionBurnArgsSchema` | `CaptionBurnResult` |
 | `media-review` | `runMediaReview(tools, args)` | `MediaReviewArgsSchema` | `MediaReviewResult` |
 
-- `tools` is `{ ffmpegPath, ffprobePath }` (`MediaToolPaths`; `ToolboxEnv` satisfies it).
+- `tools` is `{ ffmpegPath, ffprobePath }` (`MediaToolPaths`; `ToolboxEnv` satisfies it). Both
+  must be absolute paths: `runTool` refuses a bare name that would be looked up on PATH.
+- Every input file is opened with `-protocol_whitelist file` and a demuxer allowlist
+  (`media-tools.ts` `FILE_INPUT_GUARD_ARGS`); other protocols and formats are refused by ffmpeg.
 - `args` is `unknown`; each function validates it with its strict zod schema. Numbers may be
   numbers or numeric strings (CLI). Unknown keys are rejected.
 - Paths are resolved to absolute paths. Inputs must be existing regular files. Outputs must be

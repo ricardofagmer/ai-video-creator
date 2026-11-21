@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ExternalToolError } from '../errors';
 import { runTool } from './exec-tool';
+import { FILE_INPUT_GUARD_ARGS } from './media-tools';
 import { toProbeSummary, type ProbeSummary } from './probe-mapper';
 
 const PROBE_TIMEOUT_MS = 60_000;
@@ -25,7 +26,7 @@ export type FfprobeOutput = z.infer<typeof FfprobeOutputSchema>;
 export async function probeMedia(ffprobePath: string, filePath: string): Promise<ProbeSummary> {
   const { stdout } = await runTool(
     ffprobePath,
-    ['-v', 'error', '-print_format', 'json', '-show_streams', '-show_format', filePath],
+    ['-v', 'error', ...FILE_INPUT_GUARD_ARGS, '-print_format', 'json', '-show_streams', '-show_format', filePath],
     PROBE_TIMEOUT_MS,
   );
   let raw: unknown;

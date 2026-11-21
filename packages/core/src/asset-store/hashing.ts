@@ -3,7 +3,8 @@ import { createReadStream } from 'node:fs';
 import { addAbortSignal, type Readable } from 'node:stream';
 import { type Sha256 } from '@studio/shared/catalog';
 import { ContentTooLargeError, SourceNotFoundError, UnsupportedChunkError } from './asset-store.errors';
-import { isErrnoException } from './path-guards';
+import { isErrnoException, toAssetStoreError } from './fs-errors';
+import { openRegularFile, type FileIdentity } from './regular-file';
 
 export interface HashedContent {
   contentHash: Sha256;
@@ -65,6 +66,22 @@ export async function hashFile(absolutePath: string, options: HashOptions): Prom
     return await hashReadable(createReadStream(absolutePath), options);
   } catch (error) {
     if (isErrnoException(error) && error.code === 'ENOENT') throw new SourceNotFoundError();
-    throw error;
+    throw toAssetStoreError(error);
+  }
+}
+
+/**
+ * Like `hashFile`, for caller-supplied sources (references, folder entries): the file is opened
+ * without following a symlink and must be the one `expected` (or a fresh `lstat`) identified, so
+ * nothing swapped in after the check is read (`openRegularFile`).
+ */
+export async function hashRegularFile(absolutePath: string, options: HashOptions, expected?: FileIdentity): Promise<HashedContent> {
+  const handle = await openRegularFile(absolutePath, expected);
+  try {
+    return await hashReadable(handle.createReadStream({ autoClose: false }), options);
+  } catch (error) {
+    throw toAssetStoreError(error);
+  } finally {
+    await handle.close();
   }
 }

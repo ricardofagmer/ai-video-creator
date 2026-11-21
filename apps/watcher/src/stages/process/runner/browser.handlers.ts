@@ -76,7 +76,8 @@ export async function liveCapture(request: LiveCaptureRequest): Promise<{ durati
 /**
  * Visible text of the brief's page. Every request, navigation or not, must stay on the page's own
  * https host (toolbox `isHostAllowed` also refuses local-network addresses); redirects are checked
- * before the browser follows them. A fresh context: no profile, cookies or service workers.
+ * before the browser follows them; WebSockets are closed unopened. A fresh context: no profile,
+ * cookies or service workers.
  */
 export async function pageText(request: PageTextRequest): Promise<{ title: string; text: string; truncated: boolean }> {
   const url = new URL(request.url);
@@ -101,6 +102,8 @@ export async function pageText(request: PageTextRequest): Promise<{ title: strin
       }
       await route.fulfill({ response });
     });
+    // `context.route` never sees WebSockets; close each before it connects (RFC 6455 1008, policy violation).
+    await context.routeWebSocket(/.*/, (webSocket) => webSocket.close({ code: 1008, reason: 'blocked by page-text policy' }));
     const page = await context.newPage();
     await page.goto(url.href, { waitUntil: 'load', timeout: NAVIGATION_TIMEOUT_MS });
     const landed = new URL(page.url());

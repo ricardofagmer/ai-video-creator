@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { StageExecutionContext } from '@studio/shared/ports';
-import { resolveInsideRun } from '@studio/shared/run-files';
+import { resolveInsideRunReal } from '@studio/shared/run-files';
 import { NarrationIndexSchema } from '../shared/stage-artifacts';
 import { findStageInput, readOptionalStageInput } from '../shared/stage-io';
 import { type CheckEvidence } from '../shared/stage-results';
@@ -18,7 +18,7 @@ export function maxCaptionDriftMs(context: StageExecutionContext): number {
 export async function recordedCaptionDrift(context: StageExecutionContext, srtPath: string | null): Promise<CaptionDrift | null> {
   const narration = await readOptionalStageInput(context, 'narration-index', NarrationIndexSchema);
   if (narration === null || srtPath === null) return null;
-  const srt = await readFile(resolveInsideRun(context.runDir, srtPath), 'utf8');
+  const srt = await readFile(await resolveInsideRunReal(context.runDir, srtPath), 'utf8');
   return captionDrift(srt, narration.words, context.recipe.format.captions.maxLines);
 }
 

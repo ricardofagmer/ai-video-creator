@@ -1,5 +1,6 @@
 export {
   AssetStoreError,
+  AssetStoreIoError,
   ContentTooLargeError,
   SourceNotFoundError,
   UnsafePathError,

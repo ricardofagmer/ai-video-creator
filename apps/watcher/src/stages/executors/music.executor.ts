@@ -9,7 +9,6 @@ import { latestVideoInput } from '../shared/latest-video';
 import { withScratchDir } from '../shared/scratch-dir';
 import { stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { commandTimeoutMs, needsPerson, reportedSuccess, stageFailed, toolFailure, type CheckEvidenceMap } from '../shared/stage-results';
-import { mediaToolPaths } from '../shared/stage-settings';
 import { stageTexts } from '../shared/stage-texts';
 
 /** C9 `music-bed` argument ranges (`packages/toolbox/src/commands/media/README.md`). */
@@ -55,7 +54,6 @@ export class MusicExecutor extends BaseStageExecutor {
       const result = await this.dependencies.runner.run(
         {
           command: 'music-bed',
-          tools: mediaToolPaths(this.dependencies.settings),
           input: resolveInsideRun(context.runDir, video.path),
           output,
           music: track.asset.absolutePath,
@@ -63,7 +61,7 @@ export class MusicExecutor extends BaseStageExecutor {
           truePeakTargetDb: clamp(truePeakDbtp, TRUE_PEAK_RANGE),
         },
         MediaWriteResultSchema,
-        { signal: context.signal, timeoutMs: commandTimeoutMs(context) },
+        { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir, track.asset.absolutePath] },
       );
       if (result.status === 'ok') await outputs.adoptFile('music', output);
       return result;

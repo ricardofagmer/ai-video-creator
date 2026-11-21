@@ -64,7 +64,9 @@ describe('apps/watcher/src writes no SQLite and no api-owned platform file (AC 5
   it('reaches PrismaService only from the read-only readers that need it', async () => {
     const users = offenders(await sources(SRC), /\bPrismaService\b/).sort();
 
+    // The daemon's database module names PrismaService only to bind its read-only access mode.
     assert.deepEqual(users, [
+      join('daemon', 'watcher-database-access.module.ts'),
       join('platforms', 'publication-attempt.reader.ts'),
       join('platforms', 'publication-targets.reader.ts'),
       join('platforms', 'run-approval.reader.ts'),

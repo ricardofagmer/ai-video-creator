@@ -2,6 +2,7 @@ import { Box, Text, useApp, useInput } from 'ink';
 import { type ReactElement } from 'react';
 import { RunDetailView } from './run-detail-view.js';
 import { RunListView } from './run-list-view.js';
+import { SafeText } from './safe-text.js';
 import { useDashboardState, type ControlRequester } from './use-dashboard-state.js';
 
 export interface DashboardProps {
@@ -33,16 +34,16 @@ export function Dashboard({ runsRoot, dataHomeRoot, requestControl }: DashboardP
     <Box flexDirection="column" paddingX={1}>
       <Box justifyContent="space-between">
         <Text bold>Video Studio</Text>
-        <Text dimColor>{dataHomeRoot}</Text>
+        <SafeText dimColor>{dataHomeRoot}</SafeText>
       </Box>
-      {model.loadError === null ? null : <Text color="red">{model.loadError}</Text>}
+      {model.loadError === null ? null : <SafeText color="red">{model.loadError}</SafeText>}
       <Box marginTop={1}>
         <RunListView recent={model.recent} selectedIndex={model.selectedIndex} />
       </Box>
       <Box marginTop={1} borderStyle="single" paddingX={1}>
         <RunDetailView snapshot={model.selected} />
       </Box>
-      {model.notice === null ? null : <Text color={model.notice.tone === 'error' ? 'red' : 'green'}>{model.notice.text}</Text>}
+      {model.notice === null ? null : <SafeText color={model.notice.tone === 'error' ? 'red' : 'green'}>{model.notice.text}</SafeText>}
       <Text dimColor>{KEY_HELP}</Text>
     </Box>
   );

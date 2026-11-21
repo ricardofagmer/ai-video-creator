@@ -31,8 +31,8 @@ export class RunControlService {
     return this.control.read(runDir);
   }
 
-  async clear(runDir: string): Promise<void> {
-    await this.control.clear(runDir);
+  async clear(runDir: string, read: ControlState): Promise<void> {
+    await this.control.clear(runDir, read);
   }
 
   guard(active: ActiveRun, timeoutMs: number): StepGuard {

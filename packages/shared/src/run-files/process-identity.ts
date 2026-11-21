@@ -66,3 +66,22 @@ export function isStampAlive(stamp: ProcessStamp, options: { selfPid?: number; b
   if (!isSameBoot(stamp.bootTimeMs, options.bootTimeMs)) return false;
   return isOwnProcessAlive(stamp.pid);
 }
+
+/**
+ * Liveness of a bare pid whose record carries no boot time but does carry the instant it was
+ * written (an older `watcher.pid` and its file mtime, a curation `claim.claimedAt`). A record
+ * written before this boot is gone whatever its pid answers; within the tolerance it may belong to
+ * this boot, so only signal 0 can decide (ESRCH and EPERM both mean gone, as in `isOwnProcessAlive`).
+ * An unparseable instant proves nothing about the boot and counts as gone, like an unreadable stamp.
+ */
+export function isPidAliveSince(
+  pid: number,
+  recordedAtMs: number,
+  options: { selfPid?: number; bootTimeMs?: number } = {},
+): boolean {
+  if (options.selfPid !== undefined && pid === options.selfPid) return false;
+  if (!Number.isFinite(recordedAtMs)) return false;
+  const bootTimeMs = options.bootTimeMs ?? currentBootTimeMs();
+  if (recordedAtMs < bootTimeMs - BOOT_TIME_TOLERANCE_MS) return false;
+  return isOwnProcessAlive(pid);
+}

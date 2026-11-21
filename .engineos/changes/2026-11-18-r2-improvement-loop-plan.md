@@ -46,7 +46,7 @@ Risk is high for these reasons:
 - [x] Every open decision recorded below
 - [x] R2-03 dependency vetting report approved by the owner before any `package.json` or lockfile change (option L)
 - [x] Migration execution: scoped owner confirmation before the next `scripts/install.sh` (it runs `prisma migrate deploy`) (applied: `_prisma_migrations` shows it finished (read-only check 2026-11-21); no scoped-confirmation row in this record)
-- [ ] Security review and critic pass at the final gate (risk high) -- OPEN: never run. Every later review covered only changes after the baseline commit `c52a849`, which holds this code. Tracked as system step "baseline security review and critic" (2026-11-21)
+- [ ] Security review and critic pass at the final gate (risk high) -- RAN 2026-11-21 (owner: "Security review (8)"): 4 read-only security-reviewers MERGE WITH FIXES or CLEAR (0 critical, 0 high, 3 medium), critic REFUTED (2 major). Fixes made 2026-11-21 (all but critic major 2, which is the super-dev run); see "Baseline review (2026-11-21)" in `2026-11-18-r1-implementation.md`
 - [x] R1-FP and R2-FP checks together at the final gate, with the owner's approval (R4 final gate 2026-11-20 ran the whole monorepo green: typecheck 13/13, lint 13/13, tests 11/11, build 10/10 (`2026-11-20-r4-implementation.md` line 29))
 - [x] Prototype preview choice asked before any R2 production code (declined)
 
