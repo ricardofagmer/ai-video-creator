@@ -1,10 +1,9 @@
 # 0008. Render HyperFrames templates as a second, gated engine behind the template engine discriminator; Remotion stays the default
 
 Date: 2026-11-20
-Status: proposed. The owner approved the pin `hyperframes` 0.9.72 exact on 2026-11-20
-(`docs/vetting/0005-hyperframes-dependency.md`). The owner answered SPEC 0008 questions OD4 to
-OD7 on 2026-11-20, each with the recommended answer this ADR is written under.
-Acceptance follows review, as for ADRs 0004 to 0007.
+Status: accepted (owner, 2026-11-21). The owner approved the pin `hyperframes` 0.9.72 exact on
+2026-11-20 (`docs/vetting/0005-hyperframes-dependency.md`). The owner answered SPEC 0008
+questions OD4 to OD7 on 2026-11-20, each with the recommended answer this ADR is written under.
 
 Decider: Ricardo Fagmer. Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) D2, section 3 R4
 goal 5, section 5.1, section 12, section 15; `docs/vetting/0004-hyperframes-spike.md` (pass, with

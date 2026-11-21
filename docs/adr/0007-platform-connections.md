@@ -1,8 +1,8 @@
 # 0007. Connect platforms with loopback OAuth, keep tokens in a Keychain vault, and make the watcher the only platform caller after connect
 
 Date: 2026-11-20
-Status: proposed. The owner answered SPEC 0007 Q1 to Q5 on 2026-11-20 (OD5 to OD9): option (a)
-for Q1, Q2, Q3 and Q5, option (b) for Q4. Acceptance follows review, as for ADRs 0004 to 0006.
+Status: accepted (owner, 2026-11-21). The owner answered SPEC 0007 Q1 to Q5 on 2026-11-20 (OD5
+to OD9): option (a) for Q1, Q2, Q3 and Q5, option (b) for Q4.
 
 Decider: Ricardo Fagmer. Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) section 3 R4
 goals 1 to 3, section 12, AC 37 and 38; SPEC 0007 (`docs/specs/0007-r4-connected-platforms.md`,

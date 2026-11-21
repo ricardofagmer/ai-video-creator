@@ -1,9 +1,9 @@
 # 0006. Keep traces in local files and add an on-demand OTLP JSON file export
 
 Date: 2026-11-19
-Status: proposed; the owner chose option 2 (on-demand OTLP JSON file export) on 2026-11-19 (SPEC 0006 Q2, "On-demand OTLP file (Recommended)"). Acceptance follows review, as for ADRs 0001-0004.
+Status: accepted (owner, 2026-11-21). The owner chose option 2 (on-demand OTLP JSON file export) on 2026-11-19 (SPEC 0006 Q2, "On-demand OTLP file (Recommended)").
 
-Decider: Ricardo Fagmer. The decision is the owner's; this ADR recommends and does not decide
+Decider: Ricardo Fagmer. The decision is the owner's, made on 2026-11-19
 (SPEC 0006 Q2). Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) section 12 ("Local-only ...
 No remote access, no telemetry"), AC 21, AC 22; ADR 0002; ADR 0003; SPEC 0001
 (`docs/specs/0001-agent-topology.md`) section 10 ("OpenTelemetry export is decided for R2");
@@ -103,7 +103,7 @@ A span event may say that a redaction happened and how many items were redacted,
 
 ## Decision
 
-**Proposed, for the owner to accept, change or reject (SPEC 0006 Q2):** option 2.
+**Accepted by the owner (SPEC 0006 Q2):** option 2.
 
 1. Traces stay in the local files that exist today. They remain the source of truth.
 2. Add one pure mapper (`packages/shared/src/telemetry/`) and one CLI command

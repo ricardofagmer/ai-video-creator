@@ -1,7 +1,7 @@
 # 0004. Embed catalog text in-process with ONNX Runtime and scan vectors by brute force
 
 Date: 2026-11-18
-Status: proposed
+Status: accepted (owner, 2026-11-21)
 
 Decider: Ricardo Fagmer. Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) D5, D10, section
 12, criterion 32; ADR 0003 decision 6 and its revisit list; SPEC 0003
@@ -18,8 +18,8 @@ placeholder pins until they are read from the model host, and the installer and 
 placeholders. Measurements are **To measure** (vetting section 9). Statements marked
 **Assumption** are defaults chosen here.
 
-Status stays `proposed` until the R2 final proof (R2-FP) confirms the vetting report's phase 2
-checks (section 11) and the measurements on the owner's Mac.
+Acceptance was first tied to the R2 final proof (R2-FP), which checks the vetting report's phase 2
+items (section 11) and the measurements on the owner's Mac; the owner accepted it on 2026-11-21.
 
 ## Context
 
