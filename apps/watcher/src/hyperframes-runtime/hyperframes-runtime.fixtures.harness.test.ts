@@ -15,13 +15,14 @@ export const PARENT_ENV_SENTINELS: Readonly<Record<string, string>> = Object.fre
   STUDIO_ARBITRARY_PARENT_VARIABLE: 'sentinel-arbitrary-variable-planted',
 });
 
-/** The eleven keys of section 4.5, sorted; no other key may exist in a render environment. */
+/** The eleven keys of section 4.5 plus HYPERFRAMES_CHROME_SANDBOX (section 18.6), sorted; no other key may exist in a render environment. */
 export const RENDER_ENV_KEYS: readonly string[] = Object.freeze(
   [
     'DO_NOT_TRACK',
     'HOME',
     'HYPERFRAMES_BROWSER_PATH',
     'HYPERFRAMES_CACHE_DIR',
+    'HYPERFRAMES_CHROME_SANDBOX',
     'HYPERFRAMES_CONFIG_DIR',
     'HYPERFRAMES_NO_TELEMETRY',
     'HYPERFRAMES_NO_UPDATE_CHECK',
@@ -72,6 +73,7 @@ export function expectedRenderEnv(runtime: HyperframesRuntime): Record<string, s
     HYPERFRAMES_CONFIG_DIR: runtime.configDir,
     HYPERFRAMES_CACHE_DIR: runtime.cacheDir,
     HYPERFRAMES_BROWSER_PATH: runtime.browserPath,
+    HYPERFRAMES_CHROME_SANDBOX: '0',
   };
 }
 

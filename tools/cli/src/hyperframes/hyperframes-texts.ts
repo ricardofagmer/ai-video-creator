@@ -86,7 +86,7 @@ export function chromeInstallNotice(destination: string): readonly string[] {
 export const TRACE_NOTICE: readonly string[] = [
   'Verificação de rede do HyperFrames (passo O3)',
   '  0. conferência do binário do Chrome com chrome.json (tamanho e sha-256), antes de iniciar qualquer processo;',
-  '  1. cinco controles dentro do isolamento, todos devem ser negados: conexão para 192.0.2.1:9 (também registrada no log),',
+  '  1. cinco controles dentro do isolamento, todos devem ser negados: conexão para 192.0.2.1:9 (negada com EPERM),',
   '     iniciar /usr/bin/true, criar um arquivo na pasta do HyperFrames, listar a pasta de dados e conectar à porta da API do estúdio;',
   '  2. uma renderização do modelo do estúdio (title-card) dentro do isolamento;',
   '  3. leitura do log do sistema na janela da renderização;',
@@ -118,6 +118,9 @@ export function traceChromeBeforeText(status: 'changed' | 'unreadable'): string 
 export const TRACE_CHROME_CHANGED_AFTER_TEXT = 'Chrome: o binário mudou durante a renderização (sha-256 ou tamanho diferente de chrome.json)';
 
 export const TRACE_CHROME_UNREADABLE_AFTER_TEXT = 'Chrome: o binário não pôde ser lido depois da renderização';
+
+/** C1 was refused with EPERM but macOS wrote no log line for it (section 18.7): shown, never part of the result. */
+export const TRACE_CONTROL_NOT_LOGGED_TEXT = 'informativo (não muda o resultado): o macOS não registrou no log a negação do controle C1; a prova é o código EPERM';
 
 /** A denial of another kind that no control caused: the profile working, shown without changing the result. */
 export function traceInformationalDenialText(description: string): string {

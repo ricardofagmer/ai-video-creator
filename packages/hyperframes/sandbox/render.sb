@@ -11,14 +11,21 @@
 ;; its reason and listed in the trace findings. A rule is never removed silently. The sha-256 of
 ;; this file is part of the trace record, so any edit makes the trace stale until it is rerun.
 ;; Rule groups are in this order because the last matching rule is assumed to decide (U9).
-;; No exception has been added yet. In particular the resolver socket (mDNSResponder) stays denied,
-;; so no host name can leave the Mac as a DNS query.
+;; The resolver socket (mDNSResponder) stays denied, so no host name can leave the Mac as a DNS
+;; query.
+;; Trace change 1 (2026-11-21, SPEC 0008 section 18.6): the loopback "local ip" allow was written as
+;; network*, and for an outbound connect it matched too, so a connect to 192.0.2.1 was not denied
+;; (trace control C1 timed out). It now covers only bind and inbound; outbound stays loopback-only
+;; through the "remote ip" rule below.
+;; Trace change 2 (same section): Chrome's own seatbelt sandbox cannot start inside this one (its
+;; GPU and renderer processes stop with SIGTRAP), so the render runs Chrome with
+;; HYPERFRAMES_CHROME_SANDBOX=0 and this profile is the whole confinement of the Chrome tree.
 (version 1)
 (allow default)
 
 ;; rev 1: network. No non-loopback address; no resolver socket.
 (deny network*)
-(allow network* (local ip "localhost:*"))
+(allow network-bind network-inbound (local ip "localhost:*"))
 (allow network* (remote ip "localhost:*"))
 (allow network* (remote unix-socket))
 (deny network* (remote unix-socket (path-literal "/private/var/run/mDNSResponder")))

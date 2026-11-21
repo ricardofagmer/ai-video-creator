@@ -9,7 +9,7 @@ import { buildSandboxArgs } from './sandbox-args';
 
 export const SANDBOX_EXEC_PATH = '/usr/bin/sandbox-exec';
 
-/** The ten keys every HyperFrames process gets; the render adds `HYPERFRAMES_BROWSER_PATH`. */
+/** The ten keys every HyperFrames process gets; the render adds `HYPERFRAMES_BROWSER_PATH` and `HYPERFRAMES_CHROME_SANDBOX`. */
 function baseEnv(runtime: HyperframesBaseRuntime): Record<string, string> {
   return {
     PATH: runtime.path,
@@ -26,9 +26,13 @@ function baseEnv(runtime: HyperframesBaseRuntime): Record<string, string> {
   };
 }
 
-/** The complete environment of a render: exactly the eleven keys of section 4.5. */
+/**
+ * The complete environment of a render: the eleven keys of section 4.5 plus
+ * `HYPERFRAMES_CHROME_SANDBOX=0` (section 18.6). Chrome's own sandbox cannot start inside
+ * `render.sb`, so Chrome runs without it and the profile confines the whole Chrome tree.
+ */
 export function buildRenderEnv(runtime: HyperframesRuntime): Readonly<Record<string, string>> {
-  return Object.freeze({ ...baseEnv(runtime), HYPERFRAMES_BROWSER_PATH: runtime.browserPath });
+  return Object.freeze({ ...baseEnv(runtime), HYPERFRAMES_BROWSER_PATH: runtime.browserPath, HYPERFRAMES_CHROME_SANDBOX: '0' });
 }
 
 /**

@@ -82,7 +82,7 @@ export async function hyperframesTraceCommand(ports: HyperframesCommandPorts, de
 
     const { record } = outcome;
     printer.line(`Resultado da verificação: ${record.result}`);
-    printer.line(`  controle negado e registrado: ${record.controlDenied ? 'sim' : 'não'}`);
+    printer.line(`  controle C1 negado (EPERM): ${record.controlDenied ? 'sim' : 'não'}`);
     printer.line(`  código da renderização: ${record.renderExitCode}`);
     printer.line(`  vídeo correto: ${record.outputOk ? 'sim' : 'não'}`);
     printer.line(`  outras conexões negadas: ${record.deniedNetwork}`);

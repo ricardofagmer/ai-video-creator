@@ -449,7 +449,8 @@ unless Chrome is installed and the config is seeded. Steps:
    name starts with `credentials`, and count denied reads of the owner's `~/.hyperframes`.
 5. **Write `trace.json`.** `pass` needs all of: the control denied and logged, render exit 0,
    output correct, zero network denials besides the control. Anything else is `fail`, with the
-   findings shown to the owner.
+   findings shown to the owner. (Amended by 18.7: the control is proven by its EPERM exit code;
+   macOS 27 logs no `sandbox-exec` profile denial, so a missing log line is informational.)
 
 A denied attempt never left the Mac, so a failed trace leaks nothing; it means a switch did not
 do what vetting assumed (vetting 0005 section 6), and the finding names the target. The fix is
@@ -1268,3 +1269,60 @@ commit `660e678` found six small items. On 2026-11-21 the owner chose to fix all
 | 102 | Watcher preparation with `ffmpegBin` under `cache/`, `ffprobeBin` anywhere under the data home, or `ffmpegBin` inside a `config/` or `home/` symlinked outside the data home: `sandbox-unavailable`, zero starts | 18.5 |
 | 103 | `hyperframesRender` probes the picture with `runtime.ffprobeBin`, never `tools.ffprobePath` | 18.5, K18 |
 | 104 | Trace with the binary removed before the render: the render never starts, the record is `fail` with the "before" finding and without the "after" finding | 18.5, G1 |
+
+### 18.6 Owner trace O3, first run (2026-11-21)
+
+The first owner run of `studio hyperframes trace` failed with two findings. Both were reproduced
+with `sandbox-exec` against the real `render.sb` and real parameters before anything changed:
+
+- **C1 not denied (timeout, code 11).** The rev 1 rule `(allow network* (local ip "localhost:*"))`
+  also matched outbound connects, so a connect to `192.0.2.1:9` was allowed and timed out. The rule
+  is now `(allow network-bind network-inbound (local ip "localhost:*"))`; outbound stays limited to
+  loopback by `(allow network* (remote ip "localhost:*"))`. Reproduced: code 11 before, 0 after.
+- **Render failed, Chrome SIGTRAP.** Chrome's own seatbelt sandbox cannot start inside another
+  macOS sandbox: under a profile of only `(allow default)`, its GPU and renderer processes stop
+  (exit 133). The render environment adds `HYPERFRAMES_CHROME_SANDBOX=0` (twelve keys), which the
+  pinned CLI turns into `--no-sandbox --disable-setuid-sandbox --no-zygote`. `render.sb` is then the
+  whole confinement of the Chrome tree: no non-loopback network, four programs, writes only in the
+  render folders, no secret reads. Owner decision 2026-11-21: "Apply both fixes". Reproduced:
+  Chrome renders a page under the full profile with the flag.
+
+The profile hash changes, so the earlier `trace.json` is stale; O3 is run again.
+
+| AC | Criterion | Source |
+|---|---|---|
+| 105 | `render.sb` allows `local ip "localhost:*"` only for `network-bind` and `network-inbound` | 18.6 |
+| 106 | `buildRenderEnv` holds the eleven keys of 4.5 plus `HYPERFRAMES_CHROME_SANDBOX=0`, nothing else | 18.6 |
+
+### 18.7 Owner trace O3, second run: the control is proven by its exit code (2026-11-21)
+
+The second run passed every check except one finding: "controle: a negação não apareceu no log;
+verificação inválida". C1 was refused (exit 0, EPERM), but section 5.6 step 5 also required the
+denial to appear in the system log. Reproduced on the owner's Mac (macOS 27.3, build 26C5035r):
+`sandbox-exec` profile denials never reach the unified log. Network and file-write denials,
+allow-default and deny-default profiles, and `(debug deny)` all produce zero `Sandbox:` lines.
+`(with report)` on a deny rule is a syntax error. Only system processes' violations are logged.
+No profile or environment change can make the control visible, so the requirement as written
+cannot be met on this OS.
+
+Owner decision 2026-11-21: "Exit code is proof". The rule of 5.6 step 5 changes:
+
+- **The control is proven by its exit code.** `controlDenied` is true exactly when C1 exits 0,
+  meaning `connect` to `192.0.2.1:9` failed with EPERM. Without the sandbox, that connect times out
+  or is unreachable (exit 11 or 12), so only the sandbox answers EPERM. Any other code fails the
+  trace with the existing finding.
+- **A missing log line is informational.** When the log was read and holds no control denial, the
+  trace adds one informational finding (`TRACE_CONTROL_NOT_LOGGED_TEXT`) and the result is
+  unchanged.
+- **Unchanged.** The log must still be readable, or the trace fails. Any other logged network
+  denial fails it. Owner-folder reads are counted. C2 to C5, Chrome, the render, the output and
+  the credentials check keep their rules.
+
+This weakens one piece of evidence: a logged denial would also name the process and target.
+C1's exit code proves the profile refuses a non-loopback connect in the render's own sandbox
+arguments, which is the property the control exists to show.
+
+| AC | Criterion | Source |
+|---|---|---|
+| 107 | A trace whose C1 exits 0 and whose readable log holds no control denial passes (all else clean), with `controlDenied: true` and exactly the informational finding `TRACE_CONTROL_NOT_LOGGED_TEXT` | 18.7 |
+| 108 | A trace whose C1 exits non-zero fails with `controlDenied: false`, whatever the log holds | 18.7 |

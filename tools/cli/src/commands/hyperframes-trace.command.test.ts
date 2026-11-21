@@ -31,6 +31,7 @@ import {
   TRACE_CHROME_UNREADABLE_AFTER_TEXT,
   TRACE_PROBE_FILE_REMOVED_TEXT,
   traceChromeBeforeText,
+  TRACE_CONTROL_NOT_LOGGED_TEXT,
   traceInformationalDenialText,
 } from '../hyperframes/hyperframes-texts.js';
 import { hyperframesTraceCommand } from './hyperframes-trace.command.js';
@@ -244,7 +245,7 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
   });
 
   describe('a confirmed trace', () => {
-    it('writes a pass trace.json when the control is denied and logged, the render exits 0, the output is correct and nothing else was denied', async () => {
+    it('writes a pass trace.json when the control is denied, the render exits 0, the output is correct and nothing else was denied', async () => {
       await seedPrerequisites(studio);
       const fake = confirmedPorts();
 
@@ -326,9 +327,25 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       assert.ok(trace.findings.some((finding) => finding.includes(CONTROL_TARGET)));
     });
 
-    it('is invalid, never passed, when the control denial does not show in the system log', async () => {
+    // SPEC 0008 section 18.7 (AC 107): macOS 27 logs no sandbox-exec profile denial; EPERM is the proof.
+    it('passes with one informational finding when the control was refused (EPERM) but its denial does not show in the system log', async () => {
       await seedPrerequisites(studio);
       const fake = confirmedPorts();
+      fake.system.logRead = { status: 'read', denials: [] };
+
+      const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
+
+      assert.equal(exitCode, ExitCode.ok);
+      const trace = await storedTrace(studio);
+      assert.equal(trace.result, 'pass');
+      assert.equal(trace.controlDenied, true);
+      assert.deepEqual(trace.findings, [TRACE_CONTROL_NOT_LOGGED_TEXT]);
+      assert.deepEqual(fake.events.events, [{ event: 'hyperframes.trace-finished', result: 'pass', deniedNetwork: 0, controlDenied: true }]);
+    });
+
+    it('fails, never passes, when the control connection timed out instead of being refused, even with nothing in the log', async () => {
+      await seedPrerequisites(studio);
+      const fake = confirmedPorts(controlExitCodes(START.C1, CONTROL_TIMED_OUT));
       fake.system.logRead = { status: 'read', denials: [] };
 
       const exitCode = await hyperframesTraceCommand(fake.ports, studio.dependencies);
@@ -337,8 +354,8 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       const trace = await storedTrace(studio);
       assert.equal(trace.result, 'fail');
       assert.equal(trace.controlDenied, false);
-      assert.equal(trace.findings.length, 1);
-      assert.deepEqual(fake.events.events, [{ event: 'hyperframes.trace-finished', result: 'fail', deniedNetwork: 0, controlDenied: false }]);
+      assert.ok(trace.findings.some((finding) => finding.includes(CONTROL_TARGET) && finding.includes(String(CONTROL_TIMED_OUT))));
+      assert.equal(trace.findings.includes(TRACE_CONTROL_NOT_LOGGED_TEXT), false);
     });
 
     it('fails, never passes, when the system log cannot be read', async () => {
@@ -350,8 +367,10 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
 
       const trace = await storedTrace(studio);
       assert.equal(trace.result, 'fail');
-      assert.equal(trace.controlDenied, false);
+      // The control's own proof is its exit code (section 18.7); the unread log alone fails the trace.
+      assert.equal(trace.controlDenied, true);
       assert.ok(trace.findings.length > 0);
+      assert.equal(trace.findings.includes(TRACE_CONTROL_NOT_LOGGED_TEXT), false);
     });
 
     it('fails with a finding when the render exits non-zero, and does not probe a picture', async () => {
@@ -673,7 +692,7 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
         assert.equal(exitCode, ExitCode.unhealthy);
         const trace = await storedTrace(studio);
         assert.equal(trace.result, 'fail');
-        // `controlDenied` keeps its rev 1 meaning: C1 denied and logged.
+        // `controlDenied` means C1 was refused with EPERM (section 18.7).
         assert.equal(trace.controlDenied, true);
         const named = trace.findings.filter((finding) => finding.startsWith(`controle ${control}:`));
         assert.equal(named.length, 1);
