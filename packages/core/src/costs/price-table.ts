@@ -33,12 +33,13 @@ export interface PriceTable {
 }
 
 export const PRICE_TABLE: PriceTable = {
-  version: '2026-11-18.1',
-  readAt: '2026-11-18',
+  version: '2026-11-21.1',
+  readAt: '2026-11-21',
   sources: [
     'claude-api skill reference, Current Models table (cached 2026-11-03), read 2026-11-18',
     'https://platform.claude.com/docs/en/about-claude/pricing',
     'PRD 0001 D7 and SPEC 0002 C11: local voice and Remotion render run on the owner Mac',
+    'https://elevenlabs.io/pricing, Creator plan, read 2026-11-21 (owner plan, owner-approved rate)',
   ],
   models: {
     'claude-opus-5-5': {
@@ -57,9 +58,14 @@ export const PRICE_TABLE: PriceTable = {
     },
   },
   ttsPerCharacter: {
+    // Plan average, not an overage rate: Creator is USD 22/month for 121,000 credits, and
+    // eleven_multilingual_v2 spends 1 credit per character (22 / 121000 = 0.0001818..., rounded up).
+    // Excludes the first-month discount and taxes. Re-read on a plan or model change.
     elevenlabs: {
-      status: 'unpriced',
-      reason: 'ElevenLabs bills per plan and character quota; no per-character rate was sourced with confidence',
+      status: 'priced',
+      usdPerUnit: 0.000182,
+      basis: 'published-rate',
+      source: 'elevenlabs.io/pricing, Creator plan USD 22 / 121,000 credits, multilingual v2 at 1 credit per character, read 2026-11-21',
     },
     'local-voice': {
       status: 'priced',
