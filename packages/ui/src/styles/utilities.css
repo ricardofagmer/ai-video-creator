@@ -5,6 +5,8 @@
 
 .heading-1 {
   margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: var(--letter-spacing-display);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
@@ -13,6 +15,8 @@
 
 .heading-2 {
   margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: var(--letter-spacing-display);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
@@ -21,6 +25,8 @@
 
 .heading-3 {
   margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: var(--letter-spacing-display);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
@@ -28,6 +34,8 @@
 }
 
 .metric {
+  font-family: var(--font-display);
+  letter-spacing: var(--letter-spacing-display);
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
@@ -88,4 +96,30 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Fagmer design system extras: mono eyebrow above a heading, and gradient text for a hero word. */
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.4;
+  letter-spacing: var(--letter-spacing-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.text-gradient {
+  color: var(--color-primary);
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .text-gradient {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
 }

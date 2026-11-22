@@ -46,6 +46,10 @@ export { PageHeader } from './components/layout/PageHeader';
 export type { PageHeaderProps } from './components/layout/PageHeader';
 export { Logo } from './components/layout/Logo';
 export type { LogoProps } from './components/layout/Logo';
+export { ThemeToggle } from './components/theme/ThemeToggle';
+export type { ThemeToggleProps } from './components/theme/ThemeToggle';
+export { THEME_COOKIE_NAME, parseThemePreference, themeAttribute } from './components/theme/theme';
+export type { ThemePreference } from './components/theme/theme';
 
 // Studio components (design/componentes-estudio.md)
 export { StatusBadge } from './components/status/StatusBadge';

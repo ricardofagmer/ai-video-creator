@@ -105,7 +105,6 @@
   align-items: center;
   gap: var(--space-6);
   padding: var(--space-12) var(--layout-gutter-mobile) var(--space-6);
-  background-color: var(--color-bg);
 }
 
 .authCard {

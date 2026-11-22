@@ -12,14 +12,19 @@
   justify-content: center;
   width: var(--size-logo);
   height: var(--size-logo);
+  font-family: var(--font-display);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-on-primary);
-  background-color: var(--color-primary);
+  letter-spacing: -0.04em;
+  color: var(--color-on-brand);
+  background-image: var(--gradient-control);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-glow);
 }
 
 .name {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-display);
 }

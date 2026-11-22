@@ -1,5 +1,10 @@
 # Tokens do design system
 
+Alinhado ao design system Fagmer (site fagmertech): void azul-marinho, azul elétrico a ciano,
+Space Grotesk nos títulos, Inter no texto e JetBrains Mono em navegação, rótulos e código. Fontes
+auto-hospedadas em `packages/ui/src/styles/fonts/`. O tema é escolhido no `ThemeToggle` (sistema,
+claro, escuro) e guardado no cookie `vs-theme`, que o servidor lê para renderizar `data-theme`.
+
 Fonte única dos valores visuais. `packages/ui/src/styles/tokens.css` transcreve cada linha para
 CSS variables no seletor `:root`, com o **nome exato** da coluna "Token". Componentes e telas
 usam os tokens semânticos; a escala bruta existe só para definir os semânticos.
@@ -10,37 +15,63 @@ sistema operacional, e `data-theme="light"` ou `data-theme="dark"` em `<html>` f
 
 ## 1. Cores
 
-### 1.1 Escala de cinzas (cinza-ardósia)
+### 1.1 Escala de tinta (neutros azulados do design system Fagmer)
 
-| Token | Valor |
+Mesma família do site fagmertech (`site/css/site.css`): o escuro é o "void" azul-marinho, o claro
+é um branco levemente azulado.
+
+| Token | Valor | Origem no site |
+| --- | --- | --- |
+| `--color-white` | `#FFFFFF` | |
+| `--color-black` | `#000000` | |
+| `--color-gray-50` | `#F5F8FF` | fundo claro |
+| `--color-gray-100` | `#EBF1FD` | |
+| `--color-gray-200` | `#DCE5F7` | |
+| `--color-gray-300` | `#C7D4F2` | `--ft-text-soft` |
+| `--color-gray-400` | `#8B9BC4` | `--ft-muted` |
+| `--color-gray-500` | `#5E6E99` | |
+| `--color-gray-600` | `#42507A` | |
+| `--color-gray-700` | `#1A2547` | `--ft-line` |
+| `--color-gray-800` | `#111A35` | `--ft-line-soft` |
+| `--color-gray-850` | `#0B1328` | `--ft-panel` |
+| `--color-gray-900` | `#060B18` | `--ft-ink` |
+| `--color-gray-950` | `#030712` | `--ft-void` |
+| `--color-ink-text` | `#0A1430` | texto no tema claro |
+| `--color-ink-text-dark` | `#EAF1FF` | `--ft-text` |
+
+### 1.2 Primária (azul elétrico) e acento (ciano)
+
+| Token | Valor | Origem no site |
+| --- | --- | --- |
+| `--color-primary-50` | `#EFF5FF` | |
+| `--color-primary-100` | `#DBE8FF` | |
+| `--color-primary-200` | `#BFD6FE` | |
+| `--color-primary-300` | `#93C0FD` | |
+| `--color-primary-400` | `#60A5FA` | `--ft-blue-bright` |
+| `--color-primary-500` | `#3B82F6` | `--ft-blue` |
+| `--color-primary-600` | `#2563FF` | `--ft-electric` |
+| `--color-primary-700` | `#1D4ED8` | |
+| `--color-primary-800` | `#1E40AF` | |
+| `--color-primary-950` | `#0E1D45` | |
+| `--color-cyan-400` | `#22D3EE` | `--ft-cyan` |
+| `--color-cyan-600` | `#0891B2` | |
+| `--color-cyan-700` | `#0E7490` | ciano legível no claro |
+| `--color-cyan-800` | `#155E75` | |
+| `--color-violet-500` | `#8B5CF6` | `--ft-violet` |
+
+### 1.2.1 Gradientes e brilho
+
+| Token | Uso |
 | --- | --- |
-| `--color-white` | `#FFFFFF` |
-| `--color-black` | `#000000` |
-| `--color-gray-50` | `#F8FAFC` |
-| `--color-gray-100` | `#F1F5F9` |
-| `--color-gray-200` | `#E2E8F0` |
-| `--color-gray-300` | `#CBD5E1` |
-| `--color-gray-400` | `#94A3B8` |
-| `--color-gray-500` | `#64748B` |
-| `--color-gray-600` | `#475569` |
-| `--color-gray-700` | `#334155` |
-| `--color-gray-800` | `#1E293B` |
-| `--color-gray-900` | `#0F172A` |
-| `--color-gray-950` | `#020617` |
-
-### 1.2 Primária (violeta)
-
-| Token | Valor |
-| --- | --- |
-| `--color-primary-50` | `#F5F3FF` |
-| `--color-primary-100` | `#EDE9FE` |
-| `--color-primary-200` | `#DDD6FE` |
-| `--color-primary-300` | `#C4B5FD` |
-| `--color-primary-400` | `#A78BFA` |
-| `--color-primary-600` | `#7C3AED` |
-| `--color-primary-700` | `#6D28D9` |
-| `--color-primary-800` | `#5B21B6` |
-| `--color-primary-950` | `#2E1065` |
+| `--gradient-brand` | Decorativo, sem texto: trilho da navegação, texto `.text-gradient` (= `--ft-gradient`) |
+| `--gradient-rail` | Linha sob a top bar (= `--ft-rail`) |
+| `--gradient-control` / `--gradient-control-hover` | Fundo do botão primário, logo, opção marcada; texto branco ≥ 4.5:1 em todo o gradiente |
+| `--gradient-page` | Halos azul e ciano no fundo da página (claro mais suave, escuro mais forte) |
+| `--color-surface-glass` | Top bar de vidro com `backdrop-filter` |
+| `--color-border-glow` | Borda azulada de top bar, diálogo e brilho interno do card |
+| `--shadow-glow` / `--shadow-float` | Brilho do botão primário e sombra da top bar flutuante |
+| `--color-on-brand` | Texto sobre os gradientes de controle (branco nos dois temas) |
+| `--color-accent` | Ciano para destaque pontual |
 
 ### 1.3 Semânticas de feedback (Alert, Badge, estados)
 
@@ -65,7 +96,7 @@ sistema operacional, e `data-theme="light"` ou `data-theme="dark"` em `<html>` f
 | Token | Claro | Escuro | Uso |
 | --- | --- | --- | --- |
 | `--color-bg` | `--color-gray-50` | `--color-gray-950` | Fundo da página |
-| `--color-surface` | `--color-white` | `--color-gray-900` | Cards, top bar, campos, diálogos |
+| `--color-surface` | `--color-white` | `--color-gray-850` | Cards, top bar, campos, diálogos |
 | `--color-surface-muted` | `--color-gray-100` | `--color-gray-800` | Cabeçalho de tabela, hover, badge neutro |
 | `--color-border` | `--color-gray-200` | `--color-gray-700` | Bordas de card e divisores (decorativos) |
 | `--color-border-strong` | `--color-gray-500` | `--color-gray-400` | Borda de campo e botão secundário (≥ 3:1) |
@@ -104,8 +135,9 @@ Sucesso, aviso e falha usam os tokens da seção 1.3.
 
 | Token | Valor | Uso |
 | --- | --- | --- |
-| `--font-sans` | `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` | Todo o texto da interface |
-| `--font-mono` | `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace` | `assetId@version`, hash, ids de slot, horários do log |
+| `--font-sans` | `"Inter", system-ui, sans-serif` | Todo o texto da interface |
+| `--font-display` | `"Space Grotesk", "Inter", sans-serif` | Títulos (h1-h3, `.heading-*`, `.metric`, logo) |
+| `--font-mono` | `"JetBrains Mono", ui-monospace, monospace` | Navegação, `.eyebrow`, cabeçalho de tabela, hashes e código |
 
 ### 2.2 Escala de tamanhos
 

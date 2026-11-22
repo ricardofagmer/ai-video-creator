@@ -21,7 +21,36 @@ body {
   line-height: var(--line-height-normal);
   color: var(--color-text);
   background-color: var(--color-bg);
+  background-image: var(--gradient-page);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Faint blueprint grid behind the top of every page, the signature of the Fagmer sites. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, #000 25%, transparent 72%);
+  mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, #000 25%, transparent 72%);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: var(--letter-spacing-display);
+}
+
+::selection {
+  color: var(--color-on-brand);
+  background-color: var(--color-primary-600);
 }
 
 button,
@@ -41,6 +70,7 @@ samp {
 :focus-visible {
   outline: var(--focus-ring-width) solid var(--color-focus-ring);
   outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 6px var(--color-glow-blue);
 }
 
 /*

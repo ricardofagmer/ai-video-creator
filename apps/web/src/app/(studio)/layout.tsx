@@ -1,4 +1,5 @@
-import { AppShell, Logo } from '@studio/ui';
+import { AppShell, Logo, THEME_COOKIE_NAME, ThemeToggle, parseThemePreference } from '@studio/ui';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -26,6 +27,7 @@ interface StudioLayoutProps {
 /** design/telas/01, block 1: the private shell around every page except `/login`. */
 export default async function StudioLayout({ children, watcher }: StudioLayoutProps) {
   await requireSession();
+  const themePreference = parseThemePreference((await cookies()).get(THEME_COOKIE_NAME)?.value);
   return (
     <AppShell
       brand={
@@ -35,7 +37,12 @@ export default async function StudioLayout({ children, watcher }: StudioLayoutPr
       }
       navigation={<StudioNavigation />}
       status={watcher}
-      actions={<LogoutButton />}
+      actions={
+        <>
+          <ThemeToggle initialPreference={themePreference} />
+          <LogoutButton />
+        </>
+      }
     >
       {children}
     </AppShell>

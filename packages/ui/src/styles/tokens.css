@@ -1,5 +1,6 @@
 /*
- * Design tokens of Video Studio (design/tokens.md). This is the only file in
+ * Design tokens of Video Studio (design/tokens.md), aligned with the Fagmer design system
+ * of the fagmertech site: navy void, electric blue to cyan, Space Grotesk / Inter / JetBrains Mono. This is the only file in
  * @studio/ui that may hold a colour literal; every other stylesheet reads these
  * variables. Light and dark values live side by side through `light-dark()`,
  * so each semantic token is declared once.
@@ -11,69 +12,95 @@
 :root {
   color-scheme: light dark;
 
-  /* 1.1 Slate scale */
+  /* 1.1 Ink scale (blue-tinted neutrals of the Fagmer design system) */
   --color-white: #FFFFFF;
   --color-black: #000000;
-  --color-gray-50: #F8FAFC;
-  --color-gray-100: #F1F5F9;
-  --color-gray-200: #E2E8F0;
-  --color-gray-300: #CBD5E1;
-  --color-gray-400: #94A3B8;
-  --color-gray-500: #64748B;
-  --color-gray-600: #475569;
-  --color-gray-700: #334155;
-  --color-gray-800: #1E293B;
-  --color-gray-900: #0F172A;
-  --color-gray-950: #020617;
+  --color-gray-50: #F5F8FF;
+  --color-gray-100: #EBF1FD;
+  --color-gray-200: #DCE5F7;
+  --color-gray-300: #C7D4F2;
+  --color-gray-400: #8B9BC4;
+  --color-gray-500: #5E6E99;
+  --color-gray-600: #42507A;
+  --color-gray-700: #1A2547;
+  --color-gray-800: #111A35;
+  --color-gray-850: #0B1328;
+  --color-gray-900: #060B18;
+  --color-gray-950: #030712;
+  --color-ink-text: #0A1430;
+  --color-ink-text-dark: #EAF1FF;
 
-  /* 1.2 Primary scale (violet) */
-  --color-primary-50: #F5F3FF;
-  --color-primary-100: #EDE9FE;
-  --color-primary-200: #DDD6FE;
-  --color-primary-300: #C4B5FD;
-  --color-primary-400: #A78BFA;
-  --color-primary-600: #7C3AED;
-  --color-primary-700: #6D28D9;
-  --color-primary-800: #5B21B6;
-  --color-primary-950: #2E1065;
+  /* 1.2 Primary scale (electric blue) and accent (cyan) */
+  --color-primary-50: #EFF5FF;
+  --color-primary-100: #DBE8FF;
+  --color-primary-200: #BFD6FE;
+  --color-primary-300: #93C0FD;
+  --color-primary-400: #60A5FA;
+  --color-primary-500: #3B82F6;
+  --color-primary-600: #2563FF;
+  --color-primary-700: #1D4ED8;
+  --color-primary-800: #1E40AF;
+  --color-primary-950: #0E1D45;
+  --color-cyan-400: #22D3EE;
+  --color-cyan-600: #0891B2;
+  --color-cyan-700: #0E7490;
+  --color-cyan-800: #155E75;
+  --color-violet-500: #8B5CF6;
 
   /* 1.3 Semantic colours (feedback and status) */
-  --color-success: light-dark(#15803D, #4ADE80);
-  --color-success-soft: light-dark(#F0FDF4, #052E16);
-  --color-success-border: light-dark(#BBF7D0, #166534);
+  --color-success: light-dark(#047857, #34D399);
+  --color-success-soft: light-dark(#ECFDF5, #04231A);
+  --color-success-border: light-dark(#A7F3D0, #065F46);
   --color-warning: light-dark(#B45309, #FBBF24);
-  --color-warning-soft: light-dark(#FFFBEB, #451A03);
+  --color-warning-soft: light-dark(#FFFBEB, #2A1703);
   --color-warning-border: light-dark(#FDE68A, #92400E);
   --color-danger: light-dark(#B91C1C, #F87171);
   --color-danger-hover: light-dark(#991B1B, #FCA5A5);
-  --color-danger-soft: light-dark(#FEF2F2, #450A0A);
+  --color-danger-soft: light-dark(#FEF2F2, #2A0A0E);
   --color-danger-border: light-dark(#FECACA, #991B1B);
-  --color-info: light-dark(#0369A1, #38BDF8);
-  --color-info-soft: light-dark(#F0F9FF, #082F49);
-  --color-info-border: light-dark(#BAE6FD, #075985);
+  --color-info: light-dark(var(--color-cyan-700), var(--color-cyan-400));
+  --color-info-soft: light-dark(#ECFEFF, #062430);
+  --color-info-border: light-dark(#A5F3FC, var(--color-cyan-800));
 
   /* 1.4 Semantic surface and text tokens (components use only these and 1.3) */
   --color-bg: light-dark(var(--color-gray-50), var(--color-gray-950));
-  --color-surface: light-dark(var(--color-white), var(--color-gray-900));
+  --color-surface: light-dark(var(--color-white), var(--color-gray-850));
   --color-surface-muted: light-dark(var(--color-gray-100), var(--color-gray-800));
+  --color-surface-glass: light-dark(rgba(255, 255, 255, 0.72), rgba(6, 11, 24, 0.62));
   --color-border: light-dark(var(--color-gray-200), var(--color-gray-700));
-  --color-border-strong: light-dark(var(--color-gray-500), var(--color-gray-400));
-  --color-text: light-dark(var(--color-gray-900), var(--color-gray-50));
-  --color-text-muted: light-dark(var(--color-gray-600), var(--color-gray-300));
+  --color-border-strong: light-dark(var(--color-gray-500), var(--color-gray-500));
+  --color-border-glow: light-dark(rgba(37, 99, 255, 0.28), rgba(96, 165, 250, 0.28));
+  --color-text: light-dark(var(--color-ink-text), var(--color-ink-text-dark));
+  --color-text-muted: light-dark(var(--color-gray-600), var(--color-gray-400));
   --color-text-subtle: light-dark(var(--color-gray-500), var(--color-gray-400));
-  --color-text-disabled: light-dark(var(--color-gray-400), var(--color-gray-500));
+  --color-text-disabled: light-dark(var(--color-gray-400), var(--color-gray-600));
   --color-text-on-primary: light-dark(var(--color-white), var(--color-gray-950));
-  --color-primary: light-dark(var(--color-primary-700), var(--color-primary-300));
-  --color-primary-hover: light-dark(var(--color-primary-800), var(--color-primary-200));
+  --color-on-brand: var(--color-white);
+  --color-primary: light-dark(var(--color-primary-600), var(--color-primary-400));
+  --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-300));
   --color-primary-soft: light-dark(var(--color-primary-50), var(--color-primary-950));
   --color-primary-soft-text: light-dark(var(--color-primary-800), var(--color-primary-200));
+  --color-accent: light-dark(var(--color-cyan-700), var(--color-cyan-400));
   --color-focus-ring: light-dark(var(--color-primary-600), var(--color-primary-400));
-  --color-overlay: light-dark(rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.72));
+  --color-overlay: light-dark(rgba(10, 20, 48, 0.45), rgba(3, 7, 18, 0.75));
   --color-media-bg: var(--color-black);
-  --color-shadow-weak: light-dark(rgba(15, 23, 42, 0.06), rgba(0, 0, 0, 0.4));
-  --color-shadow-strong: light-dark(rgba(15, 23, 42, 0.1), rgba(0, 0, 0, 0.6));
+  --color-shadow-weak: light-dark(rgba(10, 20, 48, 0.06), rgba(0, 0, 0, 0.4));
+  --color-shadow-strong: light-dark(rgba(10, 20, 48, 0.1), rgba(0, 0, 0, 0.6));
+  --color-glow: light-dark(rgba(37, 99, 255, 0.28), rgba(37, 99, 255, 0.55));
+  --color-glow-blue: light-dark(rgba(37, 99, 255, 0.1), rgba(59, 130, 246, 0.2));
+  --color-glow-cyan: light-dark(rgba(34, 211, 238, 0.1), rgba(34, 211, 238, 0.12));
+  --color-grid-line: light-dark(rgba(37, 99, 255, 0.05), rgba(96, 165, 250, 0.05));
 
-  /* 1.5 Status tokens (StatusBadge, StepTimeline, CostMeter) */
+  /* 1.5 Brand gradients. Decorative ones carry no text; control ones keep white text >= 4.5:1. */
+  --gradient-brand: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600) 45%, var(--color-cyan-400));
+  --gradient-rail: linear-gradient(90deg, transparent, var(--color-primary-400), var(--color-primary-600) 50%, var(--color-cyan-400), transparent);
+  --gradient-control: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700) 60%, var(--color-cyan-700));
+  --gradient-control-hover: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-800) 60%, var(--color-cyan-800));
+  --gradient-page:
+    radial-gradient(60% 45% at 90% -10%, var(--color-glow-blue), transparent 70%),
+    radial-gradient(45% 35% at -5% 15%, var(--color-glow-cyan), transparent 70%);
+
+  /* 1.6 Status tokens (StatusBadge, StepTimeline, CostMeter) */
   --color-status-neutral: var(--color-text-muted);
   --color-status-neutral-soft: var(--color-surface-muted);
   --color-status-active: var(--color-primary);
@@ -83,8 +110,11 @@
   --color-timeline-line: var(--color-border);
 
   /* 2. Typography */
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --letter-spacing-display: -0.02em;
+  --letter-spacing-eyebrow: 0.08em;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-md: 16px;
@@ -113,15 +143,18 @@
   --space-16: 64px;
 
   /* 4. Radii */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   /* 5. Shadows (colour from the shadow tokens above, so dark mode follows) */
   --shadow-sm: 0 1px 2px 0 var(--color-shadow-weak), 0 1px 3px 0 var(--color-shadow-strong);
   --shadow-md: 0 4px 6px -1px var(--color-shadow-strong), 0 2px 4px -2px var(--color-shadow-weak);
   --shadow-lg: 0 10px 15px -3px var(--color-shadow-strong), 0 4px 6px -4px var(--color-shadow-strong);
+  --shadow-glow: 0 0 30px -12px var(--color-glow);
+  --shadow-float: 0 18px 50px -28px var(--color-shadow-strong), 0 0 0 1px var(--color-border-glow);
 
   /* 6. Focus */
   --focus-ring-width: 2px;
@@ -164,7 +197,7 @@
   --duration-slow: 300ms;
   --duration-spin: 800ms;
   --duration-pulse: 1600ms;
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
 }
 

@@ -12,7 +12,9 @@
   background-color: var(--color-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  transition: border-color var(--duration-fast) var(--ease-standard);
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-normal) var(--ease-standard);
 }
 
 .control::placeholder {
@@ -21,6 +23,7 @@
 
 .control:focus-visible {
   border-color: var(--color-focus-ring);
+  box-shadow: 0 0 0 4px var(--color-glow-blue);
 }
 
 .control[aria-invalid='true'] {

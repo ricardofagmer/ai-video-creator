@@ -60,9 +60,11 @@
 }
 
 .input:checked + .pill {
-  color: var(--color-text-on-primary);
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
+  color: var(--color-on-brand);
+  background-color: var(--color-primary-600);
+  background-image: var(--gradient-control);
+  border-color: transparent;
+  box-shadow: var(--shadow-glow);
 }
 
 .input:focus-visible + .pill {
