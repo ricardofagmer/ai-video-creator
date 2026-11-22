@@ -48,8 +48,8 @@ R1-FP items are still open (`2026-11-18-r1-implementation.md` lines 70 to 73).
    pause, stop and resume handling, the fault scenarios, crash-resume at engine level, and the 4
    topology v1 loop evals (`ReviewVerdict` retry rules).
 3. **CR3 Watcher stages, adapters and daemon.** Tests cover stage executors under mock ports, the
-   adapters, daemon pickup and resume, and the topology v1 end-to-end eval (run reaches `review`,
-   manifest pins every ref, cost total equals the session sum, spend $0).
+   adapters, daemon pickup and resume, and the topology v1 end-to-end eval, where the run reaches `review`,
+   the manifest pins every ref, the cost total equals the session sum and spend is $0.
 4. **CR4 Watcher curation.** Tests cover the watcher curation flow and the curator end-to-end eval
    (`prompt-narration-pt@3` sample; v4 saved as `draft` with provenance `curator`; nothing started).
 5. **CR5 Topology v1 tool evals.** At least 20 goldens and 12 negatives over the four read-only
