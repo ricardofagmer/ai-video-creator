@@ -44,8 +44,8 @@
   border: 1px solid var(--color-border-glow);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-float);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: var(--backdrop-glass);
+  backdrop-filter: var(--backdrop-glass);
 }
 
 /* The gradient rail under the bar, as on the fagmertech header. */
@@ -95,7 +95,7 @@
   padding: 0 var(--space-3);
   position: relative;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--font-size-mono);
   font-weight: var(--font-weight-regular);
   color: var(--color-text-muted);
   text-decoration: none;
@@ -117,11 +117,11 @@
   position: absolute;
   left: var(--space-3);
   right: var(--space-3);
-  bottom: 6px;
-  height: 2px;
-  border-radius: 2px;
+  bottom: var(--size-beam-offset);
+  height: var(--stroke-thin);
+  border-radius: var(--radius-xs);
   background: var(--gradient-brand);
-  box-shadow: 0 0 10px var(--color-glow);
+  box-shadow: var(--shadow-beam);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform var(--duration-slow) var(--ease-standard);

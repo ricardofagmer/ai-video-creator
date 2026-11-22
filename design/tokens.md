@@ -96,24 +96,32 @@ Mesma família do site fagmertech (`site/css/site.css`): o escuro é o "void" az
 | Token | Claro | Escuro | Uso |
 | --- | --- | --- | --- |
 | `--color-bg` | `--color-gray-50` | `--color-gray-950` | Fundo da página |
-| `--color-surface` | `--color-white` | `--color-gray-850` | Cards, top bar, campos, diálogos |
+| `--color-surface` | `--color-white` | `--color-gray-850` | Cards, campos, diálogos |
 | `--color-surface-muted` | `--color-gray-100` | `--color-gray-800` | Cabeçalho de tabela, hover, badge neutro |
+| `--color-surface-glass` | `rgba(255, 255, 255, 0.72)` | `rgba(6, 11, 24, 0.62)` | Top bar de vidro |
 | `--color-border` | `--color-gray-200` | `--color-gray-700` | Bordas de card e divisores (decorativos) |
-| `--color-border-strong` | `--color-gray-500` | `--color-gray-400` | Borda de campo e botão secundário (≥ 3:1) |
-| `--color-text` | `--color-gray-900` | `--color-gray-50` | Texto principal |
-| `--color-text-muted` | `--color-gray-600` | `--color-gray-300` | Texto secundário, ajuda, legendas |
+| `--color-border-strong` | `--color-gray-500` | `--color-gray-500` | Borda de campo e botão secundário (≥ 3:1) |
+| `--color-border-glow` | `rgba(37, 99, 255, 0.28)` | `rgba(96, 165, 250, 0.28)` | Borda azulada da top bar e do diálogo |
+| `--color-text` | `--color-ink-text` | `--color-ink-text-dark` | Texto principal |
+| `--color-text-muted` | `--color-gray-600` | `--color-gray-400` | Texto secundário, ajuda, legendas |
 | `--color-text-subtle` | `--color-gray-500` | `--color-gray-400` | Placeholder; só sobre `--color-surface` ou `--color-bg` |
-| `--color-text-disabled` | `--color-gray-400` | `--color-gray-500` | Controles desabilitados (isento de contraste) |
+| `--color-text-disabled` | `--color-gray-400` | `--color-gray-600` | Controles desabilitados (isento de contraste) |
 | `--color-text-on-primary` | `--color-white` | `--color-gray-950` | Texto sobre `--color-primary` e `--color-danger` |
-| `--color-primary` | `--color-primary-700` | `--color-primary-300` | Botão primário, links, item ativo |
-| `--color-primary-hover` | `--color-primary-800` | `--color-primary-200` | Hover da primária |
+| `--color-on-brand` | `--color-white` | `--color-white` | Texto sobre os gradientes de controle |
+| `--color-primary` | `--color-primary-600` | `--color-primary-400` | Links, item ativo, botão primário sem gradiente |
+| `--color-primary-hover` | `--color-primary-700` | `--color-primary-300` | Hover da primária |
 | `--color-primary-soft` | `--color-primary-50` | `--color-primary-950` | Fundo de item ativo, versão aberta, passo atual |
 | `--color-primary-soft-text` | `--color-primary-800` | `--color-primary-200` | Texto sobre `--color-primary-soft` |
+| `--color-accent` | `--color-cyan-700` | `--color-cyan-400` | Ciano para destaque pontual |
 | `--color-focus-ring` | `--color-primary-600` | `--color-primary-400` | Contorno de foco |
-| `--color-overlay` | `rgba(15, 23, 42, 0.5)` | `rgba(2, 6, 23, 0.72)` | Fundo atrás do Dialog |
+| `--color-overlay` | `rgba(10, 20, 48, 0.45)` | `rgba(3, 7, 18, 0.75)` | Fundo atrás do Dialog |
 | `--color-media-bg` | `--color-black` | `--color-black` | Moldura do player de vídeo |
-| `--color-shadow-weak` | `rgba(15, 23, 42, 0.06)` | `rgba(0, 0, 0, 0.4)` | Cor das sombras (camada leve) |
-| `--color-shadow-strong` | `rgba(15, 23, 42, 0.1)` | `rgba(0, 0, 0, 0.6)` | Cor das sombras (camada forte) |
+| `--color-shadow-weak` | `rgba(10, 20, 48, 0.06)` | `rgba(0, 0, 0, 0.4)` | Cor das sombras (camada leve) |
+| `--color-shadow-strong` | `rgba(10, 20, 48, 0.1)` | `rgba(0, 0, 0, 0.6)` | Cor das sombras (camada forte) |
+| `--color-glow` | `rgba(37, 99, 255, 0.28)` | `rgba(37, 99, 255, 0.55)` | Brilho do botão primário e da navegação |
+| `--color-glow-blue` | `rgba(37, 99, 255, 0.1)` | `rgba(59, 130, 246, 0.2)` | Halo de foco e halo azul da página |
+| `--color-glow-cyan` | `rgba(34, 211, 238, 0.1)` | `rgba(34, 211, 238, 0.12)` | Halo ciano da página |
+| `--color-grid-line` | `rgba(37, 99, 255, 0.05)` | `rgba(96, 165, 250, 0.05)` | Linhas da grade do fundo |
 
 ### 1.5 Tokens de status (StatusBadge, StepTimeline, CostMeter)
 
@@ -139,11 +147,19 @@ Sucesso, aviso e falha usam os tokens da seção 1.3.
 | `--font-display` | `"Space Grotesk", "Inter", sans-serif` | Títulos (h1-h3, `.heading-*`, `.metric`, logo) |
 | `--font-mono` | `"JetBrains Mono", ui-monospace, monospace` | Navegação, `.eyebrow`, cabeçalho de tabela, hashes e código |
 
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `--letter-spacing-display` | `-0.02em` | Títulos em Space Grotesk |
+| `--letter-spacing-eyebrow` | `0.08em` | `.eyebrow` |
+| `--letter-spacing-overline` | `0.04em` | `.overline` |
+| `--letter-spacing-logo` | `-0.04em` | Monograma "VS" |
+
 ### 2.2 Escala de tamanhos
 
 | Token | Valor | Uso |
 | --- | --- | --- |
 | `--font-size-xs` | `12px` | Badge, cabeçalho de tabela, overline |
+| `--font-size-mono` | `13px` | Links da navegação em JetBrains Mono (como no site) |
 | `--font-size-sm` | `14px` | Rótulos, ajuda, tabelas, botões `sm`/`md`, log |
 | `--font-size-md` | `16px` | Corpo, campos, botão `lg` |
 | `--font-size-lg` | `18px` | Título de card, passo atual no painel "Agora" |
@@ -162,6 +178,7 @@ Campos nunca ficam abaixo de `--font-size-md`.
 | `--font-weight-semibold` | `600` |
 | `--font-weight-bold` | `700` |
 | `--line-height-tight` | `1.25` |
+| `--line-height-snug` | `1.4` |
 | `--line-height-normal` | `1.5` |
 
 ### 2.5 Estilos de texto nomeados
@@ -187,6 +204,7 @@ Classes globais de `packages/ui/src/styles/utilities.css`, com o nome da primeir
 | Token | Valor | Token | Valor |
 | --- | --- | --- | --- |
 | `--space-0` | `0` | `--space-6` | `24px` |
+| `--space-0-5` | `2px` | | |
 | `--space-1` | `4px` | `--space-8` | `32px` |
 | `--space-2` | `8px` | `--space-10` | `40px` |
 | `--space-3` | `12px` | `--space-12` | `48px` |
@@ -197,9 +215,11 @@ Classes globais de `packages/ui/src/styles/utilities.css`, com o nome da primeir
 
 | Token | Valor | Uso |
 | --- | --- | --- |
-| `--radius-sm` | `4px` | Badge, passo atual |
-| `--radius-md` | `8px` | Botões, campos, Alert, tabelas, listas |
-| `--radius-lg` | `12px` | Cards, Dialog, dropzone, player |
+| `--radius-xs` | `2px` | Linha de destaque da navegação |
+| `--radius-sm` | `6px` | Badge, passo atual |
+| `--radius-md` | `10px` | Botões, campos, Alert, tabelas, listas |
+| `--radius-lg` | `16px` | Cards, Dialog, dropzone, player |
+| `--radius-xl` | `20px` | Card do login, superfícies de destaque |
 | `--radius-full` | `9999px` | Marcadores de status, Spinner, nota 1-5, trilho do CostMeter |
 
 ## 5. Sombras
@@ -212,6 +232,27 @@ escurece as sombras sem outro token.
 | `--shadow-sm` | `0 1px 2px 0 weak, 0 1px 3px 0 strong` | Cards, top bar |
 | `--shadow-md` | `0 4px 6px -1px strong, 0 2px 4px -2px weak` | Reserva |
 | `--shadow-lg` | `0 10px 15px -3px strong, 0 4px 6px -4px strong` | Dialog |
+| `--shadow-glow` | `0 0 30px -12px glow` | Brilho do botão primário |
+| `--shadow-glow-hover` | `0 10px 28px -12px glow` | Brilho do botão primário no hover |
+| `--shadow-float` | `0 18px 50px -28px strong, borda glow` | Top bar flutuante |
+| `--shadow-beam` | `0 0 10px glow` | Linha de destaque da navegação |
+| `--shadow-inset-glow` | `inset 0 1px 0 border-glow` | Brilho interno do card |
+| `--shadow-focus-halo` | `0 0 0 6px glow-blue` | Halo de foco global |
+| `--shadow-focus-halo-control` | `0 0 0 4px glow-blue` | Halo de foco dos campos |
+
+### 5.1 Traços, vidro e grade
+
+Bordas de 1px ficam literais nos componentes (são o traço fino padrão); traços mais grossos usam
+estes tokens.
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `--stroke-thin` | `2px` | Spinner, dropzone, seta do select, marcador do CostMeter, aba ativa |
+| `--stroke-accent` | `4px` | Faixa lateral do Alert |
+| `--backdrop-glass` | `blur(16px) saturate(140%)` | Top bar de vidro |
+| `--backdrop-overlay` | `blur(4px)` | Fundo do Dialog |
+| `--size-grid-cell` | `40px` | Célula da grade do fundo |
+| `--mask-solid` | `--color-black` | Parte opaca da máscara da grade |
 
 ## 6. Foco
 
@@ -219,6 +260,7 @@ escurece as sombras sem outro token.
 | --- | --- | --- |
 | `--focus-ring-width` | `2px` | `outline` de foco |
 | `--focus-ring-offset` | `2px` | `outline-offset` |
+| `--focus-ring-offset-tight` | `1px` | `outline-offset` de checkbox e itens de checklist |
 
 Foco visível só por teclado (`:focus-visible`), na cor `--color-focus-ring`. Nunca remover o
 contorno sem substituí-lo.
@@ -246,6 +288,7 @@ CSS variables não funcionam em `@media`; as media queries usam o número litera
 | `--layout-gutter-desktop` | `24px` | Margem lateral a partir de `md` |
 | `--layout-log-max-height` | `360px` | Altura máxima do EventLog (rola por dentro) |
 | `--layout-dialog-width` | `480px` | Largura máxima do Dialog |
+| `--control-height-xs` | `28px` | Opções do ThemeToggle |
 | `--control-height-sm` | `32px` | Botão `sm` |
 | `--control-height-md` | `40px` | Botão e campo padrão; alvo de toque mínimo |
 | `--control-height-lg` | `48px` | Botão `lg`, nota 1-5, linha de etapa |
@@ -255,6 +298,8 @@ CSS variables não funcionam em `@media`; as media queries usam o número litera
 | `--size-logo` | `32px` | Monograma "VS" |
 | `--size-meter-height` | `8px` | Altura do trilho do CostMeter |
 | `--size-dropzone-min-height` | `160px` | Altura mínima da área de soltar arquivos |
+| `--size-beam-offset` | `6px` | Distância da linha de destaque até a base do link |
+| `--size-diff-max-height` | `512px` | Altura máxima do diff de curadoria (rola por dentro) |
 
 ## 9. Z-index
 
@@ -274,8 +319,9 @@ CSS variables não funcionam em `@media`; as media queries usam o número litera
 | `--duration-slow` | `300ms` | Preenchimento do CostMeter |
 | `--duration-spin` | `800ms` | Uma volta do Spinner |
 | `--duration-pulse` | `1600ms` | Pulso do marcador "Em execução" |
-| `--ease-standard` | `cubic-bezier(0.2, 0, 0, 1)` | Transições de estado |
+| `--ease-standard` | `cubic-bezier(0.2, 0.8, 0.2, 1)` | Transições de estado |
 | `--ease-out` | `cubic-bezier(0, 0, 0.2, 1)` | Entradas |
+| `--lift-hover` | `-1px` | Elevação do botão primário no hover |
 
 Com `prefers-reduced-motion: reduce`: transições instantâneas, Alert e Dialog sem animação de
 entrada, pulso "Em execução" parado (o texto já diz o estado), Spinner com volta de

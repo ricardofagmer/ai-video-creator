@@ -77,7 +77,7 @@
   line-height: var(--line-height-normal);
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--letter-spacing-overline);
 }
 
 .mono {
@@ -104,7 +104,7 @@
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
-  line-height: 1.4;
+  line-height: var(--line-height-snug);
   letter-spacing: var(--letter-spacing-eyebrow);
   text-transform: uppercase;
   color: var(--color-primary);
