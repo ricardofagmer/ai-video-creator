@@ -154,7 +154,7 @@ describe('PlatformsController (SPEC 0007 C10 rev 7)', () => {
   });
 
   it('refuses a disconnect view carrying a refresh token', async () => {
-    const leaky = { ...platformView('youtube'), refreshToken: SENTINEL_TOKEN };
+    const leaky = { ...platformView('youtube'), revoke: 'skipped' as const, refreshToken: SENTINEL_TOKEN };
     bus.core.disconnect = async () => leaky;
 
     const error = await rejectionOf(controller.disconnect({ platform: 'youtube' }));
@@ -163,12 +163,13 @@ describe('PlatformsController (SPEC 0007 C10 rev 7)', () => {
     assert.equal(bus.logs.text().includes(SENTINEL_TOKEN), false);
   });
 
-  it('answers a disconnect with the strict platform view', async () => {
-    bus.core.disconnect = async () => ({ ...platformView('youtube'), status: { metrics: 'disconnected', publish: 'disconnected' }, accountLabel: null, connectedAt: null });
+  it('answers a disconnect with the strict platform view and the revoke outcome', async () => {
+    bus.core.disconnect = async () => ({ ...platformView('youtube'), status: { metrics: 'disconnected', publish: 'disconnected' }, accountLabel: null, connectedAt: null, revoke: 'revoked' });
 
     const view = await controller.disconnect({ platform: 'youtube' });
 
     assert.equal(view.status.metrics, 'disconnected');
+    assert.equal(view.revoke, 'revoked');
     assert.equal(JSON.stringify(view).includes(SENTINEL_TOKEN), false);
   });
 });

@@ -133,7 +133,9 @@ describe('Disconnect always deletes the Keychain item (S1, C5)', () => {
     // A live item left from before the account was switched to mock mode.
     await graph.vault.write(sentinelTokenBundle('youtube'));
 
-    await graph.disconnect.execute(disconnectCommand());
+    const result = await graph.disconnect.execute(disconnectCommand());
+
+    assert.equal(result.revoke, 'skipped', 'mock mode answers skipped');
 
     assert.equal(graph.vault.has('youtube'), false);
     assert.equal(clients.youtube.revokeCalls.length, 0, 'mock mode makes no revoke call');
@@ -180,9 +182,10 @@ describe('Disconnect always deletes the Keychain item (S1, C5)', () => {
     await connectMock(graph, 'youtube');
     assert.equal(graph.vault.has('youtube'), true);
 
-    await graph.disconnect.execute(disconnectCommand());
+    const result = await graph.disconnect.execute(disconnectCommand());
 
     assert.equal(failing.revokeCalls.length, 1, 'the revoke was attempted');
+    assert.equal(result.revoke, 'failed', 'the answer says the revoke failed, so the page asks to remove access');
     assert.equal(graph.vault.has('youtube'), false);
     assert.equal((await new AccountStore(harness.platformRoot).read('youtube'))?.state, 'disconnected');
     assert.match(harness.logs.text(), /platform\.revoke-failed/);

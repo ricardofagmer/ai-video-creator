@@ -1,6 +1,6 @@
 import { type MetricBatchIngestSummary } from '@studio/core/metrics';
 import { type PublishSyncSummary, type RequestPublishResult } from '@studio/core/platforms';
-import { type GateChangeRequest, type PlatformView, type PlatformsView, type PublishRequest, type RunPublishView } from '@studio/shared/api';
+import { type DisconnectResult, type GateChangeRequest, type PlatformView, type PlatformsView, type PublishRequest, type RunPublishView } from '@studio/shared/api';
 import { type Platform } from '@studio/shared/platforms';
 import { type RunId } from '@studio/shared/run-format';
 
@@ -24,8 +24,8 @@ export interface PlatformGateway {
   list(): Promise<PlatformsView>;
   /** `SetPlatformGateCommand`; the owner's explicit action only. */
   setGate(platform: Platform, change: GateChangeRequest): Promise<PlatformView>;
-  /** `DisconnectCommand`: best-effort revoke, Keychain delete, `account.json` to `disconnected`. */
-  disconnect(platform: Platform): Promise<PlatformView>;
+  /** `DisconnectCommand`: best-effort revoke, Keychain delete, `account.json` to `disconnected`; names the revoke outcome. */
+  disconnect(platform: Platform): Promise<DisconnectResult>;
   /** `IngestMetricBatchCommand` over every file in the metrics inbox. */
   syncMetrics(): Promise<MetricBatchIngestSummary>;
   /** `SyncPublishAttemptsCommand` over every open attempt (doctor). */

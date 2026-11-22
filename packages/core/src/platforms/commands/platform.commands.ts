@@ -1,5 +1,5 @@
 import { Command } from '@nestjs/cqrs';
-import { type ConnectionStartView, type PlatformView, type PublishAttemptView } from '@studio/shared/api';
+import { type ConnectionStartView, type DisconnectResult, type PlatformView, type PublishAttemptView } from '@studio/shared/api';
 import {
   type CancelPublishInput,
   type CompleteConnectionInput,
@@ -41,8 +41,8 @@ export class CompleteConnectionCommand extends Command<ConnectionCompleted> {
   }
 }
 
-/** `DELETE /platforms/:platform/connection`, `studio platforms disconnect`. */
-export class DisconnectCommand extends Command<PlatformView> {
+/** `DELETE /platforms/:platform/connection`, `studio platforms disconnect`: the view plus the revoke outcome. */
+export class DisconnectCommand extends Command<DisconnectResult> {
   constructor(readonly input: DisconnectInput) {
     super();
   }

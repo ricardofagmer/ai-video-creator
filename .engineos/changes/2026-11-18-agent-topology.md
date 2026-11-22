@@ -36,8 +36,9 @@ an AI researcher (amendment if ever needed).
 - [x] No agent, workflow or tool implementation written during the interview
 
 ## User checklist
-- [ ] Review the two diagrams in §12 rendered in a Markdown viewer; reopen any step if they do not match intent
+- [x] Review the two diagrams in §12 rendered in a Markdown viewer: reviewed (owner, 2026-11-21)
 - [x] Accept ADRs 0001-0003: accepted (owner, 2026-11-18)
 
 ## Human decisions
 2026-11-18 | Ricardo Fagmer | topology-approval | approved | docs/specs/0001-agent-topology.md
+2026-11-21 | Ricardo Fagmer | §12 diagram review | reviewed | "Already reviewed"

@@ -58,15 +58,20 @@ export async function platformsGateCommand(
 /**
  * `studio platforms disconnect <platform>` (section 5.2): core holds `token.lock`, makes the one
  * best-effort revoke at the platform, deletes the Keychain item and sets `account.json` to
- * `disconnected`. A failed revoke does not stop the delete, so the owner is told where to check.
+ * `disconnected`. A failed revoke does not stop the delete; unless the platform confirmed the revoke
+ * (owner decision 2026-11-21), the owner is told where to check.
  */
 export async function platformsDisconnectCommand(platform: Platform, ports: PlatformCommandPorts, dependencies: CommandDependencies): Promise<number> {
   const { printer } = dependencies;
-  const view = await ports.gateway.disconnect(platform);
+  const result = await ports.gateway.disconnect(platform);
   const name = PLATFORM_LABELS[platform];
   printer.line(`Conta de ${name} desconectada: o token foi apagado do Keychain e nenhuma chamada é feita a ${name} até uma nova conexão.`);
-  printer.line(`Se o Video Studio ainda aparecer nos apps conectados da sua conta de ${name}, remova o acesso nas configurações de lá.`);
-  for (const line of platformDetailLines(view, ports.now())) printer.line(line);
+  if (result.revoke === 'revoked') {
+    printer.line(`A conta de ${name} confirmou a remoção do acesso do Video Studio.`);
+  } else {
+    printer.line(`Se o Video Studio ainda aparecer nos apps conectados da sua conta de ${name}, remova o acesso nas configurações de lá.`);
+  }
+  for (const line of platformDetailLines(result, ports.now())) printer.line(line);
   return ExitCode.ok;
 }
 

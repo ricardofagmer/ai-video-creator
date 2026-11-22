@@ -14,7 +14,7 @@ const NEVER_UPLOADED_STATES = ['queued', 'cancelled', 'expired'];
  * `failed` reasons the watcher writes at its re-check, before `uploading` (SPEC 0007 section 5.5),
  * so the attempt sent nothing.
  */
-const PRE_UPLOAD_FAILURE_REASONS = ['run-not-approved', 'gate-closed', 'mode-mismatch', 'account-not-connected', 'artifact-missing', 'artifact-changed'];
+const PRE_UPLOAD_FAILURE_REASONS = ['run-not-approved', 'gate-closed', 'mode-mismatch', 'account-not-connected', 'artifact-missing', 'artifact-changed', 'request-mismatch'];
 
 /**
  * `failed` reasons the watcher writes either before any byte or during an upload (finding C8): a

@@ -106,6 +106,7 @@ describe('connect with a live-mode client keeps every token in the vault only', 
 
     const view = await graph.disconnect.execute(new DisconnectCommand({ platform: 'youtube', correlationId: null }));
 
+    assert.equal(view.revoke, 'revoked', 'the answer says the platform confirmed the revoke');
     assert.equal(clients.youtube.revokeCalls.length, 1);
     const [revoked] = clients.youtube.revokeCalls;
     assert.ok(revoked);

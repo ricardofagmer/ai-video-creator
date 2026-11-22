@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   ConnectionStartViewSchema,
+  DisconnectResultSchema,
   PlatformViewSchema,
   PlatformsViewSchema,
   type ConnectionStartView,
+  type DisconnectResult,
   type PlatformView,
   type PlatformsView,
 } from '@studio/shared/api';
@@ -28,6 +30,10 @@ export class PlatformResponseAssembler {
 
   platform(view: PlatformView): PlatformView {
     return conformToContract({ schema: PlatformViewSchema, value: view, view: 'PlatformView', logger: this.logger, event: CONTRACT_VIOLATED_EVENT });
+  }
+
+  disconnect(result: DisconnectResult): DisconnectResult {
+    return conformToContract({ schema: DisconnectResultSchema, value: result, view: 'DisconnectResult', logger: this.logger, event: CONTRACT_VIOLATED_EVENT });
   }
 
   connectionStart(view: ConnectionStartView): ConnectionStartView {

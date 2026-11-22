@@ -690,7 +690,9 @@ The fixable ones (a second, corrective call is allowed on attempt 1) are `eviden
 `priceTableVersion`, `updatedAt`, `sessions[]` (at most 8), `totalUsd`, which equals the sum of
 `sessions[].usd` within $0.000001. Each session: `sessionId`, `callIndex`, `attempt` (1-2), `kind`
 (`model`), `role` (`curator`), `provider` (`claude`), `modelId`, `inputTokens`, `outputTokens`,
-`cacheReadTokens`, `cacheWriteTokens`, `usd`, `outcome`, `startedAt`, `endedAt`. Outcomes: `ok`,
+`cacheReadTokens`, `cacheWriteTokens`, `usd`, `outcome`, `startedAt`, `endedAt`, and optional
+`estimated` (only ever `true`: the call was sent but returned no usage, so `usd` is the worst case
+priced before the call; absent on billed entries). Outcomes: `ok`,
 `schema-retry`, `corrective`, `failed`, `refused`, `no-change`. Every billed Curator call is an
 entry; rate-limit transport retries inside one call are not separate calls. A curation never
 records more than $1.00. The api indexes the entries into `cost_entries` with

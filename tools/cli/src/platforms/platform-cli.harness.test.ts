@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { type MetricBatchIngestSummary } from '@studio/core/metrics';
 import { DataHome } from '@studio/core/paths';
 import { type PublishSyncSummary, type RequestPublishResult } from '@studio/core/platforms';
-import { type GateChangeRequest, type PlatformView, type PlatformsView, type RunPublishView } from '@studio/shared/api';
-import { type CapabilityStatus, type Platform } from '@studio/shared/platforms';
+import { type DisconnectResult, type GateChangeRequest, type PlatformView, type PlatformsView, type RunPublishView } from '@studio/shared/api';
+import { type CapabilityStatus, type Platform, type RevokeOutcome } from '@studio/shared/platforms';
 import { runDirectory } from '@studio/shared/run-files';
 import { type CommandDependencies } from '../commands/command-dependencies.js';
 import { type Printer } from '../output/printer.js';
@@ -134,6 +134,8 @@ export class FakePlatformGateway implements PlatformGateway {
   publishView: RunPublishView = runPublishView();
   /** When set, `requestPublish` records the submission and then rejects with it, as core's refusal would. */
   requestPublishRefusal: Error | null = null;
+  /** What core's disconnect answers about the platform-side revoke. */
+  disconnectRevoke: RevokeOutcome = 'skipped';
 
   async list(): Promise<PlatformsView> {
     this.calls.push('list');
@@ -145,9 +147,9 @@ export class FakePlatformGateway implements PlatformGateway {
     return this.viewOf(platform);
   }
 
-  async disconnect(platform: Platform): Promise<PlatformView> {
+  async disconnect(platform: Platform): Promise<DisconnectResult> {
     this.calls.push(`disconnect:${platform}`);
-    return { ...this.viewOf(platform), status: { metrics: 'disconnected', publish: 'disconnected' }, accountLabel: null, connectedAt: null };
+    return { ...this.viewOf(platform), status: { metrics: 'disconnected', publish: 'disconnected' }, accountLabel: null, connectedAt: null, revoke: this.disconnectRevoke };
   }
 
   async syncMetrics(): Promise<MetricBatchIngestSummary> {

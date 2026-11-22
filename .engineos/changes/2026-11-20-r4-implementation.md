@@ -42,7 +42,7 @@ Review fixes (2026-11-20, not yet compiled or tested): shared process identity a
 ## Not done
 - Review fixes unverified: nothing compiled or run. Known test breaks to repair at F4: core insights.unapproved-publications, disconnect and connect delete counts, Keychain 16 KiB bound, request-publish 400 to 409, harnesses using `filePath` or no `signal`; shared publish-files, token-lock; watcher daemon-loop, platform-step and platform-fixtures harnesses, publish.step, recheck, metrics-poll, platform-boundaries, platform-token.session tests
 - C3 (AC 54 via IngestMetricBatch, AC 59 with an existing manual publication): F4, test-only
-- Owner decisions: accept the `-T /usr/bin/security` ACL as a risk in ADR 0007; a dedicated reason id for a request/row mismatch (now `internal-error`); shared fields for an exact watcher-busy text and revoke result
+- Closed 2026-11-21 (`.engineos/changes/2026-11-21-r4-open-decisions.md`): ACL accepted as a risk in ADR 0007; `request-mismatch` reason id; neutral queued text; disconnect answer carries `revoke`
 - C4 residue: an old row whose run already has a newer open attempt is deferred (`publish-reconcile-deferred`), not reconciled at once
 - Ticket 10 browser walk of /contas and the publish dialog (release done gate): started 2026-11-20 in mock mode, stopped at the login page, which needs the Mac password; the owner chose to skip it
 - Tickets 07 to 09: AC 63 and U1 to U8 owner-run (client tests added 2026-11-20, see "Wave 4 client tests and CI")

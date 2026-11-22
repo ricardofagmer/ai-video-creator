@@ -6,6 +6,7 @@ import {
   PlatformParamsSchema,
   apiRouteSegments,
   type ConnectionStartView,
+  type DisconnectResult,
   type GateChangeRequest,
   type PlatformParams,
   type PlatformView,
@@ -86,11 +87,11 @@ export class PlatformsController {
     return this.views.connectionStart(view);
   }
 
-  /** Section 5.2 "token.lock": revoke (best effort), Keychain delete, `account.json` to `disconnected`. */
+  /** Section 5.2 "token.lock": revoke (best effort), Keychain delete, `account.json` to `disconnected`; the answer names the revoke outcome. */
   @Delete(`:platform/${apiRouteSegments.platformConnection}`)
   @HttpCode(200)
-  async disconnect(@Param(new ZodValidationPipe(PlatformParamsSchema)) params: PlatformParams): Promise<PlatformView> {
-    const view = await this.commandBus.execute(new DisconnectCommand({ platform: params.platform, correlationId: this.context.correlationId() }));
-    return this.views.platform(view);
+  async disconnect(@Param(new ZodValidationPipe(PlatformParamsSchema)) params: PlatformParams): Promise<DisconnectResult> {
+    const result = await this.commandBus.execute(new DisconnectCommand({ platform: params.platform, correlationId: this.context.correlationId() }));
+    return this.views.disconnect(result);
   }
 }

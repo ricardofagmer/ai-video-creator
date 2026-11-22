@@ -622,8 +622,9 @@ run writer. A failed `runs/` scan does nothing, as today.
 - Crash safety: on start the watcher sweeps `publish/`. A claimed attempt in `uploading` with no
   live claimant becomes `failed` / `watcher-interrupted` and is never resumed. One in
   `processing` or `sent-to-inbox` resumes its status checks only, which send no video bytes.
-- A request waits while a run executes. The dialog shows "Na fila: o watcher está ocupado com
-  outra execução" and the cancel button. After 2 h it expires; it never fires later on its own.
+- A request waits while a run executes. The dialog shows "Na fila: o watcher envia entre uma
+  execução e outra." and the cancel button (owner decision 2026-11-21: the text stays neutral,
+  since the heartbeat names no run and the web cannot tell a busy watcher from an idle one). After 2 h it expires; it never fires later on its own.
 
 **`metricsPoll.run()`**, at most once an hour, for each platform whose `metrics` status is
 `connected` and whose backoff has passed:

@@ -17,6 +17,7 @@ import {
 } from '@studio/core/platforms';
 import {
   type ConnectionStartView,
+  type DisconnectResult,
   type PlatformView,
   type PlatformsView,
   type PublishAttemptView,
@@ -156,7 +157,7 @@ export class FakePlatformCore {
   completeConnection: Script<CompleteConnectionCommand, ConnectionCompleted> = unscripted;
   startConnection: Script<StartConnectionCommand, ConnectionStartView> = unscripted;
   setGate: Script<SetPlatformGateCommand, PlatformView> = unscripted;
-  disconnect: Script<DisconnectCommand, PlatformView> = unscripted;
+  disconnect: Script<DisconnectCommand, DisconnectResult> = unscripted;
   requestPublish: Script<RequestPublishCommand, RequestPublishResult> = unscripted;
   cancelPublish: Script<CancelPublishCommand, PublishAttemptView> = unscripted;
   getPlatforms: Script<GetPlatformsQuery, PlatformsView> = unscripted;
@@ -187,8 +188,8 @@ function handlersFor(core: FakePlatformCore): Provider[] {
     }
   }
   @CommandHandler(DisconnectCommand)
-  class DisconnectHandler implements ICommandHandler<DisconnectCommand, PlatformView> {
-    execute(command: DisconnectCommand): Promise<PlatformView> {
+  class DisconnectHandler implements ICommandHandler<DisconnectCommand, DisconnectResult> {
+    execute(command: DisconnectCommand): Promise<DisconnectResult> {
       core.received.push(command);
       return core.disconnect(command);
     }

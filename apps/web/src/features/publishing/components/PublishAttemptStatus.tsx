@@ -4,7 +4,7 @@ import { isOpenPublishState, type PublishState } from '@studio/shared/platforms'
 import type { ReactElement } from 'react';
 import { platformLabels } from '@/features/metrics/metric-labels';
 import { MOCK_BADGE_TEXT } from '@/features/platforms/platform-labels';
-import { NO_RESEND_TEXT, QUEUED_WATCHER_BUSY_TEXT, formatInstant, outcomeUnknownText, publishFailureTexts, publishStateLabels } from '../publish-labels';
+import { NO_RESEND_TEXT, QUEUED_BETWEEN_RUNS_TEXT, formatInstant, outcomeUnknownText, publishFailureTexts, publishStateLabels } from '../publish-labels';
 import styles from '../publishing.module.css';
 
 const stateTones: Readonly<Record<PublishState, BadgeTone>> = {
@@ -50,7 +50,7 @@ export function PublishAttemptStatus({ attempt }: { attempt: PublishAttemptView 
         <span className="caption">{`desde ${formatInstant(attempt.since)}`}</span>
         {progress !== null && <span className="caption">{progress}</span>}
       </p>
-      {attempt.state === 'queued' && <p className="caption">{QUEUED_WATCHER_BUSY_TEXT}</p>}
+      {attempt.state === 'queued' && <p className="caption">{QUEUED_BETWEEN_RUNS_TEXT}</p>}
       {attempt.state === 'failed' && (
         <Alert variant="error">{`${attempt.reasonId === null ? '' : `${publishFailureTexts[attempt.reasonId]} `}${NO_RESEND_TEXT}`}</Alert>
       )}
