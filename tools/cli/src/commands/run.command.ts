@@ -40,8 +40,9 @@ export async function runCommand(options: RunCommandOptions, dependencies: Comma
   });
   const { printer } = dependencies;
   printer.line(`Execução ${started.run.runId} criada e na fila (${started.run.recipe.ref}).`);
-  printer.line('O watcher começa pelo plano e espera a sua aprovação no web. Acompanhe com:');
+  printer.line('O watcher começa pelo plano e espera a sua aprovação. Acompanhe e aprove com:');
   printer.line(`  studio status ${started.run.runId}`);
+  printer.line(`  studio approve ${started.run.runId}   (ou no web)`);
   if (started.index === 'stale') printer.error('Aviso: o índice de execuções será atualizado na próxima reconstrução ("studio doctor --rebuild-index").');
   return ExitCode.ok;
 }

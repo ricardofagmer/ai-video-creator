@@ -12,6 +12,7 @@ import { type SemanticSearchOptions } from '../commands/catalog-search.command.j
 import { type DoctorOptions } from '../commands/doctor.command.js';
 import { type InsightsOptions } from '../commands/insights.command.js';
 import { type MetricsImportOptions } from '../commands/metrics-import.command.js';
+import { type GateOutcome, type RunGateOptions } from '../commands/run-gate.command.js';
 import { type RunCommandOptions } from '../commands/run.command.js';
 
 /**
@@ -78,6 +79,19 @@ export function parseRunOptions(value: unknown): RunCommandOptions {
   if (!parsed.success) throw usage(`Opções inválidas em ${parsed.error.issues.map((issue) => `--${issue.path.join('.')}`).join(', ')}.`);
   const { recipe, brief, reference, title } = parsed.data;
   return { recipe, brief, references: reference, title };
+}
+
+/** C3 `notes` bound (approval.json decision shape). */
+const MAX_GATE_NOTES = 4000;
+const GateOptionsSchema = z.object({ notes: z.string().trim().min(1).max(MAX_GATE_NOTES).optional() });
+
+/** `studio approve|reject <runId>`: notes are optional on approve and required on reject (the web asks a reason). */
+export function parseGateOptions(runId: unknown, outcome: GateOutcome, options: unknown): RunGateOptions {
+  const parsed = GateOptionsSchema.safeParse(options);
+  if (!parsed.success) throw usage(`--notes deve ter de 1 a ${MAX_GATE_NOTES} caracteres.`);
+  const notes = parsed.data.notes ?? '';
+  if (outcome === 'rejected' && notes === '') throw usage('Informe o motivo da recusa com --notes "<texto>".');
+  return { runId: parseRunId(runId), outcome, notes };
 }
 
 const CatalogImportOptionsSchema = z.object({

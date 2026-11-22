@@ -12,6 +12,7 @@ import { modelsFetchCommand, modelsStatusCommand, modelsVerifyCommand } from '..
 import { passphraseSetCommand } from '../commands/passphrase-set.command.js';
 import { passphraseStatusCommand } from '../commands/passphrase-status.command.js';
 import { runControlCommand } from '../commands/run-control.command.js';
+import { runGateCommand } from '../commands/run-gate.command.js';
 import { runCommand } from '../commands/run.command.js';
 import { secretsSetCommand } from '../commands/secrets-set.command.js';
 import { startServicesCommand, stopServicesCommand } from '../commands/services.command.js';
@@ -20,6 +21,7 @@ import {
   parseCatalogImportOptions,
   parseDoctorOptions,
   parseEmbedScope,
+  parseGateOptions,
   parseOptionalRunId,
   parseRunId,
   parseRunOptions,
@@ -64,6 +66,18 @@ function addRunCommands(program: Command, dependencies: CommandDependencies, rep
     .description('retoma uma execução pausada, interrompida ou com falha')
     .argument('<runId>', 'id da execução')
     .action(async (runId: unknown) => report(await runControlCommand('resume', parseRunId(runId), dependencies)));
+  program
+    .command('approve')
+    .description('aprova o plano ou a etapa que a execução aguarda (a revisão final é no web)')
+    .argument('<runId>', 'id da execução')
+    .option('--notes <texto>', 'observação gravada com a aprovação')
+    .action(async (runId: unknown, options: unknown) => report(await runGateCommand(parseGateOptions(runId, 'approved', options), dependencies)));
+  program
+    .command('reject')
+    .description('recusa o plano ou a etapa que a execução aguarda; um plano recusado encerra a execução')
+    .argument('<runId>', 'id da execução')
+    .requiredOption('--notes <texto>', 'motivo da recusa')
+    .action(async (runId: unknown, options: unknown) => report(await runGateCommand(parseGateOptions(runId, 'rejected', options), dependencies)));
 }
 
 function addServiceCommands(program: Command, dependencies: CommandDependencies, report: ExitCodeSink): void {
