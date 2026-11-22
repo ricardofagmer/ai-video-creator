@@ -4,7 +4,7 @@
   gap: var(--space-1);
   padding: var(--space-3) var(--space-4);
   border: 1px solid transparent;
-  border-left-width: 4px;
+  border-left-width: var(--stroke-accent);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);

@@ -7,7 +7,7 @@
   display: inline-block;
   flex-shrink: 0;
   /* Track: the current colour at 25 %; the top arc is solid. */
-  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border: var(--stroke-thin) solid color-mix(in srgb, currentColor 25%, transparent);
   border-top-color: currentColor;
   border-radius: var(--radius-full);
   animation: spin var(--duration-spin) linear infinite;

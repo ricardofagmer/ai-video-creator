@@ -53,7 +53,7 @@
 
 .input[aria-invalid='true'] {
   outline: 1px solid var(--color-danger);
-  outline-offset: 1px;
+  outline-offset: var(--focus-ring-offset-tight);
 }
 
 .input:focus-visible {

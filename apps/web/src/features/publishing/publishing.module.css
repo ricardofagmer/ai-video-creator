@@ -70,7 +70,7 @@
   color: var(--color-text-muted);
   background: none;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: var(--stroke-thin) solid transparent;
   cursor: pointer;
 }
 

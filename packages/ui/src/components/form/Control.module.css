@@ -23,7 +23,7 @@
 
 .control:focus-visible {
   border-color: var(--color-focus-ring);
-  box-shadow: 0 0 0 4px var(--color-glow-blue);
+  box-shadow: var(--shadow-focus-halo-control);
 }
 
 .control[aria-invalid='true'] {
@@ -69,8 +69,8 @@
   right: var(--space-4);
   width: var(--space-2);
   height: var(--space-2);
-  border-right: 2px solid var(--color-text-muted);
-  border-bottom: 2px solid var(--color-text-muted);
+  border-right: var(--stroke-thin) solid var(--color-text-muted);
+  border-bottom: var(--stroke-thin) solid var(--color-text-muted);
   transform: translateY(-75%) rotate(45deg);
   pointer-events: none;
 }

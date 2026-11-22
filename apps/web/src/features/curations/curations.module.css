@@ -14,7 +14,7 @@
 }
 
 .fields dt {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .fields dd {
@@ -24,7 +24,7 @@
 /* The unified diff: monospace, scrollable on its own, focusable so a keyboard can scroll it. */
 .diff {
   margin: 0;
-  max-height: 32rem;
+  max-height: var(--size-diff-max-height);
   overflow: auto;
   padding: var(--space-4);
   border: 1px solid var(--color-border);
@@ -32,14 +32,14 @@
   background: var(--color-surface-muted);
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
-  line-height: 1.5;
+  line-height: var(--line-height-normal);
   white-space: pre;
   tab-size: 2;
 }
 
 .diff:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+  outline: var(--focus-ring-width) solid var(--color-focus-ring);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .runLinks {

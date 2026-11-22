@@ -36,9 +36,9 @@ body::before {
   background-image:
     linear-gradient(var(--color-grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
-  background-size: 40px 40px;
-  -webkit-mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, #000 25%, transparent 72%);
-  mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, #000 25%, transparent 72%);
+  background-size: var(--size-grid-cell) var(--size-grid-cell);
+  -webkit-mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, var(--mask-solid) 25%, transparent 72%);
+  mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, var(--mask-solid) 25%, transparent 72%);
 }
 
 h1,
@@ -70,7 +70,7 @@ samp {
 :focus-visible {
   outline: var(--focus-ring-width) solid var(--color-focus-ring);
   outline-offset: var(--focus-ring-offset);
-  box-shadow: 0 0 0 6px var(--color-glow-blue);
+  box-shadow: var(--shadow-focus-halo);
 }
 
 /*
