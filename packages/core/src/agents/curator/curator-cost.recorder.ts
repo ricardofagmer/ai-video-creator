@@ -45,15 +45,15 @@ export interface RecordedSpend {
   readonly failure: CuratorCallFailure | null;
 }
 
-type CostEntry = CurationUsage & { usd: number; outcome: CurationCallOutcome; startedAt: Date; endedAt: Date };
+type CostEntry = CurationUsage & { usd: number; outcome: CurationCallOutcome; startedAt: Date; endedAt: Date; estimated?: true };
 
 /**
  * One `cost.json` entry per Curator call that reached the provider (C5-AC-16), mock calls at $0
  * included. A live request that was sent but returned no usage (call timeout, curation timeout,
  * stop, unreadable usage) may still have been billed, so it is recorded at the worst case the
  * watcher priced before the call (`worstCaseInputChars` plus the output cap, uncached) with outcome
- * `failed`; month-to-date then never undercounts. Such an entry is told apart by its session `end`
- * line, which carries `usage: null`. A rate-limited call is not estimated: a 429 is refused before
+ * `failed`; month-to-date then never undercounts. Such an entry carries `estimated: true` in
+ * `cost.json`, and its session `end` line carries `usage: null`. A rate-limited call is not estimated: a 429 is refused before
  * the provider processes the request (B6). Logs carry ids and amounts only (K7).
  */
 export class CuratorCostRecorder {
@@ -92,7 +92,7 @@ export class CuratorCostRecorder {
       return { usd: 0, estimated: true, failure: { kind: 'trace-failed', target: 'cost-ledger' } };
     }
     this.logger.warn({ event: 'curator.cost-estimated', curationId: call.packet.curationId, sessionId: call.sessionId, usd });
-    const failure = await this.write(call, { ...usage, usd, outcome: 'failed', startedAt: sentAt, endedAt: new Date() });
+    const failure = await this.write(call, { ...usage, usd, outcome: 'failed', startedAt: sentAt, endedAt: new Date(), estimated: true });
     return { usd, estimated: true, failure };
   }
 
@@ -115,6 +115,7 @@ export class CuratorCostRecorder {
         outcome: entry.outcome,
         startedAt: entry.startedAt.toISOString(),
         endedAt: entry.endedAt.toISOString(),
+        ...(entry.estimated ? { estimated: true } : {}),
       });
       await this.costs.record({ curationId: call.packet.curationId, curationDir: curationDirectory(call.location), session });
       return null;

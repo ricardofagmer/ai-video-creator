@@ -133,9 +133,8 @@ final-gate review (`security-reviewer` and `critic`).
   `security_review: pending` stays so the PR boundary holds the review.
 
 ## Open items
-- Estimated cost rows (RC-1) carry no flag in `cost.json`; they are told apart by `usage: null`
-  on the session end line and the `curator.cost-estimated` log line. An optional `estimated`
-  field on the shared cost schema is a possible later contract change.
+- Closed 2026-11-21 (`.engineos/changes/2026-11-21-r4-open-decisions.md`): estimated cost rows
+  (RC-1) now carry optional `estimated: true` in `cost.json`.
 - Closed 2026-11-19: `heartbeat-writer.ts` now imports `errorName` from `apps/watcher/src/platform/error-name.ts`; no watcher copy remains. Copies in api, core and cli predate SPEC 0005 and stay out of scope.
 - Closed 2026-11-19: `studio doctor` has a file-only `curadorias` check (`tools/cli/src/doctor/curation-checks.ts`) that lists by id curations ended `failed` with 0 model calls in the last 7 days (parked requests, restart sweeps, faults before the first call) and unreadable folders, as a warning; `studio status` prints a count warning pointing to doctor. Ids and counts only. Not compiled.
 - Nothing from R1, R2 or SPEC 0005 has been compiled. Dependencies installed 2026-11-19 (`pnpm install`, 620 packages, pnpm-lock.yaml created, unfrozen); typecheck and build declined for now ("Not now").

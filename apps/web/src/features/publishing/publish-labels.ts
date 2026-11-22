@@ -17,8 +17,12 @@ export const AI_DISCLOSURE_LABEL = 'Conteúdo alterado ou sintético';
 /** Section 5.4, after a terminal `failed`. */
 export const NO_RESEND_TEXT = 'Nada será reenviado sem um novo clique.';
 
-/** Section 5.5, a `queued` attempt: the watcher claims publish requests only between runs. */
-export const QUEUED_WATCHER_BUSY_TEXT = 'Na fila: o watcher está ocupado com outra execução';
+/**
+ * Section 5.5, a `queued` attempt: the watcher claims publish requests only between runs. No file
+ * says whether a run is executing now, so the text states the rule instead of claiming the watcher
+ * is busy (owner decision 2026-11-21, finding R6).
+ */
+export const QUEUED_BETWEEN_RUNS_TEXT = 'Na fila: o watcher envia entre uma execução e outra.';
 
 /** Section 16: a published video is removed only by the owner in the platform. */
 export const CANNOT_UNPUBLISH_TEXT = 'O estúdio não consegue desfazer uma publicação: para remover um vídeo publicado, apague-o na plataforma.';
@@ -88,6 +92,7 @@ export const publishFailureTexts: Readonly<Record<PublishFailureReason, string>>
   network: 'A conexão caiu durante o envio.',
   'platform-unavailable': 'A plataforma estava indisponível.',
   'watcher-interrupted': 'O vigia foi interrompido durante o envio.',
+  'request-mismatch': 'O pedido de publicação não confere com o registro do estúdio. Nada foi enviado; clique de novo para publicar.',
   'internal-error': 'Ocorreu um erro interno no estúdio.',
 };
 

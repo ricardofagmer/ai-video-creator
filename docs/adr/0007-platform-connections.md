@@ -130,7 +130,13 @@ Harder:
 
 - A click waits while a run executes, up to 2 hours, then expires.
 - A token in the login Keychain is readable by `/usr/bin/security` for any process of the owner's
-  user, as the provider keys already are.
+  user, as the provider keys already are. **Accepted risk (owner, 2026-11-21):** each item is
+  written with `-T /usr/bin/security` (SPEC 0007 section 5.3), so that program reads it with no
+  prompt, and any process running as the owner can run that program. This is what lets the
+  watcher publish and import metrics unattended. Dropping `-T` would make macOS ask on every
+  read. The owner accepted this exposure, the same one the provider keys carry, rather than
+  give up unattended work. Mitigations kept: one item per platform, tokens passed only on stdin
+  (B10), never in argv, files or logs (K3), and disconnect always deletes the item.
 - Two files gain an exception to one writer per file: a batch file is created by the watcher and
   deleted by its ingester.
 - Platform APIs, quotas and review rules change without notice (two such changes are dated within
@@ -153,3 +159,6 @@ Revisit when:
   per platform and the loopback redirect stop being enough.
 - An upload while a run executes becomes a real need: reconsider Q1 (c) with crash rules.
 - The macOS `security -i` stdin behaviour changes (B10): re-run the check before any vault change.
+- Any software the owner does not trust runs under the owner's macOS user, or the studio gains
+  a second macOS user: reconsider the accepted `-T /usr/bin/security` risk. Options are a
+  dedicated keychain with its own password, or a signed helper as the only trusted application.

@@ -1,6 +1,7 @@
 import { Inject, Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
-import { type PlatformView } from '@studio/shared/api';
+import { type DisconnectResult } from '@studio/shared/api';
+import { type RevokeOutcome } from '@studio/shared/platforms';
 import { writeAccountFile } from '@studio/shared/platforms/files';
 import { KEYCHAIN_READ_TIMEOUT_MS } from '../../secrets/keychain';
 import { PlatformClientError } from '../clients/platform-client.errors';
@@ -19,9 +20,6 @@ import { deleteTokenItem } from '../vault/token-item-delete';
 import { PLATFORM_TOKEN_VAULT, type PlatformTokenVault } from '../vault/token-vault.port';
 import { DisconnectCommand } from './platform.commands';
 
-/** `revoked`: the platform accepted the revoke. `skipped`: no live call applies. `failed`: best effort lost. */
-type RevokeOutcome = 'revoked' | 'skipped' | 'failed';
-
 /** Kept for the Keychain delete while reading and revoking, so a slow revoke cannot starve it. */
 const DELETE_RESERVE_MS = KEYCHAIN_READ_TIMEOUT_MS;
 
@@ -34,10 +32,10 @@ const DELETE_RESERVE_MS = KEYCHAIN_READ_TIMEOUT_MS;
  * bounded by the lock budget (`TokenLease`). A platform with no connected account writes no
  * account file, but its item is still deleted, so a disconnect interrupted after the account write
  * is finished by the next one. The log names the platform, the connection id and the revoke
- * outcome only.
+ * outcome only. The answer carries the revoke outcome (owner decision 2026-11-21).
  */
 @CommandHandler(DisconnectCommand)
-export class DisconnectHandler implements ICommandHandler<DisconnectCommand, PlatformView> {
+export class DisconnectHandler implements ICommandHandler<DisconnectCommand, DisconnectResult> {
   private readonly logger = new Logger(DisconnectHandler.name);
 
   constructor(
@@ -53,8 +51,9 @@ export class DisconnectHandler implements ICommandHandler<DisconnectCommand, Pla
     private readonly views: PlatformViewReader,
   ) {}
 
-  async execute(command: DisconnectCommand): Promise<PlatformView> {
+  async execute(command: DisconnectCommand): Promise<DisconnectResult> {
     const { platform, correlationId } = parsePlatformInput(DisconnectInputSchema, command.input);
+    let revoke: RevokeOutcome = 'skipped';
     await this.queue.exclusive(() =>
       this.tokenLock.withLock(platform, async (lease) => {
         const account = await this.accounts.readConnected(platform);
@@ -67,7 +66,7 @@ export class DisconnectHandler implements ICommandHandler<DisconnectCommand, Pla
             correlationId,
           });
         }
-        const revoke = bundle === null ? 'skipped' : await this.revoke(lease, bundle);
+        revoke = bundle === null ? 'skipped' : await this.revoke(lease, bundle);
         const deleted = await deleteTokenItem(this.vault, lease);
         if (account !== null) {
           this.logger.log({ event: 'platform.disconnected', platform, connectionId: account.connectionId, revoke, correlationId });
@@ -76,7 +75,7 @@ export class DisconnectHandler implements ICommandHandler<DisconnectCommand, Pla
         }
       }),
     );
-    return this.views.viewOf(platform);
+    return { ...(await this.views.viewOf(platform)), revoke };
   }
 
   /** The live bundle to revoke, or null; an unreadable item is still deleted afterwards. */

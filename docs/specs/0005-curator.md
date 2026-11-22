@@ -211,6 +211,7 @@ const CurationCostSessionSchema = z.object({
   cacheReadTokens: z.number().int().min(0), cacheWriteTokens: z.number().int().min(0),
   usd: z.number().nonnegative(), outcome: CurationCallOutcomeSchema,
   startedAt: IsoDateTimeSchema, endedAt: IsoDateTimeSchema,
+  estimated: z.literal(true).optional(), // worst-case entry with no usage (owner, 2026-11-21)
 }).strict();
 const CurationCostFileSchema = z.object({
   format: z.literal(1), curationId: CurationIdSchema, currency: z.literal('USD'),

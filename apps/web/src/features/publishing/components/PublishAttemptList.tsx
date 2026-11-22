@@ -6,7 +6,7 @@ import { useState, type ReactElement } from 'react';
 import { describePlatformApiError } from '@/features/common/platform-error-text';
 import { platformLabels } from '@/features/metrics/metric-labels';
 import { MOCK_BADGE_TEXT } from '@/features/platforms/platform-labels';
-import { QUEUED_WATCHER_BUSY_TEXT, formatInstant } from '../publish-labels';
+import { QUEUED_BETWEEN_RUNS_TEXT, formatInstant } from '../publish-labels';
 import { browserPublishingApi } from '../publishing-api';
 import styles from '../publishing.module.css';
 import { PublishStateBadge } from './PublishAttemptStatus';
@@ -52,7 +52,7 @@ export function PublishAttemptList({ runId, attempts, onAttempt }: PublishAttemp
             <PublishStateBadge attempt={attempt} />
             {attempt.mode === 'mock' && <Badge tone="info">{MOCK_BADGE_TEXT}</Badge>}
             <span className="caption">{`pedido em ${formatInstant(attempt.requestedAt)}`}</span>
-            {attempt.state === 'queued' && <span className="caption">{QUEUED_WATCHER_BUSY_TEXT}</span>}
+            {attempt.state === 'queued' && <span className="caption">{QUEUED_BETWEEN_RUNS_TEXT}</span>}
             {attempt.state === 'queued' && (
               <Button
                 variant="ghost"

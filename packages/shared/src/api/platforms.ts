@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { IsoDateTimeSchema } from '../common/ids';
 import { PlatformSchema, type Platform } from '../metrics/enums';
 import { PlatformGatesSchema, PollBackoffSchema } from '../platforms/connection-files';
-import { CapabilityStatusSchema, GateStateSchema, PlatformCapabilitySchema, PlatformModeSchema, ReconnectReasonSchema } from '../platforms/enums';
+import { CapabilityStatusSchema, GateStateSchema, PlatformCapabilitySchema, PlatformModeSchema, ReconnectReasonSchema, RevokeOutcomeSchema } from '../platforms/enums';
 import { ApiRev7ErrorReasonSchema } from './common';
 import { apiPaths } from './routes';
 
@@ -45,6 +45,14 @@ export const PlatformViewSchema = z
   })
   .strict();
 export type PlatformView = z.infer<typeof PlatformViewSchema>;
+
+/**
+ * `DELETE /platforms/:platform/connection` (200): the platform after the disconnect, plus the
+ * outcome of the best-effort revoke (owner decision 2026-11-21), so the page asks the owner to
+ * remove the app's access on the platform only when the revoke was not confirmed.
+ */
+export const DisconnectResultSchema = PlatformViewSchema.extend({ revoke: RevokeOutcomeSchema }).strict();
+export type DisconnectResult = z.infer<typeof DisconnectResultSchema>;
 
 /** `GET /platforms` (200): the three platforms, each exactly once. */
 export const PlatformsViewSchema = z

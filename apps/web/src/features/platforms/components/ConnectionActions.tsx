@@ -2,7 +2,7 @@
 
 import { Alert, Button, Dialog } from '@studio/ui';
 import { type Platform } from '@studio/shared/metrics';
-import { type PlatformMode } from '@studio/shared/platforms';
+import { type PlatformMode, type RevokeOutcome } from '@studio/shared/platforms';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type ReactElement } from 'react';
 import { describePlatformApiError } from '@/features/common/platform-error-text';
@@ -26,14 +26,18 @@ type ActionState =
   | { status: 'connecting' }
   | { status: 'confirming-disconnect' }
   | { status: 'disconnecting' }
-  | { status: 'disconnected' }
+  | { status: 'disconnected'; revoke: RevokeOutcome }
   | { status: 'failed'; message: string };
 
 /**
- * Section 5.2: the revoke at the platform is best effort and its result is not in the api answer,
- * so after every disconnect the owner is told to remove the app's access on the platform too.
+ * Section 5.2: the revoke at the platform is best effort. The api answer names its outcome (owner
+ * decision 2026-11-21), so the owner is asked to remove the app's access on the platform only when
+ * the platform did not confirm the revoke (`skipped` or `failed`).
  */
-function removeAppAccessText(name: string): string {
+function disconnectedText(name: string, revoke: RevokeOutcome): string {
+  if (revoke === 'revoked') {
+    return `O acesso guardado no estúdio foi apagado e a conta de ${name} confirmou a remoção do acesso do aplicativo.`;
+  }
   return `O acesso guardado no estúdio foi apagado. Para garantir, remova também o acesso do aplicativo nas configurações da sua conta de ${name}.`;
 }
 
@@ -70,8 +74,8 @@ export function ConnectionActions({ platform, mode, canConnect, hasAccount }: Co
     busyRef.current = true;
     setState({ status: 'disconnecting' });
     try {
-      await browserPlatformsApi.disconnect(platform);
-      setState({ status: 'disconnected' });
+      const result = await browserPlatformsApi.disconnect(platform);
+      setState({ status: 'disconnected', revoke: result.revoke });
       router.refresh();
     } catch (error) {
       setState({ status: 'failed', message: describePlatformApiError(error, { platform, mode }) });
@@ -89,7 +93,7 @@ export function ConnectionActions({ platform, mode, canConnect, hasAccount }: Co
   return (
     <div className={styles.connection}>
       {state.status === 'failed' && <Alert variant="error">{state.message}</Alert>}
-      {state.status === 'disconnected' && <Alert variant="info">{removeAppAccessText(name)}</Alert>}
+      {state.status === 'disconnected' && <Alert variant="info">{disconnectedText(name, state.revoke)}</Alert>}
       <div className={styles.actions}>
         {canConnect && (
           <Button

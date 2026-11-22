@@ -1,10 +1,12 @@
 import {
   ConnectionStartViewSchema,
+  DisconnectResultSchema,
   GateChangeRequestSchema,
   PlatformViewSchema,
   PlatformsViewSchema,
   apiPaths,
   type ConnectionStartView,
+  type DisconnectResult,
   type GateChangeRequest,
   type PlatformView,
   type PlatformsView,
@@ -23,7 +25,8 @@ export interface PlatformsApi {
   changeGate(platform: Platform, request: GateChangeRequest): Promise<PlatformView>;
   /** Where to send the browser; the schema accepts only `https` or the api's loopback callback. */
   startConnection(platform: Platform): Promise<ConnectionStartView>;
-  disconnect(platform: Platform): Promise<PlatformView>;
+  /** The view after the disconnect plus the revoke outcome at the platform. */
+  disconnect(platform: Platform): Promise<DisconnectResult>;
 }
 
 export function createPlatformsApi(transport: ApiTransport): PlatformsApi {
@@ -37,7 +40,7 @@ export function createPlatformsApi(transport: ApiTransport): PlatformsApi {
       ),
     startConnection: (platform) =>
       requestJson(transport, { method: 'POST', path: apiPaths.platformConnection(platform) }, ConnectionStartViewSchema),
-    disconnect: (platform) => requestJson(transport, { method: 'DELETE', path: apiPaths.platformConnection(platform) }, PlatformViewSchema),
+    disconnect: (platform) => requestJson(transport, { method: 'DELETE', path: apiPaths.platformConnection(platform) }, DisconnectResultSchema),
   };
 }
 

@@ -92,6 +92,7 @@ export const PUBLISH_FAILURE_TEXTS: Readonly<Record<PublishFailureReason, string
   network: 'A conexão caiu durante o envio.',
   'platform-unavailable': 'A plataforma estava indisponível.',
   'watcher-interrupted': 'O vigia foi interrompido durante o envio.',
+  'request-mismatch': 'O pedido de publicação não confere com o registro do estúdio. Nada foi enviado; clique de novo para publicar.',
   'internal-error': 'Ocorreu um erro interno no estúdio.',
 };
 

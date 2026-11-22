@@ -97,6 +97,18 @@ describe('studio platforms (SPEC 0007 sections 5.3 and 5.9)', () => {
     assert.equal(exitCode, ExitCode.ok);
     assert.deepEqual(gateway.calls, ['disconnect:youtube']);
     assert.match(studio.printer.text(), /o token foi apagado do Keychain/);
+    assert.match(studio.printer.text(), /remova o acesso nas configurações de lá/, 'an unconfirmed revoke asks the owner to remove access');
+    assertNoSecretInOutput(studio.printer.text());
+  });
+
+  it('confirms the platform-side revoke instead of asking to remove access when the platform confirmed it', async () => {
+    gateway.disconnectRevoke = 'revoked';
+
+    const exitCode = await platformsDisconnectCommand('youtube', { gateway, now: () => NOW }, studio.dependencies);
+
+    assert.equal(exitCode, ExitCode.ok);
+    assert.match(studio.printer.text(), /confirmou a remoção do acesso do Video Studio/);
+    assert.doesNotMatch(studio.printer.text(), /remova o acesso/);
     assertNoSecretInOutput(studio.printer.text());
   });
 

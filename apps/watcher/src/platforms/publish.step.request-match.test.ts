@@ -12,7 +12,7 @@ import { type AttemptRowMismatch, type PublicationAttemptRow } from './publicati
  * `request.json` is uploaded only when it is the request the api recorded (SPEC 0007 section 5.5
  * step 8, finding S3): its `publication_attempts` row exists, is `queued`, and agrees on run,
  * platform, connection, mode, artifact, metadata, biometric set, approval and expiry. Any mismatch
- * closes the attempt `failed` / `internal-error` before the token is touched, sends nothing, and
+ * closes the attempt `failed` / `request-mismatch` before the token is touched, sends nothing, and
  * records `publish.request-mismatch` naming the field only, never a value. The row comes from the
  * SQLite double, built from `request.json` and edited per case. Finding F-3: the row's
  * `metadata_sha256` must equal `publishMetadataSha256` of `request.json`'s metadata; null (a row
@@ -81,7 +81,7 @@ describe('PublishStep matches request.json against its publication_attempts row 
   });
 
   for (const mismatch of mismatches) {
-    it(`sends nothing and fails internal-error, naming field ${mismatch.field} without its value, when ${mismatch.name}`, async () => {
+    it(`sends nothing and fails request-mismatch, naming field ${mismatch.field} without its value, when ${mismatch.name}`, async () => {
       const queued = await queueRequest();
       harness.prisma.attemptRowEdit = mismatch.edit;
 
@@ -89,7 +89,7 @@ describe('PublishStep matches request.json against its publication_attempts row 
 
       const state = await stateOf(harness, queued.attemptId);
       assert.equal(state?.state, 'failed');
-      assert.equal(state?.reasonId, 'internal-error');
+      assert.equal(state?.reasonId, 'request-mismatch');
       assert.equal(state?.bytesSent, 0);
       assert.equal(harness.clients.youtube.calls.upload, 0);
       assert.equal(harness.clients.youtube.calls.refresh, 0, 'refused before the token is touched');
@@ -114,7 +114,7 @@ describe('PublishStep matches request.json against its publication_attempts row 
 
     const state = await stateOf(harness, queued.attemptId);
     assert.equal(state?.state, 'failed');
-    assert.equal(state?.reasonId, 'internal-error');
+    assert.equal(state?.reasonId, 'request-mismatch');
     assert.equal(harness.clients.youtube.calls.upload, 0);
     assert.deepEqual(harness.events.ofType('publish.request-mismatch'), [{ type: 'publish.request-mismatch', attemptId: queued.attemptId, field: 'metadata' }]);
     const logged = [...harness.logs.lines, inspect(harness.events.events, { depth: 8 })].join('\n');
@@ -130,6 +130,6 @@ describe('PublishStep matches request.json against its publication_attempts row 
     assert.equal(await harness.publish.claimNext(), false);
 
     assert.equal(harness.clients.youtube.calls.upload, 0);
-    assert.equal((await stateOf(harness, queued.attemptId))?.reasonId, 'internal-error');
+    assert.equal((await stateOf(harness, queued.attemptId))?.reasonId, 'request-mismatch');
   });
 });

@@ -28,6 +28,14 @@ export type CapabilityStatus = z.infer<typeof CapabilityStatusSchema>;
 export const ReconnectReasonSchema = z.enum(['token-revoked', 'refresh-expired', 'scope-missing', 'account-changed', 'token-missing']);
 export type ReconnectReason = z.infer<typeof ReconnectReasonSchema>;
 
+/**
+ * The best-effort revoke at disconnect (section 5.2): `revoked`, the platform accepted it; `skipped`,
+ * no live call applied (mock mode, or no readable live token); `failed`, the call was refused, timed
+ * out or could not be made. Only `revoked` means the platform confirmed the app lost its access.
+ */
+export const RevokeOutcomeSchema = z.enum(['revoked', 'skipped', 'failed']);
+export type RevokeOutcome = z.infer<typeof RevokeOutcomeSchema>;
+
 /** Per platform, from `VIDEO_STUDIO_PLATFORM_<PLATFORM>_MODE`; `mock` is the default (section 5.8). */
 export const PlatformModeSchema = z.enum(['mock', 'live']);
 export type PlatformMode = z.infer<typeof PlatformModeSchema>;
@@ -50,7 +58,11 @@ export const PublishStateSchema = z.enum([
 ]);
 export type PublishState = z.infer<typeof PublishStateSchema>;
 
-/** The one reason a terminal `failed` attempt carries (section 5.4). */
+/**
+ * The one reason a terminal `failed` attempt carries (section 5.4). `request-mismatch`: the watcher's
+ * re-check found `request.json` disagreeing with its `publication_attempts` row (finding S3); written
+ * before any byte (owner decision 2026-11-21, replaces `internal-error` on that path).
+ */
 export const PublishFailureReasonSchema = z.enum([
   'run-not-approved',
   'gate-closed',
@@ -69,6 +81,7 @@ export const PublishFailureReasonSchema = z.enum([
   'network',
   'platform-unavailable',
   'watcher-interrupted',
+  'request-mismatch',
   'internal-error',
 ]);
 export type PublishFailureReason = z.infer<typeof PublishFailureReasonSchema>;

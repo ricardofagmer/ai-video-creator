@@ -59,13 +59,13 @@ export type WithdrawnUpload = 'in-progress' | 'published' | 'state-corrupt';
  *
  * 0. `request.json` is the request the api recorded: its `publication_attempts` row is `queued` and
  *    agrees on run, platform, connection, mode, artifact, metadata, biometric set, approval and
- *    expiry (finding S3). A mismatch refuses with `internal-error` and logs the field name only;
+ *    expiry (finding S3). A mismatch refuses with `request-mismatch` and logs the field name only;
  *    then, as core `RequestPublish` step 7 rules (finding R2, the C4 deferred case), no `cancelled`
  *    or `expired` attempt of the same run and platform changed within `publishBounds.inboxFollowMs`
  *    has a claim and a `state.json` in `uploading`, `processing`, `sent-to-inbox` or `published`, or
  *    a corrupt one. `failed`, `outcome-unknown` and `inbox-unconfirmed` do not block (a new click
- *    after a failed upload stays possible). No failure reason names a duplicate, so it takes the
- *    mismatch path: `internal-error`, logging both attempt ids and the verdict;
+ *    after a failed upload stays possible). No failure reason names a duplicate, so it fails
+ *    `internal-error` (owner decision 2026-11-21), logging both attempt ids and the verdict;
  * 1. publishing is supported on the platform (Instagram is never published, OD8) and the `publish`
  *    status is `connected`: gate `enabled`, credentials configured, account connected, no
  *    `needs-reconnect` for its connection;
@@ -96,7 +96,7 @@ export class PublishRecheck {
     const mismatch = attemptRowMismatch(await this.attempts.rowOf(request.attemptId), request);
     if (mismatch !== null) {
       this.events.record({ type: 'publish.request-mismatch', attemptId: request.attemptId, field: mismatch });
-      return refused('internal-error');
+      return refused('request-mismatch');
     }
     const withdrawn = await this.withdrawnUploadOf(request);
     if (withdrawn !== null) {

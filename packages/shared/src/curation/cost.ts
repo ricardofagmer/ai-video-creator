@@ -30,6 +30,12 @@ export const CurationCostSessionSchema = z
     outcome: CurationCallOutcomeSchema,
     startedAt: IsoDateTimeSchema,
     endedAt: IsoDateTimeSchema,
+    /**
+     * Present, and only ever `true`, when the call was sent but returned no usage, so `usd` is the
+     * worst case priced before the call rather than the billed amount. Absent on every billed entry,
+     * so files written before the flag existed still parse.
+     */
+    estimated: z.literal(true).optional(),
   })
   .strict();
 export type CurationCostSession = z.infer<typeof CurationCostSessionSchema>;
