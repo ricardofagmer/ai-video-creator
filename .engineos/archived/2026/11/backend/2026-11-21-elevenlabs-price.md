@@ -1,6 +1,6 @@
 ---
 name: 2026-11-21-elevenlabs-price
-status: active
+status: done
 owner: Ricardo Fagmer
 spec: none (one config value, owner-supplied)
 domain: backend
@@ -35,7 +35,7 @@ reads the version string.
 ## Checklist
 - [x] Rate and version set (2026-11-21)
 - [x] R1 change record: user checklist item ticked, Human decisions row (2026-11-21)
-- [ ] Final checks at the end of the product work (owner decision 2026-11-21: tests and checks wait)
+- [x] Final checks: typecheck, lint, test and build green in CI on `main` (run 44973075115 on `c6396d1`, PR #11); not run locally
 
 ## What was made
 - `packages/core/src/costs/price-table.ts`: `version` `2026-11-21.1`, `readAt` `2026-11-21`, the
@@ -44,8 +44,11 @@ reads the version string.
 - Not compiled. No live ElevenLabs call made.
 
 ## Verification
-[validation] pending — final-stage user approval required
+- CI run 44973075115 on `main` at `c6396d1` (PR #11, which carried this change): install, typecheck,
+  lint, test and build all `success`.
+- Not verified: a live ElevenLabs narration priced against the new rate (no live call made).
 
 ## Human decisions
 2026-11-21 | Ricardo Fagmer | ElevenLabs rate source | approved | "Look up my plan's rate"; plan "Creator"
 2026-11-21 | Ricardo Fagmer | ElevenLabs rate | approved | "Set $0.18 per 1k (Recommended)"
+2026-11-21 | Ricardo Fagmer | close and archive on CI evidence | approved | "Housekeeping first (Recommended)"
