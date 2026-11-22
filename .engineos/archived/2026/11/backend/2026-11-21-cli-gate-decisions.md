@@ -1,6 +1,6 @@
 ---
 name: 2026-11-21-cli-gate-decisions
-status: active
+status: done
 owner: Ricardo Fagmer
 spec: inline (section "Spec" below)
 domain: backend
@@ -42,7 +42,8 @@ change record notes. Tests wait for the paused super-dev coverage run (owner dec
 ## Checklist
 - [x] Command and wiring (2026-11-21)
 - [x] R1 change record: user checklist item, stale R1-19 and R1-21 notes, Human decisions row (2026-11-21)
-- [ ] Final checks at the end of the product work (typecheck and lint skipped by the owner 2026-11-21)
+- [x] Typecheck and lint: green in CI on `main` (run 44973075115 on `c6396d1`, PR #11); not run locally
+- Tests for `studio approve|reject` move to the coverage wave (`docs/specs/r1-r2-curator-coverage/tickets/10-cli-toolbox.md`); none exist yet
 
 ## What was made
 - `tools/cli/src/commands/run-gate.command.ts` (new): `runGateCommand` reads the run folder, finds the awaited gate, builds a C3 `plan` or `recipe-gate` decision (`decidedBy: cli`) and executes core `RecordGateDecisionCommand`; not waiting -> `ReviewNotAllowedError` `gate-not-awaited`.
@@ -52,8 +53,11 @@ change record notes. Tests wait for the paused super-dev coverage run (owner dec
 - Not compiled, no tests written (tests paused until the product work ends).
 
 ## Verification
-[validation] pending — final-stage user approval required
+- CI run 44973075115 on `main` at `c6396d1` (PR #11, which carried this change): install, typecheck,
+  lint, test and build all `success`. The test step ran the existing suites; no test covers the new commands.
+- Not verified: `studio approve` and `studio reject` against a real waiting run.
 
 ## Human decisions
 2026-11-21 | Ricardo Fagmer | C10 open item | approved | "Gate only, no review"
 2026-11-21 | Ricardo Fagmer | final checks (`pnpm --filter @studio/cli typecheck`, `lint`) | deferred | "Skip for now"; pending until the end of the product work
+2026-11-21 | Ricardo Fagmer | close and archive on CI evidence | approved | "Housekeeping first (Recommended)"

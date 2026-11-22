@@ -1,4 +1,7 @@
 ---
+name: 2026-11-18-agent-topology
+status: done
+owner: Ricardo Fagmer
 domain: llm
 risk: medium
 spec: docs/specs/0001-agent-topology.md
@@ -27,6 +30,8 @@ an AI researcher (amendment if ever needed).
 
 ## Not done
 - No implementation; evals are plans only (authored at the approved final stage).
+- The §11 evals are carried by the coverage wave (`docs/specs/r1-r2-curator-coverage/`, tickets 02,
+  03 and 05: loop, end-to-end, tool and agent evals); none exist yet.
 
 ## Checklist
 - [x] All 12 sections hold owner decisions; no placeholders
@@ -42,3 +47,4 @@ an AI researcher (amendment if ever needed).
 ## Human decisions
 2026-11-18 | Ricardo Fagmer | topology-approval | approved | docs/specs/0001-agent-topology.md
 2026-11-21 | Ricardo Fagmer | §12 diagram review | reviewed | "Already reviewed"
+2026-11-21 | Ricardo Fagmer | close and archive (design record, all items done) | approved | "Housekeeping first (Recommended)"
