@@ -1,6 +1,6 @@
 name: CI
 
-# Typecheck, lint, test and build of the Video Studio workspace on every pull request and on main.
+# Typecheck, lint, test and build of the EngineOS Video Creator workspace on every pull request and on main.
 # `pull_request` (never `pull_request_target`) runs fork code without secrets or write access.
 on:
   pull_request:

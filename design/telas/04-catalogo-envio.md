@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rota | `/catalogo/novo` (nova versão de um ativo: `/catalogo/novo?de=[assetId]`) |
-| Título do documento | `Enviar ativo · Video Studio` (nova versão: `Nova versão · <nome> · Video Studio`) |
+| Título do documento | `Enviar ativo · EngineOS Video Creator` (nova versão: `Nova versão · <nome> · EngineOS Video Creator`) |
 | Ticket | R1-19 (critérios 5, 6, 7, 22) |
 
 ## Objetivo

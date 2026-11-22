@@ -31,7 +31,7 @@ export default async function StudioLayout({ children, watcher }: StudioLayoutPr
   return (
     <AppShell
       brand={
-        <Link href="/execucoes" aria-label="Video Studio, ir para Execuções">
+        <Link href="/execucoes" aria-label="EngineOS Video Creator, ir para Execuções">
           <Logo />
         </Link>
       }

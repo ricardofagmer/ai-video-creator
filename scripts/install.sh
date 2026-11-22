@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Video Studio installer (SPEC 0002 R1-22, PRD 0001 section 11). Run it in Terminal on the Mac
+# EngineOS Video Creator installer (SPEC 0002 R1-22, PRD 0001 section 11). Run it in Terminal on the Mac
 # that hosts the studio:
 #
 #   scripts/install.sh [--dry-run] [--yes] [--reset-passphrase] [--skip-shell]
@@ -339,7 +339,7 @@ step_data_home() {
   fi
   assert_data_home_shape "$DATA_HOME"
   if [ ! -d "$(dirname "$DATA_HOME")" ]; then
-    die "a pasta-mãe de $DATA_HOME não existe; crie-a ou ajuste VIDEO_STUDIO_HOME."
+    die "a pasta-mãe de $DATA_HOME não existe; crie-a ou ajuste ENGINEOS_VIDEO_CREATOR_HOME."
   fi
   for folder in "$DATA_HOME" "$DATA_HOME/db" "$DATA_HOME/assets" "$DATA_HOME/runs" "$DATA_HOME/logs"; do
     ensure_private_directory "$folder"
@@ -385,7 +385,7 @@ step_migrations() {
   info "banco: $DATA_HOME/db/studio.sqlite"
   # Only pending migrations are applied; never `migrate dev`, `db push` or a reset. The URL comes
   # from core's sqliteDatasourceUrl and is set for this one command only.
-  run env "VIDEO_STUDIO_DATABASE_URL=${DATABASE_URL:-<url calculada pelo @studio/core>}" \
+  run env "ENGINEOS_VIDEO_CREATOR_DATABASE_URL=${DATABASE_URL:-<url calculada pelo @studio/core>}" \
     corepack pnpm --filter @studio/core run prisma:migrate:deploy
 }
 
@@ -591,10 +591,10 @@ studio_port() {
 }
 
 resolve_studio_ports() {
-  STUDIO_API_PORT="$(studio_port VIDEO_STUDIO_API_PORT "${VIDEO_STUDIO_API_PORT:-}" "$STUDIO_DEFAULT_API_PORT")"
-  STUDIO_WEB_PORT="$(studio_port VIDEO_STUDIO_WEB_PORT "${VIDEO_STUDIO_WEB_PORT:-}" "$STUDIO_DEFAULT_WEB_PORT")"
+  STUDIO_API_PORT="$(studio_port ENGINEOS_VIDEO_CREATOR_API_PORT "${ENGINEOS_VIDEO_CREATOR_API_PORT:-}" "$STUDIO_DEFAULT_API_PORT")"
+  STUDIO_WEB_PORT="$(studio_port ENGINEOS_VIDEO_CREATOR_WEB_PORT "${ENGINEOS_VIDEO_CREATOR_WEB_PORT:-}" "$STUDIO_DEFAULT_WEB_PORT")"
   if [ "$STUDIO_API_PORT" = "$STUDIO_WEB_PORT" ]; then
-    die "VIDEO_STUDIO_API_PORT e VIDEO_STUDIO_WEB_PORT não podem ser a mesma porta: $STUDIO_API_PORT"
+    die "ENGINEOS_VIDEO_CREATOR_API_PORT e ENGINEOS_VIDEO_CREATOR_WEB_PORT não podem ser a mesma porta: $STUDIO_API_PORT"
   fi
 }
 
@@ -840,8 +840,8 @@ step_launchd() {
 step_seed() {
   begin_step 14 "$TOTAL_STEPS" 'catálogo inicial (studio catalog seed)'
   local status=0 arguments=(catalog seed)
-  if [ -n "${VIDEO_STUDIO_SEED_SOURCE_ROOT:-}" ]; then
-    arguments+=(--source-root "$VIDEO_STUDIO_SEED_SOURCE_ROOT")
+  if [ -n "${ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT:-}" ]; then
+    arguments+=(--source-root "$ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT")
   fi
   # Idempotent in core: an entry whose hash already exists is reported "sem mudança".
   run "${NODE_BIN:-node}" "$CLI_MAIN" "${arguments[@]}" || status=$?
@@ -871,9 +871,9 @@ print_summary() {
     return 0
   fi
   if [ "$doctor_status" -eq 0 ]; then
-    say 'Video Studio instalado.'
+    say 'EngineOS Video Creator instalado.'
   else
-    say "Video Studio instalado, mas o studio doctor apontou problemas (código $doctor_status)."
+    say "EngineOS Video Creator instalado, mas o studio doctor apontou problemas (código $doctor_status)."
   fi
   info "Web:            $(web_url)"
   info "Dados:          $DATA_HOME"
@@ -918,7 +918,7 @@ main() {
   resolve_repo_root "$SCRIPT_DIR"
   # Corepack reads "packageManager" from the current folder; every pnpm call below runs here.
   cd "$REPO_ROOT"
-  say "Video Studio: instalação em $REPO_ROOT"
+  say "EngineOS Video Creator: instalação em $REPO_ROOT"
   if [ "$DRY_RUN" -eq 1 ]; then
     say 'Modo simulação (--dry-run): só leitura de estado; nada é instalado, gravado ou registrado.'
   fi

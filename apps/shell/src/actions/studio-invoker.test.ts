@@ -30,7 +30,7 @@ const parentEnvironment = {
   LANG: 'pt_BR.UTF-8',
   NODE_OPTIONS: '--require /tmp/inject.js',
   ANTHROPIC_API_KEY: 'not-a-real-key',
-  VIDEO_STUDIO_HOME: '/somewhere/else',
+  ENGINEOS_VIDEO_CREATOR_HOME: '/somewhere/else',
 };
 
 interface FakeSpawn {
@@ -94,10 +94,10 @@ describe('studio invocation (R3-AC-25.5)', () => {
     assert.equal(spawned.command, config.nodeBinary);
     assert.deepEqual(spawned.args, [config.cliMain, 'start']);
     assert.equal(spawned.shell, false);
-    assert.deepEqual(Object.keys(spawned.env).sort(), ['HOME', 'LANG', 'PATH', 'TMPDIR', 'VIDEO_STUDIO_API_PORT', 'VIDEO_STUDIO_HOME', 'VIDEO_STUDIO_WEB_PORT']);
-    assert.equal(spawned.env['VIDEO_STUDIO_HOME'], config.dataHome);
-    assert.equal(spawned.env['VIDEO_STUDIO_WEB_PORT'], '4310');
-    assert.equal(spawned.env['VIDEO_STUDIO_API_PORT'], '4311');
+    assert.deepEqual(Object.keys(spawned.env).sort(), ['HOME', 'LANG', 'PATH', 'TMPDIR', 'ENGINEOS_VIDEO_CREATOR_API_PORT', 'ENGINEOS_VIDEO_CREATOR_HOME', 'ENGINEOS_VIDEO_CREATOR_WEB_PORT']);
+    assert.equal(spawned.env['ENGINEOS_VIDEO_CREATOR_HOME'], config.dataHome);
+    assert.equal(spawned.env['ENGINEOS_VIDEO_CREATOR_WEB_PORT'], '4310');
+    assert.equal(spawned.env['ENGINEOS_VIDEO_CREATOR_API_PORT'], '4311');
     assert.equal(spawned.env['PATH'], '/usr/bin:/bin');
     spawn.exit({ kind: 'exited', code: 0 });
   });
@@ -113,9 +113,9 @@ describe('studio invocation (R3-AC-25.5)', () => {
     new StudioInvoker({ config, parentEnvironment: {}, spawner: spawn.spawner, startTimer: fakeTimers().startTimer }).request('start');
     assert.deepEqual(spawn.requests[0]?.env, {
       PATH: '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
-      VIDEO_STUDIO_HOME: config.dataHome,
-      VIDEO_STUDIO_WEB_PORT: '4310',
-      VIDEO_STUDIO_API_PORT: '4311',
+      ENGINEOS_VIDEO_CREATOR_HOME: config.dataHome,
+      ENGINEOS_VIDEO_CREATOR_WEB_PORT: '4310',
+      ENGINEOS_VIDEO_CREATOR_API_PORT: '4311',
     });
   });
 

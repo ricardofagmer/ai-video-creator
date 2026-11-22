@@ -21,8 +21,8 @@ export function buildChildEnvironment(
     const value = parentEnvironment[name];
     if (value !== undefined && value !== '') environment[name] = value;
   }
-  environment['VIDEO_STUDIO_HOME'] = config.dataHome;
-  environment['VIDEO_STUDIO_WEB_PORT'] = String(config.webPort);
-  environment['VIDEO_STUDIO_API_PORT'] = String(config.apiPort);
+  environment['ENGINEOS_VIDEO_CREATOR_HOME'] = config.dataHome;
+  environment['ENGINEOS_VIDEO_CREATOR_WEB_PORT'] = String(config.webPort);
+  environment['ENGINEOS_VIDEO_CREATOR_API_PORT'] = String(config.apiPort);
   return environment;
 }

@@ -10,7 +10,7 @@ export abstract class CliError extends Error {
   abstract readonly category: ErrorCategory;
 }
 
-/** A `VIDEO_STUDIO_*` variable read at start is malformed; its value is never echoed. */
+/** A `ENGINEOS_VIDEO_CREATOR_*` variable read at start is malformed; its value is never echoed. */
 export class CliConfigurationError extends CliError {
   override readonly category = 'validation';
 

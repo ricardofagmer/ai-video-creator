@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
-  title: { template: '%s · Video Studio', default: 'Video Studio' },
+  title: { template: '%s · EngineOS Video Creator', default: 'EngineOS Video Creator' },
   robots: { index: false, follow: false },
 };
 

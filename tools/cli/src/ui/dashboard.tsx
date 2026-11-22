@@ -33,7 +33,7 @@ export function Dashboard({ runsRoot, dataHomeRoot, requestControl }: DashboardP
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box justifyContent="space-between">
-        <Text bold>Video Studio</Text>
+        <Text bold>EngineOS Video Creator</Text>
         <SafeText dimColor>{dataHomeRoot}</SafeText>
       </Box>
       {model.loadError === null ? null : <SafeText color="red">{model.loadError}</SafeText>}

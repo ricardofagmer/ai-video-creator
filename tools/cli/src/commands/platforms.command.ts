@@ -67,9 +67,9 @@ export async function platformsDisconnectCommand(platform: Platform, ports: Plat
   const name = PLATFORM_LABELS[platform];
   printer.line(`Conta de ${name} desconectada: o token foi apagado do Keychain e nenhuma chamada é feita a ${name} até uma nova conexão.`);
   if (result.revoke === 'revoked') {
-    printer.line(`A conta de ${name} confirmou a remoção do acesso do Video Studio.`);
+    printer.line(`A conta de ${name} confirmou a remoção do acesso do EngineOS Video Creator.`);
   } else {
-    printer.line(`Se o Video Studio ainda aparecer nos apps conectados da sua conta de ${name}, remova o acesso nas configurações de lá.`);
+    printer.line(`Se o EngineOS Video Creator ainda aparecer nos apps conectados da sua conta de ${name}, remova o acesso nas configurações de lá.`);
   }
   for (const line of platformDetailLines(result, ports.now())) printer.line(line);
   return ExitCode.ok;

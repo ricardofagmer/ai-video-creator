@@ -36,8 +36,8 @@ export function pidFilePath(logsDirectory: string, name: ServiceName): string {
 
 /**
  * api (R1-16): `apps/api/dist/main.js`, the file its `start` script (`node dist/main.js`) runs;
- * port through `VIDEO_STUDIO_API_PORT`, and the web origin it must accept through
- * `VIDEO_STUDIO_WEB_ORIGIN`. The loopback bind itself is the api's own `listen` (R1-16).
+ * port through `ENGINEOS_VIDEO_CREATOR_API_PORT`, and the web origin it must accept through
+ * `ENGINEOS_VIDEO_CREATOR_WEB_ORIGIN`. The loopback bind itself is the api's own `listen` (R1-16).
  */
 function apiSpec(settings: CliSettings, executable: string): ServiceSpec {
   const cwd = join(settings.studioRoot, 'apps', 'api');
@@ -52,8 +52,8 @@ function apiSpec(settings: CliSettings, executable: string): ServiceSpec {
     env: {
       ...settings.childEnvironment,
       NODE_ENV: 'production',
-      VIDEO_STUDIO_API_PORT: String(settings.ports.api),
-      VIDEO_STUDIO_WEB_ORIGIN: `http://${LOOPBACK_HOST}:${settings.ports.web}`,
+      ENGINEOS_VIDEO_CREATOR_API_PORT: String(settings.ports.api),
+      ENGINEOS_VIDEO_CREATOR_WEB_ORIGIN: `http://${LOOPBACK_HOST}:${settings.ports.web}`,
     },
     port: settings.ports.api,
     healthPath: '/health',
@@ -65,7 +65,7 @@ function apiSpec(settings: CliSettings, executable: string): ServiceSpec {
 /**
  * web (R1-19, not built yet): `next start --hostname 127.0.0.1 --port <port>` run through the
  * Next binary of `apps/web`. Assumption reported in R1-21: the web reads the api origin from
- * `VIDEO_STUDIO_API_ORIGIN`. Next telemetry is off: the studio sends nothing (PRD 12).
+ * `ENGINEOS_VIDEO_CREATOR_API_ORIGIN`. Next telemetry is off: the studio sends nothing (PRD 12).
  */
 function webSpec(settings: CliSettings, executable: string): ServiceSpec {
   const cwd = join(settings.studioRoot, 'apps', 'web');
@@ -81,7 +81,7 @@ function webSpec(settings: CliSettings, executable: string): ServiceSpec {
       ...settings.childEnvironment,
       NODE_ENV: 'production',
       NEXT_TELEMETRY_DISABLED: '1',
-      VIDEO_STUDIO_API_ORIGIN: `http://${LOOPBACK_HOST}:${settings.ports.api}`,
+      ENGINEOS_VIDEO_CREATOR_API_ORIGIN: `http://${LOOPBACK_HOST}:${settings.ports.api}`,
     },
     port: settings.ports.web,
     healthPath: '/',

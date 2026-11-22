@@ -8,11 +8,11 @@ import { z } from 'zod';
  */
 export const DEFAULT_WEB_PORT = 4310;
 export const DEFAULT_API_BASE_URL = 'http://127.0.0.1:4311';
-export const WEB_PORT_ENV_VAR = 'VIDEO_STUDIO_WEB_PORT';
+export const WEB_PORT_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_WEB_PORT';
 /** Same name the api reads to allowlist the web's Origin (`apps/api/src/platform/api-config.ts`). */
-export const WEB_ORIGIN_ENV_VAR = 'VIDEO_STUDIO_WEB_ORIGIN';
+export const WEB_ORIGIN_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_WEB_ORIGIN';
 /** Set by the `studio` CLI (R1-21) when it starts the web. */
-export const API_ORIGIN_ENV_VAR = 'VIDEO_STUDIO_API_ORIGIN';
+export const API_ORIGIN_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_API_ORIGIN';
 
 const loopbackOriginPattern = /^http:\/\/(127\.0\.0\.1|localhost):([0-9]{4,5})$/;
 

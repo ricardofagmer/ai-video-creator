@@ -9,7 +9,7 @@ import { traceIdFor } from './trace-ids';
 export const TRACE_EXPORT_SCOPE = { name: 'video-studio.traces', version: '1' } as const;
 
 /** The watcher is the single writer of every file the export reads (RUN-FORMAT sections 4 and 23). */
-const SOURCE_SERVICE_NAME = 'video-studio-watcher';
+const SOURCE_SERVICE_NAME = 'engineos-video-creator-watcher';
 
 export type TraceKind = 'run' | 'curation';
 

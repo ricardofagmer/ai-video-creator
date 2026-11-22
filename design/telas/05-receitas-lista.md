@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rota | `/receitas` |
-| Título do documento | `Receitas · Video Studio` |
+| Título do documento | `Receitas · EngineOS Video Creator` |
 | Ticket | R1-19 (critério 8) |
 
 ## Objetivo

@@ -29,7 +29,7 @@ const optionalAbsolutePath = z
 
 /*
  * The studio's loopback ports, read with the same names, defaults and bounds as the CLI and the api
- * (`VIDEO_STUDIO_API_PORT`, `VIDEO_STUDIO_WEB_PORT`). The HyperFrames sandbox denies both
+ * (`ENGINEOS_VIDEO_CREATOR_API_PORT`, `ENGINEOS_VIDEO_CREATOR_WEB_PORT`). The HyperFrames sandbox denies both
  * (SPEC 0008 section 17.5, B11); an unset or empty variable takes the A9 default.
  */
 const DEFAULT_API_PORT = 4311;
@@ -55,8 +55,8 @@ const StageSettingsSchema = z
     LOCAL_VOICE_SCRIPT: optionalText,
     ELEVENLABS_VOICE_ID: optionalText,
     ELEVENLABS_MODEL_ID: optionalText,
-    VIDEO_STUDIO_API_PORT: optionalPort,
-    VIDEO_STUDIO_WEB_PORT: optionalPort,
+    ENGINEOS_VIDEO_CREATOR_API_PORT: optionalPort,
+    ENGINEOS_VIDEO_CREATOR_WEB_PORT: optionalPort,
   })
   .strip();
 
@@ -104,6 +104,6 @@ export function readStageSettings(environment: Readonly<Record<string, string | 
     ffprobePath: values.FFPROBE_PATH ?? 'ffprobe',
     localVoice,
     elevenLabs: { voiceId: values.ELEVENLABS_VOICE_ID ?? null, modelId: values.ELEVENLABS_MODEL_ID ?? DEFAULT_ELEVENLABS_MODEL_ID },
-    studioPorts: { api: values.VIDEO_STUDIO_API_PORT ?? DEFAULT_API_PORT, web: values.VIDEO_STUDIO_WEB_PORT ?? DEFAULT_WEB_PORT },
+    studioPorts: { api: values.ENGINEOS_VIDEO_CREATOR_API_PORT ?? DEFAULT_API_PORT, web: values.ENGINEOS_VIDEO_CREATOR_WEB_PORT ?? DEFAULT_WEB_PORT },
   };
 }

@@ -1,4 +1,4 @@
-# App do menu (Video Studio)
+# App do menu (EngineOS Video Creator)
 
 Um ícone na barra de menus do macOS para ver se o estúdio está rodando e para ligar ou desligar a
 web e a api sem abrir o Terminal. Não tem janela: o estúdio continua abrindo no seu navegador.
@@ -36,7 +36,7 @@ depois de reiniciar o Mac, basta clicar em "Iniciar".
 
 - **Instalar**: `scripts/install.sh`. A etapa 12 de 15 constrói o app. Antes, ela diz de onde o
   Electron será baixado (releases do GitHub de `electron/electron`) e pergunta se pode baixar; sem
-  "s", nada é baixado e o resto da instalação segue. O app fica em `~/Applications/Video Studio.app`.
+  "s", nada é baixado e o resto da instalação segue. O app fica em `~/Applications/EngineOS Video Creator.app`.
   O instalador não abre o app nem liga "Abrir ao iniciar sessão": faça isso pelo menu.
 - **Pular**: `scripts/install.sh --skip-shell`. O Electron não é baixado e o app não é empacotado
   nem copiado. O código do app (`dist/main.js`) ainda é compilado na etapa 5, junto com o resto

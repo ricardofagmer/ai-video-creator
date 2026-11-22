@@ -6,14 +6,14 @@ export interface LogoProps {
   compact?: boolean;
 }
 
-/** "VS" monogram plus the product name, drawn with tokens only (no image file). */
+/** "VC" monogram plus the product name, drawn with tokens only (no image file). */
 export function Logo({ compact = false }: LogoProps): ReactElement {
   return (
     <span className={styles.logo}>
       <span aria-hidden="true" className={styles.monogram}>
-        VS
+        VC
       </span>
-      <span className={compact ? 'visually-hidden' : styles.name}>Video Studio</span>
+      <span className={compact ? 'visually-hidden' : styles.name}>EngineOS Video Creator</span>
     </span>
   );
 }

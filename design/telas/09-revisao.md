@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rota | `/execucoes/[runId]/revisao` |
-| Título do documento | `Revisão · <runId> · Video Studio` |
+| Título do documento | `Revisão · <runId> · EngineOS Video Creator` |
 | Ticket | R1-20 (critérios 17, 24, 29) |
 
 ## Objetivo

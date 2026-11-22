@@ -92,7 +92,7 @@ export function toErrorReport(error: unknown): ErrorReport {
   if (error instanceof CliError) return { exitCode: exitCodeForCategory(error.category), message: error.message };
   if (error instanceof RunFileError) return runFileReport(error);
   if (error instanceof InvalidDataHomeError) {
-    return { exitCode: ExitCode.usage, message: `A pasta de dados (VIDEO_STUDIO_HOME) é inválida: ${error.reason}.` };
+    return { exitCode: ExitCode.usage, message: `A pasta de dados (ENGINEOS_VIDEO_CREATOR_HOME) é inválida: ${error.reason}.` };
   }
   if (isPrismaFailure(error)) {
     return {

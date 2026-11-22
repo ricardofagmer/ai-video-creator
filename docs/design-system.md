@@ -1,6 +1,6 @@
-# Video Studio design system
+# EngineOS Video Creator design system
 
-Video Studio uses the Fagmer design system, the same look as the fagmertech site: a navy void
+EngineOS Video Creator uses the Fagmer design system, the same look as the fagmertech site: a navy void
 background, electric blue to cyan accents, Space Grotesk for display, Inter for body and
 JetBrains Mono for code. It works in light and dark mode. Why it is built this way is recorded in
 [ADR 0009](adr/0009-fagmer-design-system.md); the design notes are in

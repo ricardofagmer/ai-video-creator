@@ -9,7 +9,7 @@ export abstract class SeedError extends Error {
   abstract readonly category: SeedErrorCategory;
 }
 
-/** The seed source root (`VIDEO_STUDIO_SEED_SOURCE_ROOT` or the command input) is unusable. */
+/** The seed source root (`ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT` or the command input) is unusable. */
 export class SeedSourceRootInvalidError extends SeedError {
   override readonly category = 'validation';
 

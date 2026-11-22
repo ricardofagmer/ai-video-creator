@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rota | `/catalogo` (filtros na URL: `?q=`, `?tipo=`, `?status=`) |
-| Título do documento | `Catálogo · Video Studio` |
+| Título do documento | `Catálogo · EngineOS Video Creator` |
 | Ticket | R1-19 (critérios 5, 7) |
 
 ## Objetivo

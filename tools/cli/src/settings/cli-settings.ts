@@ -13,9 +13,9 @@ export const DEFAULT_WEB_PORT = 4310;
 export const DEFAULT_API_PORT = 4311;
 
 /** Same variable the api reads (apps/api `ApiConfig`), so `studio start` and the api agree. */
-export const API_PORT_ENV_VAR = 'VIDEO_STUDIO_API_PORT';
-/** CLI-side web port; the api receives it as `VIDEO_STUDIO_WEB_ORIGIN`. */
-export const WEB_PORT_ENV_VAR = 'VIDEO_STUDIO_WEB_PORT';
+export const API_PORT_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_API_PORT';
+/** CLI-side web port; the api receives it as `ENGINEOS_VIDEO_CREATOR_WEB_ORIGIN`. */
+export const WEB_PORT_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_WEB_PORT';
 
 /** Used when the caller has no PATH: Apple Silicon Homebrew first (A18), then the system folders. */
 const FALLBACK_PATH = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin';

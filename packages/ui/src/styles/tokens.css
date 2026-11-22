@@ -1,5 +1,5 @@
 /*
- * Design tokens of Video Studio (design/tokens.md), aligned with the Fagmer design system
+ * Design tokens of EngineOS Video Creator (design/tokens.md), aligned with the Fagmer design system
  * of the fagmertech site: navy void, electric blue to cyan, Space Grotesk / Inter / JetBrains Mono. This is the only file in
  * @studio/ui that may hold a colour literal; every other stylesheet reads these
  * variables. Light and dark values live side by side through `light-dark()`,

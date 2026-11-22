@@ -1,6 +1,6 @@
-# Referência de design do Video Studio
+# Referência de design do EngineOS Video Creator
 
-Esta pasta é a **referência visual única** do Video Studio (PRD 0001, seção 4: "`design/` as
+Esta pasta é a **referência visual única** do EngineOS Video Creator (PRD 0001, seção 4: "`design/` as
 visual source of truth"). Ela define o design system (tokens e componentes) e especifica cada
 tela da web. O código de `packages/ui` (`@studio/ui`) e de `apps/web` segue esta referência
 **à risca**: cores, espaçamentos, textos da interface, estados e comportamento responsivo saem

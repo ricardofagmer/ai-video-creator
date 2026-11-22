@@ -8,7 +8,7 @@ version of its asset or recipe is reported `unchanged` and nothing is written.
 
 Every path in `catalog.seed.json` is relative to the seed source root: the folder that holds
 `video-studio/`, the Spesia run folder and `ricardo-clone/` side by side. It defaults to
-`~/projects/ai-video-creator` and is moved with `VIDEO_STUDIO_SEED_SOURCE_ROOT` (absolute,
+`~/projects/ai-video-creator` and is moved with `ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT` (absolute,
 normalized path) or the command's `sourceRoot` input.
 
 ## Files

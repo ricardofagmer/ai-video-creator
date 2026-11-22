@@ -39,7 +39,7 @@ const platformDisplayNames: Readonly<Record<Platform, string>> = Object.freeze({
   tiktok: 'TikTok',
 });
 
-/** `Video Studio - <Platform> account tokens`, the item label shown in Keychain Access. */
+/** `EngineOS Video Creator - <Platform> account tokens`, the item label shown in Keychain Access. */
 export function platformTokenKeychainLabel(platform: Platform): string {
-  return `Video Studio - ${platformDisplayNames[platform]} account tokens`;
+  return `EngineOS Video Creator - ${platformDisplayNames[platform]} account tokens`;
 }

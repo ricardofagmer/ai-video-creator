@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rotas | `/login` (pública) e o grupo `app/(privado)` (todas as demais) |
-| Título do documento | `Entrar · Video Studio`; nas privadas, `<página> · Video Studio` |
+| Título do documento | `Entrar · EngineOS Video Creator`; nas privadas, `<página> · EngineOS Video Creator` |
 | Acesso | `/login` sem sessão; as privadas só com a sessão de senha (D8, critério 27) |
 | Ticket | R1-19 |
 
@@ -16,7 +16,7 @@ Catálogo, Receitas e Execuções, estado do watcher e saída.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ [VS] Video Studio   Catálogo  Receitas  [Execuções]      (• Watcher ativo) Sair │
+│ [VC] EngineOS Video Creator   Catálogo  Receitas  [Execuções]      (• Watcher ativo) Sair │
 ├────────────────────────────────────────────────────────────────────────────┤
 │                                                                            │
 │   <conteúdo da página: PageHeader + blocos>                                │
@@ -28,7 +28,7 @@ Catálogo, Receitas e Execuções, estado do watcher e saída.
 
 ```
 ┌──────────────────────────────────┐
-│ [VS] Video Studio  (• Watcher) Sair│
+│ [VC] EngineOS Video Creator  (• Watcher) Sair│
 │ Catálogo  Receitas  [Execuções] → │  navegação rola na horizontal
 ├──────────────────────────────────┤
 │ <conteúdo>                        │
@@ -39,7 +39,7 @@ Catálogo, Receitas e Execuções, estado do watcher e saída.
 
 ```
 ┌────────────────────────────────────────┐
-│               [VS] Video Studio        │
+│               [VC] EngineOS Video Creator        │
 │  ┌──────────────────────────────────┐  │
 │  │ Entrar                           │  │
 │  │ Digite a senha deste Mac.        │  │

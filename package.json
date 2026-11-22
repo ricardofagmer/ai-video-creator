@@ -1,7 +1,7 @@
 {
-  "name": "video-studio",
+  "name": "engineos-video-creator",
   "private": true,
-  "description": "Video Studio: local catalog and AI-assisted video pipeline for one Mac (PRD 0001)",
+  "description": "EngineOS Video Creator: local catalog and AI-assisted video pipeline for one Mac (PRD 0001)",
   "packageManager": "pnpm@10.12.1",
   "engines": {
     "node": ">=22"

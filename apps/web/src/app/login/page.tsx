@@ -8,7 +8,7 @@ import layout from '@/features/common/layout.module.css';
 import { ApiUnreachableError } from '@/lib/api';
 import { serverStudioClient } from '@/lib/api/server';
 
-export const metadata: Metadata = { title: { absolute: 'Entrar · Video Studio' } };
+export const metadata: Metadata = { title: { absolute: 'Entrar · EngineOS Video Creator' } };
 
 type SessionState = 'authenticated' | 'anonymous' | 'api-unreachable';
 

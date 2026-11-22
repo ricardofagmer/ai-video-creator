@@ -3,8 +3,8 @@ import { z } from 'zod';
 /** A9: the api listens on `127.0.0.1:4311`; the web is `http://127.0.0.1:4310`. Both configurable. */
 export const DEFAULT_API_PORT = 4311;
 export const DEFAULT_WEB_ORIGIN = 'http://127.0.0.1:4310';
-export const API_PORT_ENV_VAR = 'VIDEO_STUDIO_API_PORT';
-export const WEB_ORIGIN_ENV_VAR = 'VIDEO_STUDIO_WEB_ORIGIN';
+export const API_PORT_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_API_PORT';
+export const WEB_ORIGIN_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_WEB_ORIGIN';
 
 /** JSON bodies are recipes and briefs; uploads are multipart and never pass the JSON parser. */
 export const JSON_BODY_LIMIT = '1mb';

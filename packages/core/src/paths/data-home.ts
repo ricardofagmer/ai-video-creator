@@ -9,7 +9,7 @@ import { SCHEDULES_FOLDER_NAME } from '@studio/shared/schedules';
  * The one environment variable that moves the data home, for tests and development only. The
  * installed studio leaves it unset and uses the macOS location of D5.
  */
-export const DATA_HOME_ENV_VAR = 'VIDEO_STUDIO_HOME';
+export const DATA_HOME_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_HOME';
 
 /** D5: `~/Library/Application Support/VideoStudio/`, relative to the user's home folder. */
 export const DEFAULT_DATA_HOME_SEGMENTS: readonly string[] = ['Library', 'Application Support', 'VideoStudio'];
@@ -96,7 +96,7 @@ function assertUsableRoot(root: string): void {
 
 export interface DataHomeSource {
   homeDirectory: string;
-  /** Value of `VIDEO_STUDIO_HOME`; undefined or empty means the default location. */
+  /** Value of `ENGINEOS_VIDEO_CREATOR_HOME`; undefined or empty means the default location. */
   override: string | undefined;
 }
 

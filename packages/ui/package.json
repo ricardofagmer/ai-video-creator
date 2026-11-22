@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Video Studio UI kit: CSS-variable tokens and React components that follow design/ (R1-18)",
+  "description": "EngineOS Video Creator UI kit: CSS-variable tokens and React components that follow design/ (R1-18)",
   "sideEffects": [
     "**/*.css"
   ],

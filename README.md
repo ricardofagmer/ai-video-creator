@@ -1,4 +1,4 @@
-# Video Studio
+# EngineOS Video Creator
 
 A local catalog and AI-assisted video pipeline that runs on one Mac. You keep your assets, recipes
 and runs in a local database, start runs from the browser, review the results and publish them.
@@ -131,10 +131,10 @@ After you pull new code, run `scripts/install.sh` again, then restart with `stud
 
 | Variable | Default | Changes |
 |---|---|---|
-| `VIDEO_STUDIO_WEB_PORT` | `4310` | Web port |
-| `VIDEO_STUDIO_API_PORT` | `4311` | API port |
-| `VIDEO_STUDIO_HOME` | `~/Library/Application Support/VideoStudio` | Data folder (database, assets, runs, logs) |
-| `VIDEO_STUDIO_SEED_SOURCE_ROOT` | `~/projects/ai-video-creator` | Folder the seed reads from (see [seeds/README.md](seeds/README.md)) |
+| `ENGINEOS_VIDEO_CREATOR_WEB_PORT` | `4310` | Web port |
+| `ENGINEOS_VIDEO_CREATOR_API_PORT` | `4311` | API port |
+| `ENGINEOS_VIDEO_CREATOR_HOME` | `~/Library/Application Support/VideoStudio` | Data folder (database, assets, runs, logs) |
+| `ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT` | `~/projects/ai-video-creator` | Folder the seed reads from (see [seeds/README.md](seeds/README.md)) |
 
 The web and API ports must be different. Both bind to `127.0.0.1` only.
 

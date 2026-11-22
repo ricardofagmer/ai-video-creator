@@ -206,6 +206,6 @@ inferior `--space-6`.
 
 ## 14. Logo
 
-Monograma "VS" em quadrado de `--size-logo`, `--color-text-on-primary` sobre `--color-primary`,
-raio `--radius-md`, bold; nome "Video Studio" em semibold. Versão `compact` esconde o nome
+Monograma "VC" em quadrado de `--size-logo`, `--color-text-on-primary` sobre `--color-primary`,
+raio `--radius-md`, bold; nome "EngineOS Video Creator" em semibold. Versão `compact` esconde o nome
 visualmente e o mantém para leitores de tela.

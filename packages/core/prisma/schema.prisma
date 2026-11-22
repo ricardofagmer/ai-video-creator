@@ -1,4 +1,4 @@
-// Contract C8 (SPEC 0002, owner ticket R1-05): the SQLite schema of Video Studio.
+// Contract C8 (SPEC 0002, owner ticket R1-05): the SQLite schema of EngineOS Video Creator.
 // Consumers: R1-06 (recipes, runs), R1-07 (seed), R1-11 (cost ledger), R1-16 (settings), R1-17
 // (outcomes). A change after freeze goes back to R1-05 and bumps the spec revision.
 // SPEC 0003 (R2-02, migration `20261118120000_r2_improvement_loop`) adds the quality, embedding and
@@ -28,12 +28,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// The CLI (migrate deploy) reads VIDEO_STUDIO_DATABASE_URL; the application never does. At runtime
+// The CLI (migrate deploy) reads ENGINEOS_VIDEO_CREATOR_DATABASE_URL; the application never does. At runtime
 // PrismaService passes `datasourceUrl` built from the data-home paths module, so no absolute user
 // path is written here.
 datasource db {
   provider = "sqlite"
-  url      = env("VIDEO_STUDIO_DATABASE_URL")
+  url      = env("ENGINEOS_VIDEO_CREATOR_DATABASE_URL")
 }
 
 // ---------------------------------------------------------------------------------------------

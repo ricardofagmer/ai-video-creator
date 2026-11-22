@@ -187,7 +187,7 @@ function buildProgram(dependencies: CommandDependencies, report: ExitCodeSink): 
   const program = new Command('studio');
   // Configured before the subcommands are added: commander copies these settings into each one.
   program
-    .description('Video Studio: painel e comandos do terminal')
+    .description('EngineOS Video Creator: painel e comandos do terminal')
     .exitOverride()
     .configureOutput({
       writeOut: (text) => dependencies.printer.line(text.trimEnd()),

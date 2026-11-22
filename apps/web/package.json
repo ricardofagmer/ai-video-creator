@@ -4,9 +4,9 @@
   "private": true,
   "description": "Local Next.js web in pt-BR (SPEC 0002 R1-19, R1-20): catalog, recipes, runs and review; bound to 127.0.0.1 only (A9)",
   "scripts": {
-    "dev": "next dev -H 127.0.0.1 -p ${VIDEO_STUDIO_WEB_PORT:-4310}",
+    "dev": "next dev -H 127.0.0.1 -p ${ENGINEOS_VIDEO_CREATOR_WEB_PORT:-4310}",
     "build": "next build",
-    "start": "next start -H 127.0.0.1 -p ${VIDEO_STUDIO_WEB_PORT:-4310}",
+    "start": "next start -H 127.0.0.1 -p ${ENGINEOS_VIDEO_CREATOR_WEB_PORT:-4310}",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

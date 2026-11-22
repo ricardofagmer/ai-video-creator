@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  launchd user agent of the Video Studio watcher (SPEC 0002 R1-09, PRD D9; label per A9).
+  launchd user agent of the EngineOS Video Creator watcher (SPEC 0002 R1-09, PRD D9; label per A9).
 
   Template only: scripts/install.sh (R1-22) substitutes the placeholders, writes the result to
   ~/Library/LaunchAgents/com.videostudio.watcher.plist and registers it. Nothing here is loaded by
@@ -11,8 +11,8 @@
     __WATCHER_MAIN__  absolute path of apps/watcher/dist/main.js
     __WORKING_DIR__   absolute path of apps/watcher
     __LOGS_DIR__      absolute path of <data home>/logs (D5, owner-only)
-    __API_PORT__      studio api port, 1024 to 65535 (VIDEO_STUDIO_API_PORT, default 4311)
-    __WEB_PORT__      studio web port, 1024 to 65535 (VIDEO_STUDIO_WEB_PORT, default 4310)
+    __API_PORT__      studio api port, 1024 to 65535 (ENGINEOS_VIDEO_CREATOR_API_PORT, default 4311)
+    __WEB_PORT__      studio web port, 1024 to 65535 (ENGINEOS_VIDEO_CREATOR_WEB_PORT, default 4310)
 
   PRD section 12: this file holds no secret. There is no API key, no passphrase and no provider
   setting in it; provider keys are read by the watcher from the macOS Keychain (R1-11), and the
@@ -65,9 +65,9 @@
     <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     <key>NODE_ENV</key>
     <string>production</string>
-    <key>VIDEO_STUDIO_API_PORT</key>
+    <key>ENGINEOS_VIDEO_CREATOR_API_PORT</key>
     <string>__API_PORT__</string>
-    <key>VIDEO_STUDIO_WEB_PORT</key>
+    <key>ENGINEOS_VIDEO_CREATOR_WEB_PORT</key>
     <string>__WEB_PORT__</string>
   </dict>
 

@@ -90,8 +90,8 @@ const PARAMETER_NAMED_SENTINELS: Readonly<Record<string, string>> = Object.freez
   FFPROBE_BIN: '/sentinel/env/ffprobe',
   STUDIO_API_PORT: '2048',
   STUDIO_WEB_PORT: '2049',
-  VIDEO_STUDIO_API_PORT: '2050',
-  VIDEO_STUDIO_WEB_PORT: '2051',
+  ENGINEOS_VIDEO_CREATOR_API_PORT: '2050',
+  ENGINEOS_VIDEO_CREATOR_WEB_PORT: '2051',
 });
 
 function runtimeWithPath(field: RuntimePathField, value: string): HyperframesRuntime {

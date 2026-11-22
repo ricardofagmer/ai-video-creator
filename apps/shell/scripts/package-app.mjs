@@ -24,7 +24,7 @@ const ELECTRON_VERSION = '45.4.1';
 // vetting 0002 section 12, check 3: artifact-utils.js BASE_URL of @electron/get 5.1.0.
 const DOWNLOAD_HOST = 'https://github.com/electron/electron/releases/download/';
 const ELECTRON_CACHE = '~/Library/Caches/electron/';
-const APP_NAME = 'Video Studio';
+const APP_NAME = 'EngineOS Video Creator';
 const BUNDLE_ID = 'com.videostudio.shell';
 const TARGET_PLATFORM = 'darwin';
 const TARGET_ARCH = 'arm64';
@@ -225,7 +225,7 @@ async function stageApp(config, appVersion) {
   await assertNotSymlink(STAGE_DIR);
   await rm(STAGE_DIR, { recursive: true, force: true });
   await mkdir(STAGE_DIR, { recursive: true });
-  const minimalManifest = { name: 'video-studio-shell', version: appVersion, main: 'main.js' };
+  const minimalManifest = { name: 'engineos-video-creator-shell', version: appVersion, main: 'main.js' };
   await writeFile(join(STAGE_DIR, 'package.json'), `${JSON.stringify(minimalManifest, null, 2)}\n`);
   await copyFile(DIST_MAIN, join(STAGE_DIR, 'main.js'));
   await writeFile(join(STAGE_DIR, 'shell-config.json'), `${JSON.stringify(config, null, 2)}\n`);
