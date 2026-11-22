@@ -1,6 +1,6 @@
 ---
 name: 2026-11-21-r4-open-decisions
-status: active
+status: done
 owner: Ricardo Fagmer
 spec: docs/specs/0007-r4-connected-platforms.md (sections 5.2, 5.5); docs/specs/0005-curator.md (cost.json)
 domain: backend
@@ -33,7 +33,7 @@ is a plain string with no CHECK).
 - [x] Curator `cost.json` sessions carry optional `estimated: true` on worst-case entries
 - [x] R4 and curator records: open items closed
 - [x] Tests updated for the new behaviour (request-mismatch, revoke outcome)
-- [ ] Final typecheck, lint and affected tests (pending the owner's yes at the final checkpoint)
+- [x] Final typecheck, lint and tests: green in CI (run 44972966686 on `6ca2833`); not run locally
 
 ## What was made
 - `packages/shared/src/platforms/enums.ts`: `request-mismatch` in `PublishFailureReasonSchema`;
@@ -71,7 +71,11 @@ is a plain string with no CHECK).
 - No curator, web or label test referenced the changed code.
 
 ## Verification
-[validation] pending — final checks skipped by the owner on 2026-11-21 ("Skip for now"); nothing compiled or run
+Local final checks were skipped by the owner on 2026-11-21 ("Skip for now"), so CI is the only evidence.
+- CI run 44972966686 on `6ca2833` (PR #11, https://github.com/ricardofagmer/ai-video-creator/pull/11):
+  install, typecheck, lint, test and build all `success`.
+- PR #11 squash-merged into `main` on 2026-11-22T01:47:14Z as `c6396d1`.
+- Not verified: no browser walk of the web disconnect alert, no live platform call (tickets 07 to 09 still need credentials).
 
 ## Human decisions
 2026-11-21 | Ricardo Fagmer | Keychain ACL | accepted as risk | "Accept as risk (Recommended)"
@@ -82,3 +86,5 @@ is a plain string with no CHECK).
 2026-11-21 | Ricardo Fagmer | Final checks (typecheck, lint) | deferred to end of product work | "Keep checks for the end"
 2026-11-21 | Ricardo Fagmer | Broken tests | fix before commit | "Fix tests, then commit (Recommended)"
 2026-11-21 | Ricardo Fagmer | Final checks (typecheck, lint, 6 test files) | skipped for now; validation pending | "Skip for now"
+2026-11-21 | Ricardo Fagmer | Commit, push, open PR #11 | approved | "Commit all, incl. coverage (Recommended)", "Push it (Recommended)", "Open the PR (Recommended)"
+2026-11-21 | Ricardo Fagmer | Close and archive this record on a new docs branch + PR | approved | "Close and archive (Recommended)", "New branch + PR (Recommended)"
