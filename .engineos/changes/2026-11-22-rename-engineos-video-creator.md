@@ -49,10 +49,10 @@ shell manifest name. Renamed the root package and the logo monogram (VS to VC). 
 
 ## User checklist
 - [ ] Run the final checks (typecheck, lint, tests) when ready; skipped for now on 2026-11-22
-- [ ] Re-run `scripts/install.sh` so the watcher's launchd plist uses the new env var names
-- [ ] Rename any personal `VIDEO_STUDIO_*` env overrides to `ENGINEOS_VIDEO_CREATOR_*`
-- [ ] Rebuild the menu app; remove an old `Video Studio.app` if one is installed
-- [ ] Commit the change (git writes need your approval)
+- [x] Re-run `scripts/install.sh` so the watcher's launchd plist uses the new env var names (2026-11-22)
+- [x] Rename any personal `VIDEO_STUDIO_*` env overrides to `ENGINEOS_VIDEO_CREATOR_*` (none were set)
+- [x] Rebuild the menu app; remove an old `Video Studio.app` if one is installed (2026-11-22)
+- [x] Commit the change (commit `1fbf663` on main, not pushed)
 
 ## Verification
 - [validation] pending — final-stage user approval required
@@ -156,6 +156,15 @@ environment checked); the old `~/Applications/Video Studio.app` had its login it
 and was moved to the Trash; `scripts/install.sh` was re-run without a database backup (owner
 answer "Install without backup"); its first run stopped at step 8 with "database is locked", so
 the running web, api and watcher were stopped and the installer re-run (step 8: no pending migrations).
+Step 12 only accepts an answer typed at a terminal; on the owner's "go for step 12" the installer
+was run under `expect`, which sent "s" at that question. Two more re-runs were needed because the
+api and watcher again held `studio.sqlite` at step 8; they were stopped with `studio stop` and
+`launchctl bootout` first. Final run: step 12 built and installed
+`~/Applications/EngineOS Video Creator.app` (codesign --verify --deep --strict passes); step 13
+re-registered `com.videostudio.watcher` (running) with plist keys `ENGINEOS_VIDEO_CREATOR_API_PORT`
+and `ENGINEOS_VIDEO_CREATOR_WEB_PORT`; step 14 seed: 0 created, 34 unchanged, 0 failed; step 15
+started web and api, `studio doctor` "Resultado: tudo certo" (warnings only for the provisional
+search model).
 
 The first bulk edit failed harmlessly (zsh does not word-split unquoted variables); the second
 pass also hit the gitignored build output `apps/shell/out/`, which was reverted byte-exact.
