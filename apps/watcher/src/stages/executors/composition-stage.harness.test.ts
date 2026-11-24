@@ -682,6 +682,7 @@ export async function createCompositionHarness(options: CompositionHarnessOption
     tmpDir: scratchRoot,
     ffmpegPath: 'ffmpeg',
     ffprobePath: 'ffprobe',
+    ytDlpPath: 'yt-dlp',
     localVoice: null,
     elevenLabs: { voiceId: null, modelId: 'eleven_multilingual_v2' },
     studioPorts: options.studioPorts ?? { api: 4311, web: 4310 },

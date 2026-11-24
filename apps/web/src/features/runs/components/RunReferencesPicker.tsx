@@ -6,6 +6,7 @@ import { formatAssetRef } from '@studio/shared/catalog';
 import { useState, type KeyboardEvent, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { browserStudioClient } from '@/lib/api';
+import { useWebMessages } from '@/lib/i18n/client';
 import { describeRunError } from '../run-error-text';
 import styles from '../runs.module.css';
 
@@ -31,6 +32,8 @@ type SearchState =
  * shows names and refs only: no preview, no asset bytes.
  */
 export function RunReferencesPicker({ selected, onChange, disabled }: RunReferencesPickerProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.runs.references;
   const [text, setText] = useState('');
   const [search, setSearch] = useState<SearchState>({ status: 'idle' });
 
@@ -40,7 +43,7 @@ export function RunReferencesPicker({ selected, onChange, disabled }: RunReferen
       const page = await browserStudioClient.searchAssets({ text: text.trim(), sensitivity: 'exclude-biometric', limit: SEARCH_LIMIT });
       setSearch({ status: 'done', items: page.items.filter((item) => item.sensitivity !== 'biometric') });
     } catch (error) {
-      setSearch({ status: 'failed', message: describeRunError(error) });
+      setSearch({ status: 'failed', message: describeRunError(error, t) });
     }
   }
 
@@ -58,7 +61,7 @@ export function RunReferencesPicker({ selected, onChange, disabled }: RunReferen
       <div className={layout.row}>
         <SearchField
           id="busca-referencias"
-          label="Buscar no catálogo"
+          label={texts.searchLabel}
           value={text}
           maxLength={200}
           disabled={disabled}
@@ -66,14 +69,14 @@ export function RunReferencesPicker({ selected, onChange, disabled }: RunReferen
           onKeyDown={handleKeyDown}
         />
         <Button variant="secondary" disabled={disabled} onClick={() => void runSearch()}>
-          Buscar
+          {texts.search}
         </Button>
       </div>
-      {search.status === 'loading' && <Spinner size="sm" label="Buscando no catálogo" />}
+      {search.status === 'loading' && <Spinner size="sm" label={texts.searching} />}
       {search.status === 'failed' && <Alert variant="error">{search.message}</Alert>}
-      {search.status === 'done' && search.items.length === 0 && <p className="caption">Nenhum ativo encontrado.</p>}
+      {search.status === 'done' && search.items.length === 0 && <p className="caption">{texts.noResults}</p>}
       {search.status === 'done' && search.items.length > 0 && (
-        <ul className={styles.selectedRefs} aria-label="Resultados da busca">
+        <ul className={styles.selectedRefs} aria-label={texts.resultsLabel}>
           {search.items.map((item) => {
             const ref = formatAssetRef({ assetId: item.id, version: item.version });
             const added = selected.includes(ref);
@@ -84,7 +87,7 @@ export function RunReferencesPicker({ selected, onChange, disabled }: RunReferen
                   <span className="mono caption">{ref}</span>
                 </span>
                 <Button size="sm" variant="secondary" disabled={disabled || added || full} onClick={() => onChange([...selected, ref])}>
-                  {added ? 'Adicionada' : 'Adicionar'}
+                  {added ? texts.added : texts.add}
                   <span className="visually-hidden"> {ref}</span>
                 </Button>
               </li>
@@ -93,12 +96,13 @@ export function RunReferencesPicker({ selected, onChange, disabled }: RunReferen
         </ul>
       )}
       {selected.length > 0 && (
-        <ul className={styles.selectedRefs} aria-label="Referências escolhidas">
+        <ul className={styles.selectedRefs} aria-label={texts.selectedLabel}>
           {selected.map((ref) => (
             <li key={ref} className={styles.refRow}>
               <span className="mono">{ref}</span>
               <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange(selected.filter((candidate) => candidate !== ref))}>
-                Remover<span className="visually-hidden"> {ref}</span>
+                {texts.remove}
+                <span className="visually-hidden"> {ref}</span>
               </Button>
             </li>
           ))}

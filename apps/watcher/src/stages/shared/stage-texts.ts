@@ -54,6 +54,16 @@ export const stageTexts = {
   revisionsExhaustedWhatToDo: 'Revise o resultado e decida: continuar assim, editar o brief ou tentar de novo.',
   reviewerUnavailableWarning: 'Revisão automática indisponível; revise com atenção.',
   planFallbackWhatToDo: 'Plano padrão da receita usado; confira o plano antes de aprovar.',
+  siteAnalysisSwitchedOff: 'Análise do site com IA desligada na receita.',
+  siteAnalysisNotHttps: 'O sourceUrl não é https; a análise do site com IA foi pulada.',
+  siteAnalysisMock: 'Análise do site simulada, com captura de tela de exemplo, sem acessar a página.',
+  siteAnalysisWritten: (withScreenshot: boolean): string =>
+    withScreenshot ? 'Site analisado pela IA com o texto e a captura de tela.' : 'Site analisado pela IA só com o texto da página.',
+  siteAnalysisUnavailable: (cause: string): string =>
+    `Aviso: a análise do site com IA não foi feita (${cause}); a pesquisa segue só com o texto da página.`,
+  siteScreenshotUnavailable: 'A captura de tela da página não foi feita; a análise segue só com o texto.',
+  siteAnalysisInvalid: 'Aviso: a análise do site (site-analysis.json) não é válida e foi ignorada.',
+  referenceAnalysesInvalid: 'Aviso: as análises das referências (reference-analyses.json) não são válidas e foram ignoradas.',
 };
 
 /** SPEC 0008 section 5.7: what stopped a HyperFrames render, and what the owner does next. */

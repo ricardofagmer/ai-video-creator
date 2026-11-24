@@ -38,6 +38,25 @@ Light mode is derived, because the site is dark only.
 - **Use the bright brand gradient (ending in `#22D3EE`) behind button text.** Rejected: white text
   on the cyan end falls below 4.5:1; controls use a darker control gradient instead.
 
+## Login
+
+`/login` follows the fagmertech landing layout (`fagmertech/site/index.html` hero), in
+`apps/web/src/features/auth/login.module.css`:
+
+- Floating glass top bar with the gradient rail (same as the studio shell), holding the logo and the
+  theme toggle; slow-drifting aurora halos behind the page (stopped under reduced motion).
+- Split hero from 1024px: left, a mono chip "Painel local · este Mac" with a status light (green
+  pulse, amber when the local API does not answer), a display headline with gradient words
+  (primary to accent, which keeps large-text contrast in both themes), a lead line and a fact list
+  (`<dl>`: access, files, network, worded from the README); right, the sign-in card with a gradient
+  edge and a soft halo, a mono eyebrow above the page's single h1 "Entrar", and a footnote on where
+  the password goes.
+- One column below 1024px, ordered intro, card, facts, so the form stays near the top on a phone.
+- Behaviour, copy of the form and accessibility of `design/telas/01-layout-e-login.md` unchanged.
+
+Rejected: **keep the centred single card and only restyle it.** It matched the old layout but not
+the landing page's hero, which is the pattern the owner asked for.
+
 ## Acceptance
 
 - Every screen reads only tokens; no new colour literals outside `tokens.css`.

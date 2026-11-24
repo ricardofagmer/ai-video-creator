@@ -1,0 +1,13 @@
+{
+  "topic": "Turn meeting notes into action items automatically",
+  "sourceUrl": "https://example.com/",
+  "keyMessages": [
+    "Stop losing decisions after every meeting",
+    "Notes become a clear list of action items",
+    "Every task gets an owner and a date"
+  ],
+  "format": "9:16",
+  "language": "en-US",
+  "targetDurationSec": 20,
+  "instructions": "Keep it punchy and friendly. Open with a strong hook in the first two seconds. Keep claims generic: no prices, rankings or superlatives."
+}

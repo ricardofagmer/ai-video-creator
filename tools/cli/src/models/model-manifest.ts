@@ -1,6 +1,8 @@
 import { join } from 'node:path';
 import { InvalidModelManifestError, isPinnedManifest, readEmbeddingModelManifest } from '@studio/core/embeddings';
+import { locateResourceRoot } from '@studio/core/runtime';
 import { type EmbeddingModelManifest } from '@studio/shared/catalog';
+import { cliText } from '../i18n/messages.js';
 import { type CliSettings } from '../settings/cli-settings.js';
 
 /**
@@ -9,12 +11,17 @@ import { type CliSettings } from '../settings/cli-settings.js';
  * runs from the same checkout, so `studioRoot` and core resolve to one file.
  */
 export function embeddingManifestFile(settings: CliSettings): string {
-  return join(settings.studioRoot, 'scripts', 'models', 'embedding-model.manifest.json');
+  return join(modelResourceRoot(settings), 'scripts', 'models', 'embedding-model.manifest.json');
 }
 
 /** The installer's one implementation of the model download (install.sh step 7). */
 export function embeddingFetchScriptFile(settings: CliSettings): string {
-  return join(settings.studioRoot, 'scripts', 'models', 'fetch-embedding-model.sh');
+  return join(modelResourceRoot(settings), 'scripts', 'models', 'fetch-embedding-model.sh');
+}
+
+/** The checkout in development; `payload/resources/` when packaged, with the same relative paths. */
+export function modelResourceRoot(settings: CliSettings): string {
+  return locateResourceRoot(settings.runtime, settings.studioRoot);
 }
 
 /**
@@ -36,22 +43,15 @@ export async function readManifestState(settings: CliSettings): Promise<Manifest
   }
 }
 
-const invalidReasonTexts: Readonly<Record<InvalidModelManifestError['reason'], string>> = {
-  unreadable: 'não pôde ser lido',
-  'too-large': 'é grande demais',
-  'invalid-json': 'não é um JSON válido',
-  'schema-mismatch': 'não segue o formato esperado',
-  unpinned: 'ainda tem valores provisórios',
-};
-
-/** One pt-BR line about the manifest; no path, no checksum value. */
+/** One line about the manifest in the active language; no path, no checksum value. */
 export function manifestText(state: ManifestState): string {
+  const text = cliText().doctor.models;
   switch (state.status) {
     case 'pinned':
-      return `fixado (${state.manifest.modelRef}, ${state.manifest.files.length} arquivo(s), ${state.manifest.dimensions} dimensões)`;
+      return text.pinned(state.manifest.modelRef, state.manifest.files.length, state.manifest.dimensions);
     case 'unpinned':
-      return `provisório (${state.manifest.modelRef}): os valores de sha-256 e tamanho ainda não foram fixados em scripts/models; nada é baixado`;
+      return text.unpinned(state.manifest.modelRef);
     case 'invalid':
-      return `inválido: o manifesto ${invalidReasonTexts[state.reason]}`;
+      return text.invalid(text.invalidReasons[state.reason]);
   }
 }

@@ -112,6 +112,7 @@ export async function confineRequest(request: ToolRunnerRequest, roots: RunnerRo
       return { ...request, audio: await read('audio', request.audio), output: await write('output', request.output) };
     case 'test-capture':
     case 'live-capture':
+    case 'page-screenshot':
       return { ...request, output: await write('output', request.output) };
     case 'page-text':
       return request;

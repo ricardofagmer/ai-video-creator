@@ -50,7 +50,8 @@ export type AiModelDetails = z.infer<typeof AiModelDetailsSchema>;
 
 export const ReferenceDetailsSchema = z
   .object({
-    subKind: z.enum(['video', 'image', 'audio', 'style', 'screenshot-set', 'text']),
+    /** `website`: an https page URL saved for the site analysis step (site analysis spec, 2026-11-23). */
+    subKind: z.enum(['video', 'image', 'audio', 'style', 'screenshot-set', 'text', 'website']),
     referenceNotes: z.string().max(4000),
   })
   .strict();

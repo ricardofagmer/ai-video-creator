@@ -5,8 +5,9 @@ import { type MetricImportReport } from '@studio/shared/api';
 import { PlatformSchema, type Platform } from '@studio/shared/metrics';
 import { useState, type FormEvent, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { useWebMessages } from '@/lib/i18n/client';
 import { localFileProblem, metricImportErrorText } from '../metric-import-model';
-import { NO_CREDENTIALS_TEXT, exportInstructions, localTodayIso, platformLabels, platformOrder } from '../metric-labels';
+import { localTodayIso, platformLabels, platformOrder } from '../metric-labels';
 import { browserMetricsApi } from '../metrics-api';
 import styles from '../metrics.module.css';
 import { MetricImportReportView } from './MetricImportReportView';
@@ -24,8 +25,6 @@ const PLATFORM_ID = 'importar-plataforma';
 const DATE_ID = 'importar-data';
 const FILE_ID = 'importar-arquivo';
 
-const platformOptions = platformOrder.map((platform) => ({ value: platform, label: platformLabels[platform] }));
-
 /**
  * `/metricas/importar` (SPEC 0006 sections 5.3 and 5.9): platform, "Números referentes a", the CSV;
  * "Conferir" sends a dry run that writes nothing, then "Importar" sends the same file for real.
@@ -33,6 +32,8 @@ const platformOptions = platformOrder.map((platform) => ({ value: platform, labe
  * checked. The file is uploaded as is and never read or shown by the web.
  */
 export function MetricImportForm(): ReactElement {
+  const t = useWebMessages();
+  const texts = t.metrics.import;
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [asOfDate, setAsOfDate] = useState(() => localTodayIso());
   const [file, setFile] = useState<File | null>(null);
@@ -41,6 +42,7 @@ export function MetricImportForm(): ReactElement {
   const [serverError, setServerError] = useState<string | null>(null);
   const [stage, setStage] = useState<ImportStage>({ status: 'editing' });
 
+  const platformOptions = platformOrder.map((option) => ({ value: option, label: platformLabels[option] }));
   const busy = stage.status === 'checking' || stage.status === 'importing';
 
   function edited(): void {
@@ -50,12 +52,12 @@ export function MetricImportForm(): ReactElement {
 
   function validate(): { platform: Platform; file: File } | null {
     const found: FieldErrors = {};
-    if (platform === null) found.platform = 'Escolha a plataforma da exportação.';
-    if (asOfDate === '') found.asOfDate = 'Escolha a data dos números.';
-    else if (asOfDate > localTodayIso()) found.asOfDate = 'A data das métricas não pode ser no futuro.';
-    if (file === null) found.file = 'Escolha o arquivo CSV exportado.';
+    if (platform === null) found.platform = texts.errors.platform;
+    if (asOfDate === '') found.asOfDate = texts.errors.asOfDate;
+    else if (asOfDate > localTodayIso()) found.asOfDate = texts.errors.future;
+    if (file === null) found.file = texts.errors.file;
     else {
-      const problem = localFileProblem(file);
+      const problem = localFileProblem(file, t);
       if (problem !== null) found.file = problem;
     }
     setErrors(found);
@@ -76,7 +78,7 @@ export function MetricImportForm(): ReactElement {
       const report = await browserMetricsApi.importMetrics({ fields: { platform: valid.platform, asOfDate }, file: valid.file, dryRun });
       setStage(dryRun ? { status: 'checked', report } : { status: 'imported', report });
     } catch (error) {
-      setServerError(metricImportErrorText(error, valid.platform));
+      setServerError(metricImportErrorText(error, valid.platform, t));
       setStage(previous === null ? { status: 'editing' } : { status: 'checked', report: previous });
     }
   }
@@ -100,12 +102,12 @@ export function MetricImportForm(): ReactElement {
     <div className={layout.stackLarge}>
       <form className={layout.form} onSubmit={handleSubmit} noValidate>
         {serverError !== null && <Alert variant="error">{serverError}</Alert>}
-        <FormField id={PLATFORM_ID} label="Plataforma" error={errors.platform} disabled={busy}>
+        <FormField id={PLATFORM_ID} label={texts.platform} error={errors.platform} disabled={busy}>
           {({ invalid, ...control }) => (
             <Select
               {...control}
               invalid={invalid}
-              placeholder="Selecione…"
+              placeholder={texts.platformPlaceholder}
               options={platformOptions}
               value={platform ?? ''}
               onChange={(event) => {
@@ -117,14 +119,14 @@ export function MetricImportForm(): ReactElement {
           )}
         </FormField>
         {platform !== null && (
-          <Alert variant="info" title={`Como exportar do ${platformLabels[platform]}`}>
-            <span className={styles.instructions}>{`${exportInstructions[platform]} ${NO_CREDENTIALS_TEXT}`}</span>
+          <Alert variant="info" title={texts.howToExport(platformLabels[platform])}>
+            <span className={styles.instructions}>{`${texts.instructions[platform]} ${texts.noCredentials}`}</span>
           </Alert>
         )}
         <FormField
           id={DATE_ID}
-          label="Números referentes a"
-          help="O dia a que os totais da exportação se referem. Nunca no futuro."
+          label={texts.asOfDate}
+          help={texts.asOfDateHelp}
           error={errors.asOfDate}
           disabled={busy}
         >
@@ -142,7 +144,7 @@ export function MetricImportForm(): ReactElement {
             />
           )}
         </FormField>
-        <FormField id={FILE_ID} label="Arquivo CSV" help="Até 2 MB e 5.000 linhas, em texto UTF-8." error={errors.file} disabled={busy}>
+        <FormField id={FILE_ID} label={texts.file} help={texts.fileHelp} error={errors.file} disabled={busy}>
           {({ invalid, ...control }) => (
             <Input
               {...control}
@@ -158,23 +160,23 @@ export function MetricImportForm(): ReactElement {
           )}
         </FormField>
         <div className={styles.actions}>
-          <Button type="submit" variant={stage.status === 'checked' ? 'secondary' : 'primary'} loading={stage.status === 'checking'} loadingLabel="Conferindo…" disabled={busy}>
-            Conferir
+          <Button type="submit" variant={stage.status === 'checked' ? 'secondary' : 'primary'} loading={stage.status === 'checking'} loadingLabel={texts.checking} disabled={busy}>
+            {texts.check}
           </Button>
           {(stage.status === 'checked' || stage.status === 'importing') && (
-            <Button type="button" variant="primary" loading={stage.status === 'importing'} loadingLabel="Importando…" disabled={busy} onClick={() => void send(false)}>
-              Importar
+            <Button type="button" variant="primary" loading={stage.status === 'importing'} loadingLabel={texts.importing} disabled={busy} onClick={() => void send(false)}>
+              {texts.import}
             </Button>
           )}
           {stage.status === 'imported' && (
             <Button type="button" variant="secondary" onClick={startOver}>
-              Importar outro arquivo
+              {texts.importAnother}
             </Button>
           )}
         </div>
       </form>
       {report !== null && (
-        <Card title={report.dryRun ? 'Conferência' : 'Resultado da importação'}>
+        <Card title={report.dryRun ? texts.reportDryRun : texts.reportDone}>
           <MetricImportReportView report={report} />
         </Card>
       )}

@@ -1,4 +1,5 @@
 import {
+  ANALYST_ROLE,
   DIRECTOR_ROLE,
   EVALUATOR_ROLE,
   PLANNER_ROLE,
@@ -61,6 +62,14 @@ export const agentRoster: Readonly<Record<ModelRoleName, AgentDefinition>> = {
     agentName: 'recovery',
     defaultModelId: OPUS_MODEL_ID,
     tools: agentToolAllowlists[RECOVERY_ROLE],
+  },
+  // Not an ADR 0002 row: the site analysis spec adds the role; one bounded vision and summary call
+  // fits the writer-tier model, and a recipe `model:analyst` binding can still choose another.
+  [ANALYST_ROLE]: {
+    role: ANALYST_ROLE,
+    agentName: 'site-analyst',
+    defaultModelId: SONNET_MODEL_ID,
+    tools: agentToolAllowlists[ANALYST_ROLE],
   },
 };
 

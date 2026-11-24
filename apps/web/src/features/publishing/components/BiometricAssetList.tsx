@@ -1,9 +1,11 @@
+'use client';
+
 import { Alert } from '@studio/ui';
 import { type PublishBiometricAssetView } from '@studio/shared/api';
 import { type Platform } from '@studio/shared/metrics';
 import type { ReactElement } from 'react';
-import { assetKindLabels } from '@/features/catalog/catalog-labels';
-import { biometricIntroText } from '../publish-labels';
+import { platformLabels } from '@/features/metrics/metric-labels';
+import { useWebMessages } from '@/lib/i18n/client';
 import styles from '../publishing.module.css';
 
 interface BiometricAssetListProps {
@@ -17,15 +19,16 @@ interface BiometricAssetListProps {
  * is the per-action confirmation PRD 12 asks for.
  */
 export function BiometricAssetList({ platform, assets }: BiometricAssetListProps): ReactElement | null {
+  const t = useWebMessages();
   if (assets.length === 0) return null;
   return (
-    <Alert variant="warning" title={biometricIntroText(platform)}>
+    <Alert variant="warning" title={t.publishing.biometricIntro(platformLabels[platform])}>
       <ul className={styles.biometricList}>
         {assets.map((asset) => (
           <li key={asset.ref}>
             <span className="label">{asset.title}</span>
             {' · '}
-            <span>{assetKindLabels[asset.kind]}</span>
+            <span>{t.catalog.kinds[asset.kind]}</span>
             {' · '}
             <span className="mono">{asset.ref}</span>
           </li>

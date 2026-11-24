@@ -1,7 +1,7 @@
 import type { ScheduleListView, ScheduleView } from '@studio/shared/api';
+import { cliText } from '../i18n/messages.js';
 import type { Printer } from '../output/printer.js';
 import { type ScheduleGateway } from './schedule-gateway.js';
-import { countText } from './schedule-text.js';
 import { formatSlotShort } from './slot-time.js';
 
 interface SoonestSlot {
@@ -25,18 +25,19 @@ function soonestSlot(views: readonly ScheduleView[]): SoonestSlot | null {
  * schedule's zone; the missed count adds every listed schedule's last 7 days.
  */
 export function scheduleStatusLine(views: ScheduleListView): string {
-  if (views.length === 0) return 'Agendamentos: nenhum';
+  const text = cliText().schedules.status;
+  if (views.length === 0) return text.none;
   const active = views.filter((view) => view.status === 'active');
   const soonest = soonestSlot(active);
   const missed = views.reduce((total, view) => total + view.missedLast7Days, 0);
-  const next = soonest === null ? 'sem próximo horário' : `próximo ${formatSlotShort(soonest.instant, soonest.timeZone)}`;
-  return `Agendamentos: ${countText(active.length, 'ativo', 'ativos')}, ${next}, ${countText(missed, 'perdido', 'perdidos')} (7 dias)`;
+  const next = soonest === null ? text.noNext : text.next(formatSlotShort(soonest.instant, soonest.timeZone));
+  return text.line(active.length, next, missed);
 }
 
 export interface ScheduleStatusOptions {
   gateway: ScheduleGateway;
   printer: Printer;
-  /** pt-BR text of a failure; the command boundary's error report in production. */
+  /** Text of a failure; the command boundary's error report in production. */
   describeError: (error: unknown) => string;
 }
 
@@ -45,6 +46,6 @@ export async function printScheduleStatus(options: ScheduleStatusOptions): Promi
   try {
     options.printer.line(scheduleStatusLine(await options.gateway.list()));
   } catch (error) {
-    options.printer.error(`Aviso: agendamentos não lidos. ${options.describeError(error)}`);
+    options.printer.error(cliText().schedules.status.notRead(options.describeError(error)));
   }
 }

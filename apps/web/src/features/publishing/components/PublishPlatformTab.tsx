@@ -1,6 +1,6 @@
 'use client';
 
-import { Alert, Badge, Button, DescriptionList, formatBytes, shortenHash, textLinkClassName } from '@studio/ui';
+import { Alert, Badge, Button, DescriptionList, formatBytes, shortenHash, textLinkClassName, useI18n } from '@studio/ui';
 import { type PublishAttemptView, type PublishPlatformView, type PublishRequest, type RunPublishView } from '@studio/shared/api';
 import { type Platform } from '@studio/shared/metrics';
 import { isOpenPublishState } from '@studio/shared/platforms';
@@ -9,10 +9,11 @@ import { useRef, useState, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { describePlatformApiError, rev7ReasonText } from '@/features/common/platform-error-text';
 import { ApiRequestError } from '@/lib/api';
-import { MOCK_MODE_TEXT, capabilityStatusBadge } from '@/features/platforms/platform-labels';
+import { useWebMessages } from '@/lib/i18n/client';
+import { platformLabels } from '@/features/metrics/metric-labels';
+import { capabilityStatusBadge } from '@/features/platforms/platform-labels';
 import { newIdempotencyKey } from '../idempotency-key';
 import { buildPublishRequest, initialPublishDraft, type PublishDraft, type PublishDraftErrors } from '../publish-form-model';
-import { publishButtonLabel } from '../publish-labels';
 import { browserPublishingApi } from '../publishing-api';
 import styles from '../publishing.module.css';
 import { BiometricAssetList } from './BiometricAssetList';
@@ -61,6 +62,9 @@ const fieldOrder: readonly (keyof PublishDraftErrors)[] = ['title', 'caption', '
  */
 export function PublishPlatformTab({ runId, runTitle, view, platform, accountLabel, onAttempt }: PublishPlatformTabProps): ReactElement {
   const platformId = platform.platform;
+  const t = useWebMessages();
+  const texts = t.publishing.tab;
+  const { locale } = useI18n();
   const [draft, setDraft] = useState<PublishDraft>(() =>
     initialPublishDraft({ runTitle, hasBiometricAssets: view.biometricAssets.length > 0 }),
   );
@@ -72,7 +76,7 @@ export function PublishPlatformTab({ runId, runTitle, view, platform, accountLab
 
   const latest = view.attempts.find((attempt) => attempt.platform === platformId) ?? null;
   const attemptOpen = latest !== null && isOpenPublishState(latest.state);
-  const badge = capabilityStatusBadge(platform.status);
+  const badge = capabilityStatusBadge(platform.status, t.platforms);
   const blocked =
     !view.approved || view.artifact === null || platform.status !== 'connected' || !platform.eligible || platform.publicationId !== null || attemptOpen;
 
@@ -85,6 +89,7 @@ export function PublishPlatformTab({ runId, runTitle, view, platform, accountLab
       idempotencyKey: keyState.key,
       artifactSha256: view.artifact.sha256,
       biometricRefs: view.biometricAssets.map((asset) => asset.ref),
+      t: t.publishing.errors,
     });
     if (built.status === 'invalid') {
       setErrors(built.errors);
@@ -117,7 +122,7 @@ export function PublishPlatformTab({ runId, runTitle, view, platform, accountLab
         const sentAttemptId = key === keyState.key ? keyState.sentAttemptId : null;
         setKeyState({ key, sentAttemptId, sentFingerprint: fingerprint });
       }
-      setSendError(describePlatformApiError(error, { platform: platformId, mode: platform.mode }));
+      setSendError(describePlatformApiError(error, { platform: platformId, mode: platform.mode }, t));
     } finally {
       sendingRef.current = false;
       setSending(false);
@@ -126,27 +131,27 @@ export function PublishPlatformTab({ runId, runTitle, view, platform, accountLab
 
   return (
     <div className={layout.stack}>
-      {platform.mode === 'mock' && <Alert variant="info">{MOCK_MODE_TEXT}</Alert>}
+      {platform.mode === 'mock' && <Alert variant="info">{t.platforms.mockMode}</Alert>}
       <p className={styles.attemptLine}>
-        <span className="label">Conta</span>
+        <span className="label">{texts.account}</span>
         <Badge tone={badge.tone} dot>
           {badge.label}
         </Badge>
         {platform.status !== 'connected' && (
           <Link href="/contas" className={textLinkClassName()}>
-            Abrir Contas
+            {texts.openAccounts}
           </Link>
         )}
       </p>
       <DescriptionList
         items={[
-          { term: 'Vídeo', description: 'final.mp4', mono: true },
-          { term: 'Tamanho', description: view.artifact === null ? '—' : formatBytes(view.artifact.sizeBytes) },
-          { term: 'Hash', description: view.artifact === null ? '—' : shortenHash(view.artifact.sha256), mono: true },
-          { term: 'Conta conectada', description: accountLabel ?? '—' },
+          { term: texts.video, description: 'final.mp4', mono: true },
+          { term: texts.size, description: view.artifact === null ? '—' : formatBytes(view.artifact.sizeBytes, locale) },
+          { term: texts.hash, description: view.artifact === null ? '—' : shortenHash(view.artifact.sha256), mono: true },
+          { term: texts.connectedAccount, description: accountLabel ?? '—' },
         ]}
       />
-      {view.artifact === null && <Alert variant="warning">{rev7ReasonText('publish-artifact-missing', { platform: platformId })}</Alert>}
+      {view.artifact === null && <Alert variant="warning">{rev7ReasonText('publish-artifact-missing', { platform: platformId }, t)}</Alert>}
       <PublishMetadataFields
         platform={platformId}
         draft={draft}
@@ -158,12 +163,12 @@ export function PublishPlatformTab({ runId, runTitle, view, platform, accountLab
       <BiometricAssetList platform={platformId} assets={view.biometricAssets} />
       {latest !== null && <PublishAttemptStatus attempt={latest} />}
       {platform.refusal !== null && !attemptOpen && (
-        <Alert variant="info">{rev7ReasonText(platform.refusal, { platform: platformId, mode: platform.mode })}</Alert>
+        <Alert variant="info">{rev7ReasonText(platform.refusal, { platform: platformId, mode: platform.mode }, t)}</Alert>
       )}
       {sendError !== null && <Alert variant="error">{sendError}</Alert>}
       <div className={styles.actions}>
-        <Button variant="primary" loading={sending} loadingLabel="Enviando o pedido…" disabled={blocked} onClick={() => void publish()}>
-          {publishButtonLabel(platformId)}
+        <Button variant="primary" loading={sending} loadingLabel={texts.sending} disabled={blocked} onClick={() => void publish()}>
+          {texts.publishTo(platformLabels[platformId])}
         </Button>
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
   CameraMoveSchema,
   LearningNotesBlockSchema,
   TransitionSchema,
+  UntrustedTextSchema,
 } from './packet-parts';
 import {
   ASSET_VISUAL,
@@ -82,6 +83,18 @@ export const DirectorPacketSchema = z
         brandKit: BrandKitSummarySchema,
         retryInstruction: z.string().min(1).optional(),
         previousOutput: ScenesOutputRefSchema.optional(),
+        /** The run brief's `instructions`, delimited (images and prompts spec, 2026-11-23). */
+        ownerInstructions: UntrustedTextSchema.optional(),
+        /**
+         * The research stage's SiteAnalysis as JSON, delimited (site analysis spec): third-party
+         * page content, so data only; the owner's brief and instructions win over it.
+         */
+        siteAnalysis: UntrustedTextSchema.optional(),
+        /**
+         * The kept style analyses of the run's video references as JSON, delimited (guided-creation
+         * spec): AI notes about third-party videos, so data only; the owner's brief and instructions win.
+         */
+        referenceAnalyses: UntrustedTextSchema.optional(),
         /** Topology 0004 section 5: notes from `StageBrief.learnings`, delimited; `[]` when none. */
         learnings: LearningNotesBlockSchema,
       })

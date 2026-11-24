@@ -5,12 +5,17 @@ import { CostsReadModule } from '../costs';
 import { PathsModule } from '../paths';
 import { ProvidersModule } from '../providers';
 import { RedactionModule } from '../redaction';
+import { ClaudeCodeAdapter } from './adapters/claude-code.adapter';
 import { LiveClaudeAdapter } from './adapters/live-claude.adapter';
 import { MastraAgentFactory } from './adapters/mastra-agent.factory';
 import { MockClaudeAdapter } from './adapters/mock-claude.adapter';
 import { AgentsService } from './agents.service';
 import { AgentCallContextResolver } from './call/agent-call-context';
 import { AgentModelSelector } from './call/agent-model-selector';
+import { REFERENCE_ANALYST_PORT } from './reference-analyst/reference-analyst.definition';
+import { ReferenceAnalystClaudeCodeClient } from './reference-analyst/reference-analyst-claude-code.client';
+import { ReferenceAnalystModelClient } from './reference-analyst/reference-analyst-model.client';
+import { ReferenceAnalystService } from './reference-analyst/reference-analyst.service';
 import { OutputScanner } from './safety/output-scanner';
 import { AGENT_TOOL_SET_PROVIDER, AgentToolSetResolver, NoAgentToolSetProvider, type AgentToolSetProvider } from './tooling/agent-tool-set';
 
@@ -26,8 +31,9 @@ export interface AgentsModuleOptions {
 }
 
 /**
- * The five agents of topology v1 (R1-12) as NestJS providers on Mastra. Exports `AgentsService`
- * only; the engine binds it as C7 `AgentsPort`. No Mastra instance, storage, memory, workflow or
+ * The five agents of topology v1 (R1-12) as NestJS providers on Mastra. Exports `AgentsService`,
+ * which the engine binds as C7 `AgentsPort`, and `REFERENCE_ANALYST_PORT`, the run-less
+ * `ReferenceAnalystPort` the watcher's asset-jobs step calls (guided-creation spec section 4). No Mastra instance, storage, memory, workflow or
  * HTTP route is created: each call builds a standalone Mastra `Agent`. The composition root
  * registers `CqrsModule.forRoot()` (catalog queries resolve the bound model versions). It imports
  * only the read-only catalog and cost modules, so the watcher can host it (ADR 0003).
@@ -51,9 +57,14 @@ export class AgentsModule {
         MockClaudeAdapter,
         MastraAgentFactory,
         LiveClaudeAdapter,
+        ClaudeCodeAdapter,
         AgentsService,
+        ReferenceAnalystModelClient,
+        ReferenceAnalystClaudeCodeClient,
+        ReferenceAnalystService,
+        { provide: REFERENCE_ANALYST_PORT, useExisting: ReferenceAnalystService },
       ],
-      exports: [AgentsService],
+      exports: [AgentsService, ReferenceAnalystService, REFERENCE_ANALYST_PORT],
     };
   }
 }

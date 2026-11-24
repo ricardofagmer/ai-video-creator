@@ -9,6 +9,7 @@ import {
 } from '@studio/shared/hyperframes';
 import { readHyperframesEngineFiles } from '@studio/shared/hyperframes/files';
 import { type DoctorCheck } from '../doctor/doctor-check.js';
+import { cliText } from '../i18n/messages.js';
 import { formatBytes } from '../output/format.js';
 import { type CliSettings } from '../settings/cli-settings.js';
 import { HYPERFRAMES_CLI_ACTOR } from './cli-runtime.js';
@@ -85,48 +86,53 @@ export async function readHyperframesStatus(settings: CliSettings, options: { no
 
 /** The refusal `enable` would give, or null when every requirement holds. */
 export function enableRefusal(status: HyperframesStatus): string | null {
+  const text = cliText().hyperframes.status;
   if (status.pin.status === 'mismatch') return pinMismatchText(status.pin.detail);
-  if (!status.sandboxAvailable) return 'O isolamento de rede do macOS não está disponível. O motor HyperFrames não roda sem ele.';
-  if (status.readiness === null) return 'O perfil de isolamento do HyperFrames não pôde ser lido. Reinstale as dependências do estúdio.';
+  if (!status.sandboxAvailable) return text.sandboxUnavailable;
+  if (status.readiness === null) return text.profileUnreadable;
   if (status.readiness !== 'ready') return `${engineStateReason(status.readiness)} ${engineStateNextStep(status.readiness)}`;
   return null;
 }
 
 /** The next owner step, in the order the steps are taken (O2, O3, O4). */
 export function nextStep(status: HyperframesStatus): string {
-  if (status.pin.status === 'mismatch' || status.profile.status === 'unreadable') return 'Reinstale as dependências do estúdio.';
-  if (!status.sandboxAvailable) return 'O motor HyperFrames não roda sem o isolamento do macOS; use um modelo Remotion.';
+  const text = cliText().hyperframes.status;
+  if (status.pin.status === 'mismatch' || status.profile.status === 'unreadable') return text.reinstall;
+  if (!status.sandboxAvailable) return text.useRemotion;
   if (status.readiness !== null && status.readiness !== 'ready') return engineStateNextStep(status.readiness);
-  if (status.state === 'engine-disabled') return 'Rode `studio hyperframes enable`.';
-  return 'Nenhum: o motor está ligado e pronto.';
+  if (status.state === 'engine-disabled') return text.runEnable;
+  return text.noneReady;
 }
 
 function chromeCheck(files: HyperframesEngineFiles): DoctorCheck {
-  const label = 'Chrome do HyperFrames';
-  if (files.chrome.status === 'absent') return { label, status: 'warning', detail: 'não instalado' };
-  if (files.chrome.status === 'invalid') return { label, status: 'warning', detail: 'registro chrome.json inválido' };
-  if (!files.chromeBinaryPresent) return { label, status: 'warning', detail: 'registrado, mas o arquivo não está na pasta do estúdio' };
-  return { label, status: 'ok', detail: `${HYPERFRAMES_CHROME_VERSION} instalado (${formatBytes(files.chrome.value.sizeBytes)})` };
+  const text = cliText().hyperframes.status;
+  const label = text.chromeLabel;
+  if (files.chrome.status === 'absent') return { label, status: 'warning', detail: text.notInstalled };
+  if (files.chrome.status === 'invalid') return { label, status: 'warning', detail: text.chromeJsonInvalid };
+  if (!files.chromeBinaryPresent) return { label, status: 'warning', detail: text.chromeFileMissing };
+  return { label, status: 'ok', detail: text.chromeInstalled(HYPERFRAMES_CHROME_VERSION, formatBytes(files.chrome.value.sizeBytes)) };
 }
 
 function traceCheck(status: HyperframesStatus): DoctorCheck {
-  const label = 'verificação de rede';
+  const text = cliText().hyperframes.status;
+  const label = text.traceLabel;
   const { trace } = status.files;
-  if (trace.status === 'absent') return { label, status: 'warning', detail: 'não feita' };
-  if (trace.status === 'invalid') return { label, status: 'warning', detail: 'registro trace.json inválido' };
-  const when = `em ${trace.value.at}`;
-  if (trace.value.result !== 'pass') return { label, status: 'warning', detail: `fail ${when} (${trace.value.findings.length} achados)` };
-  if (status.readiness === 'trace-stale') return { label, status: 'warning', detail: `pass ${when}, mas de outra versão, Chrome ou perfil` };
-  return { label, status: 'ok', detail: `pass ${when}` };
+  if (trace.status === 'absent') return { label, status: 'warning', detail: text.traceNotDone };
+  if (trace.status === 'invalid') return { label, status: 'warning', detail: text.traceJsonInvalid };
+  const at = trace.value.at;
+  if (trace.value.result !== 'pass') return { label, status: 'warning', detail: text.traceFail(at, trace.value.findings.length) };
+  if (status.readiness === 'trace-stale') return { label, status: 'warning', detail: text.traceStale(at) };
+  return { label, status: 'ok', detail: text.tracePass(at) };
 }
 
 function engineCheck(status: HyperframesStatus): DoctorCheck {
-  const label = 'motor HyperFrames';
-  if (status.files.engine.status === 'invalid') return { label, status: 'warning', detail: 'registro engine.json inválido; tratado como desligado' };
-  if (status.state === null) return { label, status: 'warning', detail: 'estado desconhecido (perfil ilegível)' };
-  if (status.state === 'ready') return { label, status: 'ok', detail: 'ligado e pronto' };
-  if (status.state === 'engine-disabled') return { label, status: 'ok', detail: 'desligado' };
-  return { label, status: 'warning', detail: `ligado, mas: ${engineStateReason(status.state)}` };
+  const text = cliText().hyperframes.status;
+  const label = text.engineLabel;
+  if (status.files.engine.status === 'invalid') return { label, status: 'warning', detail: text.engineJsonInvalid };
+  if (status.state === null) return { label, status: 'warning', detail: text.engineUnknown };
+  if (status.state === 'ready') return { label, status: 'ok', detail: text.engineReady };
+  if (status.state === 'engine-disabled') return { label, status: 'ok', detail: text.engineOff };
+  return { label, status: 'warning', detail: text.engineOnBut(engineStateReason(status.state)) };
 }
 
 /**
@@ -134,24 +140,25 @@ function engineCheck(status: HyperframesStatus): DoctorCheck {
  * most a warning: an incomplete setup never fails `doctor`.
  */
 export function hyperframesChecks(status: HyperframesStatus): DoctorCheck[] {
+  const text = cliText().hyperframes.status;
   return [
     status.pin.status === 'ok'
-      ? { label: 'HyperFrames', status: 'ok', detail: `${HYPERFRAMES_PIN} instalado` }
+      ? { label: 'HyperFrames', status: 'ok', detail: text.pinInstalled(HYPERFRAMES_PIN) }
       : { label: 'HyperFrames', status: 'warning', detail: pinMismatchText(status.pin.detail) },
     {
-      label: 'Node para HyperFrames',
+      label: text.nodeLabel,
       status: status.nodeOk ? 'ok' : 'warning',
-      detail: `${status.nodeVersion} (mínimo ${MINIMUM_NODE_MAJOR})`,
+      detail: text.nodeDetail(status.nodeVersion, MINIMUM_NODE_MAJOR),
     },
-    { label: 'isolamento do macOS', status: status.sandboxAvailable ? 'ok' : 'warning', detail: status.sandboxAvailable ? 'disponível' : 'indisponível' },
+    { label: text.sandboxLabel, status: status.sandboxAvailable ? 'ok' : 'warning', detail: status.sandboxAvailable ? text.available : text.unavailable },
     chromeCheck(status.files),
     {
-      label: 'configuração do HyperFrames',
+      label: text.configLabel,
       status: status.files.configSeeded ? 'ok' : 'warning',
-      detail: status.files.configSeeded ? 'preparada' : 'não preparada',
+      detail: status.files.configSeeded ? text.prepared : text.notPrepared,
     },
     traceCheck(status),
     engineCheck(status),
-    { label: 'próximo passo do HyperFrames', status: 'ok', detail: nextStep(status) },
+    { label: text.nextLabel, status: 'ok', detail: nextStep(status) },
   ];
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { formatAssetRef, parseAssetRef, type AssetRef } from '@studio/shared/catalog';
-import { type Binding, type RecipeRef } from '@studio/shared/recipes';
+import { TemplateDetailsSchema, formatAssetRef, parseAssetRef, type AssetRef, type TemplateDetails } from '@studio/shared/catalog';
+import { type Binding, type Recipe, type RecipeRef } from '@studio/shared/recipes';
 import { PrismaService } from '../prisma';
 import { parseRecipeRef } from '../recipes/recipe-ref';
 import { toRecipeVersionView, type RecipeVersionView } from '../recipes/recipe-version.mapper';
@@ -24,6 +24,16 @@ function chunksOf<T>(items: readonly T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let start = 0; start < items.length; start += size) chunks.push(items.slice(start, start + size));
   return chunks;
+}
+
+/** A details column that is not JSON parses as nothing, which the schema then refuses. */
+function parseJsonOrUndefined(text: string): unknown {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return parsed;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -59,6 +69,25 @@ export class ScheduleRecipeReader {
       bindings: query.bindings.filter((binding) => hashes.get(binding.ref) !== binding.contentHash).map((binding) => binding.ref),
       references: query.references.filter((ref) => !hashes.has(ref)),
     };
+  }
+
+  /**
+   * Details of the version bound to the recipe's `template` slot, for the composition rules. Null
+   * when unbound, not a template, missing or unreadable, which leaves only the binding rules, as
+   * `RecipeCompositionCheck` does; the bindings check runs first and refuses a missing pin.
+   */
+  async templateDetails(recipe: Pick<Recipe, 'bindings'>): Promise<TemplateDetails | null> {
+    const binding = recipe.bindings.find((candidate) => candidate.slot === 'template');
+    if (binding === undefined) return null;
+    const row = await this.prisma.assetVersion.findFirst({
+      where: parseAssetRef(binding.ref),
+      select: { detailsJson: true, asset: { select: { kind: true } } },
+    });
+    if (row === null || row.asset.kind !== 'template') return null;
+    const details = TemplateDetailsSchema.safeParse(parseJsonOrUndefined(row.detailsJson));
+    if (details.success) return details.data;
+    this.logger.warn({ event: 'schedule.template-unreadable', ref: binding.ref });
+    return null;
   }
 
   /** `contentHash` per existing asset version, keyed by ref; an unknown ref is absent. */

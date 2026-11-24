@@ -84,6 +84,10 @@
       "types": "./src/comparisons/index.ts",
       "default": "./dist/comparisons/index.js"
     },
+    "./asset-jobs": {
+      "types": "./src/asset-jobs/index.ts",
+      "default": "./dist/asset-jobs/index.js"
+    },
     "./curation": {
       "types": "./src/curation/index.ts",
       "default": "./dist/curation/index.js"
@@ -103,6 +107,14 @@
     "./platforms": {
       "types": "./src/platforms/index.ts",
       "default": "./dist/platforms/index.js"
+    },
+    "./runtime": {
+      "types": "./src/runtime/index.ts",
+      "default": "./dist/runtime/index.js"
+    },
+    "./install": {
+      "types": "./src/install/index.ts",
+      "default": "./dist/install/index.js"
     }
   },
   "typesVersions": {
@@ -167,6 +179,9 @@
       "comparisons": [
         "./src/comparisons/index.ts"
       ],
+      "asset-jobs": [
+        "./src/asset-jobs/index.ts"
+      ],
       "curation": [
         "./src/curation/index.ts"
       ],
@@ -181,6 +196,12 @@
       ],
       "platforms": [
         "./src/platforms/index.ts"
+      ],
+      "runtime": [
+        "./src/runtime/index.ts"
+      ],
+      "install": [
+        "./src/install/index.ts"
       ]
     }
   },

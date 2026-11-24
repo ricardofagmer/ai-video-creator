@@ -6,7 +6,7 @@ const CTRL_C = '\u0003';
 const CTRL_D = '\u0004';
 
 export interface HiddenPromptOptions {
-  /** pt-BR label written to stderr; the typed value is never written anywhere. */
+  /** Label written to stderr; the typed value is never written anywhere. */
   label: string;
   maxLength: number;
   /** Name used in the "needs a terminal" error. */

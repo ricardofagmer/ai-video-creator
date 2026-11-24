@@ -112,3 +112,23 @@ export const FrameSampleEnvelopeSchema = toolEnvelopeSchema(
   z.object({ frames: z.array(SampledFrameSchema).min(1).max(frameSample.framesPerCall) }).strict(),
   z.null(),
 );
+
+/** SiteScreenshotTool cap on the recorded JPEG (the research stage writes at most 1.5 MB). */
+export const SITE_SCREENSHOT_MAX_BYTES = 1_500_000;
+const SITE_SCREENSHOT_MAX_BASE64_CHARS = Math.ceil(SITE_SCREENSHOT_MAX_BYTES / 3) * 4;
+
+/** The one screenshot image; up to 1600 px wide, so not a `SampledFrame` (768 px at most). */
+export const SiteScreenshotImageSchema = z
+  .object({
+    label: z.string().max(260),
+    mediaType: z.literal(JPEG_MEDIA_TYPE),
+    dataBase64: z.string().min(1).max(SITE_SCREENSHOT_MAX_BASE64_CHARS),
+  })
+  .strict();
+export type SiteScreenshotImage = z.infer<typeof SiteScreenshotImageSchema>;
+
+/** Same `{ frames }` shape as FrameSampleTool, so the Mastra adapter sends it as an image part; no server-side payload. */
+export const SiteScreenshotEnvelopeSchema = toolEnvelopeSchema(
+  z.object({ frames: z.array(SiteScreenshotImageSchema).length(1) }).strict(),
+  z.null(),
+);

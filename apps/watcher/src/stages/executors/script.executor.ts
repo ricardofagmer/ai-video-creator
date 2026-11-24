@@ -4,12 +4,14 @@ import type { StageExecutionContext, StageExecutionResult, StageFailure, StagePl
 import { type CheckId, type DeclaredOutput, type ModelUse, type StageEstimate } from '@studio/shared/run-format';
 import { callAgent } from '../agents/agent-call';
 import { runEvaluatorLoop, type GeneratorAttempt } from '../agents/evaluator-loop';
-import { boundPromptText, boundTemplate, brandVoiceText, buildPacket, coordinatesOf } from '../agents/packet-sources';
+import { boundPromptText, boundSkillTexts, boundTemplate, brandVoiceText, buildPacket, coordinatesOf } from '../agents/packet-sources';
 import { reviewerScoreEvidence, revisionsExhaustedFailure } from '../agents/review-evidence';
 import { reviewSubject } from '../agents/reviewer';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
 import { ClaimsArtifactSchema, ReviewOutcomeSchema, type ClaimsArtifact } from '../shared/stage-artifacts';
 import { agentCallsEstimate, evaluatorLoopRoles } from '../shared/stage-estimates';
+import { readRunReferenceAnalyses, referenceAnalysesField, referenceAnalysesOutput, writeReferenceAnalyses } from '../shared/reference-analyses-input';
+import { readSiteAnalysisInput, siteAnalysisCaveat, siteAnalysisField, type SiteAnalysisInput } from '../shared/site-analysis-input';
 import { readOptionalStageInput, readOwnOutput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { needsPerson, reportedSuccess, stageFailed, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
 import { stageTexts } from '../shared/stage-texts';
@@ -17,6 +19,7 @@ import { stageTexts } from '../shared/stage-texts';
 const JSON_MIME = 'application/json';
 /** Recipe slot of the Scriptwriter prompt; any bound prompt is used when the slot is absent. */
 const WRITER_PROMPT_SLOT = 'prompt:writer';
+const WRITER_SKILL_SLOT = 'skill:writer';
 
 /**
  * `script`: Scriptwriter with the evaluator loop (topology section 7). Only verified claims reach
@@ -29,19 +32,25 @@ export class ScriptExecutor extends BaseStageExecutor {
   protected override readonly appliesCallFaults = false;
 
   async estimate(context: StagePlanningContext): Promise<StageEstimate> {
-    return agentCallsEstimate(evaluatorLoopRoles(WRITER_ROLE, context), this.isLive('claude'));
+    return agentCallsEstimate(evaluatorLoopRoles(WRITER_ROLE, context), this.agentCallsBilled());
   }
 
   declaredOutputs(context: StagePlanningContext): readonly DeclaredOutput[] {
     return [
       stageOutput(context.stage, 'script', 'script.json', JSON_MIME),
       stageOutput(context.stage, 'review-script-outcome', 'review-outcome.json', JSON_MIME),
+      referenceAnalysesOutput(context),
     ];
   }
 
   protected async run(context: StageExecutionContext, outputs: StageOutputSink): Promise<StageExecutionResult> {
-    const source = await this.writerSourceOf(context);
-    if ('class' in source) return stageFailed(source);
+    const siteAnalysis = await readSiteAnalysisInput(context);
+    // Guided-creation design section 4: kept analyses of the run's references guide the writer and,
+    // through the artifact, the director; none (or a reader failure) leaves both as before.
+    const referenceAnalyses = await readRunReferenceAnalyses(context, this.dependencies.referenceAnalyses);
+    const writerSource = await this.writerSourceOf(context, siteAnalysis);
+    if ('class' in writerSource) return stageFailed(writerSource);
+    const source: WriterPacketSource = { ...writerSource, ...referenceAnalysesField(referenceAnalyses) };
     const models: ModelUse[] = [];
     const loop = await runEvaluatorLoop<ScriptOutput>({
       context,
@@ -51,13 +60,14 @@ export class ScriptExecutor extends BaseStageExecutor {
     });
     if (loop.status === 'generator-failed') return stageFailed(loop.failure, models);
     await outputs.writeJson('script', ScriptOutputSchema, loop.output);
+    await writeReferenceAnalyses(context, outputs, referenceAnalyses);
     if (loop.status === 'revisions-exhausted') {
       await outputs.writeJson('review-script-outcome', ReviewOutcomeSchema, { format: 1, status: 'recorded', revisions: loop.revisions, verdict: loop.verdict });
       return stageFailed(revisionsExhaustedFailure(this.stageId, loop.verdict), models);
     }
     await outputs.writeJson('review-script-outcome', ReviewOutcomeSchema, loop.review);
     const caveat = loop.review.status === 'unavailable' ? ` ${stageTexts.reviewerUnavailableWarning}` : '';
-    return reportedSuccess(`Roteiro com ${loop.output.scenes.length} cena(s).${caveat}`, models);
+    return reportedSuccess(`Roteiro com ${loop.output.scenes.length} cena(s).${caveat}${siteAnalysisCaveat(siteAnalysis)}`, models);
   }
 
   protected async checkEvidence(context: StageExecutionContext, checks: readonly CheckId[]): Promise<CheckEvidenceMap> {
@@ -81,13 +91,21 @@ export class ScriptExecutor extends BaseStageExecutor {
     return { status: 'failed', failure: withOwnerText(call.failure, scriptNotGeneratedText(call.cause)), cause: call.cause };
   }
 
-  private async writerSourceOf(context: StageExecutionContext): Promise<WriterPacketSource | StageFailure> {
+  private async writerSourceOf(context: StageExecutionContext, siteAnalysis: SiteAnalysisInput): Promise<WriterPacketSource | StageFailure> {
     const prompt = await boundPromptText(context, WRITER_PROMPT_SLOT);
     if (prompt === null) {
       return needsPerson(
         { kind: 'needs-person', stepKey: context.stepKey },
         'Nenhum prompt do roteirista (prompt:writer) está vinculado à receita.',
         'Vincule um prompt de texto ao slot prompt:writer da receita e retome a execução.',
+      );
+    }
+    const skills = await boundSkillTexts(context, this.dependencies.catalog, WRITER_SKILL_SLOT);
+    if (skills.status === 'unreadable') {
+      return needsPerson(
+        { kind: 'needs-person', stepKey: context.stepKey },
+        `A skill ${skills.ref} vinculada ao roteirista (skill:writer) não pôde ser lida.`,
+        'Confira o arquivo de entrada da skill no catálogo ou tire a skill da receita e retome a execução.',
       );
     }
     const claims = await readOptionalStageInput(context, 'claims', ClaimsArtifactSchema);
@@ -99,10 +117,12 @@ export class ScriptExecutor extends BaseStageExecutor {
       verifiedClaims: verifiedClaimsOf(claims),
       templateInputSchema: template?.details.inputSchema ?? {},
       prompt,
+      ...(skills.skills.length === 0 ? {} : { skills: skills.skills }),
       ...(brandVoice === undefined ? {} : { brandVoice }),
       format: { narration: context.recipe.format.narration, sceneCount: context.recipe.format.sceneCount },
       // SPEC 0005 section 5.6: the brief's notes, already capped by the `brief` step; never read here.
       learnings: context.stageBrief.learnings ?? [],
+      ...siteAnalysisField(siteAnalysis),
     };
   }
 }

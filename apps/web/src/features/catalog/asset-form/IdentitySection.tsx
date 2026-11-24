@@ -1,10 +1,10 @@
 'use client';
 
-import { Card, FormField, Input, Select, Textarea } from '@studio/ui';
+import { Card, FormField, Input, Select, TagInput, Textarea, useI18n } from '@studio/ui';
 import { SensitivitySchema, type Sensitivity } from '@studio/shared/catalog';
 import { type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
-import { sensitivityLabels } from '../catalog-labels';
+import { useWebMessages } from '@/lib/i18n/client';
 import { fieldIds, type AssetFormValues } from './asset-form-model';
 import { type AssetFormTarget } from './asset-form-submit';
 import { type FieldErrors } from './form-messages';
@@ -22,23 +22,25 @@ export interface IdentitySectionProps {
   onChange: (patch: Partial<IdentityValues>) => void;
 }
 
-const sensitivityOptions = SensitivitySchema.options.map((sensitivity) => ({ value: sensitivity, label: sensitivityLabels[sensitivity] }));
-
 function isSensitivity(value: string): value is Sensitivity {
   return SensitivitySchema.safeParse(value).success;
 }
 
 /** design/telas/04 card "Identificação". */
 export function IdentitySection({ target, values, sensitivityLocked, errors, disabled, onNameChange, onChange }: IdentitySectionProps): ReactElement {
+  const messages = useWebMessages();
+  const texts = messages.catalog.form.identity;
+  const { ui } = useI18n();
+  const sensitivityOptions = SensitivitySchema.options.map((sensitivity) => ({ value: sensitivity, label: ui.status.sensitivity[sensitivity] }));
   return (
     <fieldset className={layout.fieldset} disabled={disabled}>
-      <legend className="visually-hidden">Identificação</legend>
-      <Card title="Identificação">
+      <legend className="visually-hidden">{texts.title}</legend>
+      <Card title={texts.title}>
         <div className={layout.fieldGrid}>
-          <FormField id={fieldIds.name} label="Nome" error={errors[fieldIds.name]}>
+          <FormField id={fieldIds.name} label={texts.name} error={errors[fieldIds.name]}>
             {(control) => <Input {...control} value={values.name} onChange={(event) => onNameChange(event.currentTarget.value)} />}
           </FormField>
-          <FormField id={fieldIds.assetId} label="Id" help="Letras minúsculas, números e hífens." error={errors[fieldIds.assetId]}>
+          <FormField id={fieldIds.assetId} label={texts.id} help={texts.idHelp} error={errors[fieldIds.assetId]}>
             {(control) => (
               <Input
                 {...control}
@@ -51,18 +53,20 @@ export function IdentitySection({ target, values, sensitivityLocked, errors, dis
               />
             )}
           </FormField>
-          <FormField id={fieldIds.tags} label="Etiquetas" optional help="Separadas por vírgula." error={errors[fieldIds.tags]}>
-            {(control) => <Input {...control} value={values.tags} onChange={(event) => onChange({ tags: event.currentTarget.value })} />}
+          <FormField id={fieldIds.tags} label={texts.tags} optional help={texts.tagsHelp} error={errors[fieldIds.tags]}>
+            {(control) => (
+              <TagInput {...control} separator="comma" removeLabel={messages.common.tagInput.remove} value={values.tags} onChange={(tags) => onChange({ tags })} />
+            )}
           </FormField>
-          <FormField id={fieldIds.owner} label="Proprietário" error={errors[fieldIds.owner]}>
+          <FormField id={fieldIds.owner} label={texts.owner} error={errors[fieldIds.owner]}>
             {(control) => (
               <Input {...control} autoComplete="name" value={values.owner} onChange={(event) => onChange({ owner: event.currentTarget.value })} />
             )}
           </FormField>
           <FormField
             id={fieldIds.sensitivity}
-            label="Sensibilidade"
-            help={sensitivityLocked ? 'As novas versões de material biométrico continuam biométricas.' : undefined}
+            label={texts.sensitivity}
+            help={sensitivityLocked ? texts.sensitivityLocked : undefined}
             error={errors[fieldIds.sensitivity]}
           >
             {(control) => (
@@ -78,7 +82,7 @@ export function IdentitySection({ target, values, sensitivityLocked, errors, dis
               />
             )}
           </FormField>
-          <FormField id={fieldIds.notes} label="Notas" optional error={errors[fieldIds.notes]} className={layout.fieldWide}>
+          <FormField id={fieldIds.notes} label={texts.notes} optional error={errors[fieldIds.notes]} className={layout.fieldWide}>
             {(control) => <Textarea {...control} value={values.notes} onChange={(event) => onChange({ notes: event.currentTarget.value })} />}
           </FormField>
         </div>

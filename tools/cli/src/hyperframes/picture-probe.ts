@@ -1,3 +1,4 @@
+import { cliText } from '../i18n/messages.js';
 import { type PictureProbe } from './hyperframes-ports.js';
 
 /*
@@ -63,17 +64,18 @@ export interface PictureExpectation {
 
 const FPS_TOLERANCE = 0.01;
 
-/** pt-BR mismatches, empty when the picture is correct. */
+/** Mismatches in the active language, empty when the picture is correct. */
 export function pictureMismatches(probe: PictureProbe, expected: PictureExpectation): string[] {
+  const text = cliText().hyperframes.picture;
   const mismatches: string[] = [];
-  if (probe.codec !== 'h264') mismatches.push(`codec ${probe.codec} (esperado h264)`);
-  if (probe.pixelFormat !== 'yuv420p') mismatches.push(`formato de pixel ${probe.pixelFormat} (esperado yuv420p)`);
+  if (probe.codec !== 'h264') mismatches.push(text.codec(probe.codec));
+  if (probe.pixelFormat !== 'yuv420p') mismatches.push(text.pixelFormat(probe.pixelFormat));
   if (probe.width !== expected.width || probe.height !== expected.height) {
-    mismatches.push(`tamanho ${probe.width}x${probe.height} (esperado ${expected.width}x${expected.height})`);
+    mismatches.push(text.size(`${probe.width}x${probe.height}`, `${expected.width}x${expected.height}`));
   }
-  if (Math.abs(probe.fps - expected.fps) > FPS_TOLERANCE) mismatches.push(`quadros por segundo ${probe.fps.toFixed(2)} (esperado ${expected.fps})`);
+  if (Math.abs(probe.fps - expected.fps) > FPS_TOLERANCE) mismatches.push(text.fps(probe.fps.toFixed(2), expected.fps));
   if (probe.durationS < expected.durationS - 1 / expected.fps) {
-    mismatches.push(`duração ${probe.durationS.toFixed(2)} s (esperado ${expected.durationS} s)`);
+    mismatches.push(text.duration(probe.durationS.toFixed(2), expected.durationS));
   }
   return mismatches;
 }

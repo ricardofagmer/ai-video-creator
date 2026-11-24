@@ -1,7 +1,8 @@
-import { Card, DescriptionList, formatUsd, type DescriptionItem } from '@studio/ui';
+import { Card, DescriptionList, formatUsd, type DescriptionItem, type Locale } from '@studio/ui';
 import { type ComparisonView } from '@studio/shared/api';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { type WebMessages } from '@/messages';
 import { StartComparisonButton } from './StartComparisonButton';
 
 /**
@@ -9,22 +10,26 @@ import { StartComparisonButton } from './StartComparisonButton';
  * case the owner accepts to start them, and the month ceiling the gate checks. The start button
  * shows only while both runs are `draft`.
  */
-export function ComparisonCostCard({ comparison }: { comparison: ComparisonView }): ReactElement {
+interface ComparisonCostCardProps {
+  comparison: ComparisonView;
+  t: WebMessages['curations']['comparisons']['cost'];
+  locale: Locale;
+}
+
+export function ComparisonCostCard({ comparison, t, locale }: ComparisonCostCardProps): ReactElement {
   const { estimate } = comparison;
+  const usd = (amount: number): string => formatUsd(amount, locale);
   const items: DescriptionItem[] = [
-    { term: 'Custo do par até agora', description: formatUsd(comparison.pairCostUsd) },
-    { term: 'Custo máximo do par', description: formatUsd(estimate.pairWorstCaseUsd) },
-    { term: 'Custo máximo por execução', description: formatUsd(estimate.runWorstCaseUsd) },
-    {
-      term: 'Custo esperado do par',
-      description: estimate.expectedPairUsd === null ? 'Sem execuções pagas revisadas para estimar' : formatUsd(estimate.expectedPairUsd),
-    },
-    { term: 'Gasto do mês até agora', description: estimate.monthToDateUsd === null ? 'Indisponível' : formatUsd(estimate.monthToDateUsd) },
-    { term: 'Teto do mês', description: formatUsd(estimate.costPerMonthUsd) },
-    { term: 'Dentro do teto do mês', description: estimate.withinMonthCeiling ? 'Sim' : 'Não' },
+    { term: t.soFar, description: usd(comparison.pairCostUsd) },
+    { term: t.pairMax, description: usd(estimate.pairWorstCaseUsd) },
+    { term: t.runMax, description: usd(estimate.runWorstCaseUsd) },
+    { term: t.expected, description: estimate.expectedPairUsd === null ? t.noExpected : usd(estimate.expectedPairUsd) },
+    { term: t.monthToDate, description: estimate.monthToDateUsd === null ? t.unavailable : usd(estimate.monthToDateUsd) },
+    { term: t.monthCeiling, description: usd(estimate.costPerMonthUsd) },
+    { term: t.within, description: estimate.withinMonthCeiling ? t.yes : t.no },
   ];
   return (
-    <Card title="Custo">
+    <Card title={t.title}>
       <div className={layout.stack}>
         <DescriptionList items={items} columns={2} />
         {comparison.status === 'draft' && <StartComparisonButton comparisonId={comparison.comparisonId} estimate={estimate} />}

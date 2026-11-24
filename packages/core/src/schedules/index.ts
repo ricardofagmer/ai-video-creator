@@ -9,6 +9,7 @@ export {
   type CreateScheduleInput,
   type PatchScheduleInput,
 } from './schedule.input';
+export { scheduleCompositionConflicts } from './schedule-composition';
 export { consentMatches, hasFutureSlot } from './schedule-policy';
 export { ScheduleRunsReader, type FiredRunsState, type SlotRef, type SlotRunLookup } from './schedule-runs.reader';
 export { SLOT_LOG_PAGE_BYTES, ScheduleStore, type StoredSchedule } from './schedule-store';

@@ -2,7 +2,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { HYPERFRAMES_PIN } from '@studio/shared/hyperframes';
 import { HyperframesPinMismatchError } from './errors';
-import { packageRoot, workspaceRoot } from './package-paths';
+import { dependencyTreeRoot, packageRoot } from './package-paths';
 
 /*
  * The one HyperFrames executable the studio starts (SPEC 0008 section 4.4, K3, AC 68): the
@@ -57,7 +57,7 @@ function readInstalledVersion(packageFolder: string): string {
 export function pinnedBinPath(): string {
   const packageFolder = realPathOrNull(join(packageRoot(), 'node_modules', 'hyperframes'));
   if (packageFolder === null) throw new HyperframesPinMismatchError('not-installed');
-  const workspaceModules = realPathOrNull(join(workspaceRoot(), 'node_modules'));
+  const workspaceModules = realPathOrNull(dependencyTreeRoot());
   if (workspaceModules === null || !isInside(workspaceModules, packageFolder)) {
     throw new HyperframesPinMismatchError('outside-workspace');
   }

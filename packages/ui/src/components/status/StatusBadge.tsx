@@ -1,4 +1,8 @@
+'use client';
+
 import type { ReactElement } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
+import type { UiMessages } from '../../i18n/messages';
 import { Badge } from '../badge/Badge';
 import {
   assetStatusAppearance,
@@ -28,12 +32,26 @@ function appearanceOf(props: StatusBadgeProps): StatusAppearance {
   }
 }
 
+function labelOf(props: StatusBadgeProps, ui: UiMessages): string {
+  switch (props.kind) {
+    case 'asset':
+      return ui.status.asset[props.status];
+    case 'sensitivity':
+      return ui.status.sensitivity[props.status];
+    case 'step':
+      return ui.status.step[props.status];
+    case 'run':
+      return ui.status.run[props.status];
+  }
+}
+
 /** Status of an asset version, a step or a run, as text plus tone (never colour alone). */
 export function StatusBadge(props: StatusBadgeProps): ReactElement {
+  const { ui } = useI18n();
   const appearance = appearanceOf(props);
   return (
     <Badge tone={appearance.tone} dot={appearance.live ? 'live' : true} className={props.className}>
-      {appearance.label}
+      {labelOf(props, ui)}
     </Badge>
   );
 }

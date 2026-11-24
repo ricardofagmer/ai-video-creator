@@ -1,3 +1,4 @@
+export { CLAUDE_BINARY_VARIABLE, CLAUDE_ENGINE_VARIABLE, type ClaudeEngine, type ClaudeEngineSettings } from './claude-engine.config';
 export { EgressListFullError, EgressLog, MAX_EGRESS_ENTRIES, type EgressMeasure, type EgressRecordOutcome, type ExternalCall } from './egress';
 export { InvalidEgressMeasureError, egressSummary, toEgressEntry } from './egress.mapper';
 export { leavesMachine, requiredCredential } from './provider-credentials';
@@ -14,6 +15,7 @@ export { authenticationWhatToDo, toStageFailure } from './provider-failure.mappe
 export { ProviderModeService } from './provider-mode.service';
 export { mockFaultVariable, modeVariable, type ProviderModeSettings } from './provider-modes.config';
 export {
+  ClaudeCodeUnavailableError,
   InvalidProviderModeConfigError,
   ProviderCredentialMissingError,
   ProviderNotLiveError,

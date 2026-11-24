@@ -9,6 +9,7 @@ import {
 } from '@studio/core/secrets';
 import { CliUsageError } from '../errors/cli.errors.js';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { type CommandDependencies } from './command-dependencies.js';
 
 /**
@@ -17,8 +18,7 @@ import { type CommandDependencies } from './command-dependencies.js';
  */
 function secretValueRuleText(name: SecretName): string {
   const bounds = /\{(\d+),(\d+)\}/u.exec(secretValuePattern(name).source);
-  const length = bounds === null ? '' : ` de ${bounds[1]} a ${bounds[2]} caracteres`;
-  return `O valor precisa ter${length}, só caracteres ASCII visíveis, sem espaços.`;
+  return cliText().commands.secrets.valueRule(bounds === null ? null : { min: bounds[1] ?? '', max: bounds[2] ?? '' });
 }
 
 /**
@@ -31,16 +31,15 @@ function secretValueRuleText(name: SecretName): string {
  * (and no database) is needed here.
  */
 export async function secretsSetCommand(name: string, dependencies: CommandDependencies): Promise<number> {
-  if (!isSecretName(name)) throw new CliUsageError(`Nome de chave desconhecido. Use um de: ${ALL_SECRET_NAMES.join(', ')}.`);
+  if (!isSecretName(name)) throw new CliUsageError(cliText().usage.unknownSecretName(ALL_SECRET_NAMES.join(', ')));
   const { printer, settings } = dependencies;
-  const kind = isPlatformClientSecretName(name) ? 'credencial do aplicativo' : 'chave';
-  printer.line(`Guardando a ${kind} ${name} no Keychain. ${secretValueRuleText(name)}`);
-  printer.line('Digite o valor quando o macOS pedir; nada aparece na tela.');
+  const text = cliText().commands.secrets;
+  const kind = isPlatformClientSecretName(name) ? text.appCredential : text.key;
+  printer.line(text.storing(kind, name, secretValueRuleText(name)));
+  printer.line(text.typeWhenAsked);
   await new KeychainWriter().promptAndStore(name);
-  printer.line(`${name} guardada no Keychain.`);
+  printer.line(text.stored(name));
   const variable = SECRET_ENVIRONMENT_VARIABLES[name];
-  if (settings.keyVariablesSet.includes(variable)) {
-    printer.error(`Aviso: ${variable} está definida no ambiente e tem prioridade sobre o Keychain.`);
-  }
+  if (settings.keyVariablesSet.includes(variable)) printer.error(text.envOverrides(variable));
   return ExitCode.ok;
 }

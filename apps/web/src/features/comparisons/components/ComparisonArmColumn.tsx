@@ -1,4 +1,4 @@
-import { Card, DescriptionList, StatusBadge, formatUsd, textLinkClassName, type DescriptionItem, type VideoAspect } from '@studio/ui';
+import { Card, DescriptionList, StatusBadge, formatUsd, textLinkClassName, type DescriptionItem, type Locale, type VideoAspect } from '@studio/ui';
 import { type ComparisonArmView } from '@studio/shared/api';
 import { type ComparisonSubject } from '@studio/shared/run-format';
 import Link from 'next/link';
@@ -6,15 +6,8 @@ import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { qualityScoreText } from '@/features/quality/quality-labels';
 import { formatDuration } from '@/features/runs/run-labels';
-import {
-  armLabels,
-  comparedVersionHref,
-  decisionText,
-  finishedRunStatuses,
-  qaText,
-  recoveriesText,
-  reviewerScoresText,
-} from '../comparison-labels';
+import { type WebMessages } from '@/messages';
+import { comparedVersionHref, decisionText, finishedRunStatuses, qaText, reviewerScoresText } from '../comparison-labels';
 import styles from '../comparisons.module.css';
 import { ComparisonArmPlayer } from './ComparisonArmPlayer';
 
@@ -24,14 +17,18 @@ interface ComparisonArmColumnProps {
   arm: ComparisonArmView;
   rejectedHasVideo: boolean;
   aspect: VideoAspect;
+  t: WebMessages;
+  locale: Locale;
 }
 
-function runItems(arm: ComparisonArmView): DescriptionItem[] {
+function runItems(arm: ComparisonArmView, t: WebMessages, locale: Locale): DescriptionItem[] {
+  const texts = t.curations.comparisons;
+  const terms = texts.arm;
   const reviewable = finishedRunStatuses.includes(arm.status);
   return [
-    { term: 'Status', description: <StatusBadge kind="run" status={arm.status} /> },
+    { term: terms.status, description: <StatusBadge kind="run" status={arm.status} /> },
     {
-      term: 'Execução',
+      term: terms.run,
       description: (
         <Link href={`/execucoes/${encodeURIComponent(arm.runId)}`} className={textLinkClassName()}>
           <span className="mono">{arm.runId}</span>
@@ -39,33 +36,37 @@ function runItems(arm: ComparisonArmView): DescriptionItem[] {
       ),
     },
     {
-      term: 'Revisão',
+      term: terms.review,
       description: reviewable ? (
         <Link href={`/execucoes/${encodeURIComponent(arm.runId)}/revisao`} className={textLinkClassName()}>
-          Abrir a revisão
+          {terms.openReview}
         </Link>
       ) : (
-        'Ainda não disponível'
+        terms.notAvailable
       ),
     },
-    { term: 'Receita executada', description: arm.recipe.ref, mono: true },
+    { term: terms.recipe, description: arm.recipe.ref, mono: true },
     {
-      term: 'Nota da versão comparada',
+      term: terms.score,
       // A rev 4 producer omits the platform count (R3-AC-07); it then reads as unknown.
       description:
         arm.comparedVersionScore === null
-          ? 'sem nota (sem execuções)'
-          : qualityScoreText({
-              ...arm.comparedVersionScore,
-              qualityPlatformSampleSize: arm.comparedVersionScore.qualityPlatformSampleSize ?? null,
-            }),
+          ? `${t.catalog.qualityText.noScore} (${t.catalog.qualityText.noRuns})`
+          : qualityScoreText(
+              {
+                ...arm.comparedVersionScore,
+                qualityPlatformSampleSize: arm.comparedVersionScore.qualityPlatformSampleSize ?? null,
+              },
+              t.catalog.qualityText,
+              locale,
+            ),
     },
-    { term: 'QA', description: qaText(arm.qa) },
-    { term: 'Notas do revisor', description: reviewerScoresText(arm.reviewerScores) },
-    { term: 'Decisão', description: decisionText(arm.decision) },
-    { term: 'Custo', description: formatUsd(arm.costUsd) },
-    { term: 'Duração', description: formatDuration(arm.durationMs) },
-    { term: 'Recuperações', description: recoveriesText(arm.recoveries) },
+    { term: terms.qa, description: qaText(arm.qa, texts) },
+    { term: terms.reviewerScores, description: reviewerScoresText(arm.reviewerScores, t, locale) },
+    { term: terms.decision, description: decisionText(arm.decision, texts) },
+    { term: terms.cost, description: formatUsd(arm.costUsd, locale) },
+    { term: terms.duration, description: formatDuration(arm.durationMs) },
+    { term: terms.recoveries, description: texts.recoveries(arm.recoveries) },
   ];
 }
 
@@ -75,23 +76,23 @@ function runItems(arm: ComparisonArmView): DescriptionItem[] {
  * video. The only way forward from here is a link to the version page; nothing here changes a
  * version's status.
  */
-export function ComparisonArmColumn({ comparisonId, subject, arm, rejectedHasVideo, aspect }: ComparisonArmColumnProps): ReactElement {
+export function ComparisonArmColumn({ comparisonId, subject, arm, rejectedHasVideo, aspect, t, locale }: ComparisonArmColumnProps): ReactElement {
   const versionHref = comparedVersionHref(subject, arm.comparedRef, comparisonId);
   return (
     <Card
-      title={armLabels[arm.arm]}
+      title={t.curations.comparisons.arms[arm.arm]}
       description={<span className={`mono ${styles.refLine}`}>{arm.comparedRef}</span>}
       actions={
         versionHref === null ? undefined : (
           <Link href={versionHref} className={textLinkClassName()}>
-            Abrir esta versão
+            {t.curations.comparisons.arm.openVersion}
           </Link>
         )
       }
     >
       <div className={layout.stack}>
-        <ComparisonArmPlayer arm={arm} rejectedHasVideo={rejectedHasVideo} aspect={aspect} />
-        <DescriptionList items={runItems(arm)} />
+        <ComparisonArmPlayer arm={arm} rejectedHasVideo={rejectedHasVideo} aspect={aspect} t={t} />
+        <DescriptionList items={runItems(arm, t, locale)} />
       </div>
     </Card>
   );

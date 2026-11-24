@@ -1,7 +1,9 @@
-import { Alert, Badge, Card } from '@studio/ui';
+'use client';
+
+import { Alert, Badge, Card, useI18n } from '@studio/ui';
 import { type RunPublicationLine } from '@studio/shared/platforms';
 import type { ReactElement } from 'react';
-import { MOCK_BADGE_TEXT } from '@/features/platforms/platform-labels';
+import { useWebMessages } from '@/lib/i18n/client';
 import { leftTheMachineItems } from '../left-the-machine';
 import styles from '../publishing.module.css';
 import { type ManifestEgressRead } from '../run-publish-data';
@@ -18,22 +20,25 @@ interface LeftTheMachineCardProps {
  * is a text node; none carries a title, caption, tag, URL, path or account label.
  */
 export function LeftTheMachineCard({ egress, lines }: LeftTheMachineCardProps): ReactElement {
-  const items = leftTheMachineItems(egress.status === 'ready' ? egress.entries : [], lines ?? []);
+  const t = useWebMessages();
+  const { locale } = useI18n();
+  const texts = t.publishing.leftTheMachine;
+  const items = leftTheMachineItems(egress.status === 'ready' ? egress.entries : [], lines ?? [], t.publishing, locale);
   return (
-    <Card title="O que saiu da máquina" description="Cada envio para fora do Mac: provedores durante a execução e plataformas depois da aprovação.">
+    <Card title={texts.title} description={texts.description}>
       <div className={styles.leftTheMachine}>
         {egress.status === 'unavailable' && (
-          <Alert variant="warning">O manifesto (manifest.json) não pôde ser lido, então os envios aos provedores não aparecem aqui.</Alert>
+          <Alert variant="warning">{texts.manifestUnreadable}</Alert>
         )}
-        {lines === null && <Alert variant="warning">Não foi possível ler os envios às plataformas.</Alert>}
+        {lines === null && <Alert variant="warning">{texts.linesUnreadable}</Alert>}
         {items.length === 0 ? (
-          <p className="caption">Nada saiu da máquina.</p>
+          <p className="caption">{texts.empty}</p>
         ) : (
           <ol className={styles.leftTheMachineList}>
             {items.map((item) => (
               <li key={item.key} className={styles.leftTheMachineItem}>
-                <span>{item.text}</span>
-                {item.mock && <Badge tone="info">{MOCK_BADGE_TEXT}</Badge>}
+                <span lang={item.lang}>{item.text}</span>
+                {item.mock && <Badge tone="info">{t.platforms.mockBadge}</Badge>}
               </li>
             ))}
           </ol>

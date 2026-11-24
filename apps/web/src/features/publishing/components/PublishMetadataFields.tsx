@@ -1,12 +1,13 @@
 'use client';
 
-import { Button, Checkbox, FormField, Input, RadioGroup, Textarea } from '@studio/ui';
+import { Button, Checkbox, FormField, Input, RadioGroup, TagInput, Textarea } from '@studio/ui';
 import { type Platform } from '@studio/shared/metrics';
 import { publishBounds, type Visibility } from '@studio/shared/platforms';
 import { useState, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { platformUsesTags, type PublishDraft, type PublishDraftErrors } from '../publish-form-model';
-import { AI_DISCLOSURE_LABEL, visibilityDescription, visibilityLabels } from '../publish-labels';
+import { useWebMessages } from '@/lib/i18n/client';
+import { visibilityDescription } from '../publish-labels';
 import styles from '../publishing.module.css';
 
 interface PublishMetadataFieldsProps {
@@ -31,6 +32,9 @@ type CopyState = 'idle' | 'copied' | 'failed';
  * the video only, so its caption has a copy button for the app. No visibility is preselected (B7).
  */
 export function PublishMetadataFields({ platform, draft, errors, allowedVisibilities, disabled, onChange }: PublishMetadataFieldsProps): ReactElement {
+  const messages = useWebMessages();
+  const t = messages.publishing;
+  const texts = t.fields;
   const [copy, setCopy] = useState<CopyState>('idle');
   const usesTags = platformUsesTags(platform);
 
@@ -45,7 +49,7 @@ export function PublishMetadataFields({ platform, draft, errors, allowedVisibili
 
   return (
     <div className={layout.stack}>
-      <FormField id={publishFieldId(platform, 'title')} label="Título" error={errors.title} disabled={disabled}>
+      <FormField id={publishFieldId(platform, 'title')} label={texts.title} error={errors.title} disabled={disabled}>
         {({ invalid, ...control }) => (
           <Input
             {...control}
@@ -58,9 +62,9 @@ export function PublishMetadataFields({ platform, draft, errors, allowedVisibili
       </FormField>
       <FormField
         id={publishFieldId(platform, 'caption')}
-        label={usesTags ? 'Descrição' : 'Legenda'}
+        label={usesTags ? texts.description : texts.caption}
         optional
-        help={usesTags ? undefined : 'O TikTok recebe só o vídeo, como rascunho. Copie a legenda e cole no aplicativo.'}
+        help={usesTags ? undefined : texts.tiktokCaptionHelp}
         error={errors.caption}
         disabled={disabled}
       >
@@ -81,35 +85,42 @@ export function PublishMetadataFields({ platform, draft, errors, allowedVisibili
       {!usesTags && (
         <div className={styles.actions}>
           <Button variant="secondary" size="sm" disabled={draft.caption === ''} onClick={() => void copyCaption()}>
-            Copiar legenda
+            {texts.copyCaption}
           </Button>
           <span className="caption" role="status">
-            {copy === 'copied' ? 'Legenda copiada.' : copy === 'failed' ? 'Não foi possível copiar; selecione o texto e copie.' : ''}
+            {copy === 'copied' ? texts.copied : copy === 'failed' ? texts.copyFailed : ''}
           </span>
         </div>
       )}
       {usesTags && (
         <FormField
           id={publishFieldId(platform, 'tags')}
-          label="Tags"
+          label={texts.tags}
           optional
-          help={`Separe por vírgulas. Até ${publishBounds.maxTags} tags, só letras, números e _.`}
+          help={texts.tagsHelp(publishBounds.maxTags)}
           error={errors.tags}
           disabled={disabled}
         >
           {({ invalid, ...control }) => (
-            <Input {...control} invalid={invalid} autoComplete="off" value={draft.tagsText} onChange={(event) => onChange({ ...draft, tagsText: event.currentTarget.value })} />
+            <TagInput
+              {...control}
+              separator="comma"
+              invalid={invalid}
+              removeLabel={messages.common.tagInput.remove}
+              value={draft.tagsText}
+              onChange={(tagsText) => onChange({ ...draft, tagsText })}
+            />
           )}
         </FormField>
       )}
       <div id={publishFieldId(platform, 'visibility')} tabIndex={-1}>
         <RadioGroup
           name={publishFieldId(platform, 'visibility')}
-          legend="Visibilidade"
+          legend={texts.visibility}
           options={allowedVisibilities.map((visibility) => ({
             value: visibility,
-            label: visibilityLabels[visibility],
-            description: visibilityDescription(platform, visibility),
+            label: t.visibilities[visibility],
+            description: visibilityDescription(platform, visibility, t),
           }))}
           value={draft.visibility}
           onChange={(visibility) => onChange({ ...draft, visibility })}
@@ -119,8 +130,8 @@ export function PublishMetadataFields({ platform, draft, errors, allowedVisibili
       </div>
       <Checkbox
         id={`publicar-${platform}-ai`}
-        label={AI_DISCLOSURE_LABEL}
-        description="Marque quando o vídeo tem voz, rosto ou cena gerados ou alterados por IA."
+        label={texts.aiDisclosure}
+        description={texts.aiDisclosureHelp}
         checked={draft.aiDisclosure}
         disabled={disabled}
         onChange={(event) => onChange({ ...draft, aiDisclosure: event.currentTarget.checked })}

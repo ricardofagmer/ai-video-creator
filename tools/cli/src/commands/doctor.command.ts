@@ -6,8 +6,9 @@ import { checkCurations } from '../doctor/curation-checks.js';
 import { scheduleChecks } from '../doctor/schedule-checks.js';
 import { checkCostIndex, checkDatabase, checkReferences, checkStoreSize, rebuildRunIndex } from '../doctor/data-checks.js';
 import { checkLine, hasFailure, type DoctorCheck } from '../doctor/doctor-check.js';
-import { INDEX_CHECK_LABEL, MODEL_CHECK_LABEL, checkSearch } from '../doctor/search-checks.js';
-import { checkApi, checkTool, checkWatcher, checkWeb } from '../doctor/service-checks.js';
+import { checkSearch, indexCheckLabel, modelCheckLabel } from '../doctor/search-checks.js';
+import { cliText } from '../i18n/messages.js';
+import { checkApi, checkNode, checkTool, checkWatcher, checkWeb } from '../doctor/service-checks.js';
 import { platformChecks, publishAttemptCheck } from '../doctor/platform-checks.js';
 import { withSearchContext, type CliContext, type CliSearchContext } from '../nest/cli-context.js';
 import { readPlatforms, syncAllAttempts } from '../platforms/nest-platform-gateway.js';
@@ -25,7 +26,7 @@ interface DoctorSection {
 }
 
 /**
- * One check that throws becomes a failed line with the error's pt-BR message, so a single broken
+ * One check that throws becomes a failed line with the error's message, so a single broken
  * dependency never hides the rest of the report.
  */
 async function guarded(label: string, run: () => Promise<DoctorSection>, signal: AbortSignal): Promise<DoctorSection> {
@@ -54,8 +55,8 @@ async function searchSections(context: CliSearchContext, dependencies: CommandDe
     if (dependencies.signal.aborted) throw error;
     const detail = toErrorReport(error).message;
     return [
-      only({ label: MODEL_CHECK_LABEL, status: 'warning', detail: `não verificado: ${detail}` }),
-      only({ label: INDEX_CHECK_LABEL, status: 'failed', detail }),
+      only({ label: modelCheckLabel(), status: 'warning', detail: cliText().doctor.notChecked(detail) }),
+      only({ label: indexCheckLabel(), status: 'failed', detail }),
     ];
   }
 }
@@ -66,12 +67,13 @@ async function searchSections(context: CliSearchContext, dependencies: CommandDe
  * unreadable platform file fails `doctor`; a platform waiting on the owner is a warning.
  */
 async function platformSections(context: CliContext, signal: AbortSignal): Promise<DoctorSection[]> {
-  const sections = [await guarded('envios às plataformas', async () => only(publishAttemptCheck(await syncAllAttempts(context))), signal)];
+  const labels = cliText().platforms.doctor;
+  const sections = [await guarded(labels.attemptsLabel, async () => only(publishAttemptCheck(await syncAllAttempts(context))), signal)];
   try {
     sections.push(...platformChecks(await readPlatforms(context), new Date()).map(only));
   } catch (error) {
     if (signal.aborted) throw error;
-    sections.push(only({ label: 'plataformas', status: 'failed', detail: toErrorReport(error).message }));
+    sections.push(only({ label: labels.platformsLabel, status: 'failed', detail: toErrorReport(error).message }));
   }
   return sections;
 }
@@ -86,27 +88,28 @@ async function hyperframesSections(dependencies: CommandDependencies): Promise<D
     return hyperframesChecks(status).map(only);
   } catch (error) {
     if (dependencies.signal.aborted) throw error;
-    return [only({ label: 'HyperFrames', status: 'warning', detail: `não verificado: ${toErrorReport(error).message}` })];
+    return [only({ label: 'HyperFrames', status: 'warning', detail: cliText().doctor.notChecked(toErrorReport(error).message) })];
   }
 }
 
 /** Database-backed checks share one booted context; a boot failure marks the database failed. */
 async function dataSections(options: DoctorOptions, dependencies: CommandDependencies): Promise<DoctorSection[]> {
   const { signal } = dependencies;
+  const labels = cliText().doctor.labels;
   try {
-    return await withSearchContext(async (context) => {
-      const sections = [await guarded('banco de dados', async () => only(await checkDatabase(context)), signal)];
-      sections.push(await guarded('armazenamento', async () => only(await checkStoreSize(context, signal)), signal));
-      sections.push(await guarded('referências', () => checkReferences(context, signal), signal));
-      if (options.rebuildIndex) sections.push(await guarded('reconstrução do índice', async () => only(await rebuildRunIndex(context)), signal));
-      sections.push(await guarded('custos e índice', async () => only(await checkCostIndex(context, signal)), signal));
+    return await withSearchContext(dependencies.settings, async (context) => {
+      const sections = [await guarded(labels.database, async () => only(await checkDatabase(context)), signal)];
+      sections.push(await guarded(labels.storage, async () => only(await checkStoreSize(context, signal)), signal));
+      sections.push(await guarded(labels.references, () => checkReferences(context, signal), signal));
+      if (options.rebuildIndex) sections.push(await guarded(labels.rebuild, async () => only(await rebuildRunIndex(context)), signal));
+      sections.push(await guarded(labels.costIndex, async () => only(await checkCostIndex(context, signal)), signal));
       sections.push(...(await platformSections(context, signal)));
       sections.push(...(await searchSections(context, dependencies)));
       return sections;
     });
   } catch (error) {
     if (signal.aborted) throw error;
-    return [only({ label: 'banco de dados', status: 'failed', detail: toErrorReport(error).message })];
+    return [only({ label: labels.database, status: 'failed', detail: toErrorReport(error).message })];
   }
 }
 
@@ -123,6 +126,7 @@ async function dataSections(options: DoctorOptions, dependencies: CommandDepende
  */
 export async function doctorCommand(options: DoctorOptions, dependencies: CommandDependencies): Promise<number> {
   const { settings, signal } = dependencies;
+  const text = cliText().doctor;
   const sections: DoctorSection[] = [];
   sections.push(await guarded('web', async () => only(await checkWeb(settings)), signal));
   sections.push(await guarded('api', async () => only(await checkApi(settings)), signal));
@@ -130,28 +134,29 @@ export async function doctorCommand(options: DoctorOptions, dependencies: Comman
   sections.push(watcher);
   sections.push(await guarded('ffmpeg', async () => only(await checkTool('ffmpeg', settings)), signal));
   sections.push(await guarded('ffprobe', async () => only(await checkTool('ffprobe', settings)), signal));
-  sections.push(await guarded('curadorias', () => checkCurations(settings.dataHome.curations, { now: new Date(), signal }), signal));
+  sections.push(await guarded('node', async () => only(await checkNode(settings)), signal));
+  sections.push(await guarded(text.labels.curations, () => checkCurations(settings.dataHome.curations, { now: new Date(), signal }), signal));
   // The watcher line is `ok` exactly when the launchd agent has a running process.
   const watcherRunning = watcher.check.status === 'ok';
   const scheduleRoots = { schedulesRoot: settings.dataHome.schedules, runsRoot: settings.dataHome.runs };
-  sections.push(await guarded('agendamentos', async () => scheduleChecks(await scanSchedules(scheduleRoots, signal), watcherRunning), signal));
+  sections.push(await guarded(text.labels.schedules, async () => scheduleChecks(await scanSchedules(scheduleRoots, signal), watcherRunning), signal));
   sections.push(...(await hyperframesSections(dependencies)));
   sections.push(...(await dataSections(options, dependencies)));
 
-  dependencies.printer.line(`Diagnóstico do studio (dados em ${settings.dataHome.root})`);
+  dependencies.printer.line(text.heading(settings.dataHome.root));
   for (const section of sections) {
     dependencies.printer.line(checkLine(section.check));
     for (const line of section.lines) dependencies.printer.line(line);
   }
   if (settings.keyVariablesSet.length > 0) {
     // Names only, never values: a set variable takes priority over the Keychain entry (see `secrets set`).
-    dependencies.printer.line(`[aviso] chaves vindas de variáveis de ambiente: ${settings.keyVariablesSet.join(', ')}.`);
+    dependencies.printer.line(text.keyVariables(settings.keyVariablesSet.join(', ')));
   }
   const checks = sections.map((section) => section.check);
   if (hasFailure(checks)) {
-    dependencies.printer.line('Resultado: há falhas.');
+    dependencies.printer.line(text.resultFailed);
     return ExitCode.unhealthy;
   }
-  dependencies.printer.line('Resultado: tudo certo.');
+  dependencies.printer.line(text.resultOk);
   return ExitCode.ok;
 }

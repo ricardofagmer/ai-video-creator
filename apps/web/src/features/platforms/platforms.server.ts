@@ -3,6 +3,7 @@ import { type PlatformView } from '@studio/shared/api';
 import { describeApiError } from '@/features/common/api-error-text';
 import { ApiRequestError, ApiResponseContractError, ApiUnreachableError } from '@/lib/api';
 import { serverTransport } from '@/lib/api/server';
+import { getI18n } from '@/lib/i18n/server';
 import { createPlatformsApi } from './platforms-api';
 
 export type PlatformsData = { status: 'ready'; platforms: readonly PlatformView[] } | { status: 'failed'; message: string };
@@ -20,7 +21,7 @@ export async function loadPlatforms(): Promise<PlatformsData> {
     const view = await createPlatformsApi(serverTransport('redirect-to-login')).listPlatforms();
     return { status: 'ready', platforms: view.platforms };
   } catch (error) {
-    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error) };
+    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error, (await getI18n()).t) };
     throw error;
   }
 }

@@ -4,6 +4,7 @@ import { insightsCommand, nestInsightsSource } from '../commands/insights.comman
 import { metricsImportCommand } from '../commands/metrics-import.command.js';
 import { metricsSyncCommand } from '../commands/metrics-sync.command.js';
 import { schedulesChangeCommand, schedulesListCommand, schedulesShowCommand } from '../commands/schedules.command.js';
+import { cliText } from '../i18n/messages.js';
 import { nestMetricsImporter } from '../metrics/nest-metrics-importer.js';
 import { nestPlatformGateway } from '../platforms/nest-platform-gateway.js';
 import { nestScheduleGateway } from '../schedules/nest-schedule-gateway.js';
@@ -14,28 +15,23 @@ type ExitCodeSink = (code: number) => void;
 
 const SCHEDULE_CHANGES: readonly ScheduleChange[] = ['pause', 'resume', 'delete'];
 
-const changeDescriptions: Readonly<Record<ScheduleChange, string>> = {
-  pause: 'pausa um agendamento: nenhum horário dispara até retomar',
-  resume: 'retoma um agendamento pausado; os horários do período pausado não disparam',
-  delete: 'exclui um agendamento (final; a pasta fica como registro)',
-};
-
 function addScheduleCommands(program: Command, dependencies: CommandDependencies, report: ExitCodeSink): void {
-  const schedules = program.command('schedules').description('agendamentos de execuções (criados no web)');
+  const { schedules: text, args } = cliText().program;
+  const schedules = program.command('schedules').description(text.description);
   schedules
     .command('list')
-    .description('lista os agendamentos com status, próximo horário e perdidos em 7 dias')
+    .description(text.list)
     .action(async () => report(await schedulesListCommand(nestScheduleGateway, dependencies)));
   schedules
     .command('show')
-    .description('mostra um agendamento: próximos horários, últimos horários e a fila de briefings')
-    .argument('<id>', 'id do agendamento')
+    .description(text.show)
+    .argument('<id>', args.scheduleIdDescription)
     .action(async (scheduleId: unknown) => report(await schedulesShowCommand(parseScheduleId(scheduleId), nestScheduleGateway, dependencies)));
   for (const change of SCHEDULE_CHANGES) {
     schedules
       .command(change)
-      .description(changeDescriptions[change])
-      .argument('<id>', 'id do agendamento')
+      .description(text[change])
+      .argument('<id>', args.scheduleIdDescription)
       .action(async (scheduleId: unknown) =>
         report(await schedulesChangeCommand(change, parseScheduleId(scheduleId), { gateway: nestScheduleGateway, dependencies })),
       );
@@ -43,18 +39,19 @@ function addScheduleCommands(program: Command, dependencies: CommandDependencies
 }
 
 function addMetricsCommands(program: Command, dependencies: CommandDependencies, report: ExitCodeSink): void {
-  const metrics = program.command('metrics').description('métricas das plataformas');
+  const { metrics: text, args, placeholders } = cliText().program;
+  const metrics = program.command('metrics').description(text.description);
   metrics
     .command('sync')
-    .description('grava as métricas que o watcher coletou das plataformas, pelo mesmo caminho da importação (SPEC 0007)')
+    .description(text.sync)
     .action(async () => report(await metricsSyncCommand(nestPlatformGateway, dependencies)));
   metrics
     .command('import')
-    .description('importa o CSV exportado por uma plataforma (até 2 MiB), pelo mesmo caminho do web')
-    .argument('<arquivo>', 'arquivo CSV da plataforma')
-    .requiredOption('--platform <plataforma>', 'youtube, instagram ou tiktok')
-    .requiredOption('--as-of <data>', 'dia a que os números se referem (AAAA-MM-DD, nunca no futuro)')
-    .option('--dry-run', 'só simula: mostra o resultado e não grava nada')
+    .description(text.import)
+    .argument(args.csvFile, args.csvFileDescription)
+    .requiredOption(`--platform ${placeholders.platform}`, text.platform)
+    .requiredOption(`--as-of ${placeholders.date}`, text.asOf)
+    .option('--dry-run', text.dryRun)
     .action(async (file: unknown, options: unknown) =>
       report(await metricsImportCommand(parseMetricsImportOptions(file, options), nestMetricsImporter, dependencies)),
     );
@@ -63,8 +60,8 @@ function addMetricsCommands(program: Command, dependencies: CommandDependencies,
 function addInsightsCommand(program: Command, dependencies: CommandDependencies, report: ExitCodeSink): void {
   program
     .command('insights')
-    .description('indicadores de sucesso do estúdio: revisão sem reparo, tempo, catálogo, custo, nota e publicações')
-    .option('--json', 'imprime o resultado em JSON')
+    .description(cliText().program.insights.description)
+    .option('--json', cliText().program.insights.json)
     .action(async (options: unknown) => report(await insightsCommand(parseInsightsOptions(options), nestInsightsSource, dependencies)));
 }
 

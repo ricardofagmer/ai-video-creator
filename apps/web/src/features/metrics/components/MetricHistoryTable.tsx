@@ -1,29 +1,35 @@
-import { Table, type TableColumn } from '@studio/ui';
+import { Table, type Locale, type TableColumn } from '@studio/ui';
 import { type MetricSnapshotView } from '@studio/shared/api';
 import { engagementRate } from '@studio/shared/metrics';
 import type { ReactElement } from 'react';
-import { formatCount, formatIsoDate, formatPercentValue, formatRate, snapshotOriginLabel } from '../metric-labels';
+import { formatIsoDate } from '@/lib/i18n/format';
+import { type WebMessages } from '@/messages';
+import { formatCount, formatPercentValue, formatRate, snapshotOriginLabel } from '../metric-labels';
 
 interface MetricRow {
   snapshot: MetricSnapshotView;
   inForce: boolean;
 }
 
-const columns: readonly TableColumn<MetricRow>[] = [
-  {
-    key: 'date',
-    header: 'Data',
-    rowHeader: true,
-    render: (row) => (row.inForce ? `${formatIsoDate(row.snapshot.asOfDate)} (em vigor)` : formatIsoDate(row.snapshot.asOfDate)),
-  },
-  { key: 'source', header: 'Origem', render: (row) => snapshotOriginLabel(row.snapshot) },
-  { key: 'views', header: 'Visualizações', align: 'end', render: (row) => formatCount(row.snapshot.metrics.views) },
-  { key: 'likes', header: 'Curtidas', align: 'end', render: (row) => formatCount(row.snapshot.metrics.likes) },
-  { key: 'comments', header: 'Comentários', align: 'end', render: (row) => formatCount(row.snapshot.metrics.comments) },
-  { key: 'shares', header: 'Compartilhamentos', align: 'end', render: (row) => formatCount(row.snapshot.metrics.shares) },
-  { key: 'engagement', header: 'Engajamento', align: 'end', render: (row) => formatRate(engagementRate(row.snapshot.metrics)) },
-  { key: 'retention', header: 'Assistido', align: 'end', render: (row) => formatPercentValue(row.snapshot.metrics.averageViewPercent) },
-];
+function historyColumns(t: WebMessages['metrics'], locale: Locale): readonly TableColumn<MetricRow>[] {
+  const h = t.history;
+  const count = (value: number | null): string => formatCount(value, locale);
+  return [
+    {
+      key: 'date',
+      header: h.date,
+      rowHeader: true,
+      render: (row) => (row.inForce ? h.inForce(formatIsoDate(row.snapshot.asOfDate, locale)) : formatIsoDate(row.snapshot.asOfDate, locale)),
+    },
+    { key: 'source', header: h.source, render: (row) => snapshotOriginLabel(row.snapshot, t) },
+    { key: 'views', header: t.fields.views, align: 'end', render: (row) => count(row.snapshot.metrics.views) },
+    { key: 'likes', header: t.fields.likes, align: 'end', render: (row) => count(row.snapshot.metrics.likes) },
+    { key: 'comments', header: t.fields.comments, align: 'end', render: (row) => count(row.snapshot.metrics.comments) },
+    { key: 'shares', header: t.fields.shares, align: 'end', render: (row) => count(row.snapshot.metrics.shares) },
+    { key: 'engagement', header: h.engagement, align: 'end', render: (row) => formatRate(engagementRate(row.snapshot.metrics), locale) },
+    { key: 'retention', header: h.watched, align: 'end', render: (row) => formatPercentValue(row.snapshot.metrics.averageViewPercent, locale) },
+  ];
+}
 
 /**
  * The snapshot in force and the older ones of one publication (SPEC 0006 sections 5.2 and 5.9),
@@ -34,10 +40,14 @@ export function MetricHistoryTable({
   inForce,
   history,
   caption,
+  t,
+  locale,
 }: {
   inForce: MetricSnapshotView | null;
   history: readonly MetricSnapshotView[];
   caption: string;
+  t: WebMessages['metrics'];
+  locale: Locale;
 }): ReactElement {
   const rows: MetricRow[] = [
     ...(inForce === null ? [] : [{ snapshot: inForce, inForce: true }]),
@@ -47,10 +57,10 @@ export function MetricHistoryTable({
     <Table
       caption={caption}
       hideCaption
-      columns={columns}
+      columns={historyColumns(t, locale)}
       rows={rows}
       rowKey={(row) => `${row.snapshot.asOfDate}|${row.snapshot.source}`}
-      emptyText="Nenhuma métrica registrada ainda."
+      emptyText={t.history.empty}
     />
   );
 }

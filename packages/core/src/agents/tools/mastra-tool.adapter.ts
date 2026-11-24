@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ENVELOPE_PAGINATION_KEY, ENVELOPE_RESULT_KEY, type AgentToolName } from '@studio/shared/agents';
 import { type JsonValue } from '@studio/shared/run-format';
 import { type AgentToolSet } from '../tooling/agent-tool-set';
-import { SampledFrameSchema } from './tool-results';
+import { JPEG_MEDIA_TYPE } from './tool-results';
 import { withoutModelRunId, type ModelVisibleOutput } from './tool-wrapper';
 
 /**
@@ -35,7 +35,12 @@ export interface MastraToolSpec {
   readonly resultForm: ToolResultForm;
 }
 
-const FramesResultSchema = z.object({ frames: z.array(SampledFrameSchema) });
+/**
+ * The image fields FrameSampleTool frames and the SiteScreenshotTool image share; other fields
+ * (a frame's `maxEdgePx`) are dropped. Each tool's own envelope schema already checked the result.
+ */
+const ImagePartSchema = z.object({ label: z.string(), mediaType: z.literal(JPEG_MEDIA_TYPE), dataBase64: z.string().min(1) });
+const FramesResultSchema = z.object({ frames: z.array(ImagePartSchema) });
 
 function asJson(output: ModelVisibleOutput): JsonValue {
   const pagination = output[ENVELOPE_PAGINATION_KEY];
@@ -44,7 +49,7 @@ function asJson(output: ModelVisibleOutput): JsonValue {
     : { [ENVELOPE_RESULT_KEY]: output[ENVELOPE_RESULT_KEY], [ENVELOPE_PAGINATION_KEY]: pagination };
 }
 
-/** Frames reach the model as image parts with their labels; anything else (an error envelope) as JSON. */
+/** Frames and screenshots reach the model as image parts with their labels; anything else (an error envelope) as JSON. */
 function imageContent(output: ModelVisibleOutput): ModelToolContent {
   const frames = FramesResultSchema.safeParse(output[ENVELOPE_RESULT_KEY]);
   if (!frames.success) return { type: 'json', value: asJson(output) };

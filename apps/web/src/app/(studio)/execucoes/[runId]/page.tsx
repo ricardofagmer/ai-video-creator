@@ -11,6 +11,7 @@ import { RunLiveView, type ScheduleOrigin } from '@/features/runs/components/Run
 import { serverRunsApi } from '@/features/runs/runs-api.server';
 import { loadScheduleTitle } from '@/features/schedules/schedules.server';
 import { isNotFound } from '@/lib/api';
+import { getI18n } from '@/lib/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,8 @@ async function loadScheduleOrigin(state: RunStateResponse): Promise<ScheduleOrig
 
 export async function generateMetadata({ params }: RunPageProps): Promise<Metadata> {
   const { runId } = await params;
-  return { title: RunIdSchema.safeParse(runId).success ? `${runId} · Execuções` : 'Execuções' };
+  const { t } = await getI18n();
+  return { title: RunIdSchema.safeParse(runId).success ? t.runs.run.title(runId) : t.runs.run.fallbackTitle };
 }
 
 /**
@@ -53,12 +55,13 @@ export default async function RunPage({ params, searchParams }: RunPageProps) {
   const state = await loadRunState(runId);
 
   if (state === null) {
+    const { t } = await getI18n();
     return (
       <EmptyState
-        title="Execução não encontrada"
+        title={t.runs.run.notFound}
         action={
           <Link href="/execucoes" className={buttonClassName({ variant: 'secondary' })}>
-            Voltar às execuções
+            {t.runs.run.backToList}
           </Link>
         }
       />

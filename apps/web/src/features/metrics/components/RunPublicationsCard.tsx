@@ -3,6 +3,7 @@ import { metricsBounds } from '@studio/shared/metrics';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { getI18n } from '@/lib/i18n/server';
 import styles from '../metrics.module.css';
 import { type RunPublicationsData } from '../run-publications.server';
 import { PublicationAddForm } from './PublicationAddForm';
@@ -19,18 +20,17 @@ interface RunPublicationsCardProps {
  * platform. Rev 7 (SPEC 0007 section 5.9) lists studio and mock uploads beside pasted links;
  * publishing itself is the publish card's. Nothing here publishes, approves or promotes anything.
  */
-export function RunPublicationsCard({ runId, data }: RunPublicationsCardProps): ReactElement {
+export async function RunPublicationsCard({ runId, data }: RunPublicationsCardProps): Promise<ReactElement> {
+  const { t } = await getI18n();
+  const texts = t.metrics.publications;
   return (
-    <Card
-      title="Publicações"
-      description="Onde este vídeo foi publicado, pelo estúdio ou por você, e as métricas que entram na nota das versões que ele usou. Publicou por fora? Cole o link abaixo."
-    >
+    <Card title={texts.title} description={texts.description}>
       {data.status === 'failed' ? (
-        <Alert variant="warning">{`Não foi possível carregar as publicações. ${data.message}`}</Alert>
+        <Alert variant="warning">{texts.loadFailed(data.message)}</Alert>
       ) : (
         <div className={layout.stack}>
           {data.view.publications.length === 0 ? (
-            <p className="caption">Nenhuma publicação registrada.</p>
+            <p className="caption">{texts.empty}</p>
           ) : (
             <ul className={styles.publicationList}>
               {data.view.publications.map((entry) => (
@@ -43,12 +43,12 @@ export function RunPublicationsCard({ runId, data }: RunPublicationsCardProps): 
           {data.view.publications.length < metricsBounds.maxPublicationsPerRun ? (
             <PublicationAddForm runId={runId} />
           ) : (
-            <p className="caption">{`Limite de ${metricsBounds.maxPublicationsPerRun} publicações por execução.`}</p>
+            <p className="caption">{texts.limit(metricsBounds.maxPublicationsPerRun)}</p>
           )}
           <p className="caption">
-            {'Tem a exportação da plataforma? '}
+            {texts.importPrompt}
             <Link href="/metricas/importar" className={textLinkClassName()}>
-              Importar métricas de um CSV
+              {texts.importLink}
             </Link>
           </p>
         </div>

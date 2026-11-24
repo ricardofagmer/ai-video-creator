@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactElement, ReactNode } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { FormField, type FieldControlProps } from '../form/FormField';
 import styles from './BindingList.module.css';
@@ -29,10 +32,11 @@ function slotToId(slot: string): string {
 }
 
 /** Recipe bindings: one row per slot, each pinning an `assetId@version` (PRD 6). */
-export function BindingList({ items, idPrefix = 'binding', legend = 'Vínculos', className }: BindingListProps): ReactElement {
+export function BindingList({ items, idPrefix = 'binding', legend, className }: BindingListProps): ReactElement {
+  const { ui } = useI18n();
   return (
     <fieldset className={classNames(styles.fieldset, className)}>
-      <legend className="heading-3">{legend}</legend>
+      <legend className="heading-3">{legend ?? ui.recipes.bindings}</legend>
       <ul className={styles.list}>
         {items.map((item) => (
           <li key={item.slot} className={styles.row}>

@@ -14,7 +14,7 @@ import {
   type Sensitivity,
 } from '@studio/shared/catalog';
 import { z } from 'zod';
-import { formMessages, type FieldErrors } from './form-messages';
+import { type FieldErrors, type FormErrorTexts } from './form-messages';
 import {
   defaultDetailFields,
   detailFieldsOf,
@@ -182,7 +182,7 @@ function tagsOf(text: string): string[] {
     .filter((tag) => tag !== '');
 }
 
-function licenseOf(values: AssetFormValues, errors: Record<string, string>): AssetMetadataInput['license'] {
+function licenseOf(values: AssetFormValues, errors: Record<string, string>, m: FormErrorTexts): AssetMetadataInput['license'] {
   const anyFilled =
     values.licenseName.trim() !== '' ||
     values.licenseUrl.trim() !== '' ||
@@ -190,11 +190,11 @@ function licenseOf(values: AssetFormValues, errors: Record<string, string>): Ass
     values.licenseUses.length > 0 ||
     values.licenseTerms.trim() !== '';
   if (!anyFilled) return null;
-  if (values.licenseName.trim() === '') errors[fieldIds.licenseName] = formMessages.required;
-  if (values.licenseReadOn === '') errors[fieldIds.licenseReadOn] = formMessages.required;
-  if (values.licenseUses.length === 0) errors[fieldIds.licenseUses] = formMessages.licenseUses;
+  if (values.licenseName.trim() === '') errors[fieldIds.licenseName] = m.required;
+  if (values.licenseReadOn === '') errors[fieldIds.licenseReadOn] = m.required;
+  if (values.licenseUses.length === 0) errors[fieldIds.licenseUses] = m.licenseUses;
   const url = values.licenseUrl.trim();
-  if (url !== '' && !UrlSchema.safeParse(url).success) errors[fieldIds.licenseUrl] = formMessages.url;
+  if (url !== '' && !UrlSchema.safeParse(url).success) errors[fieldIds.licenseUrl] = m.url;
   return {
     name: values.licenseName.trim(),
     url: url === '' ? null : url,
@@ -204,7 +204,7 @@ function licenseOf(values: AssetFormValues, errors: Record<string, string>): Ass
   };
 }
 
-function provenanceSourceOf(values: AssetFormValues, errors: Record<string, string>): ProvenanceSource | null {
+function provenanceSourceOf(values: AssetFormValues, errors: Record<string, string>, m: FormErrorTexts): ProvenanceSource | null {
   switch (values.origin) {
     case 'none':
       return null;
@@ -214,20 +214,20 @@ function provenanceSourceOf(values: AssetFormValues, errors: Record<string, stri
       return values.inheritedSource;
     case 'url': {
       const url = values.originUrl.trim();
-      if (!UrlSchema.safeParse(url).success) errors[fieldIds.originUrl] = formMessages.url;
+      if (!UrlSchema.safeParse(url).success) errors[fieldIds.originUrl] = m.url;
       return { type: 'url', url };
     }
   }
 }
 
-function provenanceOf(values: AssetFormValues, errors: Record<string, string>): AssetMetadataInput['provenance'] {
-  const source = provenanceSourceOf(values, errors);
+function provenanceOf(values: AssetFormValues, errors: Record<string, string>, m: FormErrorTexts): AssetMetadataInput['provenance'] {
+  const source = provenanceSourceOf(values, errors, m);
   const author = values.author.trim();
   if (source === null) {
-    if (author !== '' || values.capturedOn !== '') errors[fieldIds.origin] = formMessages.origin;
+    if (author !== '' || values.capturedOn !== '') errors[fieldIds.origin] = m.origin;
     return null;
   }
-  if (author === '') errors[fieldIds.author] = formMessages.required;
+  if (author === '') errors[fieldIds.author] = m.required;
   return { source, author, capturedAt: values.capturedOn === '' ? null : `${values.capturedOn}T00:00:00.000Z` };
 }
 
@@ -253,21 +253,21 @@ export function fieldIdOfMetadataPath(path: string): string | null {
 export type MetadataResult = { ok: true; metadata: AssetMetadataInput } | { ok: false; errors: FieldErrors };
 
 /** The C10 `AssetMetadataInput` of the form, or every field error that blocks the save. */
-export function buildAssetMetadata(values: AssetFormValues): MetadataResult {
+export function buildAssetMetadata(values: AssetFormValues, m: FormErrorTexts): MetadataResult {
   const errors: Record<string, string> = {};
-  if (values.name.trim() === '') errors[fieldIds.name] = formMessages.name;
-  if (!AssetIdSchema.safeParse(values.assetId).success) errors[fieldIds.assetId] = formMessages.assetId;
-  if (values.owner.trim() === '') errors[fieldIds.owner] = formMessages.required;
+  if (values.name.trim() === '') errors[fieldIds.name] = m.name;
+  if (!AssetIdSchema.safeParse(values.assetId).success) errors[fieldIds.assetId] = m.assetId;
+  if (values.owner.trim() === '') errors[fieldIds.owner] = m.required;
   const tags = tagsOf(values.tags);
-  if (!tags.every((tag) => TagSchema.safeParse(tag).success)) errors[fieldIds.tags] = formMessages.tags;
-  const license = licenseOf(values, errors);
-  const provenance = provenanceOf(values, errors);
-  const details = parseKindDetails(values.kind, values.details, values.variables);
+  if (!tags.every((tag) => TagSchema.safeParse(tag).success)) errors[fieldIds.tags] = m.tags;
+  const license = licenseOf(values, errors, m);
+  const provenance = provenanceOf(values, errors, m);
+  const details = parseKindDetails(values.kind, values.details, values.variables, m);
   if (!details.ok) Object.assign(errors, details.errors);
   if (values.contentMode === 'reference' && !ReferencePathSchema.safeParse(referencePathOf(values)).success) {
-    errors[fieldIds.referencePath] = formMessages.path;
+    errors[fieldIds.referencePath] = m.path;
   }
-  if (values.contentMode === 'upload' && values.sensitivity === 'biometric') errors[fieldIds.sensitivity] = formMessages.biometricUpload;
+  if (values.contentMode === 'upload' && values.sensitivity === 'biometric') errors[fieldIds.sensitivity] = m.biometricUpload;
   if (Object.keys(errors).length > 0 || !details.ok) return { ok: false, errors };
 
   const metadata: AssetMetadataInput = {
@@ -285,7 +285,7 @@ export function buildAssetMetadata(values: AssetFormValues): MetadataResult {
   if (checked.success) return { ok: true, metadata: checked.data };
   for (const issue of checked.error.issues) {
     const fieldId = fieldIdOfMetadataPath(issue.path.join('.')) ?? fieldIds.name;
-    errors[fieldId] ??= formMessages.invalid;
+    errors[fieldId] ??= m.invalid;
   }
   return { ok: false, errors };
 }

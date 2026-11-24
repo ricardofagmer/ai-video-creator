@@ -14,7 +14,16 @@ export const WRITER_ROLE = 'writer';
 export const DIRECTOR_ROLE = 'director';
 export const EVALUATOR_ROLE = 'evaluator';
 export const RECOVERY_ROLE = 'recovery';
-export const ModelRoleNameSchema = z.enum([PLANNER_ROLE, WRITER_ROLE, DIRECTOR_ROLE, EVALUATOR_ROLE, RECOVERY_ROLE]);
+/** Reads the run's source page before the script (site analysis spec, 2026-11-23). */
+export const ANALYST_ROLE = 'analyst';
+export const ModelRoleNameSchema = z.enum([
+  PLANNER_ROLE,
+  WRITER_ROLE,
+  DIRECTOR_ROLE,
+  EVALUATOR_ROLE,
+  RECOVERY_ROLE,
+  ANALYST_ROLE,
+]);
 export type ModelRoleName = z.infer<typeof ModelRoleNameSchema>;
 
 // Packet `task` literals (topology section 5).
@@ -23,15 +32,37 @@ export const WRITE_SCRIPT_TASK = 'write-script';
 export const DIRECT_SCENES_TASK = 'direct-scenes';
 export const REVIEW_TASK = 'review';
 export const RECOVER_STEP_TASK = 'recover-step';
-export const AgentTaskSchema = z.enum([PLAN_RUN_TASK, WRITE_SCRIPT_TASK, DIRECT_SCENES_TASK, REVIEW_TASK, RECOVER_STEP_TASK]);
+export const ANALYZE_SITE_TASK = 'analyze-site';
+export const AgentTaskSchema = z.enum([
+  PLAN_RUN_TASK,
+  WRITE_SCRIPT_TASK,
+  DIRECT_SCENES_TASK,
+  REVIEW_TASK,
+  RECOVER_STEP_TASK,
+  ANALYZE_SITE_TASK,
+]);
 export type AgentTask = z.infer<typeof AgentTaskSchema>;
 
 /** Packet type names; also the session stream `start.packetType` (RUN-FORMAT section 15). */
-export const PacketTypeSchema = z.enum(['PlannerPacket', 'WriterPacket', 'DirectorPacket', 'ReviewPacket', 'RecoveryPacket']);
+export const PacketTypeSchema = z.enum([
+  'PlannerPacket',
+  'WriterPacket',
+  'DirectorPacket',
+  'ReviewPacket',
+  'RecoveryPacket',
+  'AnalystPacket',
+]);
 export type PacketType = z.infer<typeof PacketTypeSchema>;
 
 /** Packet `outputContract` literals: the output schema the engine parses the answer with. */
-export const OutputContractSchema = z.enum(['PlanOutput', 'ScriptOutput', 'ScenesOutput', 'ReviewVerdict', 'RecoveryAction']);
+export const OutputContractSchema = z.enum([
+  'PlanOutput',
+  'ScriptOutput',
+  'ScenesOutput',
+  'ReviewVerdict',
+  'RecoveryAction',
+  'SiteAnalysis',
+]);
 export type OutputContract = z.infer<typeof OutputContractSchema>;
 
 // Shared tool envelope keys (topology section 3.1).
@@ -47,8 +78,17 @@ export const ToolEnvelopeKeySchema = z.enum([
 ]);
 export type ToolEnvelopeKey = z.infer<typeof ToolEnvelopeKeySchema>;
 
-/** The four read-only agent tools (topology section 3.1). */
-export const AgentToolNameSchema = z.enum(['CatalogSearchTool', 'AssetDescribeTool', 'RunArtifactReadTool', 'FrameSampleTool']);
+/**
+ * The read-only agent tools: the four of topology section 3.1, plus SiteScreenshotTool, which
+ * hands the analyst the one screenshot the research stage recorded (site analysis spec).
+ */
+export const AgentToolNameSchema = z.enum([
+  'CatalogSearchTool',
+  'AssetDescribeTool',
+  'RunArtifactReadTool',
+  'FrameSampleTool',
+  'SiteScreenshotTool',
+]);
 export type AgentToolName = z.infer<typeof AgentToolNameSchema>;
 
 /** Typed tool error codes (topology section 3.2, one row per tool). */
@@ -88,6 +128,7 @@ export const toolErrorCodes: Readonly<Record<AgentToolName, readonly ToolErrorCo
     'ERROR_FRAME_BUDGET_EXCEEDED',
     'ERROR_FFMPEG_FAILED',
   ],
+  SiteScreenshotTool: ['ERROR_NOT_PRODUCED_YET', 'ERROR_SOURCE_NOT_FOUND'],
 };
 
 /** Hint texts of topology section 3.2, quoted verbatim; the model reads them to self-correct. */
@@ -107,6 +148,7 @@ export const agentToolAllowlists: Readonly<Record<ModelRoleName, readonly AgentT
   [DIRECTOR_ROLE]: ['CatalogSearchTool', 'AssetDescribeTool', 'RunArtifactReadTool', 'FrameSampleTool'],
   [EVALUATOR_ROLE]: ['AssetDescribeTool', 'RunArtifactReadTool', 'FrameSampleTool'],
   [RECOVERY_ROLE]: ['RunArtifactReadTool'],
+  [ANALYST_ROLE]: ['SiteScreenshotTool'],
 };
 
 // Run artifact ids readable through RunArtifactReadTool (topology section 3.2).
@@ -145,6 +187,8 @@ export const runArtifactAllowlists: Readonly<Record<ModelRoleName, readonly RunA
     CHECKS_ARTIFACT,
   ],
   [RECOVERY_ROLE]: ['plan', 'now', 'failed-check', CHECKS_ARTIFACT, 'events-tail'],
+  // The analyst holds no RunArtifactReadTool: page text arrives in its packet, the screenshot by its own tool.
+  [ANALYST_ROLE]: [],
 };
 
 // RecoveryAction kinds: the allowlist of fixes the engine may apply (topology section 5).

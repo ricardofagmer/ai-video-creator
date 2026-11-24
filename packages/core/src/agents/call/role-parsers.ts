@@ -1,4 +1,6 @@
 import {
+  ANALYST_ROLE,
+  AnalystPacketSchema,
   DIRECTOR_ROLE,
   DirectorPacketSchema,
   EVALUATOR_ROLE,
@@ -12,6 +14,7 @@ import {
   ReviewVerdictSchema,
   ScenesOutputSchema,
   ScriptOutputSchema,
+  SiteAnalysisSchema,
   WRITER_ROLE,
   WriterPacketSchema,
   type AgentOutput,
@@ -36,6 +39,7 @@ export const packetParsers: PacketParsers = {
   [DIRECTOR_ROLE]: (value) => DirectorPacketSchema.safeParse(value),
   [EVALUATOR_ROLE]: (value) => ReviewPacketSchema.safeParse(value),
   [RECOVERY_ROLE]: (value) => RecoveryPacketSchema.safeParse(value),
+  [ANALYST_ROLE]: (value) => AnalystPacketSchema.safeParse(value),
 };
 
 export const outputParsers: OutputParsers = {
@@ -44,6 +48,7 @@ export const outputParsers: OutputParsers = {
   [DIRECTOR_ROLE]: (value) => ScenesOutputSchema.safeParse(value),
   [EVALUATOR_ROLE]: (value) => ReviewVerdictSchema.safeParse(value),
   [RECOVERY_ROLE]: (value) => RecoveryActionSchema.safeParse(value),
+  [ANALYST_ROLE]: (value) => SiteAnalysisSchema.safeParse(value),
 };
 
 const MAX_FEEDBACK_ISSUES = 10;

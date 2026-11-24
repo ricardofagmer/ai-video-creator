@@ -1,4 +1,5 @@
 import { HttpException } from '@nestjs/common';
+import { AssetJobError, InvalidAssetJobInputError } from '@studio/core/asset-jobs';
 import { AssetStoreError, ContentTooLargeError } from '@studio/core/asset-store';
 import { CatalogError, InvalidAssetInputError } from '@studio/core/catalog';
 import { ComparisonsError, InvalidComparisonInputError } from '@studio/core/comparisons';
@@ -10,11 +11,19 @@ import { InvalidMetricsInputError, MetricsError } from '@studio/core/metrics';
 import { InvalidPlatformInputError, PlatformClientError, PlatformError } from '@studio/core/platforms';
 import { InvalidPromotionInputError, PromotionError } from '@studio/core/promotion';
 import { QualityError } from '@studio/core/quality';
-import { InvalidRecipeInputError, RecipesError } from '@studio/core/recipes';
+import { CompositionConflictError, InvalidRecipeInputError, RecipesError } from '@studio/core/recipes';
 import { InvalidReviewInputError, RequiredChecklistUncheckedError, ReviewError, ReviewNotAllowedError } from '@studio/core/review';
 import { InvalidRunInputError, RunsError } from '@studio/core/runs';
 import { InvalidScheduleInputError, ScheduleError } from '@studio/core/schedules';
-import { apiRev4ErrorReasons, apiRev5ErrorReasons, apiRev7ErrorReasons, type ApiErrorCode, type ApiIssue } from '@studio/shared/api';
+import {
+  apiGuidedCreationErrorReasons,
+  apiRev4ErrorReasons,
+  apiRev5ErrorReasons,
+  apiRev7ErrorReasons,
+  type ApiErrorCode,
+  type ApiIssue,
+} from '@studio/shared/api';
+import { COMPOSITION_CONFLICTS_MAX, type CompositionConflict } from '@studio/shared/recipes';
 import { RunFileError, type RunFileErrorCode } from '@studio/shared/run-files';
 import { ApiError, LoginRateLimitedError, RequestValidationError } from './api.errors';
 
@@ -27,6 +36,8 @@ export interface MappedError {
   issues?: ApiIssue[];
   itemIds?: string[];
   retryAfterSeconds?: number;
+  /** The broken composition rules (`composition-conflict`), at most `COMPOSITION_CONFLICTS_MAX`. */
+  conflicts?: CompositionConflict[];
   /** False for anything the api did not anticipate; logged with full context server-side. */
   expected: boolean;
 }
@@ -90,7 +101,8 @@ function domainIssues(error: unknown): ApiIssue[] | undefined {
     error instanceof InvalidSemanticSearchError ||
     error instanceof InvalidMetricsInputError ||
     error instanceof InvalidScheduleInputError ||
-    error instanceof InvalidPlatformInputError
+    error instanceof InvalidPlatformInputError ||
+    error instanceof InvalidAssetJobInputError
   ) {
     return error.issues.slice(0, 50).map((issue) => ({ path: issue.path.slice(0, 200), message: issue.message.slice(0, 500) }));
   }
@@ -190,6 +202,43 @@ function mapPlatformError(error: PlatformError): MappedError {
   };
 }
 
+/** Guided-creation spec: the frozen status of each asset job and composition reason. */
+const guidedCreationReasonStatus: Readonly<Record<string, number>> = apiGuidedCreationErrorReasons;
+
+/**
+ * Asset job errors carry their `reason`, used as is, and the status is the frozen guided-creation
+ * one (`asset-job-queue-full` 409, `asset-job-sample-not-ready` 404, the other refusals 422). The
+ * two reasons outside the table take their category, like `invalid-curation-input` (422) and
+ * `curation-file-corrupt` (500). Messages carry refs, kinds and counts only, never a sample's path;
+ * an internal one gets the fixed text so no file detail reaches a client.
+ */
+function mapAssetJobError(error: AssetJobError): MappedError {
+  const target = categoryStatus[error.category];
+  const statusCode = guidedCreationReasonStatus[error.reason] ?? target.statusCode;
+  const isInternal = error.category === 'internal';
+  return {
+    statusCode,
+    code: isInternal ? 'internal' : (statusCodes[statusCode] ?? target.code),
+    reason: error.reason,
+    message: isInternal ? 'Internal error' : error.message,
+    issues: domainIssues(error),
+    expected: !isInternal,
+  };
+}
+
+/** 422 `composition-conflict` with the rule ids and numbers; the web builds the owner's message from them. */
+function mapCompositionConflict(error: CompositionConflictError): MappedError {
+  const statusCode = apiGuidedCreationErrorReasons['composition-conflict'];
+  return {
+    statusCode,
+    code: statusCodes[statusCode] ?? 'validation',
+    reason: error.reason,
+    message: error.message,
+    conflicts: error.conflicts.slice(0, COMPOSITION_CONFLICTS_MAX),
+    expected: true,
+  };
+}
+
 function mapHttpException(error: HttpException): MappedError {
   const statusCode = error.getStatus();
   const code = statusCodes[statusCode] ?? (statusCode >= 500 ? 'internal' : 'validation');
@@ -215,6 +264,9 @@ export function mapError(error: unknown): MappedError {
   if (error instanceof CurationError) return mapCurationError(error);
   if (error instanceof MetricsError || error instanceof ScheduleError) return mapRev5Error(error);
   if (error instanceof PlatformError) return mapPlatformError(error);
+  if (error instanceof AssetJobError) return mapAssetJobError(error);
+  // Before the generic recipes branch: it is a `RecipesError` that also carries its conflict list.
+  if (error instanceof CompositionConflictError) return mapCompositionConflict(error);
   if (
     error instanceof CatalogError ||
     error instanceof RecipesError ||

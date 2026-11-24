@@ -6,7 +6,7 @@ import { RunFileError, RunFileNotFoundError, newRunId, readRunFile, readWatcherS
 import { ComparisonIdSchema, RunIdSchema, type RunFile, type RunId } from '@studio/shared/run-format';
 import { AssetVersionNotFoundError, GetAssetVersionQuery } from '../catalog';
 import { DataHome } from '../paths/data-home';
-import { GetRecipeVersionQuery, RUNNABLE_RECIPE_STATUSES, RecipeBindingVerifier } from '../recipes';
+import { GetRecipeVersionQuery, RUNNABLE_RECIPE_STATUSES, RecipeBindingVerifier, RecipeCompositionCheck } from '../recipes';
 import {
   ComparisonArmDraftSchema,
   ComparisonStartConsentSchema,
@@ -50,6 +50,7 @@ export class RunDraftService {
   constructor(
     private readonly queryBus: QueryBus,
     private readonly bindings: RecipeBindingVerifier,
+    private readonly composition: RecipeCompositionCheck,
     private readonly dataHome: DataHome,
     private readonly index: RunIndexService,
   ) {}
@@ -64,6 +65,8 @@ export class RunDraftService {
     const missing = missingBriefInputs(fields.brief, recipe.inputs);
     if (missing.length > 0) throw new BriefInputsMissingError(resolved.ref, missing);
     await this.bindings.verify(recipe);
+    // Section 3: a saved version that breaks a rule (saved before the rules existed) cannot start.
+    await this.composition.assertRun(recipe, fields.brief.targetDurationSec);
     await this.verifyReferences(fields.references);
 
     const runId = arm?.runId ?? newRunId();

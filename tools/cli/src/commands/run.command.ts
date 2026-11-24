@@ -1,5 +1,6 @@
 import { CreateRunDraftCommand, CreateRunDraftInputSchema, InvalidRunInputError, MarkRunPendingCommand } from '@studio/core/runs';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { withCliContext } from '../nest/cli-context.js';
 import { readJsonInputFile } from '../terminal/json-input-file.js';
 import { type CommandDependencies } from './command-dependencies.js';
@@ -39,10 +40,11 @@ export async function runCommand(options: RunCommandOptions, dependencies: Comma
     return context.commandBus.execute(new MarkRunPendingCommand(draft.run.runId));
   });
   const { printer } = dependencies;
-  printer.line(`Execução ${started.run.runId} criada e na fila (${started.run.recipe.ref}).`);
-  printer.line('O watcher começa pelo plano e espera a sua aprovação. Acompanhe e aprove com:');
+  const text = cliText().runs.created;
+  printer.line(text.queued(started.run.runId, started.run.recipe.ref));
+  printer.line(text.next);
   printer.line(`  studio status ${started.run.runId}`);
-  printer.line(`  studio approve ${started.run.runId}   (ou no web)`);
-  if (started.index === 'stale') printer.error('Aviso: o índice de execuções será atualizado na próxima reconstrução ("studio doctor --rebuild-index").');
+  printer.line(text.approveHint(started.run.runId));
+  if (started.index === 'stale') printer.error(text.staleIndex);
   return ExitCode.ok;
 }

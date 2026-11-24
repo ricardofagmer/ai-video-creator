@@ -7,6 +7,7 @@ import { useState, type FormEvent, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { describeRunError } from '@/features/runs/run-error-text';
 import { ApiRequestError } from '@/lib/api';
+import { useWebMessages } from '@/lib/i18n/client';
 import { browserLearningsApi } from '../learnings-api';
 import { type LearningTarget } from '../learning-target';
 
@@ -28,6 +29,8 @@ const textReasons: ReadonlySet<string> = new Set(['learning-contains-secret', 'i
  * A text that looks like a secret is refused by the api and nothing is stored.
  */
 export function LearningSaveForm({ runId, targets }: LearningSaveFormProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.runs.learnings.save;
   const router = useRouter();
   const [ref, setRef] = useState(targets[0]?.ref ?? '');
   const [text, setText] = useState('');
@@ -44,7 +47,7 @@ export function LearningSaveForm({ runId, targets }: LearningSaveFormProps): Rea
     setServerError(null);
     setSavedRef(null);
     if (normalized.length === 0 || normalized.length > LEARNING_NOTE_MAX_CHARS) {
-      setTextError(`Escreva de 1 a ${LEARNING_NOTE_MAX_CHARS} caracteres.`);
+      setTextError(texts.lengthError(LEARNING_NOTE_MAX_CHARS));
       document.getElementById(TEXT_ID)?.focus();
       return;
     }
@@ -56,7 +59,7 @@ export function LearningSaveForm({ runId, targets }: LearningSaveFormProps): Rea
       setText('');
       router.refresh();
     } catch (error) {
-      const message = describeRunError(error);
+      const message = describeRunError(error, t);
       if (error instanceof ApiRequestError && error.reason !== null && textReasons.has(error.reason)) {
         setTextError(message);
         document.getElementById(TEXT_ID)?.focus();
@@ -71,8 +74,8 @@ export function LearningSaveForm({ runId, targets }: LearningSaveFormProps): Rea
   return (
     <form className={layout.stack} onSubmit={(event) => void handleSubmit(event)} noValidate>
       {serverError !== null && <Alert variant="error">{serverError}</Alert>}
-      {savedRef !== null && <Alert variant="success">{`Aprendizado salvo em ${savedRef}. Ele entra nos briefings das próximas execuções que usarem esta versão.`}</Alert>}
-      <FormField id={REF_ID} label="Versão usada nesta execução" disabled={pending}>
+      {savedRef !== null && <Alert variant="success">{texts.saved(savedRef)}</Alert>}
+      <FormField id={REF_ID} label={texts.version} disabled={pending}>
         {({ invalid, ...control }) => (
           <Select
             {...control}
@@ -85,8 +88,8 @@ export function LearningSaveForm({ runId, targets }: LearningSaveFormProps): Rea
       </FormField>
       <FormField
         id={TEXT_ID}
-        label="Aprendizado"
-        help={`${normalized.length} de ${LEARNING_NOTE_MAX_CHARS} caracteres. Quebras de linha viram espaços. Não escreva senhas nem chaves.`}
+        label={texts.text}
+        help={texts.help(normalized.length, LEARNING_NOTE_MAX_CHARS)}
         error={textError ?? undefined}
         disabled={pending}
       >
@@ -95,15 +98,15 @@ export function LearningSaveForm({ runId, targets }: LearningSaveFormProps): Rea
             {...control}
             invalid={invalid}
             rows={3}
-            placeholder="Ex.: legendas a 74% da altura cobrem os botões do app em 16:9."
+            placeholder={texts.placeholder}
             value={text}
             onChange={(event) => setText(event.currentTarget.value)}
           />
         )}
       </FormField>
       <div className={layout.formFooter}>
-        <Button type="submit" variant="secondary" loading={pending} loadingLabel="Salvando…">
-          Salvar aprendizado
+        <Button type="submit" variant="secondary" loading={pending} loadingLabel={texts.saving}>
+          {texts.submit}
         </Button>
       </div>
     </form>

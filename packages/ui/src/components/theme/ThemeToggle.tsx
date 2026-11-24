@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, type ReactElement } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { THEME_COOKIE_NAME, themeAttribute, type ThemePreference } from './theme';
 import styles from './ThemeToggle.module.css';
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
-const OPTIONS: readonly { value: ThemePreference; label: string; icon: ReactElement }[] = [
+const OPTIONS: readonly { value: ThemePreference; icon: ReactElement }[] = [
   {
     value: 'system',
-    label: 'Tema do sistema',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="3" y="4" width="18" height="12" rx="2" />
@@ -19,7 +19,6 @@ const OPTIONS: readonly { value: ThemePreference; label: string; icon: ReactElem
   },
   {
     value: 'light',
-    label: 'Tema claro',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="12" cy="12" r="4" />
@@ -29,7 +28,6 @@ const OPTIONS: readonly { value: ThemePreference; label: string; icon: ReactElem
   },
   {
     value: 'dark',
-    label: 'Tema escuro',
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
@@ -45,6 +43,7 @@ export interface ThemeToggleProps {
 
 /** Three-way switch (system, light, dark). Applies the theme at once and remembers it in a cookie. */
 export function ThemeToggle({ initialPreference }: ThemeToggleProps): ReactElement {
+  const { ui } = useI18n();
   const [preference, setPreference] = useState<ThemePreference>(initialPreference);
 
   function choose(next: ThemePreference): void {
@@ -56,15 +55,15 @@ export function ThemeToggle({ initialPreference }: ThemeToggleProps): ReactEleme
   }
 
   return (
-    <div role="radiogroup" aria-label="Tema" className={styles.toggle}>
+    <div role="radiogroup" aria-label={ui.theme.groupLabel} className={styles.toggle}>
       {OPTIONS.map((option) => (
         <button
           key={option.value}
           type="button"
           role="radio"
           aria-checked={preference === option.value}
-          aria-label={option.label}
-          title={option.label}
+          aria-label={ui.theme[option.value]}
+          title={ui.theme[option.value]}
           className={styles.option}
           onClick={() => choose(option.value)}
         >

@@ -209,6 +209,28 @@ resolve_repo_root() {
   define_studio_paths
 }
 
+# Set by resolve_packaged_resources_root.
+PACKAGED_RESOURCES_ROOT=''
+
+# $1 = a scripts/ folder. Packaged app only (plan C3 rev 3): the scripts the app runs are copied to
+# <runtime>/payload/resources/scripts, beside no package.json, pnpm-workspace.yaml or apps/watcher,
+# so resolve_repo_root would refuse them. Answers yes, and sets PACKAGED_RESOURCES_ROOT, only when
+# ENGINEOS_VIDEO_CREATOR_RUNTIME_DIR is absolute and $1 is exactly that runtime's
+# payload/resources/scripts folder. Answers no and changes nothing anywhere else, so a checkout
+# keeps going through resolve_repo_root as before.
+resolve_packaged_resources_root() {
+  local runtime_dir="${ENGINEOS_VIDEO_CREATOR_RUNTIME_DIR:-}" expected actual
+  case "$runtime_dir" in
+    /*) ;;
+    *) return 1 ;;
+  esac
+  [ -d "$runtime_dir/payload/resources/scripts" ] || return 1
+  expected="$(cd "$runtime_dir/payload/resources/scripts" && pwd -P)" || return 1
+  actual="$(cd "$1" && pwd -P)" || return 1
+  [ "$expected" = "$actual" ] || return 1
+  PACKAGED_RESOURCES_ROOT="$(cd "$expected/.." && pwd -P)" || return 1
+}
+
 define_studio_paths() {
   CLI_PACKAGE_JSON="$REPO_ROOT/tools/cli/package.json"
   # tools/cli/package.json "bin": { "studio": "dist/main.js" }

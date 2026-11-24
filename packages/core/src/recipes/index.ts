@@ -9,11 +9,13 @@ export {
   type RecipeVersionPage,
 } from './queries/list-recipe-versions.query';
 export { RecipeBindingVerifier } from './recipe-binding.verifier';
+export { RecipeCompositionCheck } from './recipe-composition.check';
 export { hashRecipeDefinition, type HashedRecipeDefinition } from './recipe-definition';
 export { RUNNABLE_RECIPE_STATUSES } from './recipe-policy';
 export { type RecipeDraftInput } from './recipe-version.factory';
 export { type RecipeVersionView } from './recipe-version.mapper';
 export {
+  CompositionConflictError,
   InvalidRecipeInputError,
   InvalidRecipeStatusTransitionError,
   RecipeAlreadyExistsError,

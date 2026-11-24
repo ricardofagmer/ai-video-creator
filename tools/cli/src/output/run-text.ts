@@ -1,31 +1,28 @@
 import { type RunState, type StageRecord } from '@studio/shared/run-format';
+import { cliText } from '../i18n/messages.js';
 import { type RecentRuns, type RunReadResult, type RunSnapshot } from '../runs/run-reader.js';
-import {
-  RUN_STATUS_LABELS,
-  STAGE_LABELS,
-  STEP_LABELS,
-  STEP_STATUS_LABELS,
-  fitText,
-  formatDuration,
-  formatUsd,
-} from './format.js';
+import { fitText, formatDuration, formatUsd, runStatusLabel, stageLabel, stepLabel, stepStatusLabel } from './format.js';
 import { stripTerminalControls } from './terminal-text.js';
 
 /** Where the run stands: the cursor's stage, or the last stage when the run is past its cursor. */
 export function currentStageLabel(snapshot: RunSnapshot): string {
   const cursor = snapshot.run.cursor;
   if (cursor === null) return '-';
-  return `${cursor.stageNumber}/${snapshot.run.stages.length} ${STAGE_LABELS[cursor.stageId]}`;
+  return `${cursor.stageNumber}/${snapshot.run.stages.length} ${stageLabel(cursor.stageId)}`;
 }
 
-export const RUN_LIST_HEADER = `${fitText('ID', 26)}  ${fitText('STATUS', 16)}  ${fitText('ETAPA', 22)}  ${fitText('CUSTO', 10)}  TÍTULO`;
+/** The column header of the run list, in the active language. */
+export function runListHeader(): string {
+  const text = cliText().runs.list;
+  return `${fitText(text.headerId, 26)}  ${fitText(text.headerStatus, 16)}  ${fitText(text.headerStage, 22)}  ${fitText(text.headerCost, 10)}  ${text.headerTitle}`;
+}
 
 function runListRowText(result: RunReadResult): string {
-  if (result.status === 'unreadable') return `${fitText(result.runId, 26)}  ${fitText(`ilegível (${result.problem})`, 16)}`;
+  if (result.status === 'unreadable') return `${fitText(result.runId, 26)}  ${fitText(cliText().runs.list.unreadable(result.problem), 16)}`;
   const { snapshot } = result;
   return [
     fitText(snapshot.runId, 26),
-    fitText(RUN_STATUS_LABELS[snapshot.displayedStatus], 16),
+    fitText(runStatusLabel(snapshot.displayedStatus), 16),
     fitText(currentStageLabel(snapshot), 22),
     fitText(formatUsd(snapshot.run.totals.costUsd), 10),
     snapshot.run.title,
@@ -40,43 +37,48 @@ export function runListRow(result: RunReadResult): string {
   return stripTerminalControls(runListRowText(result));
 }
 
+/** The line under the list when only the newest runs are shown; null when all are. */
+export function runListMoreLine(recent: RecentRuns): string | null {
+  return recent.total > recent.results.length ? cliText().runs.list.showing(recent.results.length, recent.total) : null;
+}
+
 export function runListLines(recent: RecentRuns): string[] {
-  const lines = [RUN_LIST_HEADER, ...recent.results.map(runListRow)];
-  if (recent.results.length === 0) lines.push('Nenhuma execução ainda. Comece com "studio run".');
-  else if (recent.total > recent.results.length) lines.push(`Mostrando ${recent.results.length} de ${recent.total} execuções.`);
+  const lines = [runListHeader(), ...recent.results.map(runListRow)];
+  const more = runListMoreLine(recent);
+  if (recent.results.length === 0) lines.push(cliText().runs.list.empty);
+  else if (more !== null) lines.push(more);
   return lines;
 }
 
-/** The owner-facing reason and "what to do" of statuses that carry them (PRD 7.2, D16). */
+/**
+ * The owner-facing reason and "what to do" of statuses that carry them (PRD 7.2, D16). The reason
+ * and what-to-do texts are recorded by the watcher in run.json and are shown as recorded.
+ */
 export function stateNoteLines(state: RunState, runId: string): string[] {
+  const text = cliText().runs.detail;
   switch (state.status) {
     case 'waiting':
-      return [`Motivo: ${state.reason}`, `O que fazer: ${state.whatToDo}`];
+      return [text.reason(state.reason), text.whatToDo(state.whatToDo)];
     case 'failed':
     case 'interrupted':
-      return [`Motivo: ${state.reason}`, `Para continuar: studio resume ${runId}`];
+      return [text.reason(state.reason), text.toContinue(runId)];
     case 'paused':
-      return [`Para continuar: studio resume ${runId}`];
+      return [text.toContinue(runId)];
     case 'review':
-      return ['O vídeo está pronto para a revisão final no web.'];
+      return [text.reviewReady];
     case 'approved':
     case 'rejected':
-      return [`Decidido por: ${state.decidedBy}`];
+      return [text.decidedBy(state.decidedBy)];
     default:
       return [];
   }
 }
 
-const STAGE_OUTCOME_LABELS: Readonly<Record<StageRecord['outcome']['status'], string>> = {
-  pending: 'pendente',
-  delivered: 'entregue',
-  skipped: 'pulada',
-};
-
 function stageLine(stage: StageRecord): string {
   const active = stage.steps.find((step) => step.status === 'running' || step.status === 'failed');
-  const detail = active === undefined ? '' : ` (${STEP_LABELS[active.step]}: ${STEP_STATUS_LABELS[active.status]})`;
-  return `  ${String(stage.number).padStart(2)} ${fitText(STAGE_LABELS[stage.stageId], 18)} ${STAGE_OUTCOME_LABELS[stage.outcome.status]}${detail}`;
+  const detail = active === undefined ? '' : ` (${stepLabel(active.step)}: ${stepStatusLabel(active.status)})`;
+  const outcome = cliText().runs.stageOutcomes[stage.outcome.status];
+  return `  ${String(stage.number).padStart(2)} ${fitText(stageLabel(stage.stageId), 18)} ${outcome}${detail}`;
 }
 
 /**
@@ -90,20 +92,21 @@ export function runDetailLines(snapshot: RunSnapshot): string[] {
 
 function runDetailLineTexts(snapshot: RunSnapshot): string[] {
   const { run } = snapshot;
+  const text = cliText().runs.detail;
   const lines = [
-    `Execução ${run.runId}: ${run.title}`,
-    `Status: ${RUN_STATUS_LABELS[snapshot.displayedStatus]} desde ${run.state.since}`,
+    text.heading(run.runId, run.title),
+    text.status(runStatusLabel(snapshot.displayedStatus), run.state.since),
     ...stateNoteLines(run.state, run.runId),
-    `Receita: ${run.recipe.ref}`,
-    `Custo: ${formatUsd(run.totals.costUsd)} | Duração: ${formatDuration(run.totals.durationMs)} | Etapas entregues: ${run.totals.stagesDelivered}/${run.stages.length}`,
-    `Watcher: ${snapshot.watcher.status === 'alive' ? `executando (pid ${snapshot.watcher.pid})` : 'nenhum ativo nesta execução'}`,
-    'Etapas:',
+    text.recipe(run.recipe.ref),
+    text.totals(formatUsd(run.totals.costUsd), formatDuration(run.totals.durationMs), run.totals.stagesDelivered, run.stages.length),
+    snapshot.watcher.status === 'alive' ? text.watcherAlive(snapshot.watcher.pid) : text.watcherNone,
+    text.stagesHeading,
     ...run.stages.map(stageLine),
   ];
   const now = snapshot.now;
   if (now !== null) {
-    lines.push(`Agora: etapa ${now.stageNumber} ${STAGE_LABELS[now.stageId]}, ${STEP_LABELS[now.step]}, tentativa ${now.attempt}`);
-    if (now.notice !== null) lines.push(`Aviso: ${now.notice}`);
+    lines.push(text.now(now.stageNumber, stageLabel(now.stageId), stepLabel(now.step), now.attempt));
+    if (now.notice !== null) lines.push(text.notice(now.notice));
     for (const activity of now.activities.slice(-5)) lines.push(`  · ${activity.text}`);
   }
   return lines;

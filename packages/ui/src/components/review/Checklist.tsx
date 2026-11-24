@@ -1,4 +1,7 @@
+'use client';
+
 import { useId, type ReactElement } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { Badge } from '../badge/Badge';
 import styles from './Checklist.module.css';
@@ -28,12 +31,13 @@ export interface ChecklistProps {
 export function Checklist({
   items,
   onChange,
-  legend = 'Checklist de publicação',
+  legend,
   error,
   disabled = false,
   idPrefix = 'checklist',
   className,
 }: ChecklistProps): ReactElement {
+  const { ui } = useI18n();
   const progressId = useId();
   const errorId = useId();
   const checkedCount = items.filter((item) => item.checked).length;
@@ -41,9 +45,9 @@ export function Checklist({
 
   return (
     <fieldset disabled={disabled} aria-describedby={describedBy} className={classNames(styles.fieldset, className)}>
-      <legend className="label">{legend}</legend>
+      <legend className="label">{legend ?? ui.review.checklistLegend}</legend>
       <p id={progressId} className={classNames('caption', styles.progress)}>
-        {checkedCount} de {items.length} itens marcados
+        {ui.review.checklistProgress(checkedCount, items.length)}
       </p>
       <ul className={styles.list}>
         {items.map((item) => {
@@ -62,7 +66,7 @@ export function Checklist({
               <label htmlFor={inputId} className={classNames('body-sm', styles.label)}>
                 {item.label}
               </label>
-              {item.required && <Badge tone={missing ? 'danger' : 'neutral'}>Obrigatório</Badge>}
+              {item.required && <Badge tone={missing ? 'danger' : 'neutral'}>{ui.review.required}</Badge>}
             </li>
           );
         })}

@@ -1,8 +1,9 @@
 import { app, session } from 'electron';
 
 /*
- * Vetting 0002 section 8, with the names confirmed in section 12. The shell creates no window and
- * renders no content; these settings are defence in depth should a web contents ever exist. No
+ * Vetting 0002 section 8, with the names confirmed in section 12. The shell's only window is the
+ * packaged app's setup window, which loads one bundled local file under its own CSP; these settings
+ * deny it (and any other web contents) new windows, navigation and every permission. No
  * command-line switch is appended anywhere in this package: the debugger-port switch is not blocked
  * by any fuse, so its absence from the code is the control (section 12, row 12 correction).
  */

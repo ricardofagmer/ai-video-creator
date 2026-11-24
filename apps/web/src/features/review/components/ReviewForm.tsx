@@ -8,6 +8,7 @@ import { useState, type FormEvent, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { describeRunError } from '@/features/runs/run-error-text';
 import { ApiRequestError } from '@/lib/api';
+import { useWebMessages } from '@/lib/i18n/client';
 import { browserReviewApi } from '../review-api';
 
 interface ReviewFormProps {
@@ -30,9 +31,6 @@ const REJECT_FORM_ID = 'form-rejeicao';
 const MAX_NOTES_LENGTH = 2000;
 const MAX_REASON_LENGTH = 1900;
 
-const RATING_REQUIRED = 'Escolha uma nota de 1 a 5.';
-const CHECKLIST_REQUIRED = 'Marque todos os itens obrigatórios para aprovar.';
-
 function focusRating(): void {
   document.querySelector<HTMLInputElement>(`input[name="${RATING_NAME}"]`)?.focus();
 }
@@ -54,6 +52,10 @@ function refusedItemIds(error: unknown): readonly string[] | null {
  * the session and its clock.
  */
 export function ReviewForm({ runId, checklist }: ReviewFormProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.runs.review.form;
+  const RATING_REQUIRED = texts.ratingRequired;
+  const CHECKLIST_REQUIRED = texts.checklistRequired;
   const router = useRouter();
   const [rating, setRating] = useState<RatingValue | null>(null);
   const [notes, setNotes] = useState('');
@@ -93,7 +95,7 @@ export function ReviewForm({ runId, checklist }: ReviewFormProps): ReactElement 
         const first = refused[0] ?? missingRequired[0];
         if (first !== undefined) focusChecklistItem(first);
       }
-      setServerError(describeRunError(error));
+      setServerError(describeRunError(error, t));
     } finally {
       setPending(null);
     }
@@ -137,21 +139,21 @@ export function ReviewForm({ runId, checklist }: ReviewFormProps): ReactElement 
     event.preventDefault();
     const trimmed = reason.trim();
     if (trimmed === '') {
-      setReasonError('Escreva o motivo da rejeição.');
+      setReasonError(texts.reasonRequired);
       return;
     }
     if (rating === null || pending !== null) return;
     const ownerNotes = notes.trim();
-    const combined = ownerNotes === '' ? `Motivo: ${trimmed}` : `Motivo: ${trimmed}\n\n${ownerNotes}`;
+    const combined = ownerNotes === '' ? `${texts.reason}: ${trimmed}` : `${texts.reason}: ${trimmed}\n\n${ownerNotes}`;
     void send({ outcome: 'rejected', rating, notes: combined, checklist: answers() });
   }
 
   return (
     <>
-      <form className={layout.stack} onSubmit={handleApprove} noValidate aria-label="Sua revisão">
+      <form className={layout.stack} onSubmit={handleApprove} noValidate aria-label={t.runs.review.yourReview}>
         {serverError !== null && !rejectOpen && <Alert variant="error">{serverError}</Alert>}
         <RatingInput name={RATING_NAME} value={rating} onChange={chooseRating} error={errors.rating} disabled={pending !== null} />
-        <FormField id={NOTES_ID} label="Notas" optional help="O que funcionou, o que mudar na próxima versão." disabled={pending !== null}>
+        <FormField id={NOTES_ID} label={texts.notes} optional help={texts.notesHelp} disabled={pending !== null}>
           {({ invalid, ...control }) => (
             <Textarea {...control} invalid={invalid} maxLength={MAX_NOTES_LENGTH} value={notes} onChange={(event) => setNotes(event.currentTarget.value)} />
           )}
@@ -161,10 +163,10 @@ export function ReviewForm({ runId, checklist }: ReviewFormProps): ReactElement 
         )}
         <div className={layout.formFooter}>
           <Button variant="secondary" disabled={pending !== null} onClick={openRejection}>
-            Rejeitar
+            {texts.reject}
           </Button>
-          <Button type="submit" variant="primary" loading={pending === 'approve'} loadingLabel="Aprovando…" disabled={pending === 'reject'}>
-            Aprovar
+          <Button type="submit" variant="primary" loading={pending === 'approve'} loadingLabel={texts.approving} disabled={pending === 'reject'}>
+            {texts.approve}
           </Button>
         </div>
       </form>
@@ -172,22 +174,22 @@ export function ReviewForm({ runId, checklist }: ReviewFormProps): ReactElement 
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
         role="alertdialog"
-        title="Rejeitar o vídeo?"
-        description="A execução termina como rejeitada. A nota e as notas ficam registradas."
+        title={texts.rejectTitle}
+        description={texts.rejectDescription}
         footer={
           <>
             <Button variant="secondary" disabled={pending === 'reject'} onClick={() => setRejectOpen(false)}>
-              Cancelar
+              {texts.cancel}
             </Button>
-            <Button type="submit" form={REJECT_FORM_ID} variant="danger" loading={pending === 'reject'} loadingLabel="Rejeitando…">
-              Rejeitar vídeo
+            <Button type="submit" form={REJECT_FORM_ID} variant="danger" loading={pending === 'reject'} loadingLabel={texts.rejecting}>
+              {texts.rejectVideo}
             </Button>
           </>
         }
       >
         <form id={REJECT_FORM_ID} className={layout.stack} onSubmit={handleReject} noValidate>
           {serverError !== null && <Alert variant="error">{serverError}</Alert>}
-          <FormField id={REASON_ID} label="Motivo" error={reasonError ?? undefined}>
+          <FormField id={REASON_ID} label={texts.reason} error={reasonError ?? undefined}>
             {({ invalid, ...control }) => (
               <Textarea {...control} invalid={invalid} maxLength={MAX_REASON_LENGTH} value={reason} onChange={(event) => setReason(event.currentTarget.value)} />
             )}

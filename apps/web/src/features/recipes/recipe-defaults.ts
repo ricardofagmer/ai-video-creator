@@ -1,5 +1,8 @@
 import { type ChecklistItem, type RecipeCheck, type RecipeFormat, type RecipeGate, type RecipeStage, type RubricCriterion } from '@studio/shared/recipes';
 import { stageOrder, type CheckId, type StageId } from '@studio/shared/run-format';
+import { type WebMessages } from '@/messages';
+
+type RecipeDefaultTexts = WebMessages['recipes']['defaults'];
 
 /**
  * Starting definition of a brand-new recipe. The values mirror the R1 "Product tour 16:9" recipe
@@ -65,30 +68,30 @@ export const defaultRubric: readonly RubricCriterion[] = [
 ];
 
 /** design/componentes-estudio.md section 15: the 8 `publishChecklistItems`, all required. */
-export const defaultChecklist: readonly ChecklistItem[] = [
-  { id: 'claimsVerified', label: 'Afirmações verificadas em fontes ou em teste reproduzível', required: true },
-  { id: 'toolFactsCurrent', label: 'Nome, interface, preço e disponibilidade da ferramenta atuais na data da revisão', required: true },
-  { id: 'mediaLicensesDocumented', label: 'Licenças de mídia e direitos de voz documentados', required: true },
-  { id: 'noPersonalOrConfidentialData', label: 'Sem dados pessoais, chaves, contas de clientes ou telas confidenciais', required: true },
-  {
-    id: 'technicalSpecOk',
-    label: 'Especificação técnica da receita atendida (duração, formato, narração inteligível, legendas na área segura)',
-    required: true,
-  },
-  { id: 'metadataAndDisclosuresAccurate', label: 'Miniatura, título, hashtags, afiliação e avisos de IA corretos', required: true },
-  { id: 'previewWatchedFully', label: 'Vídeo assistido do começo ao fim', required: true },
-  { id: 'accountAndPermissionConfirmed', label: 'Conta de criador, visibilidade e permissão explícita confirmadas', required: true },
-];
+const defaultChecklistIds = [
+  'claimsVerified',
+  'toolFactsCurrent',
+  'mediaLicensesDocumented',
+  'noPersonalOrConfidentialData',
+  'technicalSpecOk',
+  'metadataAndDisclosuresAccurate',
+  'previewWatchedFully',
+  'accountAndPermissionConfirmed',
+] as const satisfies readonly (keyof RecipeDefaultTexts['checklist'])[];
+
+/** The starting checklist of a new recipe, written in the owner's language. */
+export function defaultChecklistOf(texts: RecipeDefaultTexts): ChecklistItem[] {
+  return defaultChecklistIds.map((id) => ({ id, label: texts.checklist[id], required: true }));
+}
 
 /** Every stage on, with its default checks (C2 `graph.stages` in canonical order). */
 export function defaultStages(): RecipeStage[] {
   return stageOrder.map((stageId) => ({ stageId, enabled: true, checks: [...defaultStageChecks[stageId]], timeoutMs: null, params: {} }));
 }
 
+export const SCRIPT_APPROVAL_GATE_ID = 'script-approval';
+
 /** Gate the editor offers on top of the implicit `plan` and `final` gates (design/telas/06). */
-export const scriptApprovalGate: RecipeGate = {
-  id: 'script-approval',
-  afterStage: 'script',
-  label: 'Aprovação do roteiro',
-  whatToDo: 'Leia o roteiro e aprove para seguir, ou peça ajustes.',
-};
+export function scriptApprovalGateOf(texts: RecipeDefaultTexts): RecipeGate {
+  return { id: SCRIPT_APPROVAL_GATE_ID, afterStage: 'script', label: texts.scriptGate.label, whatToDo: texts.scriptGate.whatToDo };
+}

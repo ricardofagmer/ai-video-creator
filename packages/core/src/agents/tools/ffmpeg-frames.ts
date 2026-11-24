@@ -1,10 +1,17 @@
 import { execFile } from 'node:child_process';
 import { extname } from 'node:path';
+import {
+  DEVELOPMENT_RUNTIME,
+  RUNTIME_DIR_ENV_VAR,
+  locateMediaTool,
+  nodeRuntimeFileSystem,
+  resolveStudioRuntime,
+  runtimeSearchPath,
+  type MediaToolName,
+  type StudioRuntime,
+} from '../../runtime';
 
-/** Resolved through the child's PATH; no shell is ever involved. */
-const FFMPEG_COMMAND = 'ffmpeg';
-const FFPROBE_COMMAND = 'ffprobe';
-/** Apple Silicon Homebrew first (SPEC 0002 A18), then the system folders. */
+/** Development only: Apple Silicon Homebrew first (SPEC 0002 A18), then the system folders. */
 const FALLBACK_PATH = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin';
 /** A 768 px JPEG is far below this; a larger stdout means something else came out. */
 const MAX_FRAME_BYTES = 4 * 1024 * 1024;
@@ -14,10 +21,30 @@ const JPEG_MAGIC = [0xff, 0xd8];
 
 /**
  * Explicit minimal child environment (SPEC 0002 rev 3): PATH only, never the inherited
- * `process.env` that holds provider keys.
+ * `process.env` that holds provider keys. Packaged mode (DI-AC-03) gives the child the bundled
+ * `bin/` folders only, never the inherited PATH or the Homebrew fallback; development is unchanged.
  */
-export function minimalChildEnv(): NodeJS.ProcessEnv {
+export function minimalChildEnv(runtime: StudioRuntime = DEVELOPMENT_RUNTIME): NodeJS.ProcessEnv {
+  if (runtime.mode === 'packaged') return { PATH: runtimeSearchPath(runtime, '') };
   return { PATH: process.env['PATH'] ?? FALLBACK_PATH };
+}
+
+/**
+ * Plan C3 rev 2: read per call from the environment the shell sets, so this module keeps no state
+ * and its callers' signatures stay unchanged. A set but invalid folder throws
+ * `InvalidRuntimeDirectoryError`, never a silent fall back to PATH.
+ */
+function processStudioRuntime(): StudioRuntime {
+  return resolveStudioRuntime({ override: process.env[RUNTIME_DIR_ENV_VAR], fileSystem: nodeRuntimeFileSystem });
+}
+
+/**
+ * The program to start: the bundled binary by absolute path when packaged; the bare name, resolved
+ * through the child's PATH as before, in development. No shell is ever involved.
+ */
+function mediaCommand(runtime: StudioRuntime, tool: MediaToolName): string {
+  const location = locateMediaTool(runtime, tool);
+  return location.source === 'bundled' ? location.path : location.name;
 }
 
 export type ProcessFailureReason = 'not-installed' | 'timed-out' | 'exited' | 'bad-output';
@@ -55,13 +82,14 @@ function errorCode(error: unknown): unknown {
   return error instanceof Error && 'code' in error ? error.code : undefined;
 }
 
-function runProcess(command: string, args: readonly string[], signals: ProcessSignals, maxBytes: number): Promise<ProcessOutcome> {
+function runProcess(tool: MediaToolName, args: readonly string[], signals: ProcessSignals, maxBytes: number): Promise<ProcessOutcome> {
+  const runtime = processStudioRuntime();
   return new Promise((resolve) => {
     execFile(
-      command,
+      mediaCommand(runtime, tool),
       [...args],
       {
-        env: minimalChildEnv(),
+        env: minimalChildEnv(runtime),
         signal: AbortSignal.any([signals.caller, signals.deadline]),
         maxBuffer: maxBytes,
         encoding: 'buffer',
@@ -122,7 +150,7 @@ export async function probeDurationMs(sourcePath: string, signals: ProcessSignal
   const input = localInputArguments(sourcePath);
   if (input === null) return UNSUPPORTED_CONTAINER;
   const outcome = await runProcess(
-    FFPROBE_COMMAND,
+    'ffprobe',
     ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', ...input],
     signals,
     MAX_PROBE_BYTES,
@@ -145,7 +173,7 @@ export async function extractJpegFrame(
   const input = localInputArguments(request.sourcePath);
   if (input === null) return UNSUPPORTED_CONTAINER;
   const outcome = await runProcess(
-    FFMPEG_COMMAND,
+    'ffmpeg',
     [
       '-nostdin',
       '-hide_banner',

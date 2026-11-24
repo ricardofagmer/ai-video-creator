@@ -11,6 +11,8 @@ const ROUTE_HANDLER_PREFIX = '/api/';
  * scripts load. Every page is rendered per request (the layouts read the session cookie), so each
  * one gets a fresh nonce. Styles keep `'unsafe-inline'`: React writes `style` attributes
  * (`CostMeter`), which a nonce cannot cover, and injected CSS is a far smaller risk than script.
+ * `frame-src` admits only the official embed pages of Instagram, YouTube (privacy-enhanced host) and TikTok
+ * (docs/specs/2026-11-23-catalog-sections-and-link-embed-design.md).
  * Development adds what `next dev` needs: `eval` for React Refresh and the HMR websocket.
  */
 function contentSecurityPolicy(nonce: string): string {
@@ -19,10 +21,15 @@ function contentSecurityPolicy(nonce: string): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDevelopment ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self'",
+    // https: lets an image saved by link show its thumbnail straight from the owner's link; the
+    // server never fetches it (docs/specs/2026-11-23-images-prompts-and-run-instructions-design.md).
+    // blob: is the upload form's local preview of a picked image (object URL; never leaves the browser).
+    "img-src 'self' https: blob:",
     "media-src 'self'",
     "font-src 'self'",
     `connect-src 'self'${isDevelopment ? ' ws://127.0.0.1:* ws://localhost:*' : ''}`,
+    // Only the official post embeds of the catalog's link box (video-link.ts); nothing else may be framed.
+    'frame-src https://www.instagram.com https://www.youtube-nocookie.com https://www.tiktok.com',
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'self'",

@@ -1,9 +1,11 @@
 import { BlockedError } from '@studio/shared/ace';
 import { ExternalToolError, InputError, ProviderError } from '@ace/toolbox/dist/errors';
 import { HyperframesProcessFailedError, HyperframesProcessStartError, HyperframesRuntimeError, createSpawnProcessPort } from '@studio/hyperframes';
-import { NavigationRefusedError, liveCapture, pageText, render } from './runner/browser.handlers';
+import { liveCapture, pageText, render } from './runner/browser.handlers';
+import { NavigationRefusedError } from './runner/guarded-page';
 import { hyperframesRender, realHyperframesRenderPorts } from './runner/hyperframes.handlers';
 import { captionBurn, fades, mediaReview, musicBed, narrationAssemble, slateRender, testCapture } from './runner/media.handlers';
+import { ScreenshotTooLargeError, pageScreenshot } from './runner/page-screenshot.handler';
 import { PathConfinementError, confineRequest, realRunnerRoots } from './runner/path-confinement';
 import { describeRunnerTools, requireRunnerTools, resolveRunnerTools, type RunnerTools } from './runner/runner-tools';
 import { RESULT_MARKER, ToolRunnerEnvelopeSchema, type RunnerErrorKind, type ToolRunnerReply, type ToolRunnerRequest } from './tool-runner.protocol';
@@ -48,6 +50,8 @@ async function dispatch(request: ToolRunnerRequest, tools: RunnerTools): Promise
       return liveCapture(request);
     case 'page-text':
       return pageText(request);
+    case 'page-screenshot':
+      return pageScreenshot(request);
     case 'hyperframes-render':
       // No signal of its own: a stop kills this runner's process group, sandbox and Chrome included.
       return hyperframesRender(request, realHyperframesRenderPorts(createSpawnProcessPort()));
@@ -61,7 +65,7 @@ function errorKind(error: unknown): RunnerErrorKind {
   if (error instanceof HyperframesRuntimeError) return 'blocked';
   if (error instanceof InputError) return 'input';
   if (error instanceof ProviderError) return 'provider';
-  if (error instanceof ExternalToolError) return 'tool';
+  if (error instanceof ExternalToolError || error instanceof ScreenshotTooLargeError) return 'tool';
   return 'internal';
 }
 

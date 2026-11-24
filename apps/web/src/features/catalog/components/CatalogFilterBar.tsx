@@ -1,31 +1,44 @@
 'use client';
 
-import { Label, SearchField, Select, type SelectOption } from '@studio/ui';
-import { AssetKindSchema, AssetStatusSchema, assetKinds } from '@studio/shared/catalog';
+import { Label, SearchField, Select, useI18n, type Locale, type SelectOption } from '@studio/ui';
+import { AssetStatusSchema } from '@studio/shared/catalog';
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent, type ReactElement } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { formatScoreValue } from '@/features/quality/quality-labels';
-import { assetKindLabels, assetStatusLabels } from '../catalog-labels';
+import { type WebMessages } from '@/messages';
+import { useWebMessages } from '@/lib/i18n/client';
 import { catalogHref, minQualityChoices, minSampleSizeChoices, type CatalogFilters } from '../catalog-query';
+import { DEFAULT_CATALOG_SECTION, catalogSectionSlug } from '../catalog-sections';
 
-const kindOptions: SelectOption[] = [{ value: '', label: 'Todos' }, ...assetKinds.map((kind) => ({ value: kind, label: assetKindLabels[kind] }))];
-const statusOptions: SelectOption[] = [
-  { value: '', label: 'Todos' },
-  ...AssetStatusSchema.options.map((status) => ({ value: status, label: assetStatusLabels[status] })),
-];
-const sortOptions: SelectOption[] = [
-  { value: '', label: 'Mais recentes' },
-  { value: 'nota', label: 'Maior nota' },
-];
-const minQualityOptions: SelectOption[] = [
-  { value: '', label: 'Qualquer' },
-  ...minQualityChoices.map((choice) => ({ value: String(choice), label: `${formatScoreValue(choice)} ou mais` })),
-];
-const minSampleSizeOptions: SelectOption[] = [
-  { value: '', label: 'Qualquer' },
-  ...minSampleSizeChoices.map((choice) => ({ value: String(choice), label: `${choice} ou mais` })),
-];
+interface FilterOptions {
+  status: SelectOption[];
+  sort: SelectOption[];
+  minQuality: SelectOption[];
+  minSampleSize: SelectOption[];
+}
+
+function filterOptionsOf(t: WebMessages['catalog'], assetStatus: Readonly<Record<string, string>>, locale: Locale): FilterOptions {
+  const { filters } = t;
+  return {
+    status: [
+      { value: '', label: filters.all },
+      ...AssetStatusSchema.options.map((status) => ({ value: status, label: assetStatus[status] ?? status })),
+    ],
+    sort: [
+      { value: '', label: filters.sortRecent },
+      { value: 'nota', label: filters.sortQuality },
+    ],
+    minQuality: [
+      { value: '', label: filters.any },
+      ...minQualityChoices.map((choice) => ({ value: String(choice), label: filters.orMore(formatScoreValue(choice, locale)) })),
+    ],
+    minSampleSize: [
+      { value: '', label: filters.any },
+      ...minSampleSizeChoices.map((choice) => ({ value: String(choice), label: filters.orMore(String(choice)) })),
+    ],
+  };
+}
 
 function choiceOf(value: string, choices: readonly number[]): number | null {
   const number = Number.parseFloat(value);
@@ -39,6 +52,10 @@ function choiceOf(value: string, choices: readonly number[]): number | null {
  */
 export function CatalogFilterBar({ filters }: { filters: CatalogFilters }): ReactElement {
   const router = useRouter();
+  const t = useWebMessages();
+  const { ui, locale } = useI18n();
+  const options = useMemo(() => filterOptionsOf(t.catalog, ui.status.asset, locale), [t, ui, locale]);
+  const labels = t.catalog.filters;
   const [text, setText] = useState(filters.text);
 
   function navigate(next: Partial<CatalogFilters>): void {
@@ -55,31 +72,23 @@ export function CatalogFilterBar({ filters }: { filters: CatalogFilters }): Reac
       <SearchField
         id="busca-catalogo"
         name="q"
-        label="Buscar no catálogo"
-        placeholder="Buscar por nome, etiqueta ou nota"
+        label={labels.searchLabel}
+        placeholder={labels.searchPlaceholder}
         maxLength={200}
         value={text}
         onChange={(event) => setText(event.currentTarget.value)}
       />
+      {/* The section and kind tabs own `?secao=` and `?tipo=`; the plain GET form keeps the open tabs. */}
+      {filters.kind !== null && <input type="hidden" name="tipo" value={filters.kind} />}
+      {filters.kind === null && filters.section !== DEFAULT_CATALOG_SECTION && (
+        <input type="hidden" name="secao" value={catalogSectionSlug(filters.section)} />
+      )}
       <div className={layout.field}>
-        <Label htmlFor="filtro-tipo">Tipo</Label>
-        <Select
-          id="filtro-tipo"
-          name="tipo"
-          options={kindOptions}
-          value={filters.kind ?? ''}
-          onChange={(event) => {
-            const kind = AssetKindSchema.safeParse(event.currentTarget.value);
-            navigate({ kind: kind.success ? kind.data : null });
-          }}
-        />
-      </div>
-      <div className={layout.field}>
-        <Label htmlFor="filtro-status">Status</Label>
+        <Label htmlFor="filtro-status">{labels.status}</Label>
         <Select
           id="filtro-status"
           name="status"
-          options={statusOptions}
+          options={options.status}
           value={filters.status ?? ''}
           onChange={(event) => {
             const status = AssetStatusSchema.safeParse(event.currentTarget.value);
@@ -88,31 +97,31 @@ export function CatalogFilterBar({ filters }: { filters: CatalogFilters }): Reac
         />
       </div>
       <div className={layout.field}>
-        <Label htmlFor="filtro-ordem">Ordenar por</Label>
+        <Label htmlFor="filtro-ordem">{labels.sortBy}</Label>
         <Select
           id="filtro-ordem"
           name="ordem"
-          options={sortOptions}
+          options={options.sort}
           value={filters.sort === 'quality' ? 'nota' : ''}
           onChange={(event) => navigate({ sort: event.currentTarget.value === 'nota' ? 'quality' : 'recent' })}
         />
       </div>
       <div className={layout.field}>
-        <Label htmlFor="filtro-nota-min">Nota mínima</Label>
+        <Label htmlFor="filtro-nota-min">{labels.minQuality}</Label>
         <Select
           id="filtro-nota-min"
           name="nota-min"
-          options={minQualityOptions}
+          options={options.minQuality}
           value={filters.minQuality === null ? '' : String(filters.minQuality)}
           onChange={(event) => navigate({ minQuality: choiceOf(event.currentTarget.value, minQualityChoices) })}
         />
       </div>
       <div className={layout.field}>
-        <Label htmlFor="filtro-execucoes-min">Execuções revisadas</Label>
+        <Label htmlFor="filtro-execucoes-min">{labels.minSampleSize}</Label>
         <Select
           id="filtro-execucoes-min"
           name="execucoes-min"
-          options={minSampleSizeOptions}
+          options={options.minSampleSize}
           value={filters.minSampleSize === null ? '' : String(filters.minSampleSize)}
           onChange={(event) => navigate({ minSampleSize: choiceOf(event.currentTarget.value, minSampleSizeChoices) })}
         />

@@ -5,6 +5,7 @@ import { type ModelRoleName } from '@studio/shared/agents';
 import { type ModelId } from '@studio/shared/run-format';
 import { type Secret } from '../../secrets';
 import { agentRoster, curatorAgentDefinition } from '../agent-roster';
+import { referenceAnalystDefinition } from '../reference-analyst/reference-analyst.definition';
 import { type AgentToolSet } from '../tooling/agent-tool-set';
 import { withBeforeCallHook, type AnthropicLanguageModel } from './outgoing-prompt';
 
@@ -36,6 +37,14 @@ export interface CuratorAgentBuildRequest {
   instructions: string;
   /** The rendered `CuratorCorrection` of the second call; null on the first. */
   correction: string | null;
+  beforeModelCall: (prompt: unknown) => Promise<void>;
+}
+
+export interface ReferenceAnalystAgentBuildRequest {
+  modelId: ModelId;
+  apiKey: Secret;
+  /** The `reference-analyst@1` instructions; the same for every call, so they stay cacheable. */
+  instructions: string;
   beforeModelCall: (prompt: unknown) => Promise<void>;
 }
 
@@ -75,6 +84,20 @@ export class MastraAgentFactory {
               { role: 'system', content: request.instructions, providerOptions: ANTHROPIC_CACHE_BREAKPOINT },
               { role: 'system', content: request.correction },
             ],
+      model: hookedAnthropicModel(request),
+      tools: {},
+    });
+  }
+
+  /**
+   * The reference analyst (docs/specs/2026-11-23-guided-creation-design.md section 4): an empty
+   * tool set, so the frames and texts it reads can never make it act; one cached system block.
+   */
+  buildReferenceAnalyst(request: ReferenceAnalystAgentBuildRequest): Agent {
+    return new Agent({
+      id: referenceAnalystDefinition.agentName,
+      name: referenceAnalystDefinition.agentName,
+      instructions: { role: 'system', content: request.instructions, providerOptions: ANTHROPIC_CACHE_BREAKPOINT },
       model: hookedAnthropicModel(request),
       tools: {},
     });

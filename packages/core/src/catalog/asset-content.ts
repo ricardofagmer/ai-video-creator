@@ -32,7 +32,9 @@ import { contentMatchesMimeType, folderEntryMimeType } from './content-signature
 /**
  * Where a version's bytes come from (PRD 5.3). `upload`, `inline`, `import-*` copy into the
  * store; `reference-*` hash in place and copy nothing; `previous-version` reuses the bytes of an
- * existing version of the same asset (a metadata-only edit still creates N+1).
+ * existing version of the same asset (a metadata-only edit still creates N+1);
+ * `previous-version-entry-file` reuses every file of a stored skill folder but replaces its entry
+ * file (SKILL.md) with `text` (skills spec addendum T5).
  */
 export type AssetContentInput =
   | { source: 'upload'; stream: Readable; mimeType: string }
@@ -41,10 +43,11 @@ export type AssetContentInput =
   | { source: 'import-folder'; absolutePath: string }
   | { source: 'reference-file'; absolutePath: string; mimeType: string }
   | { source: 'reference-folder'; absolutePath: string }
-  | { source: 'previous-version'; version: number };
+  | { source: 'previous-version'; version: number }
+  | { source: 'previous-version-entry-file'; version: number; text: string };
 
 /** Content for a brand-new asset: there is no earlier version to reuse. */
-export type NewAssetContentInput = Exclude<AssetContentInput, { source: 'previous-version' }>;
+export type NewAssetContentInput = Exclude<AssetContentInput, { source: 'previous-version' | 'previous-version-entry-file' }>;
 
 /** Storage facts of a version, as C1 records them. */
 export interface PreparedContent {
@@ -83,7 +86,7 @@ function fileHeadInspector(kind: AssetKind, mimeType: string): HeadInspector {
 }
 
 /** Inside an imported folder each file is held to the type its extension claims. */
-function folderHeadInspector(kind: AssetKind): NonNullable<PutFolderOptions['inspectFileHead']> {
+export function folderHeadInspector(kind: AssetKind): NonNullable<PutFolderOptions['inspectFileHead']> {
   return (relativePath, head) => {
     const mimeType = folderEntryMimeType(relativePath);
     if (mimeType !== null && !contentMatchesMimeType(mimeType, head)) throw new ContentTypeMismatchError(kind, mimeType, relativePath);

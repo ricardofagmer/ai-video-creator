@@ -1,7 +1,10 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Logger, Param, Post, Put, Query, Req, Res, StreamableFile } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ReferenceAnalysisEnqueuer } from '@studio/core/asset-jobs';
 import {
   GetAssetVersionQuery,
+  GetEntryFileTextQuery,
+  GetImageContentQuery,
   ListAssetVersionsQuery,
   SaveAssetVersionCommand,
   SearchAssetsQuery,
@@ -18,6 +21,7 @@ import {
   SetVersionStatusRequestSchema,
   apiRouteSegments,
   type AssetVersionPageView,
+  type EntryFileView,
   type AssetVersionView,
   type RegisterAssetByReferenceRequest,
   type SaveAssetVersionByReferenceRequest,
@@ -34,6 +38,7 @@ import { SearchIndexScheduler } from '../search/search-index.scheduler';
 import { AssetVersionViewAssembler } from './asset-version-view.assembler';
 import { CatalogReferenceService } from './catalog-reference.service';
 import { CatalogUploadService } from './catalog-upload.service';
+import { ImageContentStreamer } from './image-content.streamer';
 
 type AssetParams = z.output<typeof AssetParamsSchema>;
 type AssetVersionParams = z.output<typeof AssetVersionParamsSchema>;
@@ -42,9 +47,13 @@ type AssetVersionParams = z.output<typeof AssetVersionParamsSchema>;
  * Catalog (PRD 5): validate with C10, dispatch to the core catalog's CQRS handlers, map to views.
  * Rev 3 (SPEC 0003 section 4.3): views carry `searchIndex`, `learnings` and `activation`; every new
  * version is queued for the semantic index after its response is sent (B9).
+ * Guided-creation design section 4: every save path ends in `saved`, which also asks for the
+ * analysis of an eligible video reference without waiting for it; the response never changes.
  */
 @Controller(apiRouteSegments.catalogAssets)
 export class CatalogController {
+  private readonly logger = new Logger(CatalogController.name);
+
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
@@ -52,6 +61,8 @@ export class CatalogController {
     private readonly references: CatalogReferenceService,
     private readonly views: AssetVersionViewAssembler,
     private readonly searchIndex: SearchIndexScheduler,
+    private readonly referenceAnalysis: ReferenceAnalysisEnqueuer,
+    private readonly images: ImageContentStreamer,
   ) {}
 
   @Get()
@@ -97,7 +108,11 @@ export class CatalogController {
     return this.saved(response, await this.uploads.saveVersion(params.assetId, request, abortOnDisconnect(response)));
   }
 
-  /** A metadata-only edit still creates N+1 (PRD 5.4 rule 1), reusing the bytes of `fromVersion`. */
+  /**
+   * A metadata-only edit still creates N+1 (PRD 5.4 rule 1), reusing the bytes of `fromVersion`.
+   * With `entryFile` (skills spec addendum T5) a skill's stored folder keeps its other files and
+   * gets the new entry file text.
+   */
   @Post(':assetId/versions/from-previous')
   @HttpCode(201)
   async saveMetadataVersion(
@@ -109,7 +124,11 @@ export class CatalogController {
       new SaveAssetVersionCommand({
         assetId: params.assetId,
         metadata: body.metadata,
-        content: { source: 'previous-version', version: body.fromVersion },
+        content:
+          body.entryFile === undefined
+            ? { source: 'previous-version', version: body.fromVersion }
+            : { source: 'previous-version-entry-file', version: body.fromVersion, text: body.entryFile.text },
+        signal: abortOnDisconnect(response),
       }),
     );
     return this.saved(response, version);
@@ -131,6 +150,28 @@ export class CatalogController {
     return this.views.one(await this.queryBus.execute(new GetAssetVersionQuery(`${params.assetId}@${params.version}`)));
   }
 
+  /** Skills spec addendum T5: the entry file (SKILL.md) of a skill version as UTF-8 text; also a stored prompt's text (2026-11-23). */
+  @Get(`:assetId/versions/:version/${apiRouteSegments.entryFile}`)
+  async getEntryFile(
+    @Param(new ZodValidationPipe(AssetVersionParamsSchema)) params: AssetVersionParams,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<EntryFileView> {
+    const ref = `${params.assetId}@${params.version}`;
+    const { path, text } = await this.queryBus.execute(new GetEntryFileTextQuery(ref, abortOnDisconnect(response)));
+    return { path, text };
+  }
+
+  /** Stored PNG, JPEG or WebP bytes of an image version (catalog thumbnail); 404 `image-content-unavailable` otherwise. */
+  @Get(`:assetId/versions/:version/${apiRouteSegments.image}`)
+  async getImage(
+    @Param(new ZodValidationPipe(AssetVersionParamsSchema)) params: AssetVersionParams,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const ref = formatAssetRef({ assetId: params.assetId, version: params.version });
+    const image = await this.queryBus.execute(new GetImageContentQuery(ref));
+    return this.images.stream({ ref, image, response });
+  }
+
   /**
    * Rev 3 (**breaking**, SPEC 0003 L6, R2-AC-18): core refuses `status: 'active'` with
    * `PromotionApprovalRequiredError`, answered 422 `promotion-approval-required`; activation is
@@ -149,7 +190,20 @@ export class CatalogController {
   }
 
   private async saved(response: Response, version: AssetVersion): Promise<AssetVersionView> {
-    this.searchIndex.afterResponse(response, [formatAssetRef({ assetId: version.id, version: version.version })]);
+    const ref = formatAssetRef({ assetId: version.id, version: version.version });
+    this.searchIndex.afterResponse(response, [ref]);
+    this.enqueueAnalysis(ref, version);
     return this.views.one(version);
+  }
+
+  /**
+   * Not awaited: the save is committed and its answer must not wait on the job queue. The enqueuer
+   * already turns every failure into a logged outcome; the catch only keeps an unexpected rejection
+   * from becoming an unhandled one, and logs the ref and the error name.
+   */
+  private enqueueAnalysis(ref: string, version: AssetVersion): void {
+    this.referenceAnalysis.enqueueIfEligible(version).catch((error: unknown) => {
+      this.logger.warn({ event: 'asset-job.enqueue-failed', kind: 'reference-analysis', ref, errorCode: error instanceof Error ? error.name : 'unknown' });
+    });
   }
 }

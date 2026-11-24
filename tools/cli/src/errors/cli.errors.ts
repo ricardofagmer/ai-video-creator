@@ -1,9 +1,11 @@
+import { cliText } from '../i18n/messages.js';
 import { formatBytes } from '../output/format.js';
 import { type ErrorCategory } from './exit-codes.js';
 
 /**
  * Base of the errors the CLI itself raises at its boundary. They are presentation-layer errors, so
- * their message is the pt-BR text shown to the owner (D16). Messages name variables, ids, ports
+ * their message is the text shown to the owner, in the active language, built in the constructor
+ * (which runs after `main` set the language). Messages name variables, ids, ports
  * and pids only; never a key value, never a biometric path.
  */
 export abstract class CliError extends Error {
@@ -15,7 +17,7 @@ export class CliConfigurationError extends CliError {
   override readonly category = 'validation';
 
   constructor(readonly variable: string) {
-    super(`A variável ${variable} tem um valor inválido (porta 1024-65535, diferente entre web e api).`);
+    super(cliText().errors.configuration(variable));
     this.name = 'CliConfigurationError';
   }
 }
@@ -31,14 +33,6 @@ export class CliUsageError extends CliError {
 
 export type InputFileProblem = 'not-found' | 'not-a-file' | 'symlink' | 'too-large' | 'invalid-json';
 
-const inputFileMessages: Readonly<Record<InputFileProblem, string>> = {
-  'not-found': 'não existe',
-  'not-a-file': 'não é um arquivo comum',
-  symlink: 'é um link simbólico; informe o arquivo real',
-  'too-large': 'é grande demais',
-  'invalid-json': 'não é um JSON válido',
-};
-
 /** A JSON input file (`--brief`, `--metadata`) failed boundary checks. */
 export class InputFileError extends CliError {
   override readonly category = 'validation';
@@ -47,7 +41,8 @@ export class InputFileError extends CliError {
     readonly option: string,
     readonly problem: InputFileProblem,
   ) {
-    super(`O arquivo de ${option} ${inputFileMessages[problem]}.`);
+    const text = cliText().errors.inputFile;
+    super(text.sentence(option, text.problems[problem]));
     this.name = 'InputFileError';
   }
 }
@@ -63,26 +58,18 @@ export class InputFileTooLargeError extends CliError {
     readonly option: string,
     readonly limitBytes: number,
   ) {
-    super(`O arquivo de ${option} passa do limite de ${formatBytes(limitBytes)}; nada foi importado.`);
+    super(cliText().errors.inputFile.tooLarge(option, formatBytes(limitBytes)));
     this.name = 'InputFileTooLargeError';
   }
 }
 
 export type ImportSourceProblem = 'not-found' | 'symlink' | 'unsupported-type' | 'too-large' | 'mime-unknown';
 
-const importSourceMessages: Readonly<Record<ImportSourceProblem, string>> = {
-  'not-found': 'O caminho informado não existe.',
-  symlink: 'O caminho é um link simbólico; informe o arquivo ou a pasta real.',
-  'unsupported-type': 'O caminho não é um arquivo nem uma pasta.',
-  'too-large': 'O conteúdo passa do limite deste tipo; registre por referência (--by-reference).',
-  'mime-unknown': 'Não foi possível deduzir o tipo do arquivo; informe --mime.',
-};
-
 export class ImportSourceError extends CliError {
   override readonly category = 'validation';
 
   constructor(readonly problem: ImportSourceProblem) {
-    super(importSourceMessages[problem]);
+    super(cliText().errors.importSource[problem]);
     this.name = 'ImportSourceError';
   }
 }
@@ -96,19 +83,11 @@ export class ImportSourceError extends CliError {
  */
 export type BiometricRefusal = 'flags-missing' | 'sensitivity-mismatch' | 'registry-unreadable';
 
-const biometricMessages: Readonly<Record<BiometricRefusal, string>> = {
-  'flags-missing':
-    'Material biométrico só entra por referência: repita com --sensitivity biometric --by-reference (nada é copiado).',
-  'sensitivity-mismatch': 'O --sensitivity informado não confere com o campo sensitivity do arquivo de metadados.',
-  'registry-unreadable':
-    'Não foi possível conferir as referências biométricas do catálogo; a importação foi recusada por segurança.',
-};
-
 export class BiometricImportRefusedError extends CliError {
   override readonly category = 'validation';
 
   constructor(readonly refusal: BiometricRefusal) {
-    super(biometricMessages[refusal]);
+    super(cliText().errors.biometric[refusal]);
     this.name = 'BiometricImportRefusedError';
   }
 }
@@ -117,7 +96,7 @@ export class TerminalRequiredError extends CliError {
   override readonly category = 'validation';
 
   constructor(readonly command: string) {
-    super(`"studio ${command}" precisa de um terminal interativo; rode o comando no Terminal.`);
+    super(cliText().errors.terminalRequired(command));
     this.name = 'TerminalRequiredError';
   }
 }
@@ -127,7 +106,7 @@ export class CatalogScanLimitError extends CliError {
   override readonly category = 'internal';
 
   constructor(readonly limit: number) {
-    super(`O catálogo tem mais de ${limit} versões; a verificação parou antes de concluir.`);
+    super(cliText().errors.catalogScanLimit(limit));
     this.name = 'CatalogScanLimitError';
   }
 }

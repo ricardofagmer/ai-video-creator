@@ -2,6 +2,9 @@ import { IsoDateSchema } from '@studio/shared/metrics';
 import { type Brief, type Recipe } from '@studio/shared/recipes';
 import { resolveLimits } from '@studio/shared/run-format';
 import { IanaTimeZoneSchema, LocalTimeSchema, nextSlots, scheduleBounds, type Recurrence } from '@studio/shared/schedules';
+import { type WebMessages } from '@/messages';
+
+type ScheduleErrorTexts = WebMessages['schedules']['errors'];
 
 /*
  * The "Novo agendamento" dialog (SPEC 0006 sections 5.5 and 5.7): values typed by the owner, the C10
@@ -63,12 +66,8 @@ export const scheduleFieldOrder: readonly ScheduleField[] = [
   'consent',
 ];
 
-export const recurrenceKindOptions: readonly { value: RecurrenceKind; label: string }[] = [
-  { value: 'daily', label: 'Todo dia' },
-  { value: 'weekly', label: 'Toda semana' },
-  { value: 'monthly', label: 'Todo mês' },
-  { value: 'once', label: 'Uma vez' },
-];
+/** The order of the "Repetição" options; their labels are `t.schedules.recurrence.kinds`. */
+export const recurrenceKinds: readonly RecurrenceKind[] = ['daily', 'weekly', 'monthly', 'once'];
 
 export function initialScheduleValues(options: { recipeRef: string; today: string; timezone: string }): ScheduleFormValues {
   return {
@@ -86,33 +85,33 @@ export function initialScheduleValues(options: { recipeRef: string; today: strin
 export type RecurrenceResult = { kind: 'valid'; recurrence: Recurrence; timezone: string } | { kind: 'invalid'; errors: ScheduleErrors };
 
 /** The C10 `Recurrence` and zone, or the inline errors; a `once` slot must be in the future. */
-export function buildRecurrence(values: ScheduleFormValues, now: Date): RecurrenceResult {
+export function buildRecurrence(values: ScheduleFormValues, now: Date, t: ScheduleErrorTexts): RecurrenceResult {
   const errors: ScheduleErrors = {};
-  if (!LocalTimeSchema.safeParse(values.time).success) errors.time = 'Escolha a hora (HH:MM).';
-  if (!IanaTimeZoneSchema.safeParse(values.timezone).success) errors.timezone = 'Escolha um fuso horário da lista.';
+  if (!LocalTimeSchema.safeParse(values.time).success) errors.time = t.time;
+  if (!IanaTimeZoneSchema.safeParse(values.timezone).success) errors.timezone = t.timezone;
   let recurrence: Recurrence | null = null;
   switch (values.kind) {
     case 'once':
-      if (!IsoDateSchema.safeParse(values.date).success) errors.date = 'Escolha a data.';
+      if (!IsoDateSchema.safeParse(values.date).success) errors.date = t.date;
       else recurrence = { kind: 'once', date: values.date, time: values.time };
       break;
     case 'daily':
       recurrence = { kind: 'daily', time: values.time };
       break;
     case 'weekly':
-      if (values.weekdays.length === 0) errors.weekdays = 'Marque pelo menos um dia da semana.';
+      if (values.weekdays.length === 0) errors.weekdays = t.weekdays;
       else recurrence = { kind: 'weekly', weekdays: [...values.weekdays].sort((left, right) => left - right), time: values.time };
       break;
     case 'monthly': {
       const day = /^[0-9]{1,2}$/.test(values.dayOfMonth) ? Number.parseInt(values.dayOfMonth, 10) : Number.NaN;
-      if (!(day >= 1 && day <= 28)) errors.dayOfMonth = 'Escolha um dia entre 1 e 28.';
+      if (!(day >= 1 && day <= 28)) errors.dayOfMonth = t.dayOfMonth;
       else recurrence = { kind: 'monthly', dayOfMonth: day, time: values.time };
       break;
     }
   }
   if (recurrence === null || Object.keys(errors).length > 0) return { kind: 'invalid', errors };
   if (recurrence.kind === 'once' && nextSlots({ recurrence, timezone: values.timezone, after: now, count: 1 }).length === 0) {
-    return { kind: 'invalid', errors: { date: 'A data e a hora precisam estar no futuro.' } };
+    return { kind: 'invalid', errors: { date: t.future } };
   }
   return { kind: 'valid', recurrence, timezone: values.timezone };
 }
@@ -147,11 +146,11 @@ export function costFigures(recipe: Recipe, recurrence: RecurrenceResult, now: D
   };
 }
 
-/** The title rule of `CreateScheduleRequestSchema`, with a pt-BR message. */
-export function titleError(title: string): string | undefined {
+/** The title rule of `CreateScheduleRequestSchema`, with the active locale's message. */
+export function titleError(title: string, t: ScheduleErrorTexts): string | undefined {
   const trimmed = title.trim();
-  if (trimmed === '') return 'Dê um nome ao agendamento.';
-  if (trimmed.length > scheduleBounds.titleChars) return `Use até ${scheduleBounds.titleChars} caracteres.`;
+  if (trimmed === '') return t.titleRequired;
+  if (trimmed.length > scheduleBounds.titleChars) return t.titleTooLong(scheduleBounds.titleChars);
   return undefined;
 }
 

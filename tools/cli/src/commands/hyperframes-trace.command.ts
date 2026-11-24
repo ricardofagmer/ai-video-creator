@@ -1,14 +1,16 @@
 import { join } from 'node:path';
 import { ReferenceInspector } from '@studio/core/asset-store';
+import { locateResourceRoot } from '@studio/core/runtime';
 import { HyperframesChromeMissingError, pinnedBinPath, sandboxProfile, verifyChromeBinary } from '@studio/hyperframes';
 import { hyperframesPaths } from '@studio/shared/hyperframes';
 import { writeTraceFile, readHyperframesEngineFiles } from '@studio/shared/hyperframes/files';
 import { TerminalRequiredError } from '../errors/cli.errors.js';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { resolveRenderRuntime, withScratchFolder } from '../hyperframes/cli-runtime.js';
 import { HyperframesCommandError, HyperframesStepRefusedError, withHyperframesErrors } from '../hyperframes/hyperframes.errors.js';
 import { type HyperframesCommandPorts } from '../hyperframes/hyperframes-ports.js';
-import { TRACE_CONFIRMATION_WORD, TRACE_NOTICE, runtimeFailureText } from '../hyperframes/hyperframes-texts.js';
+import { runtimeFailureText, traceConfirmationWord, traceNotice } from '../hyperframes/hyperframes-texts.js';
 import { TRACE_TEMPLATE_FOLDER, runNetworkTrace } from '../hyperframes/network-trace.js';
 import { askTypedConfirmation } from '../hyperframes/typed-confirmation.js';
 import { type CommandDependencies } from './command-dependencies.js';
@@ -53,14 +55,13 @@ export async function hyperframesTraceCommand(ports: HyperframesCommandPorts, de
     const chrome = files.chrome.value;
     const binPath = pinnedBinPath();
     const profile = sandboxProfile();
-    const templateSource = join(settings.studioRoot, TRACE_TEMPLATE_FOLDER);
+    // The checkout in development; `payload/resources/` (same relative path) when packaged.
+    const templateSource = join(locateResourceRoot(settings.runtime, settings.studioRoot), TRACE_TEMPLATE_FOLDER);
     const template = await new ReferenceInspector(settings.dataHome).inspectFolder(templateSource, { maxBytes: TEMPLATE_MAX_BYTES, signal });
 
-    for (const line of TRACE_NOTICE) printer.line(line);
-    await askTypedConfirmation(ports.terminal, signal, {
-      label: `Digite ${TRACE_CONFIRMATION_WORD} para iniciar (qualquer outra resposta cancela): `,
-      expected: TRACE_CONFIRMATION_WORD,
-    });
+    for (const line of traceNotice()) printer.line(line);
+    const word = traceConfirmationWord();
+    await askTypedConfirmation(ports.terminal, signal, { label: cliText().hyperframes.tracePrompt(word), expected: word });
 
     const outcome = await withChromeRefusal(async () => {
       await verifyChromeBinary(chrome, { cacheDir: hyperframesPaths(dataHomeRoot).cacheDir });
@@ -81,17 +82,19 @@ export async function hyperframesTraceCommand(ports: HyperframesCommandPorts, de
     await writeTraceFile(dataHomeRoot, outcome.record);
 
     const { record } = outcome;
-    printer.line(`Resultado da verificação: ${record.result}`);
-    printer.line(`  controle C1 negado (EPERM): ${record.controlDenied ? 'sim' : 'não'}`);
-    printer.line(`  código da renderização: ${record.renderExitCode}`);
-    printer.line(`  vídeo correto: ${record.outputOk ? 'sim' : 'não'}`);
-    printer.line(`  outras conexões negadas: ${record.deniedNetwork}`);
-    printer.line(`  leituras negadas de ~/.hyperframes: ${record.ownerConfigDirDenied}`);
+    const text = cliText().hyperframes.traceResult;
+    const answer = (value: boolean): string => (value ? text.yes : text.no);
+    printer.line(text.result(record.result));
+    printer.line(text.controlDenied(answer(record.controlDenied)));
+    printer.line(text.renderCode(record.renderExitCode));
+    printer.line(text.outputOk(answer(record.outputOk)));
+    printer.line(text.deniedNetwork(record.deniedNetwork));
+    printer.line(text.ownerFolderDenied(record.ownerConfigDirDenied));
     if (outcome.findings.length > 0) {
-      printer.line(`Achados (${outcome.findings.length}; até ${record.findings.length} ficam em trace.json):`);
+      printer.line(text.findingsHeading(outcome.findings.length, record.findings.length));
       for (const finding of outcome.findings) printer.line(`  - ${finding}`);
     }
-    printer.line(record.result === 'pass' ? 'Próximo passo: `studio hyperframes enable`.' : 'O motor continua desligado. Corrija o que os achados apontam e rode a verificação de novo.');
+    printer.line(record.result === 'pass' ? text.nextEnable : text.stillOff);
     await recordHyperframesEvent(ports, printer, {
       event: 'hyperframes.trace-finished',
       result: record.result,

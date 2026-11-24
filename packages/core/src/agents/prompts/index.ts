@@ -1,4 +1,5 @@
 import {
+  ANALYST_ROLE,
   DIRECTOR_ROLE,
   EVALUATOR_ROLE,
   PLANNER_ROLE,
@@ -7,6 +8,7 @@ import {
   type AgentPacket,
   type ModelRoleName,
 } from '@studio/shared/agents';
+import { analystPrompt } from './analyst.prompt';
 import { directorPrompt } from './director.prompt';
 import { plannerPrompt } from './planner.prompt';
 import { type RolePrompt } from './prompt-common';
@@ -25,4 +27,5 @@ export const rolePrompts: RolePrompts = {
   [DIRECTOR_ROLE]: directorPrompt,
   [EVALUATOR_ROLE]: reviewerPrompt,
   [RECOVERY_ROLE]: recoveryPrompt,
+  [ANALYST_ROLE]: analystPrompt,
 };

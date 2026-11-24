@@ -3,9 +3,9 @@
 import { Checkbox, FormField, Input, Select } from '@studio/ui';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
-import { weekdayLongLabels } from '../schedule-labels';
+import { useWebMessages } from '@/lib/i18n/client';
 import {
-  recurrenceKindOptions,
+  recurrenceKinds,
   scheduleFieldIds,
   type RecurrenceKind,
   type ScheduleErrors,
@@ -21,10 +21,13 @@ interface ScheduleRecurrenceFieldsProps {
   onChange: (patch: Partial<ScheduleFormValues>) => void;
 }
 
+/** ISO weekdays, Monday first. */
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+
 const dayOfMonthOptions = Array.from({ length: 28 }, (_, index) => ({ value: String(index + 1), label: String(index + 1) }));
 
 function isRecurrenceKind(value: string): value is RecurrenceKind {
-  return recurrenceKindOptions.some((option) => option.value === value);
+  return recurrenceKinds.some((kind) => kind === value);
 }
 
 /**
@@ -33,6 +36,9 @@ function isRecurrenceKind(value: string): value is RecurrenceKind {
  * zone. The finest recurrence is daily.
  */
 export function ScheduleRecurrenceFields({ values, errors, disabled, zoneOptions, onChange }: ScheduleRecurrenceFieldsProps): ReactElement {
+  const schedules = useWebMessages().schedules;
+  const texts = schedules.recurrenceFields;
+  const kindOptions = recurrenceKinds.map((kind) => ({ value: kind, label: schedules.recurrence.kinds[kind] }));
   function toggleWeekday(day: number, checked: boolean): void {
     const next = checked ? [...values.weekdays.filter((value) => value !== day), day] : values.weekdays.filter((value) => value !== day);
     onChange({ weekdays: next });
@@ -40,12 +46,12 @@ export function ScheduleRecurrenceFields({ values, errors, disabled, zoneOptions
 
   return (
     <div className={layout.fieldGrid}>
-      <FormField id={scheduleFieldIds.kind} label="Repetição" error={errors.kind} disabled={disabled}>
+      <FormField id={scheduleFieldIds.kind} label={texts.kind} error={errors.kind} disabled={disabled}>
         {({ invalid, ...control }) => (
           <Select
             {...control}
             invalid={invalid}
-            options={recurrenceKindOptions}
+            options={kindOptions}
             value={values.kind}
             onChange={(event) => {
               const value = event.currentTarget.value;
@@ -55,14 +61,14 @@ export function ScheduleRecurrenceFields({ values, errors, disabled, zoneOptions
         )}
       </FormField>
       {values.kind === 'once' && (
-        <FormField id={scheduleFieldIds.date} label="Data" error={errors.date} disabled={disabled}>
+        <FormField id={scheduleFieldIds.date} label={texts.date} error={errors.date} disabled={disabled}>
           {({ invalid, ...control }) => (
             <Input {...control} type="date" invalid={invalid} value={values.date} onChange={(event) => onChange({ date: event.currentTarget.value })} />
           )}
         </FormField>
       )}
       {values.kind === 'monthly' && (
-        <FormField id={scheduleFieldIds.dayOfMonth} label="Dia do mês" help="De 1 a 28, para existir em todo mês." error={errors.dayOfMonth} disabled={disabled}>
+        <FormField id={scheduleFieldIds.dayOfMonth} label={texts.dayOfMonth} help={texts.dayOfMonthHelp} error={errors.dayOfMonth} disabled={disabled}>
           {({ invalid, ...control }) => (
             <Select
               {...control}
@@ -74,12 +80,12 @@ export function ScheduleRecurrenceFields({ values, errors, disabled, zoneOptions
           )}
         </FormField>
       )}
-      <FormField id={scheduleFieldIds.time} label="Hora" error={errors.time} disabled={disabled}>
+      <FormField id={scheduleFieldIds.time} label={texts.time} error={errors.time} disabled={disabled}>
         {({ invalid, ...control }) => (
           <Input {...control} type="time" step={60} invalid={invalid} value={values.time} onChange={(event) => onChange({ time: event.currentTarget.value })} />
         )}
       </FormField>
-      <FormField id={scheduleFieldIds.timezone} label="Fuso horário" error={errors.timezone} disabled={disabled}>
+      <FormField id={scheduleFieldIds.timezone} label={texts.timezone} error={errors.timezone} disabled={disabled}>
         {({ invalid, ...control }) => (
           <Select
             {...control}
@@ -92,16 +98,16 @@ export function ScheduleRecurrenceFields({ values, errors, disabled, zoneOptions
       </FormField>
       {values.kind === 'weekly' && (
         <fieldset className={`${layout.fieldset} ${layout.fieldWide}`} disabled={disabled} aria-describedby={errors.weekdays === undefined ? undefined : 'agendamento-dias-erro'}>
-          <legend className="label">Dias da semana</legend>
+          <legend className="label">{texts.weekdays}</legend>
           <div className={styles.weekdays}>
-            {weekdayLongLabels.map((day) => (
+            {WEEKDAYS.map((day) => (
               <Checkbox
-                key={day.value}
-                id={`agendamento-dia-${day.value}`}
-                label={day.label}
-                checked={values.weekdays.includes(day.value)}
+                key={day}
+                id={`agendamento-dia-${day}`}
+                label={schedules.weekdays[day]}
+                checked={values.weekdays.includes(day)}
                 invalid={errors.weekdays !== undefined}
-                onChange={(event) => toggleWeekday(day.value, event.currentTarget.checked)}
+                onChange={(event) => toggleWeekday(day, event.currentTarget.checked)}
               />
             ))}
           </div>

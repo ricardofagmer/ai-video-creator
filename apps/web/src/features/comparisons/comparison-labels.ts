@@ -1,17 +1,12 @@
-import { type BadgeTone } from '@studio/ui';
+import { type BadgeTone, type Locale } from '@studio/ui';
 import { type ComparisonArmView, type ComparisonView } from '@studio/shared/api';
 import { type ComparisonSubject, type RunStatus } from '@studio/shared/run-format';
-import { slotSpecs } from '@/features/recipes/recipe-slots';
-import { formatDecimal, reviewSubjectLabels } from '@/features/review/review-labels';
+import { formatDecimal } from '@/lib/i18n/format';
+import { type WebMessages } from '@/messages';
 
 type ComparisonStatus = ComparisonView['status'];
-
-export const comparisonStatusLabels: Readonly<Record<ComparisonStatus, string>> = {
-  draft: 'Rascunho',
-  running: 'Em andamento',
-  ready: 'Pronta',
-  incomplete: 'Incompleta',
-};
+type ComparisonTexts = WebMessages['curations']['comparisons'];
+type SlotLabels = WebMessages['recipes']['bindings']['slots'];
 
 export const comparisonStatusTones: Readonly<Record<ComparisonStatus, BadgeTone>> = {
   draft: 'neutral',
@@ -23,17 +18,20 @@ export const comparisonStatusTones: Readonly<Record<ComparisonStatus, BadgeTone>
 /** Statuses after which a run has rendered its final video (`rejected` only with a manifest). */
 export const finishedRunStatuses: readonly RunStatus[] = ['review', 'approved', 'rejected'];
 
-export const armLabels: Readonly<Record<ComparisonArmView['arm'], string>> = { a: 'Versão A', b: 'Versão B' };
+function isKnownSlot(slot: string, labels: SlotLabels): slot is keyof SlotLabels {
+  return slot in labels;
+}
 
-/** The pt-BR label of a recipe binding slot, or the slot itself when the editor does not know it. */
-export function slotLabel(slot: string): string {
-  return slotSpecs.find((spec) => spec.slot === slot)?.label ?? slot;
+/** The label of a recipe binding slot, or the slot itself when the editor does not know it. */
+export function slotLabel(slot: string, labels: SlotLabels): string {
+  return isKnownSlot(slot, labels) ? labels[slot] : slot;
 }
 
 /** One line naming what the comparison compares. */
-export function subjectText(subject: ComparisonSubject): string {
-  if (subject.kind === 'asset-binding') return `${slotLabel(subject.slot)}: ${subject.a} contra ${subject.b}`;
-  return `Receita: ${subject.a} contra ${subject.b}`;
+export function subjectText(subject: ComparisonSubject, t: WebMessages): string {
+  const texts = t.curations.comparisons.subject;
+  if (subject.kind === 'asset-binding') return texts.binding(slotLabel(subject.slot, t.recipes.bindings.slots), subject.a, subject.b);
+  return texts.recipe(subject.a, subject.b);
 }
 
 /** `<id>@<version>` split; asset and recipe refs share the shape (SPEC 0002 A10). Null when malformed. */
@@ -62,33 +60,27 @@ export function recipeIdOf(ref: string): { recipeId: string; version: number } |
   return parsed === null ? null : { recipeId: parsed.id, version: parsed.version };
 }
 
-export function qaText(qa: ComparisonArmView['qa']): string {
-  if (qa === null) return 'Sem resultado de QA ainda';
-  if (qa.outcome === 'passed') return 'Passou no QA';
-  return qa.warnings === 1 ? 'Passou no QA com 1 aviso' : `Passou no QA com ${qa.warnings} avisos`;
+export function qaText(qa: ComparisonArmView['qa'], t: ComparisonTexts): string {
+  if (qa === null) return t.qa.none;
+  if (qa.outcome === 'passed') return t.qa.passed;
+  return t.qa.passedWithWarnings(qa.warnings);
 }
 
-export function decisionText(decision: ComparisonArmView['decision']): string {
-  if (decision === null) return 'Sem decisão ainda';
-  const outcome = decision.outcome === 'approved' ? 'Aprovada' : 'Rejeitada';
-  return `${outcome}, nota ${decision.rating} de 5`;
+export function decisionText(decision: ComparisonArmView['decision'], t: ComparisonTexts): string {
+  if (decision === null) return t.decision.none;
+  return decision.outcome === 'approved' ? t.decision.approved(decision.rating) : t.decision.rejected(decision.rating);
 }
 
-export function reviewerScoresText(scores: ComparisonArmView['reviewerScores']): string {
-  if (scores.length === 0) return 'Sem notas do revisor ainda';
-  return scores.map((score) => `${reviewSubjectLabels[score.subject]} ${formatDecimal(score.overall)}`).join(' · ');
-}
-
-export function recoveriesText(recoveries: number): string {
-  if (recoveries === 0) return 'Nenhuma';
-  return recoveries === 1 ? '1 recuperação' : `${recoveries} recuperações`;
+export function reviewerScoresText(scores: ComparisonArmView['reviewerScores'], t: WebMessages, locale: Locale): string {
+  if (scores.length === 0) return t.curations.comparisons.reviewerScoresNone;
+  return scores.map((score) => `${t.runs.review.subjects[score.subject]} ${formatDecimal(score.overall, locale, 1, true)}`).join(' · ');
 }
 
 /** The `verified` flags that failed, as sentences for the warning on the comparison page. */
-export function verificationWarnings(verified: ComparisonView['verified']): string[] {
+export function verificationWarnings(verified: ComparisonView['verified'], t: ComparisonTexts): string[] {
   const warnings: string[] = [];
-  if (!verified.sameBrief) warnings.push('Os briefings das duas execuções não são iguais.');
-  if (!verified.sameReferences) warnings.push('As referências das duas execuções não são iguais.');
-  if (!verified.onlyComparedDiffers) warnings.push('As receitas das duas execuções diferem em mais do que a versão comparada.');
+  if (!verified.sameBrief) warnings.push(t.warnings.sameBrief);
+  if (!verified.sameReferences) warnings.push(t.warnings.sameReferences);
+  if (!verified.onlyComparedDiffers) warnings.push(t.warnings.onlyComparedDiffers);
   return warnings;
 }

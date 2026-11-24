@@ -1,6 +1,7 @@
 import { type AssetVersionView, type CreateComparisonRequest, type RecipeVersionView } from '@studio/shared/api';
 import { assetRefPattern, formatAssetRef, parseAssetRef } from '@studio/shared/catalog';
 import { type Recipe } from '@studio/shared/recipes';
+import { type WebMessages } from '@/messages';
 import { slotLabel } from './comparison-labels';
 
 export type ComparisonKind = CreateComparisonRequest['subject']['kind'];
@@ -37,8 +38,8 @@ export interface SelectOption {
 }
 
 /** Slots arm A pins, each with its bound ref: arm B swaps exactly one of them. */
-export function bindingSlotOptions(recipe: Recipe): SelectOption[] {
-  return recipe.bindings.map((binding) => ({ value: binding.slot, label: `${slotLabel(binding.slot)} · ${binding.ref}` }));
+export function bindingSlotOptions(recipe: Recipe, slotLabels: WebMessages['recipes']['bindings']['slots']): SelectOption[] {
+  return recipe.bindings.map((binding) => ({ value: binding.slot, label: `${slotLabel(binding.slot, slotLabels)} · ${binding.ref}` }));
 }
 
 /** The asset id bound in `slot`, or null when the recipe does not pin that slot. */
@@ -72,15 +73,15 @@ export type SubjectResult =
   | { kind: 'invalid'; errors: ComparisonChoiceErrors };
 
 /** The request's `subject` and `title` from the choice; the api validates again (B14). */
-export function buildSubject(choice: ComparisonChoice): SubjectResult {
+export function buildSubject(choice: ComparisonChoice, t: WebMessages['curations']['comparisons']['errors']): SubjectResult {
   const errors: ComparisonChoiceErrors = {};
   const title = choice.title.trim();
-  if (title.length > TITLE_MAX_CHARS) errors.title = `Use até ${TITLE_MAX_CHARS} caracteres.`;
+  if (title.length > TITLE_MAX_CHARS) errors.title = t.titleTooLong(TITLE_MAX_CHARS);
   if (choice.kind === 'asset-binding') {
-    if (choice.slot === '') errors.slot = 'Escolha o vínculo que muda na versão B.';
-    else if (choice.assetRef === '') errors.assetRef = 'Escolha a outra versão do ativo.';
+    if (choice.slot === '') errors.slot = t.slot;
+    else if (choice.assetRef === '') errors.assetRef = t.assetRef;
   } else if (choice.recipeRef === '') {
-    errors.recipeRef = 'Escolha a outra versão da receita.';
+    errors.recipeRef = t.recipeRef;
   }
   if (Object.keys(errors).length > 0) return { kind: 'invalid', errors };
   const subject: CreateComparisonRequest['subject'] =

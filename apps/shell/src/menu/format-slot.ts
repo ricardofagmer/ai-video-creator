@@ -1,9 +1,12 @@
+import { type ShellLocale } from '../i18n/locale';
+
 /**
- * `qua., 25/11 09:00`: weekday, day/month and 24-hour time. `timeZone` is injected by tests; the
- * menu leaves it undefined so the Mac's local zone applies.
+ * `qua., 25/11 09:00` (pt-BR), `Wed, 11/25 09:00` (en): weekday, day and month in the locale's
+ * order, and 24-hour time in every locale. `timeZone` is injected by tests; the menu leaves it
+ * undefined so the Mac's local zone applies.
  */
-export function formatSlot(atMs: number, timeZone?: string): string {
-  const parts = new Intl.DateTimeFormat('pt-BR', {
+export function formatSlot(atMs: number, locale: ShellLocale, timeZone?: string): string {
+  const text = new Intl.DateTimeFormat(locale, {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
@@ -11,7 +14,6 @@ export function formatSlot(atMs: number, timeZone?: string): string {
     minute: '2-digit',
     hourCycle: 'h23',
     timeZone,
-  }).formatToParts(new Date(atMs));
-  const part = (type: Intl.DateTimeFormatPartTypes): string => parts.find((entry) => entry.type === type)?.value ?? '';
-  return `${part('weekday')}, ${part('day')}/${part('month')} ${part('hour')}:${part('minute')}`;
+  }).format(new Date(atMs));
+  return text.replace(/, (?=\d{2}:\d{2}$)/, ' ');
 }

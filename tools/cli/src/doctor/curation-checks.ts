@@ -1,4 +1,5 @@
 import { failedBeforeAnyCall, scanCurations } from '../curations/curation-reader.js';
+import { cliText } from '../i18n/messages.js';
 import { type DoctorCheck } from './doctor-check.js';
 
 /** How far back a curation that failed before any model call is still worth a warning. */
@@ -26,20 +27,16 @@ export async function checkCurations(
 ): Promise<{ check: DoctorCheck; lines: string[] }> {
   const scan = await scanCurations(curationsRoot, options.signal);
   const failed = failedBeforeAnyCall(scan, curationFailureWindowStart(options.now));
-  const label = 'curadorias';
+  const text = cliText().doctor;
+  const label = text.labels.curations;
   if (failed.length === 0 && scan.unreadable.length === 0) {
-    return {
-      check: { label, status: 'ok', detail: `nenhuma falhou antes de chamar o modelo nos últimos ${CURATION_FAILURE_WINDOW_DAYS} dias.` },
-      lines: [],
-    };
+    return { check: { label, status: 'ok', detail: text.curations.ok(CURATION_FAILURE_WINDOW_DAYS) }, lines: [] };
   }
   const parts: string[] = [];
-  if (failed.length > 0) {
-    parts.push(`${failed.length} terminou(aram) com falha antes de chamar o modelo nos últimos ${CURATION_FAILURE_WINDOW_DAYS} dias; peça de novo se ainda quiser a proposta`);
-  }
-  if (scan.unreadable.length > 0) parts.push(`${scan.unreadable.length} pasta(s) ilegível(is)`);
+  if (failed.length > 0) parts.push(text.curations.failed(failed.length, CURATION_FAILURE_WINDOW_DAYS));
+  if (scan.unreadable.length > 0) parts.push(text.curations.unreadable(scan.unreadable.length));
   const ids = [...failed.map((entry) => entry.curationId), ...scan.unreadable];
   const lines = ids.slice(0, MAX_LISTED_CURATIONS).map((curationId) => `        ${curationId}`);
-  if (ids.length > MAX_LISTED_CURATIONS) lines.push(`        ... e mais ${ids.length - MAX_LISTED_CURATIONS}.`);
+  if (ids.length > MAX_LISTED_CURATIONS) lines.push(text.data.andMore(ids.length - MAX_LISTED_CURATIONS));
   return { check: { label, status: 'warning', detail: `${parts.join('; ')}.` }, lines };
 }

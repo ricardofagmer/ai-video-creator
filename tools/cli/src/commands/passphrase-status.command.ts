@@ -1,4 +1,5 @@
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { withCliContext } from '../nest/cli-context.js';
 import { type CommandDependencies } from './command-dependencies.js';
 
@@ -10,10 +11,10 @@ export async function passphraseStatusCommand(dependencies: CommandDependencies)
   const { printer } = dependencies;
   return withCliContext(async (context) => {
     if (await context.passphraseHashes.exists()) {
-      printer.line('Senha do studio: definida.');
+      printer.line(cliText().commands.passphrase.isSet);
       return ExitCode.ok;
     }
-    printer.line('Senha do studio: não definida. Use "studio passphrase set".');
+    printer.line(cliText().commands.passphrase.notSet);
     return ExitCode.notFound;
   });
 }

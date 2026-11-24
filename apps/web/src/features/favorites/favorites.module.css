@@ -1,0 +1,10 @@
+/* A layout class such as `display: flex` would otherwise win over the browser's own `[hidden]` rule. */
+.filterable[hidden] {
+  display: none;
+}
+
+/* The owner asked for a yellow star on a saved favorite (2026-11-24). No yellow token is strong enough on
+   the light theme (`--color-yellow-300` is pale), so the two shades are set here. */
+.marked {
+  color: light-dark(#e0a100, #fbbf24);
+}

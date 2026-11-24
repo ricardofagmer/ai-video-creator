@@ -14,6 +14,7 @@ import {
   BiometricDowngradeError,
 } from '../catalog.errors';
 import { HyperframesTemplateCheck } from '../hyperframes-template.check';
+import { SkillEntryFileService } from '../skill-entry-file';
 import { SaveAssetVersionCommand } from './save-asset-version.command';
 
 const VersionNumberSchema = z.number().int().min(1);
@@ -27,6 +28,7 @@ export class SaveAssetVersionHandler implements ICommandHandler<SaveAssetVersion
     private readonly versions: AssetVersionRepository,
     private readonly content: AssetContentService,
     private readonly hyperframes: HyperframesTemplateCheck,
+    private readonly entryFiles: SkillEntryFileService,
   ) {}
 
   async execute(command: SaveAssetVersionCommand): Promise<AssetVersion> {
@@ -74,7 +76,7 @@ export class SaveAssetVersionHandler implements ICommandHandler<SaveAssetVersion
     content: AssetContentInput,
     signal: AbortSignal | undefined,
   ): Promise<PreparedContent> {
-    if (content.source !== 'previous-version') {
+    if (content.source !== 'previous-version' && content.source !== 'previous-version-entry-file') {
       await this.hyperframes.assertNewContent(kind, metadata.details, content);
       return this.content.prepare({ kind, sensitivity: metadata.sensitivity, content, signal });
     }
@@ -82,6 +84,11 @@ export class SaveAssetVersionHandler implements ICommandHandler<SaveAssetVersion
     const row = await this.versions.findVersion(assetId, version);
     if (row === null) throw new AssetVersionNotFoundError(formatAssetRef({ assetId, version }));
     const previous = toAssetVersion(row);
+    if (content.source === 'previous-version-entry-file') {
+      // The new folder is written to the store, so biometric material is refused before any write.
+      assertBiometricStorage(metadata.sensitivity, 'store');
+      return this.entryFiles.replaceText(previous, content.text, signal);
+    }
     assertBiometricStorage(metadata.sensitivity, previous.storage.mode);
     await this.hyperframes.assertReusedContent(kind, metadata.details, previous);
     return {

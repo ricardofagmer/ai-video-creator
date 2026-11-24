@@ -1,25 +1,24 @@
 import { SeedCatalogCommand, type SeedEntryResult, type SeedReport } from '@studio/core/seed';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { withCliContext } from '../nest/cli-context.js';
 import { type CommandDependencies } from './command-dependencies.js';
 
-const targetLabels: Readonly<Record<SeedEntryResult['target'], string>> = { asset: 'asset', recipe: 'receita' };
-const folderLabels: Readonly<Record<SeedReport['optionalFolders']['recipes'], string>> = {
-  absent: 'ausente',
-  empty: 'vazia',
-  loaded: 'carregada',
-};
+function folderLabel(state: SeedReport['optionalFolders']['recipes']): string {
+  return cliText().commands.seed.folders[state];
+}
 
 /** Seed report lines carry entry ids, refs and path-free failure codes only (seed-report.ts). */
 function entryLine(entry: SeedEntryResult): string {
-  const target = targetLabels[entry.target];
+  const text = cliText().commands.seed;
+  const target = text.targets[entry.target];
   switch (entry.outcome) {
     case 'created':
-      return `  criado      ${target} ${entry.ref}  (${entry.entryId})`;
+      return text.created(target, entry.ref, entry.entryId);
     case 'unchanged':
-      return `  sem mudança ${target} ${entry.ref}  (${entry.entryId})`;
+      return text.unchanged(target, entry.ref, entry.entryId);
     case 'failed':
-      return `  falhou      ${target} ${entry.entryId}: ${entry.failure.code} - ${entry.failure.message}`;
+      return text.failed(target, entry.entryId, entry.failure.code, entry.failure.message);
   }
 }
 
@@ -33,12 +32,11 @@ export async function catalogSeedCommand(sourceRoot: string | undefined, depende
     context.commandBus.execute(new SeedCatalogCommand({ sourceRoot, signal: dependencies.signal })),
   );
   const { printer } = dependencies;
-  printer.line('Seed do catálogo:');
+  const text = cliText().commands.seed;
+  printer.line(text.heading);
   for (const entry of report.entries) printer.line(entryLine(entry));
-  printer.line(
-    `Pastas opcionais: receitas ${folderLabels[report.optionalFolders.recipes]}, prompts ${folderLabels[report.optionalFolders.prompts]}.`,
-  );
+  printer.line(text.optionalFolders(folderLabel(report.optionalFolders.recipes), folderLabel(report.optionalFolders.prompts)));
   const { created, unchanged, failed } = report.counts;
-  printer.line(`Total: ${created} criados, ${unchanged} sem mudança, ${failed} com falha.`);
+  printer.line(text.total(created, unchanged, failed));
   return failed > 0 ? ExitCode.partial : ExitCode.ok;
 }

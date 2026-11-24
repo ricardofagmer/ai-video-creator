@@ -4,18 +4,15 @@ import { ComparisonIdSchema } from '@studio/shared/catalog';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import layout from '@/features/common/layout.module.css';
-import {
-  comparisonStatusLabels,
-  comparisonStatusTones,
-  subjectText,
-  verificationWarnings,
-} from '@/features/comparisons/comparison-labels';
+import { comparisonStatusTones, subjectText, verificationWarnings } from '@/features/comparisons/comparison-labels';
 import { loadArmAspects, loadComparison } from '@/features/comparisons/comparison-page.server';
 import styles from '@/features/comparisons/comparisons.module.css';
 import { ComparisonArmColumn } from '@/features/comparisons/components/ComparisonArmColumn';
 import { ComparisonCostCard } from '@/features/comparisons/components/ComparisonCostCard';
 import { RunListAutoRefresh } from '@/features/runs/components/RunListAutoRefresh';
 import { formatDateTime } from '@/features/runs/run-labels';
+import { getI18n } from '@/lib/i18n/server';
+import { type WebMessages } from '@/messages';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,23 +27,20 @@ async function readComparison(comparisonId: string): Promise<ComparisonView | nu
 export async function generateMetadata({ params }: ComparisonPageProps): Promise<Metadata> {
   const { comparisonId } = await params;
   const comparison = await readComparison(comparisonId);
-  return { title: comparison === null ? 'Comparações' : `${comparison.title} · Comparações` };
+  const { t } = await getI18n();
+  const texts = t.curations.comparisons;
+  return { title: comparison === null ? texts.list.title : texts.detail.titleOf(comparison.title) };
 }
 
-function StatusNotice({ comparison }: { comparison: ComparisonView }) {
+function StatusNotice({ comparison, t }: { comparison: ComparisonView; t: WebMessages['curations']['comparisons']['detail'] }) {
   if (comparison.status === 'draft') {
-    return <Alert variant="info">As duas execuções estão em rascunho. Nada foi gasto até você aceitar o custo máximo do par.</Alert>;
+    return <Alert variant="info">{t.draftNotice}</Alert>;
   }
   if (comparison.status === 'incomplete') {
-    return <Alert variant="warning">Uma das execuções falhou ou foi rejeitada sem manifesto, então a comparação ficou incompleta.</Alert>;
+    return <Alert variant="warning">{t.incompleteNotice}</Alert>;
   }
   if (comparison.status === 'ready') {
-    return (
-      <Alert variant="info">
-        Uma comparação é um único par de execuções: é uma evidência fraca. Veja também a nota de cada versão antes de decidir. Para ativar
-        uma versão, abra a página dela.
-      </Alert>
-    );
+    return <Alert variant="info">{t.readyNotice}</Alert>;
   }
   return null;
 }
@@ -60,15 +54,17 @@ function StatusNotice({ comparison }: { comparison: ComparisonView }) {
 export default async function ComparisonPage({ params }: ComparisonPageProps) {
   const { comparisonId } = await params;
   const comparison = await readComparison(comparisonId);
+  const { t, locale } = await getI18n();
+  const texts = t.curations.comparisons;
 
   if (comparison === null) {
     return (
       <EmptyState
-        title="Comparação não encontrada"
-        description="Ela pode ter sido digitada errada no endereço."
+        title={texts.detail.notFoundTitle}
+        description={texts.detail.notFoundDescription}
         action={
           <Link href="/comparacoes" className={buttonClassName({ variant: 'secondary' })}>
-            Voltar às comparações
+            {texts.detail.backToList}
           </Link>
         }
       />
@@ -76,7 +72,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
   }
 
   const aspects = await loadArmAspects(comparison);
-  const warnings = verificationWarnings(comparison.verified);
+  const warnings = verificationWarnings(comparison.verified, texts);
   const rejectedHasVideo = comparison.status === 'ready';
 
   return (
@@ -84,20 +80,20 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
       <PageHeader
         back={
           <Link href="/comparacoes" className={textLinkClassName()}>
-            ← Comparações
+            {texts.new.back}
           </Link>
         }
         title={comparison.title}
-        meta={<Badge tone={comparisonStatusTones[comparison.status]}>{comparisonStatusLabels[comparison.status]}</Badge>}
+        meta={<Badge tone={comparisonStatusTones[comparison.status]}>{texts.statuses[comparison.status]}</Badge>}
         description={
           <>
-            <span className="mono">{subjectText(comparison.subject)}</span>
-            {` · criada por ${comparison.createdBy} em ${formatDateTime(comparison.createdAt)}`}
+            <span className="mono">{subjectText(comparison.subject, t)}</span>
+            {texts.detail.createdBy(comparison.createdBy, formatDateTime(comparison.createdAt, locale))}
           </>
         }
       />
       {warnings.length > 0 && (
-        <Alert variant="warning" title="As duas execuções não são comparáveis em tudo">
+        <Alert variant="warning" title={texts.detail.warningsTitle}>
           <ul className={styles.warningList}>
             {warnings.map((warning) => (
               <li key={warning}>{warning}</li>
@@ -105,7 +101,7 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
           </ul>
         </Alert>
       )}
-      <StatusNotice comparison={comparison} />
+      <StatusNotice comparison={comparison} t={texts.detail} />
       <div className={styles.arms}>
         <ComparisonArmColumn
           comparisonId={comparison.comparisonId}
@@ -113,6 +109,8 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
           arm={comparison.arms.a}
           rejectedHasVideo={rejectedHasVideo}
           aspect={aspects.a}
+          t={t}
+          locale={locale}
         />
         <ComparisonArmColumn
           comparisonId={comparison.comparisonId}
@@ -120,9 +118,11 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
           arm={comparison.arms.b}
           rejectedHasVideo={rejectedHasVideo}
           aspect={aspects.b}
+          t={t}
+          locale={locale}
         />
       </div>
-      <ComparisonCostCard comparison={comparison} />
+      <ComparisonCostCard comparison={comparison} t={texts.cost} locale={locale} />
       <RunListAutoRefresh active={comparison.status === 'running'} />
     </div>
   );

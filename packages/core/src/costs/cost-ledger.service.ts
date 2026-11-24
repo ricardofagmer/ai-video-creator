@@ -41,7 +41,10 @@ export class CostLedgerService implements CostLedgerPort {
 
   /** Throws `PriceNotAvailableError` for live usage the table cannot price (fails closed). */
   priceUsd(usage: UsageQuantity): number {
-    if (!this.modes.isLive(usageProvider(usage))) return 0;
+    const provider = usageProvider(usage);
+    if (!this.modes.isLive(provider)) return 0;
+    // ADR 0011: Claude Code calls run on the subscription, which bills nothing per call.
+    if (provider === 'claude' && this.modes.usesClaudeCode()) return 0;
     return priceUsage(PRICE_TABLE, usage);
   }
 

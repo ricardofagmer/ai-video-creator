@@ -1,0 +1,83 @@
+import { AssetRefSchema } from '@studio/shared/catalog';
+import { BRIEF_INSTRUCTIONS_MAX, RecipeRefSchema } from '@studio/shared/recipes';
+import { z } from 'zod';
+import { type NewRunFormValues } from '@/features/runs/new-run-model';
+import { draftSteps, type DraftStep } from './wizard-steps';
+import { type WizardChoices } from './wizard-recipe';
+
+/** sessionStorage key of the answers of steps 0 to 4 (guided-creation spec section 5). */
+export const WIZARD_STORAGE_KEY = 'studio.wizard.v1';
+
+/** C10 `CreateRunRequest.references` holds at most 50 refs (the picker's own bound). */
+const MAX_DRAFT_REFERENCES = 50;
+
+/** A recipe version "Iniciar" already saved for these pins, reused when the run creation is retried. */
+export interface SavedComposition {
+  key: string;
+  ref: string;
+}
+
+/** What the owner answered so far; nothing here is a secret, and the api validates all of it again. */
+export interface WizardDraft {
+  step: DraftStep;
+  values: NewRunFormValues;
+  instructions: string;
+  references: readonly string[];
+  choices: WizardChoices;
+  saved: SavedComposition | null;
+}
+
+const refOrEmpty = z.union([z.literal(''), AssetRefSchema]);
+
+// Loose upper bounds: they only keep a tampered or stale entry from growing the page; the
+// brief's own rules are checked by `buildBrief` and by the api.
+const WizardDraftSchema = z
+  .object({
+    step: z.enum(draftSteps),
+    values: z
+      .object({
+        recipeRef: z.union([z.literal(''), RecipeRefSchema]),
+        topic: z.string().max(1000),
+        sourceUrl: z.string().max(4096),
+        keyMessages: z.string().max(8000),
+        targetDurationSec: z.string().max(10),
+      })
+      .strict(),
+    instructions: z.string().max(BRIEF_INSTRUCTIONS_MAX),
+    references: z.array(AssetRefSchema).max(MAX_DRAFT_REFERENCES),
+    choices: z
+      .object({ voice: refOrEmpty.optional(), template: refOrEmpty.optional(), 'brand-kit': refOrEmpty.optional(), music: refOrEmpty.optional() })
+      .strict(),
+    saved: z.object({ key: z.string().max(2000), ref: RecipeRefSchema }).strict().nullable(),
+  })
+  .strict();
+
+export function emptyDraft(recipeRef: string): WizardDraft {
+  return {
+    step: 'idea',
+    values: { recipeRef, topic: '', sourceUrl: '', keyMessages: '', targetDurationSec: '' },
+    instructions: '',
+    references: [],
+    choices: {},
+    saved: null,
+  };
+}
+
+/** The stored text as a draft, or null when it is absent, not JSON or not a draft of this version. */
+export function parseDraft(text: string | null): WizardDraft | null {
+  if (text === null) return null;
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const parsed = WizardDraftSchema.safeParse(json);
+  return parsed.success ? parsed.data : null;
+}
+
+/** The draft with a base recipe that no longer runs dropped, so the owner chooses again. */
+export function draftForRecipes(draft: WizardDraft, runnableRefs: readonly string[]): WizardDraft {
+  if (draft.values.recipeRef === '' || runnableRefs.includes(draft.values.recipeRef)) return draft;
+  return { ...draft, values: { ...draft.values, recipeRef: '' }, choices: {}, saved: null };
+}

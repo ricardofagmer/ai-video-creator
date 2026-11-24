@@ -1,38 +1,27 @@
-import { formatBytes } from '@studio/ui';
+import { formatBytes, type Locale } from '@studio/ui';
 import { type RunPublicationLine } from '@studio/shared/platforms';
-import { type EgressEntry, type ProviderName } from '@studio/shared/run-format';
+import { type EgressEntry } from '@studio/shared/run-format';
 import { platformLabels } from '@/features/metrics/metric-labels';
-import { formatInstant, publishFailureTexts, visibilityWords } from './publish-labels';
+import { type WebMessages } from '@/messages';
+import { formatInstant } from './publish-labels';
 
-/** One line of "O que saiu da máquina", already in pt-BR; rendered as a text node. */
+/** One line of "O que saiu da máquina", in the active language; rendered as a text node. */
 export interface LeftTheMachineItem {
   key: string;
   text: string;
   /** A simulated upload: nothing actually left the machine. */
   mock: boolean;
+  /** The language of `text` when part of it is recorded engine prose (the egress summary). */
+  lang?: string;
 }
 
-const providerLabels: Readonly<Record<ProviderName, string>> = {
-  claude: 'Claude',
-  elevenlabs: 'ElevenLabs',
-  'local-voice': 'Voz local',
-  capture: 'Captura de página',
-  render: 'Renderização',
-};
-
-const eventPhrases: Readonly<Record<RunPublicationLine['event'], string>> = {
-  'upload-started': 'envio do vídeo final iniciado',
-  published: 'vídeo final enviado',
-  'sent-to-inbox': 'vídeo final enviado para a caixa de entrada',
-  failed: 'envio do vídeo final falhou',
-  'outcome-unknown': 'vídeo final enviado sem confirmação',
-};
-
-function egressItem(entry: EgressEntry, index: number): LeftTheMachineItem {
+function egressItem(entry: EgressEntry, index: number, t: WebMessages['publishing'], locale: Locale): LeftTheMachineItem {
   return {
     key: `egress-${index}`,
-    text: `${formatInstant(entry.at)} ${providerLabels[entry.provider]}: ${entry.summary}`,
+    text: `${formatInstant(entry.at, locale)} ${t.leftTheMachine.providers[entry.provider]}: ${entry.summary}`,
     mock: false,
+    // The summary is written by the engine in pt-BR when the run happens.
+    lang: locale === 'pt-BR' ? undefined : 'pt-BR',
   };
 }
 
@@ -41,14 +30,15 @@ function egressItem(entry: EgressEntry, index: number): LeftTheMachineItem {
  * biométricos confirmados: voz-ricardo@3." Sizes, the visibility and refs only: a line carries no
  * title, caption, tag, URL, path or account label.
  */
-function publicationItem(line: RunPublicationLine, index: number): LeftTheMachineItem {
-  const platform = line.mode === 'mock' ? `${platformLabels[line.platform]} (simulado)` : platformLabels[line.platform];
-  let sentence = `${eventPhrases[line.event]} (${formatBytes(line.sizeBytes)}), ${visibilityWords[line.visibility]}`;
-  if (line.biometricRefs.length > 0) sentence += `; ativos biométricos confirmados: ${line.biometricRefs.join(', ')}`;
-  const reason = line.reasonId === null ? '' : ` ${publishFailureTexts[line.reasonId]}`;
+function publicationItem(line: RunPublicationLine, index: number, t: WebMessages['publishing'], locale: Locale): LeftTheMachineItem {
+  const texts = t.leftTheMachine;
+  const platform = line.mode === 'mock' ? texts.simulated(platformLabels[line.platform]) : platformLabels[line.platform];
+  let sentence = `${texts.events[line.event]} (${formatBytes(line.sizeBytes, locale)}), ${t.visibilityWords[line.visibility]}`;
+  if (line.biometricRefs.length > 0) sentence += texts.biometricConfirmed(line.biometricRefs.join(', '));
+  const reason = line.reasonId === null ? '' : ` ${t.failures[line.reasonId]}`;
   return {
     key: `publication-${line.attemptId}-${line.event}-${index}`,
-    text: `${formatInstant(line.at)} ${platform}: ${sentence}.${reason}`,
+    text: `${formatInstant(line.at, locale)} ${platform}: ${sentence}.${reason}`,
     mock: line.mode === 'mock',
   };
 }
@@ -57,6 +47,11 @@ function publicationItem(line: RunPublicationLine, index: number): LeftTheMachin
  * "O que saiu da máquina" (section 5.4, AC 49): `manifest.json.egress` first, then the run's
  * `publications.jsonl` lines, oldest first, as the api returns them.
  */
-export function leftTheMachineItems(egress: readonly EgressEntry[], lines: readonly RunPublicationLine[]): LeftTheMachineItem[] {
-  return [...egress.map(egressItem), ...lines.map(publicationItem)];
+export function leftTheMachineItems(
+  egress: readonly EgressEntry[],
+  lines: readonly RunPublicationLine[],
+  t: WebMessages['publishing'],
+  locale: Locale,
+): LeftTheMachineItem[] {
+  return [...egress.map((entry, index) => egressItem(entry, index, t, locale)), ...lines.map((line, index) => publicationItem(line, index, t, locale))];
 }

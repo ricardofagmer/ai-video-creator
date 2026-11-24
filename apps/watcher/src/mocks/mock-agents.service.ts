@@ -1,5 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
+import { mockSiteAnalysis } from '@studio/core/agents';
 import {
+  ANALYST_ROLE,
   DIRECTOR_ROLE,
   EVALUATOR_ROLE,
   PLANNER_ROLE,
@@ -25,6 +27,7 @@ const responders: MockResponders = {
   [DIRECTOR_ROLE]: mockScenesFor,
   [EVALUATOR_ROLE]: mockVerdictFor,
   [RECOVERY_ROLE]: mockRecoveryActionFor,
+  [ANALYST_ROLE]: (packet) => mockSiteAnalysis(packet.inputs.brief),
 };
 
 /**

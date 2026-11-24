@@ -1,5 +1,6 @@
-import { formatBytes } from '@studio/ui';
+import { formatBytes, type Locale } from '@studio/ui';
 import { RelativePathSchema, type AssetKind } from '@studio/shared/catalog';
+import { type WebMessages } from '@/messages';
 
 /**
  * Web-side mirror of the R1-05 upload rules (`packages/core/src/catalog/catalog.limits.ts`), so the
@@ -31,6 +32,7 @@ export const allowedMimeTypesByKind: Readonly<Record<AssetKind, readonly string[
   reference: [...videoTypes, ...imageTypes, ...audioTypes, 'text/plain', 'text/markdown', 'application/pdf'],
   prompt: ['text/plain', 'text/markdown'],
   skill: [],
+  // The upload picker stays image-only; a `text/plain` image is made only by the link box.
   image: imageTypes,
   music: audioTypes,
   sfx: audioTypes,
@@ -48,21 +50,9 @@ export function allowsSingleFile(kind: AssetKind): boolean {
   return kind !== 'skill';
 }
 
-/** Short type names for the dropzone hint ("MP3, WAV ou M4A, até 200 MB"). */
-const hintTypes: Readonly<Record<AssetKind, string>> = {
-  template: 'JSON ou pasta',
-  'ai-model': 'JSON, WAV, MP3, binário ou pasta',
-  reference: 'Vídeo, imagem, áudio, texto, PDF ou pasta',
-  prompt: 'TXT ou Markdown',
-  skill: 'Pasta com SKILL.md',
-  image: 'PNG, JPEG ou WebP',
-  music: 'MP3, WAV, M4A, AAC ou FLAC',
-  sfx: 'MP3, WAV, M4A, AAC ou FLAC',
-  'brand-kit': 'JSON ou pasta',
-};
-
-export function uploadHint(kind: AssetKind): string {
-  return `${hintTypes[kind]}, até ${formatBytes(maxUploadBytesByKind[kind])}`;
+/** "MP3, WAV ou M4A, até 200 MB" for the dropzone hint, in the active locale. */
+export function uploadHint(kind: AssetKind, t: WebMessages['catalog'], locale: Locale): string {
+  return t.uploadHint(t.uploadHintTypes[kind], formatBytes(maxUploadBytesByKind[kind], locale));
 }
 
 export function acceptAttribute(kind: AssetKind): string | undefined {

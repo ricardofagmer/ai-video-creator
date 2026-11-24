@@ -3,6 +3,7 @@ import { type RunId } from '@studio/shared/run-format';
 import { scanCatalogVersions } from '../catalog/catalog-scan.js';
 import { scanCurations, terminalCurationIds } from '../curations/curation-reader.js';
 import { settleCurations } from '../curations/curation-settlement.js';
+import { cliText } from '../i18n/messages.js';
 import { type CliContext } from '../nest/cli-context.js';
 import { formatBytes } from '../output/format.js';
 import { listAllRunIds, readRunSnapshot } from '../runs/run-reader.js';
@@ -16,30 +17,30 @@ const MAX_LISTED_REFERENCES = 20;
 export async function checkDatabase(context: CliContext): Promise<DoctorCheck> {
   // A constant tagged template: Prisma sends it as a prepared statement with no parameters.
   await context.prisma.$queryRaw`SELECT 1`;
-  return { label: 'banco de dados', status: 'ok', detail: `${context.dataHome.databaseFile} responde.` };
+  const text = cliText().doctor;
+  return { label: text.labels.database, status: 'ok', detail: text.data.databaseOk(context.dataHome.databaseFile) };
 }
 
 export async function checkStoreSize(context: CliContext, signal: AbortSignal): Promise<DoctorCheck> {
   const usage = await measureStore(context.dataHome.assets, signal);
-  const size = `${formatBytes(usage.bytes)} em ${usage.files} arquivo(s)`;
-  if (usage.truncated) return { label: 'armazenamento', status: 'warning', detail: `pelo menos ${size}; a contagem parou no limite.` };
-  return { label: 'armazenamento', status: 'ok', detail: `${size}.` };
+  const text = cliText().doctor;
+  const size = text.data.storageSize(formatBytes(usage.bytes), usage.files);
+  if (usage.truncated) return { label: text.labels.storage, status: 'warning', detail: text.data.storageTruncated(size) };
+  return { label: text.labels.storage, status: 'ok', detail: `${size}.` };
 }
 
 /** Paths of non-biometric references are shown so the owner can find them; biometric ones never. */
 export async function checkReferences(context: CliContext, signal: AbortSignal): Promise<{ check: DoctorCheck; lines: string[] }> {
   const versions = await scanCatalogVersions(context.queryBus, signal);
   const unreachable = await findUnreachableReferences(versions, signal);
-  const label = 'referências';
-  if (unreachable.length === 0) return { check: { label, status: 'ok', detail: 'todas as referências estão acessíveis.' }, lines: [] };
+  const text = cliText().doctor;
+  const label = text.labels.references;
+  if (unreachable.length === 0) return { check: { label, status: 'ok', detail: text.data.referencesOk }, lines: [] };
   const lines = unreachable
     .slice(0, MAX_LISTED_REFERENCES)
-    .map((reference) => `        ${reference.ref}: ${reference.path ?? 'referência biométrica (caminho não exibido)'}`);
-  if (unreachable.length > MAX_LISTED_REFERENCES) lines.push(`        ... e mais ${unreachable.length - MAX_LISTED_REFERENCES}.`);
-  return {
-    check: { label, status: 'warning', detail: `${unreachable.length} referência(s) inacessível(is); execuções que as usam param no preflight.` },
-    lines,
-  };
+    .map((reference) => `        ${reference.ref}: ${reference.path ?? text.data.biometricReference}`);
+  if (unreachable.length > MAX_LISTED_REFERENCES) lines.push(text.data.andMore(unreachable.length - MAX_LISTED_REFERENCES));
+  return { check: { label, status: 'warning', detail: text.data.unreachable(unreachable.length) }, lines };
 }
 
 /**
@@ -65,9 +66,10 @@ export async function checkCostIndex(context: CliContext, signal: AbortSignal): 
   const report = await settleRuns(context, targets);
   const curationScan = await scanCurations(context.dataHome.curations, signal);
   const curationReport = await settleCurations(context, terminalCurationIds(curationScan));
-  const label = 'custos e índice';
+  const text = cliText().doctor;
+  const label = text.labels.costIndex;
   const inserted = report.insertedCostEntries + curationReport.insertedCostEntries;
-  const summary = `${report.runs} execução(ões) e ${curationReport.curations} curadoria(s) indexada(s), ${inserted} lançamento(s) de custo novo(s)`;
+  const summary = text.data.costSummary(report.runs, curationReport.curations, inserted);
   const problemIds: string[] = [
     ...report.failures.map((failure) => failure.runId),
     ...unreadable,
@@ -75,15 +77,16 @@ export async function checkCostIndex(context: CliContext, signal: AbortSignal): 
     ...curationScan.unreadable,
   ];
   if (problemIds.length === 0) return { label, status: 'ok', detail: `${summary}.` };
-  return { label, status: 'warning', detail: `${summary}; ${problemIds.length} com problema (${problemIds.slice(0, 5).join(', ')}).` };
+  return { label, status: 'warning', detail: text.data.withProblems(summary, problemIds.length, problemIds.slice(0, 5).join(', ')) };
 }
 
 /** `doctor --rebuild-index`: the core rebuild (ADR 0003), files win; orphaned rows are only reported. */
 export async function rebuildRunIndex(context: CliContext): Promise<DoctorCheck> {
   const report = await context.commandBus.execute(new RebuildRunIndexCommand());
-  const parts = [`${report.indexed} execução(ões) reindexada(s)`];
-  if (report.unreadable.length > 0) parts.push(`${report.unreadable.length} pasta(s) ilegível(is)`);
-  if (report.orphaned.length > 0) parts.push(`${report.orphaned.length} linha(s) sem pasta (mantidas)`);
+  const text = cliText().doctor;
+  const parts = [text.data.reindexed(report.indexed)];
+  if (report.unreadable.length > 0) parts.push(text.data.unreadableFolders(report.unreadable.length));
+  if (report.orphaned.length > 0) parts.push(text.data.orphanedRows(report.orphaned.length));
   const status: CheckStatus = report.unreadable.length > 0 || report.orphaned.length > 0 ? 'warning' : 'ok';
-  return { label: 'reconstrução do índice', status, detail: `${parts.join(', ')}.` };
+  return { label: text.labels.rebuild, status, detail: `${parts.join(', ')}.` };
 }

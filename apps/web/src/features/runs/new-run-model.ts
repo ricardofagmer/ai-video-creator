@@ -1,5 +1,9 @@
 import { type RecipeVersionView } from '@studio/shared/api';
 import { BriefSchema, missingBriefInputs, type Brief, type Recipe } from '@studio/shared/recipes';
+import { type WebMessages } from '@/messages';
+
+/** The inline error texts of the brief fields (`t.runs.brief.errors`). */
+export type BriefErrorTexts = WebMessages['runs']['brief']['errors'];
 
 /** Owner-typed values of the new-run form (design/telas/07 "Nova execução"). */
 export interface NewRunFormValues {
@@ -59,22 +63,22 @@ function keyMessageLines(text: string): string[] {
     .filter((line) => line !== '');
 }
 
-function keyMessagesError(recipe: Recipe): string {
+function keyMessagesError(recipe: Recipe, t: BriefErrorTexts): string {
   const { min, max } = recipe.inputs.keyMessages;
-  return min === max ? `Escreva ${min} mensagens-chave, uma por linha.` : `Escreva de ${min} a ${max} mensagens-chave, uma por linha.`;
+  return t.keyMessagesCount(min, max);
 }
 
-/** pt-BR inline errors for the C2 `Brief` schema issues, by form field. */
-function schemaErrors(issues: readonly { path: readonly PropertyKey[] }[], recipe: Recipe): NewRunErrors {
+/** Inline errors for the C2 `Brief` schema issues, by form field. */
+function schemaErrors(issues: readonly { path: readonly PropertyKey[] }[], recipe: Recipe, t: BriefErrorTexts): NewRunErrors {
   const errors: NewRunErrors = {};
   for (const issue of issues) {
     const field = issue.path[0];
-    if (field === 'topic') errors.topic = 'Escreva o tema com 3 a 300 caracteres.';
-    if (field === 'sourceUrl') errors.sourceUrl = 'Use um endereço http ou https completo.';
-    if (field === 'keyMessages') errors.keyMessages = 'Cada mensagem-chave tem até 300 caracteres; no máximo 10.';
+    if (field === 'topic') errors.topic = t.topicLength;
+    if (field === 'sourceUrl') errors.sourceUrl = t.sourceUrlFormat;
+    if (field === 'keyMessages') errors.keyMessages = t.keyMessagesFormat;
     if (field === 'targetDurationSec') {
       const { min, max } = durationBounds(recipe);
-      errors.targetDurationSec = `Escolha uma duração entre ${min} e ${max} segundos.`;
+      errors.targetDurationSec = t.durationRange(min, max);
     }
   }
   return errors;
@@ -85,7 +89,7 @@ function schemaErrors(issues: readonly { path: readonly PropertyKey[] }[], recip
  * the recipe; the recipe's `inputs` decide which optional fields are required (PRD 6). The api
  * validates again and stays authoritative.
  */
-export function buildBrief(values: NewRunFormValues, recipe: Recipe): BriefResult {
+export function buildBrief(values: NewRunFormValues, recipe: Recipe, t: BriefErrorTexts): BriefResult {
   const sourceUrl = values.sourceUrl.trim();
   const duration = /^[0-9]{1,4}$/.test(values.targetDurationSec.trim()) ? Number.parseInt(values.targetDurationSec.trim(), 10) : Number.NaN;
   const candidate = {
@@ -97,15 +101,15 @@ export function buildBrief(values: NewRunFormValues, recipe: Recipe): BriefResul
     targetDurationSec: duration,
   };
   const parsed = BriefSchema.safeParse(candidate);
-  const errors: NewRunErrors = parsed.success ? {} : schemaErrors(parsed.error.issues, recipe);
+  const errors: NewRunErrors = parsed.success ? {} : schemaErrors(parsed.error.issues, recipe, t);
   const { min, max } = durationBounds(recipe);
   if (errors.targetDurationSec === undefined && (!(duration >= min) || !(duration <= max))) {
-    errors.targetDurationSec = `Escolha uma duração entre ${min} e ${max} segundos.`;
+    errors.targetDurationSec = t.durationRange(min, max);
   }
   if (parsed.success) {
     for (const field of missingBriefInputs(parsed.data, recipe.inputs)) {
-      if (field === 'sourceUrl') errors.sourceUrl = 'Esta receita exige a URL de origem.';
-      if (field === 'keyMessages') errors.keyMessages = keyMessagesError(recipe);
+      if (field === 'sourceUrl') errors.sourceUrl = t.sourceUrlRequired;
+      if (field === 'keyMessages') errors.keyMessages = keyMessagesError(recipe, t);
     }
   }
   if (!parsed.success || Object.keys(errors).length > 0) return { kind: 'invalid', errors };

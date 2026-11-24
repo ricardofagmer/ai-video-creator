@@ -173,6 +173,31 @@ export class BiometricDowngradeError extends CatalogError {
   }
 }
 
+export type EntryFileUnavailableReason =
+  | 'not-a-skill'
+  | 'not-a-folder'
+  | 'referenced-folder'
+  | 'missing'
+  | 'too-large'
+  | 'folder-too-large'
+  | 'not-text';
+
+/**
+ * A skill's entry file cannot be read or replaced as text (skills spec addendum T5). The message
+ * names the reason only, never the path or the content.
+ */
+export class EntryFileUnavailableError extends CatalogError {
+  override readonly category = 'validation';
+
+  constructor(
+    readonly ref: AssetRef,
+    readonly reason: EntryFileUnavailableReason,
+  ) {
+    super(`The entry file of ${ref} is unavailable as text: ${reason}`);
+    this.name = 'EntryFileUnavailableError';
+  }
+}
+
 /** A stored row no longer satisfies C1; a data-integrity problem, never a user error. */
 export class CatalogRowCorruptError extends CatalogError {
   override readonly category = 'internal';
@@ -181,5 +206,23 @@ export class CatalogRowCorruptError extends CatalogError {
   constructor(readonly subject: string, options?: ErrorOptions) {
     super(`Catalog row ${subject} does not match the catalog contract`, options);
     this.name = 'CatalogRowCorruptError';
+  }
+}
+
+export type ImageContentUnavailableReason = 'not-an-image' | 'not-a-file' | 'not-stored' | 'biometric' | 'not-previewable' | 'missing';
+
+/**
+ * A version has no stored image the web may show as a thumbnail: only stored single-file PNG,
+ * JPEG or WebP images qualify. The message names the reason only, never the path.
+ */
+export class ImageContentUnavailableError extends CatalogError {
+  override readonly category = 'not_found';
+
+  constructor(
+    readonly ref: AssetRef,
+    readonly reason: ImageContentUnavailableReason,
+  ) {
+    super(`The image of ${ref} is unavailable: ${reason}`);
+    this.name = 'ImageContentUnavailableError';
   }
 }

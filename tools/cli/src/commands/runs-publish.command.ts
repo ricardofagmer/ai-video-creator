@@ -6,9 +6,10 @@ import { type RunId } from '@studio/shared/run-format';
 import { TerminalRequiredError } from '../errors/cli.errors.js';
 import { ExitCode } from '../errors/exit-codes.js';
 import { PlatformRequestRefusedError, PublishNotConfirmedError } from '../errors/platform.errors.js';
+import { cliText } from '../i18n/messages.js';
 import { formatBytes, formatInstant } from '../output/format.js';
 import { type Printer } from '../output/printer.js';
-import { MOCK_MODE_TEXT, PLATFORM_LABELS, PUBLISH_STATE_LABELS, otherMode, refusalText } from '../platforms/platform-labels.js';
+import { PLATFORM_LABELS, otherMode, refusalText } from '../platforms/platform-labels.js';
 import { type PlatformGateway } from '../platforms/platform-gateway.js';
 import { askPublishMetadata, askTypedConfirmation, biometricLines } from '../platforms/publish-prompt.js';
 import { readRunSnapshot } from '../runs/run-reader.js';
@@ -31,7 +32,7 @@ export interface RunsPublishPorts {
 function tabOf(view: RunPublishView, platform: Platform): PublishPlatformView {
   const tab = view.platforms.find((entry) => entry.platform === platform);
   if (tab === undefined) {
-    throw new PlatformRequestRefusedError(`${PLATFORM_LABELS[platform]} não aparece na visão de publicação desta execução; rode "studio doctor".`);
+    throw new PlatformRequestRefusedError(cliText().platforms.publish.notInView(PLATFORM_LABELS[platform]));
   }
   return tab;
 }
@@ -45,27 +46,23 @@ function refuseWhenIneligible(tab: PublishPlatformView): void {
 
 function summaryLines(options: { view: RunPublishView; tab: PublishPlatformView; account: PlatformView | undefined }): string[] {
   const { view, tab, account } = options;
-  const lines = [`Publicar a execução ${view.runId} em ${PLATFORM_LABELS[tab.platform]}`];
-  if (tab.mode === 'mock') lines.push(MOCK_MODE_TEXT);
-  if (view.artifact !== null) lines.push(`Vídeo final: ${formatBytes(view.artifact.sizeBytes)}`);
-  if (account !== undefined && account.accountLabel !== null) lines.push(`Conta: ${account.accountLabel}`);
-  if (tab.platform === 'tiktok') lines.push('Rascunho na caixa de entrada do TikTok; você termina o post no aplicativo.');
+  const text = cliText().platforms;
+  const lines = [text.publish.summary(view.runId, PLATFORM_LABELS[tab.platform])];
+  if (tab.mode === 'mock') lines.push(text.mockMode);
+  if (view.artifact !== null) lines.push(text.publish.finalVideo(formatBytes(view.artifact.sizeBytes)));
+  if (account !== undefined && account.accountLabel !== null) lines.push(text.publish.account(account.accountLabel));
+  if (tab.platform === 'tiktok') lines.push(text.publish.tiktokInbox);
   return lines;
 }
 
 function resultLines(result: RequestPublishResult, runId: RunId): string[] {
   const { attempt } = result;
+  const text = cliText().platforms;
   const platform = PLATFORM_LABELS[attempt.platform];
-  const state = PUBLISH_STATE_LABELS[attempt.state];
+  const state = text.publishStates[attempt.state];
   const head =
-    result.outcome === 'created'
-      ? `Pedido de publicação ${attempt.attemptId} registrado para ${platform}: ${state}.`
-      : `Este pedido já existia (${attempt.attemptId}, ${platform}): ${state}.`;
-  return [
-    head,
-    `O watcher envia entre execuções; se não for enviado até ${formatInstant(attempt.expiresAt)}, o pedido vence e nada é enviado.`,
-    `Acompanhe com "studio runs show ${runId}".`,
-  ];
+    result.outcome === 'created' ? text.publish.created(attempt.attemptId, platform, state) : text.publish.existed(attempt.attemptId, platform, state);
+  return [head, text.publish.expiry(formatInstant(attempt.expiresAt)), text.publish.follow(runId)];
 }
 
 function printAll(printer: Printer, lines: readonly string[]): void {
@@ -101,7 +98,7 @@ async function collectAndConfirm(options: {
  * `studio runs publish <runId> --platform <p>` (SPEC 0007 sections 5.4 and 5.9, K4, OD4). Needs a
  * terminal before anything is read. After `PublishAttemptSync` and the dialog view, a platform the
  * request would be refused on (Instagram: `platform-publish-unsupported`, OD8) is refused with its
- * pt-BR text before any question. Then it asks title, caption, tags, visibility and the AI
+ * text before any question. Then it asks title, caption, tags, visibility and the AI
  * disclosure, prints every biometric asset by title, kind and `assetId@version`, and requires the
  * typed confirmation; no flag can supply it. It writes only through `RequestPublish`
  * (`createdBy: 'cli'`), which re-checks every step; the watcher uploads later. Nothing typed is

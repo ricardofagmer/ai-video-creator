@@ -2,6 +2,7 @@ import { HYPERFRAMES_FORMAT_VERSION } from '@studio/shared/hyperframes';
 import { writeEngineFile } from '@studio/shared/hyperframes/files';
 import { checkLine } from '../doctor/doctor-check.js';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { HYPERFRAMES_CLI_ACTOR } from '../hyperframes/cli-runtime.js';
 import { HyperframesStepRefusedError, withHyperframesErrors } from '../hyperframes/hyperframes.errors.js';
 import { type HyperframesCliEvent, type HyperframesCommandPorts } from '../hyperframes/hyperframes-ports.js';
@@ -20,14 +21,14 @@ export async function recordHyperframesEvent(ports: HyperframesCommandPorts, pri
   try {
     await ports.events.record(event);
   } catch {
-    printer.line('[aviso] o evento não foi registrado no log do estúdio; o passo foi concluído.');
+    printer.line(cliText().hyperframes.eventNotRecorded);
   }
 }
 
 /** Read-only: pin, Node, sandbox, Chrome, config, trace, engine state and the next owner step. */
 export async function hyperframesStatusCommand(ports: HyperframesCommandPorts, dependencies: CommandDependencies): Promise<number> {
   const status = await readHyperframesStatus(dependencies.settings, { now: ports.now(), sandboxAvailable: ports.system.sandboxExecExists() });
-  dependencies.printer.line('Situação do motor HyperFrames');
+  dependencies.printer.line(cliText().hyperframes.status.heading);
   for (const check of hyperframesChecks(status)) dependencies.printer.line(checkLine(check));
   return ExitCode.ok;
 }
@@ -42,14 +43,14 @@ export async function hyperframesEnableCommand(ports: HyperframesCommandPorts, d
     const now = ports.now();
     const status = await readHyperframesStatus(settings, { now, sandboxAvailable: ports.system.sandboxExecExists() });
     const refusal = enableRefusal(status);
-    if (refusal !== null) throw new HyperframesStepRefusedError(`${refusal} Nada foi gravado.`);
+    if (refusal !== null) throw new HyperframesStepRefusedError(`${refusal} ${cliText().hyperframes.nothingWritten}`);
     await writeEngineFile(settings.dataHome.root, {
       format: HYPERFRAMES_FORMAT_VERSION,
       state: 'enabled',
       updatedAt: now.toISOString(),
       updatedBy: HYPERFRAMES_CLI_ACTOR,
     });
-    printer.line('Motor HyperFrames ligado. As receitas com modelo HyperFrames passam a renderizar com ele.');
+    printer.line(cliText().hyperframes.enabled);
     await recordHyperframesEvent(ports, printer, { event: 'hyperframes.engine-changed', state: 'enabled' });
     return ExitCode.ok;
   });
@@ -64,7 +65,7 @@ export async function hyperframesDisableCommand(ports: HyperframesCommandPorts, 
     updatedAt: ports.now().toISOString(),
     updatedBy: HYPERFRAMES_CLI_ACTOR,
   });
-  printer.line('Motor HyperFrames desligado. Nenhuma renderização HyperFrames roda até `studio hyperframes enable`.');
+  printer.line(cliText().hyperframes.disabled);
   await recordHyperframesEvent(ports, printer, { event: 'hyperframes.engine-changed', state: 'disabled' });
   return ExitCode.ok;
 }

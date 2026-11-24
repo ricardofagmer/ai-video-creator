@@ -1,6 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { AssetRefSchema, AssetStatusSchema, parseAssetRef } from '@studio/shared/catalog';
+import { removeDeprecatedVoiceSamples } from '../../asset-jobs/voice-sample-clips';
+import { DataHome } from '../../paths/data-home';
 import { PrismaService } from '../../prisma/prisma.service';
 import { parseInput } from '../asset-version.factory';
 import { toAssetVersion } from '../asset-version.mapper';
@@ -10,6 +12,11 @@ import { AssetVersionNotFoundError } from '../catalog.errors';
 import { SetAssetStatusCommand, type SetAssetStatusResult } from './set-asset-status.command';
 import { PromotionApprovalRequiredError } from './set-asset-status.errors';
 
+interface StatusChange {
+  result: SetAssetStatusResult;
+  changed: boolean;
+}
+
 @CommandHandler(SetAssetStatusCommand)
 export class SetAssetStatusHandler implements ICommandHandler<SetAssetStatusCommand, SetAssetStatusResult> {
   private readonly logger = new Logger(SetAssetStatusHandler.name);
@@ -17,6 +24,7 @@ export class SetAssetStatusHandler implements ICommandHandler<SetAssetStatusComm
   constructor(
     private readonly prisma: PrismaService,
     private readonly versions: AssetVersionRepository,
+    private readonly dataHome: DataHome,
   ) {}
 
   async execute(command: SetAssetStatusCommand): Promise<SetAssetStatusResult> {
@@ -30,17 +38,22 @@ export class SetAssetStatusHandler implements ICommandHandler<SetAssetStatusComm
     }
     const { assetId, version } = parseAssetRef(ref);
 
-    const result = await this.prisma.$transaction(async (transaction): Promise<SetAssetStatusResult> => {
+    const { result, changed } = await this.prisma.$transaction(async (transaction): Promise<StatusChange> => {
       const row = await this.versions.findVersion(assetId, version, transaction);
       if (row === null) throw new AssetVersionNotFoundError(ref);
       const current = toAssetVersion(row);
-      if (current.status === status) return { version: current, replaced: null };
+      if (current.status === status) return { result: { version: current, replaced: null }, changed: false };
       assertStatusTransition(ref, current.status, status);
       const updated = await this.versions.updateStatus(row.id, status, transaction);
-      return { version: toAssetVersion(updated), replaced: null };
+      return { result: { version: toAssetVersion(updated), replaced: null }, changed: true };
     });
 
     this.logger.log({ event: 'catalog.status-changed', ref, status: result.version.status, replacedRef: null });
+    // Guided-creation design section 2: a deprecated voice keeps no sample clip. After the commit,
+    // best effort: it never throws, so the status change is reported exactly as before.
+    if (changed && result.version.kind === 'ai-model' && result.version.status === 'deprecated') {
+      await removeDeprecatedVoiceSamples(this.dataHome, ref);
+    }
     return result;
   }
 }

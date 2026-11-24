@@ -13,7 +13,7 @@ import {
   ServiceStillRunningError,
 } from '../errors/service.errors.js';
 import { probeLoopback, type HttpProbe } from '../doctor/http-probe.js';
-import { isLaunchedProcess, isPortTaken, readCommandLine } from './process-identity.js';
+import { isLaunchedService, isPortTaken, readCommandLine } from './process-identity.js';
 import { readPidFile, removePidFile, writePidFile } from './service-pid-file.js';
 import { type ServiceSpec } from './service-spec.js';
 
@@ -31,11 +31,26 @@ export type StartOutcome =
 
 export type StopOutcome = { status: 'stopped'; pid: number } | { status: 'not-running' } | { status: 'stale-record-removed' };
 
-type RecordedProcess = { status: 'none' } | { status: 'ours'; pid: number } | { status: 'foreign'; pid: number };
+/** What a pid record says the process is: the entry file it ran and the port it bound. */
+interface RecordedIdentity {
+  entryPath: string;
+  port: number;
+}
+
+/**
+ * `ours` is a live process still running the entry file its own record names. `current` is true
+ * when that entry file is this copy's: a service another app copy started (an older install, a
+ * moved app) is ours to stop but is not this copy's running service.
+ */
+type RecordedProcess =
+  | { status: 'none' }
+  | { status: 'ours'; pid: number; current: boolean; identity: RecordedIdentity }
+  | { status: 'foreign'; pid: number };
 
 /**
  * What the pid file names, checked against the live process table. A dead pid, an invalid record
- * or a vanished process clears the record; only a live process running our entry file is `ours`.
+ * or a vanished process clears the record; a live process that no longer runs the recorded entry
+ * file (pid reuse, a hand edit) is `foreign`.
  */
 async function recordedProcess(spec: ServiceSpec): Promise<RecordedProcess> {
   const read = await readPidFile(spec.pidFile);
@@ -44,13 +59,33 @@ async function recordedProcess(spec: ServiceSpec): Promise<RecordedProcess> {
     await removePidFile(spec.pidFile);
     return { status: 'none' };
   }
-  const { pid, entryPath } = read.record;
+  const { pid, entryPath, port } = read.record;
   const commandLine = isProcessAlive(pid) ? await readCommandLine(pid, spec.env) : null;
   if (commandLine === null) {
     await removePidFile(spec.pidFile);
     return { status: 'none' };
   }
-  return entryPath === spec.entryPath && isLaunchedProcess(commandLine, spec.entryPath) ? { status: 'ours', pid } : { status: 'foreign', pid };
+  const identity: RecordedIdentity = { entryPath, port };
+  if (!(await runsRecordedEntry(spec, { identity, pid, commandLine }))) return { status: 'foreign', pid };
+  return { status: 'ours', pid, current: entryPath === spec.entryPath, identity };
+}
+
+interface LiveProcess {
+  identity: RecordedIdentity;
+  pid: number;
+  commandLine: string;
+}
+
+/** The identity comes from the record, not from this copy's spec, so another copy's service is recognised. */
+function runsRecordedEntry(spec: ServiceSpec, live: LiveProcess): Promise<boolean> {
+  return isLaunchedService({
+    pid: live.pid,
+    commandLine: live.commandLine,
+    entryPath: live.identity.entryPath,
+    port: live.identity.port,
+    processTitlePrefix: spec.processTitlePrefix,
+    environment: spec.env,
+  });
 }
 
 function isReady(spec: ServiceSpec, probe: HttpProbe): boolean {
@@ -118,9 +153,10 @@ async function waitUntilReady(spec: ServiceSpec, child: ChildProcess, signal: Ab
  */
 export async function startService(spec: ServiceSpec, signal: AbortSignal): Promise<StartOutcome> {
   const recorded = await recordedProcess(spec);
-  if (recorded.status === 'ours') return { status: 'already-running', pid: recorded.pid, port: spec.port };
+  if (recorded.status === 'ours' && recorded.current) return { status: 'already-running', pid: recorded.pid, port: spec.port };
   // A foreign pid in the record is pid reuse (reboot) or a hand edit: never ours to signal, so the
-  // record goes and the port check below decides.
+  // record goes and the port check below decides. A service another app copy started keeps its
+  // record, so `stop` can still stop it; while it listens the port check refuses this start.
   if (recorded.status === 'foreign') await removePidFile(spec.pidFile);
   try {
     await access(spec.entryPath, constants.R_OK);
@@ -158,8 +194,9 @@ async function waitForExit(pid: number, timeoutMs: number): Promise<boolean> {
 
 /**
  * `studio stop <service>`: signals only the pid this CLI recorded, and only after `ps` shows that
- * pid still runs the recorded entry file. SIGTERM first (graceful Nest/Next shutdown), SIGKILL
- * after the grace period, with the command line verified again before the second signal.
+ * pid still runs the recorded entry file, whichever app copy started it (an upgrade stops the
+ * previous copy's service this way). SIGTERM first (graceful Nest/Next shutdown), SIGKILL after
+ * the grace period, with the command line verified again before the second signal.
  */
 export async function stopService(spec: ServiceSpec): Promise<StopOutcome> {
   const hadRecord = (await readPidFile(spec.pidFile)).status !== 'absent';
@@ -169,11 +206,11 @@ export async function stopService(spec: ServiceSpec): Promise<StopOutcome> {
     await removePidFile(spec.pidFile);
     throw new ServiceProcessMismatchError(spec.name, recorded.pid);
   }
-  const { pid } = recorded;
+  const { pid, identity } = recorded;
   signalGroup(pid, 'SIGTERM');
   if (!(await waitForExit(pid, STOP_GRACE_MS))) {
     const commandLine = await readCommandLine(pid, spec.env);
-    if (commandLine !== null && isLaunchedProcess(commandLine, spec.entryPath)) {
+    if (commandLine !== null && (await runsRecordedEntry(spec, { identity, pid, commandLine }))) {
       signalGroup(pid, 'SIGKILL');
       if (!(await waitForExit(pid, KILL_GRACE_MS))) throw new ServiceStillRunningError(spec.name, pid);
     }
@@ -187,7 +224,8 @@ export type ServiceState = { status: 'running'; pid: number } | { status: 'not-r
 /** For `doctor`: what the pid record says, without signalling or rewriting anything but stale records. */
 export async function serviceState(spec: ServiceSpec): Promise<ServiceState> {
   const recorded = await recordedProcess(spec);
-  if (recorded.status === 'ours') return { status: 'running', pid: recorded.pid };
-  if (recorded.status === 'foreign') return { status: 'foreign-record', pid: recorded.pid };
-  return { status: 'not-running' };
+  if (recorded.status === 'none') return { status: 'not-running' };
+  // Another copy's service is not this studio's running service: `doctor` reports its record as foreign.
+  if (recorded.status === 'ours' && recorded.current) return { status: 'running', pid: recorded.pid };
+  return { status: 'foreign-record', pid: recorded.pid };
 }

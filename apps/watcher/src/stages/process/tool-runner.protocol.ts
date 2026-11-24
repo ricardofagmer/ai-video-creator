@@ -141,6 +141,21 @@ export const PageTextRequestSchema = z
   })
   .strict();
 
+/** Site analysis spec (2026-11-23): the screenshot the analyst sees is at most this wide and this large. */
+export const PAGE_SCREENSHOT_MAX_WIDTH_PX = 1600;
+export const PAGE_SCREENSHOT_MAX_BYTES = 1_500_000;
+
+/** One viewport JPEG of the brief's page, held to the same https host rule as `page-text`. */
+export const PageScreenshotRequestSchema = z
+  .object({
+    command: z.literal('page-screenshot'),
+    url: z.string().url().max(2048).startsWith('https://'),
+    maxWidthPx: z.number().int().min(320).max(PAGE_SCREENSHOT_MAX_WIDTH_PX),
+    maxBytes: z.number().int().min(10_000).max(PAGE_SCREENSHOT_MAX_BYTES),
+    output: absolutePath,
+  })
+  .strict();
+
 export const NarrationAssembleRequestSchema = z
   .object({
     command: z.literal('narration-assemble'),
@@ -208,6 +223,7 @@ export const ToolRunnerRequestSchema = z.discriminatedUnion('command', [
   TestCaptureRequestSchema,
   LiveCaptureRequestSchema,
   PageTextRequestSchema,
+  PageScreenshotRequestSchema,
   NarrationAssembleRequestSchema,
   HyperframesRenderRequestSchema,
 ]);
@@ -247,6 +263,11 @@ export type MediaReviewResult = z.infer<typeof MediaReviewResultSchema>;
 export const MediaWriteResultSchema = z.object({ durationS: z.number().nonnegative() });
 export const RenderResultSchema = z.object({ durationS: z.number().nonnegative(), renderSeconds: z.number().nonnegative() });
 export const PageTextResultSchema = z.object({ title: z.string().max(500), text: z.string(), truncated: z.boolean() });
+export const PageScreenshotResultSchema = z.object({
+  bytes: z.number().int().positive().max(PAGE_SCREENSHOT_MAX_BYTES),
+  width: z.number().int().positive().max(PAGE_SCREENSHOT_MAX_WIDTH_PX),
+  height: z.number().int().positive().max(8192),
+});
 export const NarrationAssembleResultSchema = z.object({
   durationS: z.number().positive(),
   sceneTimings: z.array(z.object({ sceneId: z.string(), startS: z.number(), endS: z.number() })),

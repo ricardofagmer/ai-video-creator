@@ -1,12 +1,14 @@
 'use client';
 
-import { Button } from '@studio/ui';
+import { Icon, Spinner, drawerItemClassName } from '@studio/ui';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactElement } from 'react';
 import { browserStudioClient, isUnauthorized } from '@/lib/api';
+import { useWebMessages } from '@/lib/i18n/client';
 
-/** design/telas/01: Button `ghost` `sm` "Sair". The api clears the httpOnly cookie. */
+/** design/telas/01: the "Sair" row of the drawer's account menu. The api clears the httpOnly cookie. */
 export function LogoutButton(): ReactElement {
+  const t = useWebMessages();
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -26,8 +28,15 @@ export function LogoutButton(): ReactElement {
   }
 
   return (
-    <Button variant="ghost" size="sm" loading={pending} onClick={() => void handleLogout()}>
-      Sair
-    </Button>
+    <button
+      type="button"
+      className={drawerItemClassName()}
+      disabled={pending}
+      aria-busy={pending ? true : undefined}
+      onClick={() => void handleLogout()}
+    >
+      {pending ? <Spinner size="sm" decorative /> : <Icon name="log-out" />}
+      <span>{t.shell.logout}</span>
+    </button>
   );
 }

@@ -98,36 +98,6 @@
   padding: var(--space-10);
 }
 
-.authPage {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-12) var(--layout-gutter-mobile) var(--space-6);
-}
-
-.authCard {
-  width: 100%;
-  max-width: var(--layout-auth-card-width);
-}
-
-/*
- * Card header for the login card, which owns the page's h1. The shared Card caps its title at h2
- * (design/componentes.md section 5), so the login renders an untitled Card and this header itself,
- * matching the Card header spacing.
- */
-.authCardHeading {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.authCardDescription {
-  margin: 0;
-}
-
 .page {
   display: flex;
   flex-direction: column;
@@ -143,10 +113,32 @@
   list-style: none;
 }
 
+/* Equal-width columns so checkboxes with and without a description line up on one grid. */
+.checkGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  align-items: start;
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .selectedFiles {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.imagePreview {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  margin-top: var(--space-3);
+  object-fit: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
 }
 
 .field {

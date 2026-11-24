@@ -67,7 +67,7 @@ The woff2 files are self-hosted, so the studio makes no font request to a third 
 - The bright `--gradient-brand` and `--gradient-rail` are decorative only. Never put text on them;
   white text on the cyan end is below 4.5:1. Buttons use `--gradient-control`.
 - Focus is always visible: `--focus-ring-*` outlines or the `--shadow-focus-halo*` shadows.
-- UI copy is pt-BR.
+- UI copy is pt-BR (the source), with es and en catalogues that follow `design/glossario.md`.
 
 ## Allowed literals
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { qualityScoreText } from '@/features/quality/quality-labels';
+import { getI18n } from '@/lib/i18n/server';
 
 /** `?versoes=nota` sorts the table by score; `?versoes-com-nota=1` hides versions without one. */
 export interface VersionScoresView {
@@ -43,49 +44,51 @@ interface VersionScoresTableProps {
  * "Notas das versões" on the version page (SPEC 0003 section 2 item 1): every version's score with
  * its sample size, sortable by score and filterable to scored versions through plain links.
  */
-export function VersionScoresTable({ versions, currentVersion, view }: VersionScoresTableProps): ReactElement {
+export async function VersionScoresTable({ versions, currentVersion, view }: VersionScoresTableProps): Promise<ReactElement> {
+  const { t, locale } = await getI18n();
+  const texts = t.catalog.scores;
   const assetId = versions[0]?.id ?? '';
   const shown = versions.filter((version) => !view.onlyScored || version.qualityScore !== null);
   const rows = view.sortByScore ? [...shown].sort(byScore) : shown;
   const columns: readonly TableColumn<AssetVersionView>[] = [
     {
       key: 'version',
-      header: 'Versão',
+      header: texts.version,
       rowHeader: true,
       render: (version) =>
         version.version === currentVersion ? (
-          <span className="mono">{`v${version.version} (aberta)`}</span>
+          <span className="mono">{texts.openVersion(version.version)}</span>
         ) : (
           <Link href={`/catalogo/${encodeURIComponent(version.id)}?versao=${version.version}`} className={textLinkClassName()}>
             <span className="mono">{`v${version.version}`}</span>
           </Link>
         ),
     },
-    { key: 'status', header: 'Status', render: (version) => <StatusBadge kind="asset" status={version.status} /> },
-    { key: 'score', header: 'Nota', render: (version) => qualityScoreText(version) },
+    { key: 'status', header: texts.status, render: (version) => <StatusBadge kind="asset" status={version.status} /> },
+    { key: 'score', header: texts.score, render: (version) => qualityScoreText(version, t.catalog.qualityText, locale) },
   ];
   return (
     <div className={layout.stack}>
-      <nav aria-label="Ordem e filtro das notas" className={layout.row}>
+      <nav aria-label={texts.navigationLabel} className={layout.row}>
         <Link
           href={viewHref(assetId, currentVersion, { ...view, sortByScore: !view.sortByScore })}
           className={textLinkClassName()}
         >
-          {view.sortByScore ? 'Ordenar por versão' : 'Ordenar por nota'}
+          {view.sortByScore ? texts.sortByVersion : texts.sortByScore}
         </Link>
         <Link
           href={viewHref(assetId, currentVersion, { ...view, onlyScored: !view.onlyScored })}
           className={textLinkClassName()}
         >
-          {view.onlyScored ? 'Mostrar todas as versões' : 'Só versões com nota'}
+          {view.onlyScored ? texts.showAll : texts.onlyScored}
         </Link>
       </nav>
       <Table
-        caption="Notas das versões"
+        caption={texts.caption}
         columns={columns}
         rows={rows}
         rowKey={(version) => String(version.version)}
-        emptyText="Nenhuma versão com nota ainda."
+        emptyText={texts.empty}
       />
     </div>
   );

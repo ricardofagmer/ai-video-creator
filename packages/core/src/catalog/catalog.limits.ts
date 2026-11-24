@@ -25,6 +25,9 @@ export const MAX_REFERENCE_BYTES = 64 * GIB;
 /** Inline text content (prompt text, brand-kit or model-config JSON) is held in memory. */
 export const MAX_INLINE_CONTENT_BYTES = 1 * MIB;
 
+/** A skill's entry file (SKILL.md) read or written as text in the browser is held in memory. */
+export const MAX_ENTRY_FILE_TEXT_BYTES = 256 * 1024;
+
 const audioTypes = ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/aac', 'audio/flac'];
 const imageTypes = ['image/png', 'image/jpeg', 'image/webp'];
 const videoTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
@@ -40,7 +43,8 @@ export const ALLOWED_FILE_MIME_TYPES_BY_KIND: Readonly<Record<AssetKind, readonl
   reference: [...videoTypes, ...imageTypes, ...audioTypes, 'text/plain', 'text/markdown', 'application/pdf'],
   prompt: ['text/plain', 'text/markdown'],
   skill: [],
-  image: imageTypes,
+  // `text/plain` holds the URL of an image saved by link (images spec, 2026-11-23).
+  image: [...imageTypes, 'text/plain'],
   music: audioTypes,
   sfx: audioTypes,
   'brand-kit': ['application/json'],

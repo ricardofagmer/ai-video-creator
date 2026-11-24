@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import type { NextConfig } from 'next';
 
 /**
@@ -34,6 +35,15 @@ const PERMISSIONS_POLICY = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  /*
+   * The installed app starts the web from `.next/standalone/` with its bundled node (ADR 0010,
+   * plan C3 rev 2). The tracing root is pinned to the repository root, the folder Next infers today
+   * from `pnpm-lock.yaml`, so the server always lands at `standalone/apps/web/server.js`, where the
+   * CLI's runtime locator looks for it. `next start` in development keeps working; Next only logs
+   * a warning that standalone output prefers `server.js`.
+   */
+  output: 'standalone',
+  outputFileTracingRoot: join(__dirname, '..', '..'),
   // @studio/ui ships TypeScript source and CSS Modules; @studio/shared ships zod schemas.
   transpilePackages: ['@studio/ui', '@studio/shared'],
   allowedDevOrigins: ['127.0.0.1', 'localhost'],

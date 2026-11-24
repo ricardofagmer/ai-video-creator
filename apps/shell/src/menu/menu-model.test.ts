@@ -43,7 +43,7 @@ function infoLabels(items: readonly MenuItemModel[]): string[] {
 
 describe('menu model (R3-AC-25.4)', () => {
   it('has the three spec labels verbatim, the next-schedule line and the review-count line', () => {
-    const items = buildMenuModel({ state: state('running', 'running'), action: { phase: 'idle', last: null }, openAtLogin: false, timeZone: TIMEZONE });
+    const items = buildMenuModel({ state: state('running', 'running'), action: { phase: 'idle', last: null }, openAtLogin: false, locale: 'pt-BR', timeZone: TIMEZONE });
     for (const label of ['Iniciar', 'Parar', 'Abrir estúdio']) action(items, label);
     const lines = infoLabels(items);
     assert.ok(lines.includes('Próxima execução agendada: qua., 25/11 09:00'));
@@ -59,6 +59,7 @@ describe('menu model (R3-AC-25.4)', () => {
       state: { ...base, schedules: { status: 'ok', nextSlotAtMs: null, skipped: 0, truncated: false } },
       action: { phase: 'idle', last: null },
       openAtLogin: true,
+      locale: 'pt-BR',
     });
     assert.ok(infoLabels(items).includes('Sem agendamentos ativos'));
   });
@@ -67,7 +68,7 @@ describe('menu model (R3-AC-25.4)', () => {
     for (const web of SERVICE_STATES) {
       for (const phase of ACTION_PHASES) {
         it(`enabled rules hold for api ${api}, web ${web}, ${phase.name}`, () => {
-          const items = buildMenuModel({ state: state(api, web), action: phase.status, openAtLogin: false, timeZone: TIMEZONE });
+          const items = buildMenuModel({ state: state(api, web), action: phase.status, openAtLogin: false, locale: 'pt-BR', timeZone: TIMEZONE });
           const inFlight = phase.status.phase !== 'idle';
           const stoppable = (status: ServiceStatus): boolean => status === 'running' || status === 'unknown';
           assert.equal(action(items, 'Iniciar').enabled, !inFlight && (api !== 'running' || web !== 'running'));
@@ -79,20 +80,20 @@ describe('menu model (R3-AC-25.4)', () => {
   }
 
   it('reads "Iniciando..." or "Parando..." while an action runs', () => {
-    const starting = buildMenuModel({ state: state('stopped', 'stopped'), action: { phase: 'running', action: 'start' }, openAtLogin: false });
-    const stopping = buildMenuModel({ state: state('running', 'running'), action: { phase: 'running', action: 'stop' }, openAtLogin: false });
+    const starting = buildMenuModel({ state: state('stopped', 'stopped'), action: { phase: 'running', action: 'start' }, openAtLogin: false, locale: 'pt-BR' });
+    const stopping = buildMenuModel({ state: state('running', 'running'), action: { phase: 'running', action: 'stop' }, openAtLogin: false, locale: 'pt-BR' });
     assert.ok(infoLabels(starting).includes('Iniciando...'));
     assert.ok(infoLabels(stopping).includes('Parando...'));
   });
 
   it('gives the watcher no control: every action is one of the four known ids', () => {
-    const items = buildMenuModel({ state: state('running', 'running'), action: { phase: 'idle', last: null }, openAtLogin: false });
+    const items = buildMenuModel({ state: state('running', 'running'), action: { phase: 'idle', last: null }, openAtLogin: false, locale: 'pt-BR' });
     const ids = items.flatMap((item) => (item.kind === 'action' ? [item.id] : []));
     assert.deepEqual(ids, ['start', 'stop', 'open-studio', 'quit']);
   });
 
   it('shows one disabled line and "Sair" when the installation is incomplete', () => {
-    const items = buildIncompleteInstallationMenu();
+    const items = buildIncompleteInstallationMenu('pt-BR');
     assert.equal(infoLabels(items).length, 1);
     assert.deepEqual(
       items.flatMap((item) => (item.kind === 'action' ? [item.label] : [])),
@@ -101,6 +102,23 @@ describe('menu model (R3-AC-25.4)', () => {
   });
 
   it('formats a slot as weekday, day/month and 24-hour time in the given zone', () => {
-    assert.equal(formatSlot(Date.parse('2026-11-25T12:00:00.000Z'), TIMEZONE), 'qua., 25/11 09:00');
+    assert.equal(formatSlot(Date.parse('2026-11-25T12:00:00.000Z'), 'pt-BR', TIMEZONE), 'qua., 25/11 09:00');
+  });
+
+  it('formats a slot in the order and words of es and en, still on a 24-hour clock', () => {
+    const at = Date.parse('2026-11-25T12:00:00.000Z');
+    assert.equal(formatSlot(at, 'es', TIMEZONE), 'mié, 25/11 09:00');
+    assert.equal(formatSlot(at, 'en', TIMEZONE), 'Wed, 11/25 09:00');
+  });
+
+  it('switches every label with the locale', () => {
+    const view = { state: state('running', 'running'), action: { phase: 'idle', last: null }, openAtLogin: false, timeZone: TIMEZONE } as const;
+    const english = buildMenuModel({ ...view, locale: 'en' });
+    for (const label of ['Start', 'Stop', 'Open studio', 'Quit']) action(english, label);
+    assert.ok(infoLabels(english).includes('Watcher: active'));
+    assert.ok(infoLabels(english).includes('Next scheduled run: Wed, 11/25 09:00'));
+    const spanish = buildMenuModel({ ...view, locale: 'es' });
+    for (const label of ['Iniciar', 'Detener', 'Abrir estudio', 'Salir']) action(spanish, label);
+    assert.ok(infoLabels(spanish).includes('En revisión: 3'));
   });
 });

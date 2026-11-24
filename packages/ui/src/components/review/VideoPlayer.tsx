@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactElement, ReactNode } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import styles from './VideoPlayer.module.css';
 
@@ -26,18 +29,19 @@ export function VideoPlayer({
   aspect,
   poster,
   captionsSrc,
-  captionsLabel = 'Português',
+  captionsLabel,
   caption,
   className,
 }: VideoPlayerProps): ReactElement {
+  const { ui } = useI18n();
   return (
     <figure className={classNames(styles.figure, aspect === '9:16' ? styles.portrait : styles.landscape, className)}>
       <div className={styles.frame}>
         <video controls preload="metadata" poster={poster} aria-label={title} className={styles.video}>
           <source src={src} type="video/mp4" />
-          {captionsSrc && <track kind="captions" src={captionsSrc} srcLang="pt-BR" label={captionsLabel} default />}
+          {captionsSrc && <track kind="captions" src={captionsSrc} srcLang="pt-BR" label={captionsLabel ?? ui.review.captionsLabel} default />}
           <p>
-            Este navegador não reproduz o vídeo. <a href={src}>Abrir o arquivo do vídeo</a>.
+            {ui.review.videoUnsupported} <a href={src}>{ui.review.openVideoFile}</a>.
           </p>
         </video>
       </div>

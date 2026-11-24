@@ -1,9 +1,21 @@
 import { RecipeDefinitionInputSchema, type RecipeDefinitionInput } from '@studio/shared/api';
-import { type AspectRatio, type AssetKind } from '@studio/shared/catalog';
-import { RecipeIdSchema, type Binding, type BriefField, type ChecklistItem, type Language, type RecipeCheck, type RecipeStage } from '@studio/shared/recipes';
+import { type AspectRatio, type AssetKind, type TemplateDetails } from '@studio/shared/catalog';
+import { RecipeIdSchema, researchStageParams, type Binding, type BriefField, type ChecklistItem, type Language, type RecipeCheck, type RecipeStage } from '@studio/shared/recipes';
 import { mandatoryStages, stageOrder, type StageId } from '@studio/shared/run-format';
-import { defaultChecklist, defaultChecks, defaultFormat, defaultRubric, defaultStageChecks, scriptApprovalGate } from './recipe-defaults';
-import { isKnownSlot, slotsForStages, editorKinds } from './recipe-slots';
+import { type WebMessages } from '@/messages';
+import {
+  SCRIPT_APPROVAL_GATE_ID,
+  defaultChecklistOf,
+  defaultChecks,
+  defaultFormat,
+  defaultRubric,
+  defaultStageChecks,
+  scriptApprovalGateOf,
+} from './recipe-defaults';
+import { WRITER_SKILLS_MAX } from '@studio/shared/agents';
+import { WRITER_SKILL_SLOT, isKnownSlot, slotsForStages, editorKinds } from './recipe-slots';
+
+type RecipeTexts = WebMessages['recipes'];
 
 /** One active catalog version a slot may pin (C2 binding: `assetId@version` plus `contentHash`). */
 export interface BindingOption {
@@ -11,6 +23,10 @@ export interface BindingOption {
   contentHash: string;
   kind: AssetKind;
   label: string;
+  /** Template options only: what the recipe's format is checked against (guided-creation spec section 3). */
+  templateDetails?: TemplateDetails;
+  /** Voice options only: the editor offers "Ouvir" next to the chosen voice. */
+  voice?: boolean;
 }
 
 /** The editable part of a recipe as form text; `base` keeps every field the form does not edit. */
@@ -31,7 +47,11 @@ export interface RecipeFormValues {
   enabledStages: readonly StageId[];
   /** Chosen `assetId@version` per known slot; '' leaves the slot unbound. */
   bindings: Readonly<Record<string, string>>;
+  /** `skill:writer` refs in order (at most `WRITER_SKILLS_MAX`); the slot repeats, so it lives apart from `bindings`. */
+  writerSkills: readonly string[];
   scriptApproval: boolean;
+  /** `params.siteAnalysis` of the research stage (docs/specs/2026-11-23-site-analysis-design.md). */
+  siteAnalysis: boolean;
   requireSourceUrl: boolean;
   requireKeyMessages: boolean;
   checklist: readonly ChecklistItem[];
@@ -72,7 +92,7 @@ export function recipeIdFromName(name: string): string {
     .replace(/-+$/g, '');
 }
 
-export function emptyRecipeForm(): RecipeFormValues {
+export function emptyRecipeForm(defaults: RecipeTexts['defaults']): RecipeFormValues {
   const { canvas, fps, duration, language, loudness } = defaultFormat;
   return {
     name: '',
@@ -90,10 +110,12 @@ export function emptyRecipeForm(): RecipeFormValues {
     truePeakDbtp: String(loudness.truePeakDbtp),
     enabledStages: [...stageOrder],
     bindings: {},
+    writerSkills: [],
     scriptApproval: false,
+    siteAnalysis: true,
     requireSourceUrl: true,
     requireKeyMessages: true,
-    checklist: defaultChecklist.map((item) => ({ ...item })),
+    checklist: defaultChecklistOf(defaults),
     base: null,
   };
 }
@@ -117,7 +139,9 @@ export function recipeFormFrom(id: string, definition: RecipeDefinitionInput): R
     truePeakDbtp: String(loudness.truePeakDbtp),
     enabledStages: definition.graph.stages.filter((stage) => stage.enabled).map((stage) => stage.stageId),
     bindings: Object.fromEntries(definition.bindings.filter((binding) => isKnownSlot(binding.slot)).map((binding) => [binding.slot, binding.ref])),
-    scriptApproval: definition.gates.some((gate) => gate.id === scriptApprovalGate.id),
+    writerSkills: definition.bindings.filter((binding) => binding.slot === WRITER_SKILL_SLOT).map((binding) => binding.ref).slice(0, WRITER_SKILLS_MAX),
+    scriptApproval: definition.gates.some((gate) => gate.id === SCRIPT_APPROVAL_GATE_ID),
+    siteAnalysis: researchStageParams(definition.graph.stages.find((stage) => stage.stageId === 'research')?.params ?? {}).siteAnalysis,
     requireSourceUrl: definition.inputs.required.includes('sourceUrl'),
     requireKeyMessages: definition.inputs.required.includes('keyMessages'),
     checklist: definition.checklist.map((item) => ({ ...item })),
@@ -131,17 +155,18 @@ const aspects: readonly { aspect: AspectRatio; ratio: number }[] = [
   { aspect: '1:1', ratio: 1 },
 ];
 
-function aspectOf(width: number, height: number): AspectRatio | null {
+export function aspectOf(width: number, height: number): AspectRatio | null {
   return aspects.find((candidate) => Math.abs(width / height - candidate.ratio) <= 0.01)?.aspect ?? null;
 }
 
-/** Every stage in canonical order: the base entry when there is one (checks, params kept), else a default. */
-function stagesOf(values: RecipeFormValues): RecipeStage[] {
+/** Every stage in canonical order: the base entry when there is one (checks, params kept), else a default; research takes the switch. */
+export function stagesOf(values: RecipeFormValues): RecipeStage[] {
   const enabled = new Set<StageId>([...values.enabledStages, ...mandatoryStages]);
   return stageOrder.map((stageId) => {
     const existing = values.base?.graph.stages.find((stage) => stage.stageId === stageId);
     const stage = existing ?? { stageId, enabled: false, checks: [...defaultStageChecks[stageId]], timeoutMs: null, params: {} };
-    return { ...stage, enabled: enabled.has(stageId) };
+    const params = stageId === 'research' ? { ...stage.params, siteAnalysis: values.siteAnalysis } : stage.params;
+    return { ...stage, enabled: enabled.has(stageId), params };
   });
 }
 
@@ -156,20 +181,26 @@ function checksFor(stages: readonly RecipeStage[], base: readonly RecipeCheck[])
   return checks;
 }
 
-/** Known slots of enabled stages with a chosen version, plus the base's own extra slots. */
-function bindingsOf(values: RecipeFormValues, options: readonly BindingOption[], enabled: ReadonlySet<StageId>): Binding[] {
+/** Known slots of enabled stages with a chosen version, the writer's skills, plus the base's own extra slots. */
+export function bindingsOf(values: RecipeFormValues, options: readonly BindingOption[], enabled: ReadonlySet<StageId>): Binding[] {
   const known = slotsForStages(enabled).flatMap((spec) => {
     const ref = values.bindings[spec.slot] ?? '';
     const option = options.find((candidate) => candidate.ref === ref && candidate.kind === spec.kind);
     return option === undefined ? [] : [{ slot: spec.slot, ref: option.ref, contentHash: option.contentHash }];
   });
-  const extra = (values.base?.bindings ?? []).filter((binding) => !isKnownSlot(binding.slot));
-  return [...known, ...extra];
+  const skills = enabled.has('script')
+    ? values.writerSkills.slice(0, WRITER_SKILLS_MAX).flatMap((ref) => {
+        const option = options.find((candidate) => candidate.ref === ref && candidate.kind === 'skill');
+        return option === undefined ? [] : [{ slot: WRITER_SKILL_SLOT, ref: option.ref, contentHash: option.contentHash }];
+      })
+    : [];
+  const extra = (values.base?.bindings ?? []).filter((binding) => !isKnownSlot(binding.slot) && binding.slot !== WRITER_SKILL_SLOT);
+  return [...known, ...skills, ...extra];
 }
 
-type NumberRead = { value: number; ok: true } | { ok: false };
+export type NumberRead = { value: number; ok: true } | { ok: false };
 
-function readNumber(text: string): NumberRead {
+export function readNumber(text: string): NumberRead {
   const trimmed = text.trim().replace(',', '.');
   const value = Number(trimmed);
   return trimmed === '' || !Number.isFinite(value) ? { ok: false } : { ok: true, value };
@@ -182,12 +213,12 @@ interface DefinitionDraft {
 }
 
 /** Reads the form into a candidate C2 definition, keeping every base field the form does not edit. */
-function draftDefinition(values: RecipeFormValues, options: readonly BindingOption[]): DefinitionDraft {
+function draftDefinition(values: RecipeFormValues, options: readonly BindingOption[], t: RecipeTexts): DefinitionDraft {
   const errors: Record<string, string> = {};
   const number = (key: keyof typeof recipeFieldIds, text: string): number => {
     const read = readNumber(text);
     if (!read.ok) {
-      errors[recipeFieldIds[key]] = 'Informe um número válido.';
+      errors[recipeFieldIds[key]] = t.errors.number;
       return 0;
     }
     return read.value;
@@ -196,7 +227,7 @@ function draftDefinition(values: RecipeFormValues, options: readonly BindingOpti
   const height = number('height', values.height);
   const aspect = width > 0 && height > 0 ? aspectOf(width, height) : null;
   if (aspect === null && errors[recipeFieldIds.width] === undefined && errors[recipeFieldIds.height] === undefined) {
-    errors[recipeFieldIds.width] = 'A largura e a altura precisam formar 16:9, 9:16 ou 1:1.';
+    errors[recipeFieldIds.width] = t.errors.aspect;
   }
   const base = values.base;
   const format = base?.format ?? defaultFormat;
@@ -206,8 +237,8 @@ function draftDefinition(values: RecipeFormValues, options: readonly BindingOpti
   const keyMessages = values.requireKeyMessages
     ? { min: Math.max(inputs.keyMessages.min, 1), max: Math.max(inputs.keyMessages.max, 1) }
     : { min: 0, max: inputs.keyMessages.max };
-  const otherGates = (base?.gates ?? []).filter((gate) => gate.id !== scriptApprovalGate.id && enabled.has(gate.afterStage));
-  const gates = values.scriptApproval && enabled.has('script') ? [...otherGates, scriptApprovalGate] : otherGates;
+  const otherGates = (base?.gates ?? []).filter((gate) => gate.id !== SCRIPT_APPROVAL_GATE_ID && enabled.has(gate.afterStage));
+  const gates = values.scriptApproval && enabled.has('script') ? [...otherGates, scriptApprovalGateOf(t.defaults)] : otherGates;
   const bindings = bindingsOf(values, options, enabled);
   const boundKinds = options.filter((option) => bindings.some((binding) => binding.ref === option.ref)).map((option) => option.kind);
   const allowedKinds = [...new Set<AssetKind>([...(base?.allowedKinds ?? editorKinds), ...boundKinds])];
@@ -269,23 +300,28 @@ export function recipeFieldOfPath(path: string): string | null {
 export type DefinitionResult = { ok: true; definition: RecipeDefinitionInput } | { ok: false; errors: Record<string, string> };
 
 /** The checked C2 definition, or the field errors that block the save (design/telas/06). */
-export function buildRecipeDefinition(values: RecipeFormValues, options: readonly BindingOption[], isNew: boolean): DefinitionResult {
-  const { definition, errors } = draftDefinition(values, options);
-  if (values.name.trim() === '') errors[recipeFieldIds.name] = 'Preencha o nome.';
-  if (values.owner.trim() === '') errors[recipeFieldIds.owner] = 'Preencha este campo.';
-  if (isNew && !RecipeIdSchema.safeParse(values.recipeId).success) errors[recipeFieldIds.recipeId] = 'Use só letras minúsculas, números e hífens.';
+export function buildRecipeDefinition(
+  values: RecipeFormValues,
+  options: readonly BindingOption[],
+  isNew: boolean,
+  t: RecipeTexts,
+): DefinitionResult {
+  const { definition, errors } = draftDefinition(values, options, t);
+  if (values.name.trim() === '') errors[recipeFieldIds.name] = t.errors.name;
+  if (values.owner.trim() === '') errors[recipeFieldIds.owner] = t.errors.required;
+  if (isNew && !RecipeIdSchema.safeParse(values.recipeId).success) errors[recipeFieldIds.recipeId] = t.errors.recipeId;
   const enabled = new Set<StageId>([...values.enabledStages, ...mandatoryStages]);
   for (const spec of slotsForStages(enabled)) {
     const chosen = values.bindings[spec.slot] ?? '';
-    if (!spec.optional && chosen === '') errors[bindingFieldId(spec.slot)] = 'Escolha uma versão.';
+    if (!spec.optional && chosen === '') errors[bindingFieldId(spec.slot)] = t.errors.chooseVersion;
   }
   const parsed = RecipeDefinitionInputSchema.safeParse(definition);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       const fieldId = recipeFieldOfPath(issue.path.join('.'));
-      if (fieldId !== null) errors[fieldId] ??= 'Valor inválido.';
+      if (fieldId !== null) errors[fieldId] ??= t.errors.invalid;
     }
-    if (Object.keys(errors).length === 0) errors[recipeFieldIds.name] = 'Valor inválido.';
+    if (Object.keys(errors).length === 0) errors[recipeFieldIds.name] = t.errors.invalid;
   }
   if (Object.keys(errors).length > 0 || !parsed.success) return { ok: false, errors };
   return { ok: true, definition: parsed.data };

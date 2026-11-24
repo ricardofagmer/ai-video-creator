@@ -1,0 +1,104 @@
+/* Portal layout. Every value reads a @studio/ui token; no colour literal lives here. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: var(--layout-form-max-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--layout-gutter-mobile) var(--space-12);
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding-inline: var(--layout-gutter-desktop);
+  }
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.languages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.hero {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.checking {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.componentList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .componentList {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.componentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-muted);
+}
+
+.hash {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-6);
+}
+
+.paragraph {
+  margin: 0;
+}
+
+.footer {
+  margin: 0;
+  text-align: center;
+}

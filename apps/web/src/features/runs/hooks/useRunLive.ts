@@ -1,9 +1,10 @@
 'use client';
 
-import { type EventLogItem } from '@studio/ui';
+import { useI18n, type EventLogItem } from '@studio/ui';
 import { type RunStateResponse } from '@studio/shared/api';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { EVENT_LOG_LIMIT, appendEvents, toEventLogItem } from '../run-events';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWebMessages } from '@/lib/i18n/client';
+import { EVENT_LOG_LIMIT, appendEvents, toEventLogItem, type EventLogText } from '../run-events';
 import { isAbort, isEventLogReset } from '../run-error-text';
 import { stopsPolling } from '../run-labels';
 import { browserRunsApi } from '../runs-api';
@@ -56,7 +57,7 @@ interface EventsRead {
  * Reads only what was appended since `start.nextByte` (never the whole log again). Works on a copy
  * of the cursor; the caller commits it together with the rows, so an aborted tick loses nothing.
  */
-async function readNewEvents(runId: string, start: EventCursor, signal: AbortSignal): Promise<EventsRead> {
+async function readNewEvents(runId: string, start: EventCursor, signal: AbortSignal, text: EventLogText): Promise<EventsRead> {
   const cursor = { ...start };
   let items: EventLogItem[] = [];
   let reset = false;
@@ -74,7 +75,7 @@ async function readNewEvents(runId: string, start: EventCursor, signal: AbortSig
     const advancedBytes = response.nextByte - cursor.nextByte;
     for (const event of response.entries) {
       cursor.sequence += 1;
-      items.push(toEventLogItem(event, cursor.sequence));
+      items.push(toEventLogItem(event, cursor.sequence, text));
     }
     cursor.nextByte = response.nextByte;
     if (advancedBytes < FULL_PAGE_BYTES) break;
@@ -90,6 +91,9 @@ async function readNewEvents(runId: string, start: EventCursor, signal: AbortSig
  * `refresh` restarts it. Api failures keep the last state and mark the connection unreachable.
  */
 export function useRunLive(runId: string, initialState: RunStateResponse): RunLive {
+  const { locale, ui } = useI18n();
+  const t = useWebMessages();
+  const eventText = useMemo<EventLogText>(() => ({ ui, runs: t.runs, locale }), [ui, t, locale]);
   const visible = usePageVisible();
   const [wakeToken, setWakeToken] = useState(0);
   const cursorRef = useRef<EventCursor>({ nextByte: 0, sequence: 0 });
@@ -103,7 +107,7 @@ export function useRunLive(runId: string, initialState: RunStateResponse): RunLi
     async (signal: AbortSignal): Promise<boolean> => {
       try {
         const state = await browserRunsApi.getRunState(runId, signal);
-        const read = await readNewEvents(runId, cursorRef.current, signal);
+        const read = await readNewEvents(runId, cursorRef.current, signal, eventText);
         if (signal.aborted) return false;
         cursorRef.current = read.cursor;
         const atMs = Date.now();
@@ -121,7 +125,7 @@ export function useRunLive(runId: string, initialState: RunStateResponse): RunLi
         return true;
       }
     },
-    [runId],
+    [runId, eventText],
   );
 
   useEffect(() => {

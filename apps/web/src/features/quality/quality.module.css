@@ -1,0 +1,37 @@
+/* "Como a nota é calculada": reference text, so it stays small, muted and capped instead of pushing the cards down. */
+.explanation {
+  align-self: flex-start;
+  max-width: 72ch;
+}
+
+.summary {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.summary:hover {
+  color: var(--color-text);
+}
+
+.body {
+  max-height: 12rem;
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-muted);
+}
+
+.body p {
+  margin: 0 0 var(--space-2);
+}
+
+.body p:last-child {
+  margin-bottom: 0;
+}

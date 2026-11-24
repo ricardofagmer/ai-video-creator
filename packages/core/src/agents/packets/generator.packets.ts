@@ -3,19 +3,23 @@ import {
   DIRECT_SCENES_TASK,
   DirectorPacketSchema,
   OutputContractSchema,
+  REFERENCE_ANALYSES_MAX,
   WRITER_ROLE,
   WRITE_SCRIPT_TASK,
   WriterPacketSchema,
+  untrustedTextMaxChars,
   type BrandKitSummary,
   type CameraMove,
   type DirectorPacket,
+  type ReferenceAnalysisEntry,
   type ScenesOutput,
   type ScriptOutput,
+  type SiteAnalysis,
   type Transition,
   type WriterPacket,
 } from '@studio/shared/agents';
 import { type JsonObject } from '@studio/shared/catalog';
-import { type Brief, type Recipe } from '@studio/shared/recipes';
+import { BRIEF_INSTRUCTIONS_MAX, type Brief, type Recipe } from '@studio/shared/recipes';
 import {
   bindingSummaries,
   delimitAssetText,
@@ -50,6 +54,38 @@ function revisionFields<Output>(revision: Revision<Output> | undefined): { retry
   return { retryInstruction: revision.instruction.slice(0, RETRY_INSTRUCTION_MAX_CHARS), previousOutput: revision.previousOutput };
 }
 
+/**
+ * The research stage's site analysis as one delimited JSON block, or nothing when there is none.
+ * The analysis is model output about a third-party page, so it reaches later agents as data only.
+ */
+function siteAnalysisField(siteAnalysis: SiteAnalysis | undefined): { siteAnalysis?: string } {
+  if (siteAnalysis === undefined) return {};
+  return {
+    siteAnalysis: delimitUntrusted(JSON.stringify(siteAnalysis), {
+      attributes: { id: 'site-analysis' },
+      maxChars: untrustedTextMaxChars,
+      overflow: 'truncate',
+    }),
+  };
+}
+
+/**
+ * The kept style analyses of the run's video references as one delimited JSON block, or nothing
+ * when there are none. They are model output about third-party videos, so they reach the writer and
+ * director as data only, exactly like the site analysis; an over-long block is cut after escaping
+ * so it always fits `UntrustedTextSchema`.
+ */
+function referenceAnalysesField(referenceAnalyses: readonly ReferenceAnalysisEntry[] | undefined): { referenceAnalyses?: string } {
+  if (referenceAnalyses === undefined || referenceAnalyses.length === 0) return {};
+  return {
+    referenceAnalyses: delimitUntrusted(JSON.stringify(referenceAnalyses.slice(0, REFERENCE_ANALYSES_MAX)), {
+      attributes: { id: 'reference-analyses' },
+      maxChars: untrustedTextMaxChars,
+      overflow: 'truncate',
+    }),
+  };
+}
+
 export interface WriterPacketSource {
   readonly coordinates: PacketCoordinates;
   readonly brief: Brief;
@@ -57,13 +93,18 @@ export interface WriterPacketSource {
   /** The bound template version's props schema. */
   readonly templateInputSchema: JsonObject;
   readonly prompt: AssetText;
-  readonly skill?: AssetText;
+  /** Bound `skill:writer` entry texts, in binding order (at most `WRITER_SKILLS_MAX`). */
+  readonly skills?: readonly AssetText[];
   /** Brand-kit tone section. */
   readonly brandVoice?: AssetText;
   readonly format: Pick<Recipe['format'], 'narration' | 'sceneCount'>;
   /** The stage brief's `learnings` (`stageBrief.learnings ?? []`); never notes read here. */
   readonly learnings: BriefLearnings;
   readonly revision?: Revision<ScriptOutput>;
+  /** The research stage's `site-analysis` output, when the run has one. */
+  readonly siteAnalysis?: SiteAnalysis;
+  /** The `script` stage's `reference-analyses` entries (at most `REFERENCE_ANALYSES_MAX`), when the run has any. */
+  readonly referenceAnalyses?: readonly ReferenceAnalysisEntry[];
 }
 
 /**
@@ -87,12 +128,14 @@ export function buildWriterPacket(source: WriterPacketSource): WriterPacket {
       })),
       templateInputSchema: source.templateInputSchema,
       promptText: delimitAssetText(source.prompt),
-      ...(source.skill === undefined ? {} : { skillText: delimitAssetText(source.skill) }),
+      ...(source.skills === undefined || source.skills.length === 0 ? {} : { skillTexts: source.skills.map((skill) => delimitAssetText(skill)) }),
       ...(source.brandVoice === undefined ? {} : { brandVoice: delimitAssetText(source.brandVoice) }),
       targetDurationSec: source.brief.targetDurationSec,
       language: source.brief.language,
       ...revisionFields(source.revision),
       learnings: packetLearnings(source.learnings),
+      ...siteAnalysisField(source.siteAnalysis),
+      ...referenceAnalysesField(source.referenceAnalyses),
     },
     constraints: {
       claimsOnly: true,
@@ -110,6 +153,9 @@ export interface CaptureSummary {
   readonly durationMs: number;
 }
 
+// Room for the delimiter wrapper and escaped tags, so the owner's 2,000 characters are never cut.
+const OWNER_INSTRUCTIONS_MAX_CHARS = BRIEF_INSTRUCTIONS_MAX * 2;
+
 export interface DirectorPacketSource {
   readonly coordinates: PacketCoordinates;
   /** The approved script output only, never the Scriptwriter session. */
@@ -124,6 +170,12 @@ export interface DirectorPacketSource {
   /** The stage brief's `learnings` (`stageBrief.learnings ?? []`); never notes read here. */
   readonly learnings: BriefLearnings;
   readonly revision?: Revision<ScenesOutput>;
+  /** The run brief's `instructions` (the owner's own words); delimited before it reaches the packet. */
+  readonly ownerInstructions?: string;
+  /** The research stage's `site-analysis` output, when the run has one. */
+  readonly siteAnalysis?: SiteAnalysis;
+  /** The `script` stage's `reference-analyses` entries (at most `REFERENCE_ANALYSES_MAX`), when the run has any. */
+  readonly referenceAnalyses?: readonly ReferenceAnalysisEntry[];
 }
 
 /**
@@ -146,8 +198,13 @@ export function buildDirectorPacket(source: DirectorPacketSource): DirectorPacke
       templateSceneSchema: source.templateSceneSchema,
       offeredRefs: bindingSummaries(source.boundAssets),
       brandKit: source.brandKit,
+      ...(source.ownerInstructions === undefined
+        ? {}
+        : { ownerInstructions: delimitUntrusted(source.ownerInstructions, { maxChars: OWNER_INSTRUCTIONS_MAX_CHARS, overflow: 'truncate' }) }),
       ...revisionFields(source.revision),
       learnings: packetLearnings(source.learnings),
+      ...siteAnalysisField(source.siteAnalysis),
+      ...referenceAnalysesField(source.referenceAnalyses),
     },
     constraints: {
       citeOnlyOfferedRefs: true,

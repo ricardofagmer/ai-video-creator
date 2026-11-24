@@ -1,7 +1,9 @@
 import type { z } from 'zod';
+import { AnalystPacketSchema, SiteAnalysisSchema } from './analyst';
 import { DirectorPacketSchema, ScenesOutputSchema } from './director';
 import { PlanOutputSchema, PlannerPacketSchema } from './planner';
 import {
+  ANALYST_ROLE,
   DIRECTOR_ROLE,
   EVALUATOR_ROLE,
   PLANNER_ROLE,
@@ -51,6 +53,11 @@ export const agentContracts = {
     packetType: PacketTypeSchema.enum.RecoveryPacket,
     packet: RecoveryPacketSchema,
     output: RecoveryActionSchema,
+  },
+  [ANALYST_ROLE]: {
+    packetType: PacketTypeSchema.enum.AnalystPacket,
+    packet: AnalystPacketSchema,
+    output: SiteAnalysisSchema,
   },
 } satisfies Readonly<Record<ModelRoleName, RoleContract>>;
 

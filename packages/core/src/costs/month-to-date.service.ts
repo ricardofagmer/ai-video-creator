@@ -1,10 +1,14 @@
 import { readdir } from 'node:fs/promises';
 import { Injectable } from '@nestjs/common';
+import { AssetJobKindSchema, type AssetJobCostFile, type AssetJobKind } from '@studio/shared/asset-jobs';
+import { listAssetJobRefs, readAssetJobCost } from '@studio/shared/asset-jobs/files';
+import { type AssetRef } from '@studio/shared/catalog';
 import { type CurationCostFile } from '@studio/shared/curation';
 import { listCurationIds, readCurationCost } from '@studio/shared/curation/files';
 import { readCostFile, runDirectory, type OptionalFile } from '@studio/shared/run-files';
 import { RunIdSchema, type CostFile } from '@studio/shared/run-format';
 import { DataHome } from '../paths/data-home';
+import { assetJobCostSessionKey, assetJobSessionOccurredAt } from './asset-job-cost.mapper';
 import { CostEntryRepository, IndexedKeysLimitError } from './cost-entry.repository';
 import { costSessionKey, costSessionKeyText, costSessionOccurredAt, type CostSessionKey } from './cost-session.mapper';
 import { MonthToDateUnavailableError } from './costs.errors';
@@ -15,6 +19,9 @@ export const MAX_SCANNED_RUNS = 5000;
 
 /** Curation folders scanned per computation (SPEC 0005 section 5.8); past it the spend is unknown. */
 export const MAX_SCANNED_CURATIONS = 5000;
+
+/** Asset job folders scanned per computation, all kinds together (spec Amendment 3); past it the spend is unknown. */
+export const MAX_SCANNED_ASSET_JOBS = 5000;
 
 export interface CalendarMonth {
   start: Date;
@@ -49,9 +56,10 @@ function hasErrorCode(error: unknown, code: string): boolean {
  * (runId, sessionId, callIndex). Every run folder is scanned, not only the live one, so spend of a
  * run the api has not indexed yet is never missed; the live run is part of that scan. Curation
  * folders' cost.json are scanned the same way (SPEC 0005 section 5.8), keyed by curation id, so
- * the run, comparison and curation gates read one month total.
+ * the run, comparison and curation gates read one month total. Asset job folders' cost.json are
+ * scanned likewise (spec Amendment 3), keyed by the job ref, which is their `cost_entries.run_id`.
  *
- * Read-only on SQLite, run folders and curation folders, so the watcher may call it (ADR 0003).
+ * Read-only on SQLite and on run, curation and asset job folders, so the watcher may call it (ADR 0003).
  */
 @Injectable()
 export class MonthToDateSpend {
@@ -63,7 +71,11 @@ export class MonthToDateSpend {
   async computeUsd(at: Date): Promise<number> {
     const month = calendarMonthOf(at);
     const indexedUsd = await this.entries.sumUsdBetween(month.start, month.end);
-    const candidates = [...(await this.unindexedCandidates(month)), ...(await this.unindexedCurationCandidates(month))];
+    const candidates = [
+      ...(await this.unindexedCandidates(month)),
+      ...(await this.unindexedCurationCandidates(month)),
+      ...(await this.unindexedAssetJobCandidates(month)),
+    ];
     if (candidates.length === 0) return indexedUsd;
 
     let indexedKeys: Set<string>;
@@ -128,6 +140,35 @@ export class MonthToDateSpend {
         .filter((session) => isInMonth(curationSessionOccurredAt(session), month))
         .map((session) => ({ key: curationCostSessionKey(session), usd: session.usd }));
       if (sessions.length > 0) candidates.push({ runId: curationId, sessions });
+    }
+    return candidates;
+  }
+
+  /**
+   * Asset jobs whose cost.json holds sessions inside the month; unreadable files fail closed. A
+   * folder of each kind is read, so a voice and a video reference of one asset never mask each other.
+   */
+  private async unindexedAssetJobCandidates(month: CalendarMonth): Promise<UnindexedCandidate[]> {
+    const jobs: { kind: AssetJobKind; ref: AssetRef }[] = [];
+    for (const kind of AssetJobKindSchema.options) {
+      for (const ref of await listAssetJobRefs(this.dataHome.assetJobs, kind)) jobs.push({ kind, ref });
+      if (jobs.length > MAX_SCANNED_ASSET_JOBS) throw new MonthToDateUnavailableError('too-many-asset-jobs', null);
+    }
+    const candidates: UnindexedCandidate[] = [];
+    for (const { kind, ref } of jobs) {
+      let cost: OptionalFile<AssetJobCostFile>;
+      try {
+        cost = await readAssetJobCost({ assetJobsRoot: this.dataHome.assetJobs, kind, ref });
+      } catch {
+        // As for runs: the cause may quote file content, so only the job ref is kept.
+        throw new MonthToDateUnavailableError('unreadable-asset-job-cost-file', ref);
+      }
+      if (cost.status === 'absent') continue;
+      if (cost.value.ref !== ref || cost.value.kind !== kind) throw new MonthToDateUnavailableError('unreadable-asset-job-cost-file', ref);
+      const sessions = cost.value.sessions
+        .filter((session) => isInMonth(assetJobSessionOccurredAt(session), month))
+        .map((session) => ({ key: assetJobCostSessionKey(session), usd: session.usd }));
+      if (sessions.length > 0) candidates.push({ runId: ref, sessions });
     }
     return candidates;
   }

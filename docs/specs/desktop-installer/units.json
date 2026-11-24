@@ -1,0 +1,168 @@
+{
+  "feature": "desktop-installer",
+  "contractRevision": "plan-rev3",
+  "units": [
+    {
+      "id": "00-vetting",
+      "dependsOn": [],
+      "files": [
+        "docs/vetting/0006-installer-and-portal.md"
+      ],
+      "agent": "general-purpose",
+      "modelTier": "design",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "01-install-status-api",
+      "dependsOn": [],
+      "files": [
+        "packages/shared/src/api/install.ts",
+        "packages/shared/src/api/routes.ts",
+        "packages/shared/src/api/index.ts",
+        "apps/api/src/install",
+        "apps/api/src/app.module.ts",
+        "apps/api/src/main.ts",
+        "apps/api/src/platform/api-config.ts",
+        "packages/core/prisma"
+      ],
+      "agent": "backend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "02-relocatable-runtime",
+      "dependsOn": [],
+      "files": [
+        "packages/core/src/runtime",
+        "tools/cli/src/services",
+        "tools/cli/src/doctor",
+        "apps/watcher/src",
+        "packages/toolbox/src",
+        "apps/web/next.config.ts"
+      ],
+      "agent": "backend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "03-payload-and-dmg",
+      "dependsOn": [
+        "02-relocatable-runtime",
+        "00-vetting"
+      ],
+      "files": [
+        "apps/shell/scripts",
+        "apps/shell/package.json"
+      ],
+      "agent": "devops-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "04-first-run-setup",
+      "dependsOn": [
+        "02-relocatable-runtime"
+      ],
+      "files": [
+        "apps/shell/src/setup",
+        "apps/shell/src/electron",
+        "apps/watcher/launchd"
+      ],
+      "agent": "frontend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "05-release-workflow",
+      "dependsOn": [
+        "03-payload-and-dmg"
+      ],
+      "files": [
+        ".github/workflows/release.yml",
+        "scripts/release"
+      ],
+      "agent": "devops-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "06-portal-app",
+      "dependsOn": [
+        "01-install-status-api",
+        "00-vetting"
+      ],
+      "files": [
+        "apps/portal"
+      ],
+      "agent": "frontend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "07-shell-portal-link",
+      "dependsOn": [
+        "01-install-status-api",
+        "04-first-run-setup"
+      ],
+      "files": [
+        "apps/shell/src/menu",
+        "apps/shell/src/portal",
+        "tools/cli/src/commands"
+      ],
+      "agent": "frontend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "08-docs",
+      "dependsOn": [
+        "03-payload-and-dmg",
+        "06-portal-app"
+      ],
+      "files": [
+        "README.md",
+        "docs/prds/0001-video-studio.md",
+        "docs/adr/0005-packaged-shell.md"
+      ],
+      "agent": "docs-writer",
+      "modelTier": "build",
+      "contractRevision": "plan-rev3",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    }
+  ]
+}

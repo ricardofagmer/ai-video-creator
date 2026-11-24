@@ -8,6 +8,7 @@ import { SetRecipeStatusHandler } from './commands/set-recipe-status.handler';
 import { GetRecipeVersionHandler } from './queries/get-recipe-version.handler';
 import { ListRecipeVersionsHandler } from './queries/list-recipe-versions.handler';
 import { RecipeBindingVerifier } from './recipe-binding.verifier';
+import { RecipeCompositionCheck } from './recipe-composition.check';
 import { RecipeVersionRepository } from './recipe-version.repository';
 
 /**
@@ -21,12 +22,13 @@ import { RecipeVersionRepository } from './recipe-version.repository';
   providers: [
     RecipeVersionRepository,
     RecipeBindingVerifier,
+    RecipeCompositionCheck,
     CreateRecipeHandler,
     SaveRecipeVersionHandler,
     SetRecipeStatusHandler,
     GetRecipeVersionHandler,
     ListRecipeVersionsHandler,
   ],
-  exports: [RecipeBindingVerifier],
+  exports: [RecipeBindingVerifier, RecipeCompositionCheck],
 })
 export class RecipesModule {}

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Local content only: no script of any kind (the preload renders), no network, no frames. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'none'; style-src 'self'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <link rel="stylesheet" href="setup.css" />
+    <title>Studio</title>
+  </head>
+  <body>
+    <main>
+      <div id="progress" aria-live="polite"></div>
+      <div id="prompt"></div>
+    </main>
+    <footer id="help"></footer>
+  </body>
+</html>

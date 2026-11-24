@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { type Readable } from 'node:stream';
+import { locateNodeBinary } from '@studio/core/runtime';
 import { type Printer } from '../output/printer.js';
 import { type CliSettings } from '../settings/cli-settings.js';
-import { embeddingFetchScriptFile } from './model-manifest.js';
+import { embeddingFetchScriptFile, modelResourceRoot } from './model-manifest.js';
 
 /** Absolute path: never resolved through PATH, so a planted binary is not run. */
 const BASH_PATH = '/bin/bash';
@@ -47,7 +48,8 @@ function forwardLines(stream: Readable, write: (line: string) => void): void {
  * shell text. The child receives the CLI's allowlisted environment (PATH, HOME, ...), never
  * `process.env` wholesale and never a provider key. This is the CLI's only network use: the script
  * sends a plain HTTPS GET per pinned file and no catalog data, query or vector exists in it.
- * Its pt-BR progress lines are forwarded to the printer as they arrive; nothing is logged.
+ * Its progress lines (pt-BR, written by the shell script) are forwarded to the printer as they
+ * arrive; nothing is logged.
  * A non-zero exit is an outcome for the caller to report, never an error (B7). Ctrl-C kills the
  * child (the script deletes its temporary file) and rejects with the `AbortError`.
  */
@@ -55,9 +57,9 @@ export function runModelFetch(settings: CliSettings, printer: Printer, signal: A
   return new Promise((resolve, reject) => {
     const child = spawn(
       BASH_PATH,
-      [embeddingFetchScriptFile(settings), '--data-home', settings.dataHome.root, '--node', process.execPath],
+      [embeddingFetchScriptFile(settings), '--data-home', settings.dataHome.root, '--node', locateNodeBinary(settings.runtime, process.execPath)],
       {
-        cwd: settings.studioRoot,
+        cwd: modelResourceRoot(settings),
         env: { ...settings.childEnvironment },
         shell: false,
         stdio: ['ignore', 'pipe', 'pipe'],

@@ -40,7 +40,7 @@ Statements marked **Assumption** were not stated by the owner or verified in the
 | D13 | `ai-creator-engine` keeps working in place, with its own git history, until R1 meets its acceptance criteria; its packages are copied into `video-studio` unchanged first. After R1 passes it is archived. |
 | D14 | The R1 review form records a 1-5 rating, free-text notes and the 8-item publish checklist from `ai-creator-engine`, configurable per recipe. |
 | D15 | The Spesia Python tools (`video_tool.py`, `captions.py`: music, fades, review, caption burn) are ported to TypeScript commands in `packages/toolbox`. No Python enters the monorepo; the local voice stays an external process contract. |
-| D16 | Interface text and owner-facing docs in Portuguese (pt-BR); code, identifiers and code comments in English, as in eng-grafo. |
+| D16 | Interface text and owner-facing docs in Portuguese (pt-BR); code, identifiers and code comments in English, as in eng-grafo. Amended 2026-11-23: the interface (web, shell menu, CLI) is also available in Spanish and English; pt-BR stays the source language (`design/glossario.md`). |
 | D17 | The watcher boots the Nest `agents` module in-process as a standalone Nest application context, so runs never depend on the api being started (ADR 0002). |
 | D18 | The watcher's engine owns the graph (phases, stages, fixed steps). Mastra agents and any small Mastra workflow run only inside one step; no Mastra storage or workflow suspend/resume (ADR 0002, ADR 0003). |
 
@@ -396,6 +396,12 @@ video-studio/
 
 ## 11. Mac install and run
 
+> **Amended 2026-11-23** by PRD `docs/prds/2026-11-23-desktop-installer.md` and ADR 0010
+> (`docs/adr/0010-desktop-installer-and-hosted-portal.md`). The documented install is now a `.dmg`
+> holding a self-contained app with a first-run setup that replaces `scripts/install.sh` steps 6
+> to 15. `scripts/install.sh` stays as the development install from a source checkout. The table
+> below is the R1 behaviour and is left as written.
+
 | Topic | R1 behaviour |
 |---|---|
 | Prerequisites | Apple Silicon Mac (**Assumption**; the owner's machine is an M-series per spec 0003), Homebrew, Node 22+, ffmpeg/ffprobe |
@@ -409,6 +415,12 @@ video-studio/
 | Uninstall | `scripts/uninstall.sh` unloads and removes the launchd agent and the CLI link. It keeps the data folder unless `--purge` is given, and never touches `ricardo-clone/` or Keychain entries without asking. |
 
 ## 12. Security and privacy
+
+> **Amended 2026-11-23** by PRD `docs/prds/2026-11-23-desktop-installer.md` and ADR 0010
+> (`docs/adr/0010-desktop-installer-and-hosted-portal.md`). "Local-only" below now has one
+> exception: a hosted portal origin may read install status from the local api through the user's
+> browser, on the install-status routes only. The api still listens on `127.0.0.1` only. The rest
+> of this section is left as written.
 
 - **Secrets**: `ANTHROPIC_API_KEY`, `ELEVENLABS_API_KEY` and any provider key come from the
   environment or the macOS Keychain only. Never in the database, run files, prompts, logs, event

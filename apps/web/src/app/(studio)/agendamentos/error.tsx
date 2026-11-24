@@ -1,6 +1,7 @@
 'use client';
 
 import { Button, ErrorState } from '@studio/ui';
+import { useWebMessages } from '@/lib/i18n/client';
 
 interface SchedulesErrorProps {
   reset: () => void;
@@ -8,12 +9,13 @@ interface SchedulesErrorProps {
 
 /** SPEC 0006 section 5.7, "Erro": the failure is shown, never its stack or message. */
 export default function SchedulesError({ reset }: SchedulesErrorProps) {
+  const { common } = useWebMessages();
   return (
     <ErrorState
-      title="Não foi possível carregar os agendamentos"
+      title={common.boundaries.schedules.error}
       action={
         <Button variant="secondary" onClick={reset}>
-          Tentar de novo
+          {common.retry}
         </Button>
       }
     />

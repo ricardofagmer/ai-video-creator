@@ -40,7 +40,7 @@ export class PlanExecutor extends BaseStageExecutor {
   }
 
   async estimate(): Promise<StageEstimate> {
-    return agentCallsEstimate([PLANNER_ROLE], this.isLive('claude'));
+    return agentCallsEstimate([PLANNER_ROLE], this.agentCallsBilled());
   }
 
   declaredOutputs(context: StagePlanningContext): readonly DeclaredOutput[] {

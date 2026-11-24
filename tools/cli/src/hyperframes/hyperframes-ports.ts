@@ -32,8 +32,11 @@ export interface HyperframesSystemPort {
   sandboxExecExists(): boolean;
   /** Sandbox denials logged between the two instants (`/usr/bin/log show`). */
   readSandboxDenials(window: { start: Date; end: Date }): Promise<SandboxLogRead>;
-  /** `ffprobe` resolved through `searchPath`, the CLI's child PATH, as `doctor` does. */
-  probePicture(file: string, searchPath: string): Promise<PictureProbeRead>;
+  /**
+   * Runs `ffprobeBin`, the render runtime's already resolved real path (the PATH match in
+   * development, the bundled binary when packaged), with `searchPath`, the CLI's child PATH.
+   */
+  probePicture(file: string, searchPath: string, ffprobeBin: string): Promise<PictureProbeRead>;
   /** Waits before the log read so the last denials are flushed; aborts with the command. */
   pause(milliseconds: number, signal: AbortSignal): Promise<void>;
 }

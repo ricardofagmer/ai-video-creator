@@ -1,5 +1,6 @@
 import { CliError } from '../errors/cli.errors.js';
 import { type ErrorCategory } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 
 /**
  * Why `studio traces export` refused. Each reason maps to one exit code through its category:
@@ -34,18 +35,6 @@ const refusalCategories: Readonly<Record<TraceExportRefusal, ErrorCategory>> = {
   'source-too-large': 'validation',
 };
 
-/** pt-BR (D16). Ids and reasons only: never the `--out` name, a path or file content (SPEC 0006 K7). */
-const refusalMessages: Readonly<Record<TraceExportRefusal, string>> = {
-  'output-exists': 'O arquivo de --out já existe; nada foi gravado. Use outro nome ou --force para substituí-lo.',
-  'output-not-a-file': 'O --out não é um arquivo comum (link simbólico, pasta ou outro tipo); nada foi gravado.',
-  'output-folder-missing': 'A pasta do arquivo de --out não existe; nada foi gravado.',
-  'output-not-writable': 'Sem permissão para gravar o arquivo de --out; nada foi gravado.',
-  'output-inside-data-home': 'O --out fica dentro da pasta de dados do studio; escolha um arquivo fora dela.',
-  'target-not-found': 'Nenhuma execução ou curadoria tem esse id.',
-  'source-empty': 'Não há eventos para exportar.',
-  'source-too-large': 'Um arquivo de eventos passa do limite de leitura da exportação; nada foi gravado.',
-};
-
 export class TraceExportError extends CliError {
   override readonly category: ErrorCategory;
 
@@ -53,7 +42,9 @@ export class TraceExportError extends CliError {
     readonly refusal: TraceExportRefusal,
     readonly targetId?: string,
   ) {
-    super(`${targetId === undefined ? '' : `Rastro ${targetId}: `}${refusalMessages[refusal]}`);
+    // Ids and reasons only: never the `--out` name, a path or file content (SPEC 0006 K7).
+    const text = cliText().traces;
+    super(`${targetId === undefined ? '' : text.refusalPrefix(targetId)}${text.refusals[refusal]}`);
     this.name = 'TraceExportError';
     this.category = refusalCategories[refusal];
   }

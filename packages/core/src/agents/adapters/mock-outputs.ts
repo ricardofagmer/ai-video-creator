@@ -1,4 +1,5 @@
 import {
+  ANALYST_ROLE,
   CAPTURE_VISUAL,
   DIRECTOR_ROLE,
   EVALUATOR_ROLE,
@@ -9,6 +10,7 @@ import {
   WRITER_ROLE,
   type AgentOutput,
   type AgentPacket,
+  type AnalystPacket,
   type DirectorPacket,
   type ModelRoleName,
   type PlanOutput,
@@ -19,8 +21,10 @@ import {
   type ReviewVerdict,
   type ScenesOutput,
   type ScriptOutput,
+  type SiteAnalysis,
   type WriterPacket,
 } from '@studio/shared/agents';
+import { type Brief } from '@studio/shared/recipes';
 import { PhaseIdSchema, stagePhase } from '@studio/shared/run-format';
 
 /**
@@ -133,6 +137,37 @@ function mockRecovery(packet: RecoveryPacket): RecoveryAction {
   };
 }
 
+const SIMULATED_LABEL = 'Simulado';
+const ANALYSIS_LINE_MAX_CHARS = 300;
+const ANALYSIS_KEY_POINTS_MAX = 8;
+const ANALYSIS_SUGGESTIONS_MAX = 5;
+
+function simulatedLine(text: string): string {
+  return `${SIMULATED_LABEL}: ${text}`.slice(0, ANALYSIS_LINE_MAX_CHARS);
+}
+
+/**
+ * A stand-in site analysis built from the brief only: no page, no screenshot, no connection.
+ * Every free-text field says it is simulated, so a mock analysis can never pass for a read page.
+ * Exported because the research stage writes it in mock mode without an agent call.
+ */
+export function mockSiteAnalysis(brief: Brief): SiteAnalysis {
+  return {
+    summary: `Análise simulada do site para ${brief.topic}; nenhuma página foi lida.`.slice(0, 800),
+    product: simulatedLine(brief.topic),
+    audience: simulatedLine('público do brief'),
+    keyPoints: brief.keyMessages.slice(0, ANALYSIS_KEY_POINTS_MAX).map(simulatedLine),
+    tone: simulatedLine('tom neutro').slice(0, 200),
+    visualStyle: simulatedLine('nenhuma captura de tela foi vista').slice(0, 400),
+    suggestedKeyMessages: brief.keyMessages.slice(0, ANALYSIS_SUGGESTIONS_MAX).map(simulatedLine),
+    cautions: [],
+  };
+}
+
+function mockAnalysis(packet: AnalystPacket): SiteAnalysis {
+  return mockSiteAnalysis(packet.inputs.brief);
+}
+
 type MockResponders = { [Role in ModelRoleName]: (packet: AgentPacket<Role>) => AgentOutput<Role> };
 
 export const mockResponders: MockResponders = {
@@ -141,4 +176,5 @@ export const mockResponders: MockResponders = {
   [DIRECTOR_ROLE]: mockScenes,
   [EVALUATOR_ROLE]: mockVerdict,
   [RECOVERY_ROLE]: mockRecovery,
+  [ANALYST_ROLE]: mockAnalysis,
 };

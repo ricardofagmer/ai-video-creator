@@ -4,7 +4,6 @@ import { ComparisonIdSchema } from '@studio/shared/catalog';
 import { RecipeIdSchema } from '@studio/shared/recipes';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { assetStatusLabels } from '@/features/catalog/catalog-labels';
 import { FocusHeadingOnVersionChange } from '@/features/catalog/components/FocusHeadingOnVersionChange';
 import layout from '@/features/common/layout.module.css';
 import { SubjectCurationsCard } from '@/features/curations/components/SubjectCurationsCard';
@@ -16,6 +15,7 @@ import { RecipeStatusControls, RecipeStatusNotice } from '@/features/recipes/com
 import { RecipeVersionSelect } from '@/features/recipes/components/RecipeVersionSelect';
 import { isNotFound } from '@/lib/api';
 import { serverStudioClient } from '@/lib/api/server';
+import { getI18n } from '@/lib/i18n/server';
 
 interface RecipePageProps {
   params: Promise<{ recipeId: string }>;
@@ -47,7 +47,8 @@ export async function generateMetadata({ params }: RecipePageProps): Promise<Met
   const { recipeId } = await params;
   const versions = await loadVersions(recipeId);
   const name = versions?.[0]?.recipe.name;
-  return { title: name === undefined ? 'Receitas' : `${name} · Receitas` };
+  const { t } = await getI18n();
+  return { title: name === undefined ? t.recipes.list.title : t.recipes.detail.titleOf(name) };
 }
 
 /** design/telas/06: `/receitas/[recipeId]`, version N in the editor; saving makes N+1. */
@@ -56,15 +57,17 @@ export default async function RecipePage({ params, searchParams }: RecipePagePro
   const query = await searchParams;
   const versions = await loadVersions(recipeId);
   const current = versions === null ? undefined : openVersion(versions, query.versao);
+  const { t, ui } = await getI18n();
+  const texts = t.recipes.detail;
 
   if (versions === null || current === undefined) {
     return (
       <EmptyState
-        title="Receita não encontrada"
-        description="Ela pode ter sido digitada errada no endereço."
+        title={texts.notFoundTitle}
+        description={texts.notFoundDescription}
         action={
           <Link href="/receitas" className={buttonClassName({ variant: 'secondary' })}>
-            Voltar às receitas
+            {texts.backToList}
           </Link>
         }
       />
@@ -83,7 +86,7 @@ export default async function RecipePage({ params, searchParams }: RecipePagePro
       <PageHeader
         back={
           <Link href="/receitas" className={textLinkClassName()}>
-            ← Receitas
+            {texts.back}
           </Link>
         }
         title={recipe.name}
@@ -98,14 +101,16 @@ export default async function RecipePage({ params, searchParams }: RecipePagePro
           <>
             <RecipeVersionSelect
               recipeId={recipe.id}
+              label={texts.versionsLabel}
+              openLabel={texts.open}
               current={recipe.version}
               versions={versions.map((view) => ({
                 version: view.recipe.version,
-                label: `v${view.recipe.version} · ${assetStatusLabels[view.recipe.status]}`,
+                label: `v${view.recipe.version} · ${ui.status.asset[view.recipe.status]}`,
               }))}
             />
             <Link href={`/execucoes/nova?receita=${current.ref}`} className={buttonClassName({ variant: 'secondary' })}>
-              Executar
+              {texts.run}
             </Link>
             <RecipeStatusControls
               recipeId={recipe.id}
@@ -116,19 +121,19 @@ export default async function RecipePage({ params, searchParams }: RecipePagePro
           </>
         }
       />
-      {query.aviso === 'salvo' && <Alert variant="success">Receita salva como versão {recipe.version}.</Alert>}
+      {query.aviso === 'salvo' && <Alert variant="success">{texts.saved(recipe.version)}</Alert>}
       <RecipeStatusNotice notice={query.aviso} version={recipe.version} />
       {current.activation !== null && (
-        <Card title="Aprovação de ativação">
+        <Card title={texts.activationTitle}>
           <ActivationSummary approval={current.activation} showScore={false} />
         </Card>
       )}
       {recipe.status === 'active' && current.activation === null && (
-        <Alert variant="info">Esta versão foi ativada antes do registro de aprovações e não tem uma aprovação registrada.</Alert>
+        <Alert variant="info">{texts.activatedWithoutApproval}</Alert>
       )}
       <SubjectCurationsCard
         subject={recipeCurationSubject(current)}
-        blockedText={curationBlockedText({ status: recipe.status, biometric: false })}
+        blockedText={curationBlockedText({ status: recipe.status, biometric: false }, t.curations.blocked)}
       />
       <RecipeEditor
         key={current.ref}

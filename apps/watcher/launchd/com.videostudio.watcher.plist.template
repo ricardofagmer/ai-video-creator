@@ -7,6 +7,10 @@
   ~/Library/LaunchAgents/com.videostudio.watcher.plist and registers it. Nothing here is loaded by
   the watcher itself.
 
+  The packaged app renders its own variant, embedded in the shell bundle at
+  apps/shell/src/setup/watcher-plist-template.ts: same label, keys and restart policy, with paths
+  inside the app and PATH limited to the bundled folders plus /usr/bin:/bin. Change both together.
+
     __NODE_BIN__      absolute path of the node binary (Node 22+)
     __WATCHER_MAIN__  absolute path of apps/watcher/dist/main.js
     __WORKING_DIR__   absolute path of apps/watcher

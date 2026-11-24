@@ -1,6 +1,7 @@
 // Public surface of @studio/ui. Global styles: `import '@studio/ui/styles.css'` once in the root layout.
 export { classNames } from './utils/class-names';
-export { formatBytes, formatUsd, shortenHash } from './utils/format';
+export { formatBytes, formatDate, formatDateTime, formatNumber, formatRelative, formatUsd, shortenHash } from './utils/format';
+export type { DateInput } from './utils/format';
 
 // Base components (design/componentes.md)
 export { Button, buttonClassName } from './components/button/Button';
@@ -8,6 +9,9 @@ export type { ButtonClassNameOptions, ButtonProps, ButtonSize, ButtonVariant } f
 export { Spinner } from './components/spinner/Spinner';
 export type { SpinnerProps, SpinnerSize } from './components/spinner/Spinner';
 export { textLinkClassName } from './components/text-link/TextLink';
+// Icons
+export { Icon } from './components/icon/Icon';
+export type { IconName, IconProps } from './components/icon/Icon';
 export { Label } from './components/form/Label';
 export type { LabelProps } from './components/form/Label';
 export { FormField } from './components/form/FormField';
@@ -16,6 +20,8 @@ export { Input } from './components/form/Input';
 export type { InputProps } from './components/form/Input';
 export { Textarea } from './components/form/Textarea';
 export type { TextareaProps } from './components/form/Textarea';
+export { TagInput } from './components/form/TagInput';
+export type { TagInputProps, TagSeparator } from './components/form/TagInput';
 export { Select } from './components/form/Select';
 export type { SelectOption, SelectProps } from './components/form/Select';
 export { RadioGroup } from './components/form/RadioGroup';
@@ -40,8 +46,8 @@ export { EmptyState } from './components/feedback/EmptyState';
 export type { EmptyStateProps } from './components/feedback/EmptyState';
 export { ErrorState } from './components/feedback/ErrorState';
 export type { ErrorStateProps } from './components/feedback/ErrorState';
-export { AppShell, navLinkClassName } from './components/layout/AppShell';
-export type { AppShellProps, NavLinkClassNameOptions } from './components/layout/AppShell';
+export { AppShell, DrawerSection, drawerItemClassName, navLinkClassName } from './components/layout/AppShell';
+export type { AppShellAccount, AppShellPreference, AppShellProps, DrawerSectionProps, NavLinkClassNameOptions } from './components/layout/AppShell';
 export { PageHeader } from './components/layout/PageHeader';
 export type { PageHeaderProps } from './components/layout/PageHeader';
 export { Logo } from './components/layout/Logo';
@@ -92,3 +98,14 @@ export { Checklist } from './components/review/Checklist';
 export type { ChecklistItem, ChecklistProps } from './components/review/Checklist';
 export { QaResultList } from './components/review/QaResultList';
 export type { QaResult, QaResultItem, QaResultListProps } from './components/review/QaResultList';
+
+// Interface language (docs/specs/2026-11-22-i18n-design.md)
+export { I18nProvider, useI18n } from './i18n/I18nProvider';
+export type { I18nContextValue, I18nProviderProps } from './i18n/I18nProvider';
+export { DEFAULT_LOCALE, LOCALES, LOCALE_COOKIE_NAME, negotiateLocale, parseLocale, resolveLocale } from './i18n/locale';
+export type { Locale } from './i18n/locale';
+export type { Messages } from './i18n/message-types';
+export { uiMessages } from './i18n/messages';
+export type { UiMessages } from './i18n/messages';
+export { LanguageSwitch } from './components/language/LanguageSwitch';
+export type { LanguageSwitchProps } from './components/language/LanguageSwitch';

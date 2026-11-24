@@ -4,6 +4,7 @@ import { Alert, Button, Dialog, FormField, Textarea } from '@studio/ui';
 import { type GateDecisionRequest } from '@studio/shared/api';
 import { useState, type FormEvent, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { useWebMessages } from '@/lib/i18n/client';
 import { describeRunError } from '../run-error-text';
 import { browserRunsApi } from '../runs-api';
 
@@ -39,6 +40,7 @@ function decisionRequest(gate: AwaitedGate, outcome: 'approved' | 'rejected', no
  * required reason in a Dialog. Writes `approval.json` through `POST /runs/:runId/gate-decisions`.
  */
 export function GateDecisionActions({ runId, gate, labels, onDecided }: GateDecisionActionsProps): ReactElement {
+  const t = useWebMessages();
   const [pending, setPending] = useState<'approve' | 'reject' | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState('');
@@ -53,7 +55,7 @@ export function GateDecisionActions({ runId, gate, labels, onDecided }: GateDeci
       setRejectOpen(false);
       onDecided();
     } catch (error) {
-      setServerError(describeRunError(error));
+      setServerError(describeRunError(error, t));
     } finally {
       setPending(null);
     }
@@ -63,7 +65,7 @@ export function GateDecisionActions({ runId, gate, labels, onDecided }: GateDeci
     event.preventDefault();
     const trimmed = reason.trim();
     if (trimmed === '') {
-      setReasonError('Escreva o motivo da recusa.');
+      setReasonError(t.runs.waiting.reasonRequired);
       return;
     }
     setReasonError(null);
@@ -87,9 +89,9 @@ export function GateDecisionActions({ runId, gate, labels, onDecided }: GateDeci
         footer={
           <>
             <Button variant="secondary" onClick={() => setRejectOpen(false)}>
-              Cancelar
+              {t.runs.waiting.cancel}
             </Button>
-            <Button type="submit" form="form-recusa" variant="danger" loading={pending === 'reject'} loadingLabel="Recusando…">
+            <Button type="submit" form="form-recusa" variant="danger" loading={pending === 'reject'} loadingLabel={t.runs.waiting.rejecting}>
               {labels.reject}
             </Button>
           </>
@@ -97,7 +99,7 @@ export function GateDecisionActions({ runId, gate, labels, onDecided }: GateDeci
       >
         <form id="form-recusa" className={layout.stack} onSubmit={submitRejection} noValidate>
           {serverError !== null && <Alert variant="error">{serverError}</Alert>}
-          <FormField id={REASON_FIELD_ID} label="Motivo" error={reasonError ?? undefined}>
+          <FormField id={REASON_FIELD_ID} label={t.runs.waiting.reasonLabel} error={reasonError ?? undefined}>
             {({ invalid, ...control }) => (
               <Textarea
                 {...control}

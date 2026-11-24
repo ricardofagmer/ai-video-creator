@@ -4,6 +4,8 @@ import layout from '@/features/common/layout.module.css';
 
 export interface RecipeVersionSelectProps {
   recipeId: string;
+  label: string;
+  openLabel: string;
   current: number;
   versions: readonly { version: number; label: string }[];
 }
@@ -12,11 +14,11 @@ export interface RecipeVersionSelectProps {
  * design/telas/06 header: compact "Versões" select that opens `?versao=N`. A GET form with an
  * explicit button, so moving through the options with the keyboard never navigates by itself.
  */
-export function RecipeVersionSelect({ recipeId, current, versions }: RecipeVersionSelectProps): ReactElement {
+export function RecipeVersionSelect({ recipeId, label, openLabel, current, versions }: RecipeVersionSelectProps): ReactElement {
   return (
     <form method="get" action={`/receitas/${recipeId}`} className={layout.row}>
       <div className={layout.field}>
-        <Label htmlFor="versoes-receita">Versões</Label>
+        <Label htmlFor="versoes-receita">{label}</Label>
         <Select
           key={current}
           id="versoes-receita"
@@ -26,7 +28,7 @@ export function RecipeVersionSelect({ recipeId, current, versions }: RecipeVersi
         />
       </div>
       <Button type="submit" variant="ghost">
-        Abrir
+        {openLabel}
       </Button>
     </form>
   );

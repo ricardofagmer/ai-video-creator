@@ -5,6 +5,7 @@ import { metricsBounds, parsePublicationUrl } from '@studio/shared/metrics';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent, type ReactElement } from 'react';
 import { apiReasonText, describeApiError } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import layout from '@/features/common/layout.module.css';
 import { localTodayIso } from '../metric-labels';
 import { browserMetricsApi } from '../metrics-api';
@@ -24,6 +25,8 @@ const PUBLISHED_ON_ID = 'publicacao-data';
  * stores only the rebuilt canonical URL and is the boundary. The link is never opened or fetched.
  */
 export function PublicationAddForm({ runId }: PublicationAddFormProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.metrics.publications.add;
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [publishedOn, setPublishedOn] = useState('');
@@ -39,13 +42,13 @@ export function PublicationAddForm({ runId }: PublicationAddFormProps): ReactEle
     const trimmed = url.trim();
     const parsed = parsePublicationUrl(trimmed);
     if (parsed.status === 'refused') {
-      setUrlError(trimmed === '' ? 'Cole o link do vídeo publicado.' : apiReasonText(parsed.reason));
+      setUrlError(trimmed === '' ? texts.urlRequired : apiReasonText(parsed.reason, t));
       document.getElementById(URL_ID)?.focus();
       return;
     }
     setUrlError(null);
     if (publishedOn !== '' && publishedOn > localTodayIso()) {
-      setDateError('A data de publicação não pode ser no futuro.');
+      setDateError(texts.futureDate);
       document.getElementById(PUBLISHED_ON_ID)?.focus();
       return;
     }
@@ -57,7 +60,7 @@ export function PublicationAddForm({ runId }: PublicationAddFormProps): ReactEle
       setPublishedOn('');
       router.refresh();
     } catch (error) {
-      setServerError(describeApiError(error));
+      setServerError(describeApiError(error, t));
     } finally {
       setPending(false);
     }
@@ -69,8 +72,8 @@ export function PublicationAddForm({ runId }: PublicationAddFormProps): ReactEle
       <div className={layout.fieldGrid}>
         <FormField
           id={URL_ID}
-          label="Link do vídeo publicado"
-          help="O link completo do vídeo no YouTube, Instagram ou TikTok. O estúdio só guarda o link; não abre nem publica nada."
+          label={texts.url}
+          help={texts.urlHelp}
           error={urlError ?? undefined}
           disabled={pending}
           className={layout.fieldWide}
@@ -90,7 +93,7 @@ export function PublicationAddForm({ runId }: PublicationAddFormProps): ReactEle
             />
           )}
         </FormField>
-        <FormField id={PUBLISHED_ON_ID} label="Publicado em" optional error={dateError ?? undefined} disabled={pending}>
+        <FormField id={PUBLISHED_ON_ID} label={texts.publishedOn} optional error={dateError ?? undefined} disabled={pending}>
           {({ invalid, ...control }) => (
             <Input
               {...control}
@@ -104,8 +107,8 @@ export function PublicationAddForm({ runId }: PublicationAddFormProps): ReactEle
         </FormField>
       </div>
       <div className={styles.actions}>
-        <Button type="submit" variant="secondary" loading={pending} loadingLabel="Registrando…">
-          Registrar publicação
+        <Button type="submit" variant="secondary" loading={pending} loadingLabel={texts.saving}>
+          {texts.submit}
         </Button>
       </div>
     </form>

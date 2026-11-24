@@ -5,6 +5,7 @@ import { curationBounds } from '@studio/shared/curation';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactElement } from 'react';
 import { describeApiError } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import layout from '@/features/common/layout.module.css';
 import { browserCurationsApi } from '../curations-api';
 import styles from '../curations.module.css';
@@ -23,6 +24,8 @@ const DECLINE_REASON_ID = 'curadoria-motivo-recusa';
  * nothing here activates or promotes a version (AC 35, C5-AC-03).
  */
 export function CurationDecisionActions({ curationId }: CurationDecisionActionsProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.curations.decisionActions;
   const router = useRouter();
   const [pending, setPending] = useState<PendingAction>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +42,7 @@ export function CurationDecisionActions({ curationId }: CurationDecisionActionsP
       // The controls stay disabled until the refresh replaces them: the curation is decided.
       router.refresh();
     } catch (failure) {
-      setError(describeApiError(failure));
+      setError(describeApiError(failure, t));
       setPending(null);
     }
   }
@@ -48,7 +51,7 @@ export function CurationDecisionActions({ curationId }: CurationDecisionActionsP
     if (pending !== null) return;
     const trimmed = reason.trim();
     if (trimmed.length > curationBounds.declineReasonChars) {
-      setReasonError(`Use até ${curationBounds.declineReasonChars} caracteres.`);
+      setReasonError(texts.reasonTooLong(curationBounds.declineReasonChars));
       document.getElementById(DECLINE_REASON_ID)?.focus();
       return;
     }
@@ -60,7 +63,7 @@ export function CurationDecisionActions({ curationId }: CurationDecisionActionsP
       setDeclineOpen(false);
       router.refresh();
     } catch (failure) {
-      setError(describeApiError(failure));
+      setError(describeApiError(failure, t));
       setDeclineOpen(false);
       setPending(null);
     }
@@ -74,43 +77,43 @@ export function CurationDecisionActions({ curationId }: CurationDecisionActionsP
     <div className={layout.stack}>
       {error !== null && <Alert variant="error">{error}</Alert>}
       <p className="caption">
-        Salvar cria uma versão nova em rascunho com o texto proposto. A versão atual não muda; para ativar a nova, abra a página dela.
+        {texts.saveHelp}
       </p>
       <div className={styles.actions}>
         <Button
           variant="primary"
           loading={pending === 'save-draft'}
-          loadingLabel="Salvando…"
+          loadingLabel={texts.saving}
           disabled={pending !== null}
           onClick={() => void saveDraft()}
         >
-          Salvar como rascunho
+          {texts.saveDraft}
         </Button>
         <Button variant="secondary" disabled={pending !== null} onClick={() => setDeclineOpen(true)}>
-          Recusar
+          {texts.decline}
         </Button>
       </div>
       <Dialog
         open={declineOpen}
         onClose={closeDecline}
-        title="Recusar a proposta?"
-        description="Nenhuma versão é criada. O motivo, se você escrever um, ajuda o curador nas próximas propostas para esta versão."
+        title={texts.declineTitle}
+        description={texts.declineDescription}
         footer={
           <>
             <Button variant="secondary" disabled={pending !== null} onClick={closeDecline}>
-              Cancelar
+              {texts.cancel}
             </Button>
-            <Button variant="primary" loading={pending === 'decline'} loadingLabel="Recusando…" onClick={() => void decline()}>
-              Recusar a proposta
+            <Button variant="primary" loading={pending === 'decline'} loadingLabel={texts.declining} onClick={() => void decline()}>
+              {texts.declineConfirm}
             </Button>
           </>
         }
       >
         <FormField
           id={DECLINE_REASON_ID}
-          label="Motivo"
+          label={texts.reason}
           optional
-          help={`${reason.trim().length} de ${curationBounds.declineReasonChars} caracteres. Não escreva senhas nem chaves.`}
+          help={texts.reasonHelp(reason.trim().length, curationBounds.declineReasonChars)}
           error={reasonError ?? undefined}
           disabled={pending !== null}
         >

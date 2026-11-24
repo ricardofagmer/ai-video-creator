@@ -17,6 +17,7 @@ import { catalogSearchTool, type CatalogSearchBinding } from './catalog-search.t
 import { frameSampleTool } from './frame-sample.tool';
 import { toMastraTool, type ToolResultForm } from './mastra-tool.adapter';
 import { runArtifactReadTool } from './run-artifact-read.tool';
+import { siteScreenshotTool } from './site-screenshot.tool';
 import { BoundedCache, StepStateRegistry, type StepToolState } from './tool-state';
 import { invokeGuardedTool, type GuardedTool } from './tool-wrapper';
 
@@ -81,6 +82,8 @@ export class ReadOnlyAgentToolSetProvider implements AgentToolSetProvider {
         return this.wrap(runArtifactReadTool({ redactor: this.redactor, memo: this.artifactMemo }, scope), scope, state, 'json');
       case 'FrameSampleTool':
         return this.wrap(frameSampleTool({ redactor: this.redactor, biometricRuns: this.biometricRuns }), scope, state, 'images');
+      case 'SiteScreenshotTool':
+        return this.wrap(siteScreenshotTool(), scope, state, 'images');
     }
   }
 

@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactElement } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { formatUsd } from '../../utils/format';
 import styles from './CostMeter.module.css';
@@ -23,20 +26,22 @@ function percentOf(value: number, limit: number): number {
 }
 
 /** Spend against a cost ceiling; turns warning at 80 % and danger at 100 %. */
-export function CostMeter({ spentUsd, limitUsd, estimateUsd, label = 'Custo da execução', className }: CostMeterProps): ReactElement {
+export function CostMeter({ spentUsd, limitUsd, estimateUsd, label, className }: CostMeterProps): ReactElement {
+  const { ui, locale } = useI18n();
+  const meterLabel = label ?? ui.runs.costLabel;
   const share = limitUsd > 0 ? spentUsd / limitUsd : 1;
   const level = share >= 1 ? 'danger' : share >= warningShare ? 'warning' : 'normal';
-  const valueText = `${formatUsd(spentUsd)} de ${formatUsd(limitUsd)}`;
+  const valueText = ui.runs.costOf(formatUsd(spentUsd, locale), formatUsd(limitUsd, locale));
 
   return (
     <div className={classNames(styles.meter, styles[level], className)}>
       <div className={styles.header}>
-        <span className="label">{label}</span>
+        <span className="label">{meterLabel}</span>
         <span className={styles.value}>{valueText}</span>
       </div>
       <div
         role="meter"
-        aria-label={label}
+        aria-label={meterLabel}
         aria-valuemin={0}
         aria-valuemax={limitUsd}
         aria-valuenow={Math.min(spentUsd, limitUsd)}
@@ -48,8 +53,8 @@ export function CostMeter({ spentUsd, limitUsd, estimateUsd, label = 'Custo da e
           <span aria-hidden="true" className={styles.estimate} style={{ left: `${percentOf(estimateUsd, limitUsd)}%` }} />
         )}
       </div>
-      {estimateUsd !== undefined && <p className={classNames('caption', styles.note)}>Estimativa do plano: {formatUsd(estimateUsd)}</p>}
-      {level === 'danger' && <p className={classNames(styles.note, styles.alertText)}>Limite de custo atingido.</p>}
+      {estimateUsd !== undefined && <p className={classNames('caption', styles.note)}>{ui.runs.planEstimate} {formatUsd(estimateUsd, locale)}</p>}
+      {level === 'danger' && <p className={classNames(styles.note, styles.alertText)}>{ui.runs.costLimitReached}</p>}
     </div>
   );
 }

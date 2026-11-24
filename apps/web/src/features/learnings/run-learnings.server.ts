@@ -2,7 +2,7 @@ import 'server-only';
 import { type AssetVersionView, type LearningNoteView } from '@studio/shared/api';
 import { assetRefPattern, parseAssetRef } from '@studio/shared/catalog';
 import { type RunManifest } from '@studio/shared/run-format';
-import { assetKindLabels } from '@/features/catalog/catalog-labels';
+import { getI18n } from '@/lib/i18n/server';
 import { type ArtifactRead } from '@/features/review/media-safety';
 import { ApiResponseContractError, isNotFound } from '@/lib/api';
 import { serverStudioClient } from '@/lib/api/server';
@@ -47,6 +47,7 @@ export async function loadRunLearnings(runId: string, manifest: ArtifactRead<Run
   const refs = usedRefs(manifest.value);
   const versions = await Promise.all(refs.map(async (ref) => ({ ref, version: await readVersion(ref) })));
   const targets: LearningTarget[] = [];
+  const { t } = await getI18n();
   const notes: LearningNoteView[] = [];
   let biometricCount = 0;
   let unreadableCount = 0;
@@ -59,7 +60,7 @@ export async function loadRunLearnings(runId: string, manifest: ArtifactRead<Run
       biometricCount += 1;
       continue;
     }
-    targets.push({ ref, label: `${version.name} · ${assetKindLabels[version.kind]} · ${ref}` });
+    targets.push({ ref, label: `${version.name} · ${t.runs.learnings.assetKinds[version.kind]} · ${ref}` });
     notes.push(...version.learnings.filter((note) => note.sourceRunId === runId));
   }
   notes.sort((left, right) => right.createdAt.localeCompare(left.createdAt));

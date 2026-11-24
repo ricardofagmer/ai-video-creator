@@ -1,5 +1,6 @@
 import type { RunId } from '@studio/shared/run-format';
 import type { ScheduleId, ScheduleStatus } from '@studio/shared/schedules';
+import { cliText } from '../i18n/messages.js';
 import { type DoctorCheck } from './doctor-check.js';
 
 /** Which file of a schedule folder could not be read against its contract. */
@@ -16,18 +17,19 @@ export interface ScheduleScan {
 /** Ids listed one per line before the rest is summarised. */
 const MAX_LISTED = 20;
 
-const unreadableLabels: Readonly<Record<UnreadableScheduleFile, string>> = {
-  schedule: 'agendamento ilegível',
-  slots: 'registro de horários ilegível',
-};
+function unreadableLabel(file: UnreadableScheduleFile): string {
+  const text = cliText().doctor.schedules;
+  return file === 'schedule' ? text.scheduleUnreadable : text.slotsUnreadable;
+}
 
 function detailLines(scan: ScheduleScan): string[] {
+  const text = cliText().doctor;
   const entries = [
-    ...scan.unreadable.map((entry) => `        ${entry.scheduleId}: ${unreadableLabels[entry.file]}`),
-    ...scan.missingFiredRuns.map((entry) => `        ${entry.scheduleId}: execução disparada ${entry.runId} sem pasta`),
+    ...scan.unreadable.map((entry) => `        ${entry.scheduleId}: ${unreadableLabel(entry.file)}`),
+    ...scan.missingFiredRuns.map((entry) => `        ${entry.scheduleId}: ${text.schedules.firedWithoutFolder(entry.runId)}`),
   ];
   const lines = entries.slice(0, MAX_LISTED);
-  if (entries.length > MAX_LISTED) lines.push(`        ... e mais ${entries.length - MAX_LISTED}.`);
+  if (entries.length > MAX_LISTED) lines.push(text.data.andMore(entries.length - MAX_LISTED));
   return lines;
 }
 
@@ -38,16 +40,15 @@ function detailLines(scan: ScheduleScan): string[] {
  * that schedule; a missing run folder and a stopped watcher are warnings. Ids and counts only.
  */
 export function scheduleChecks(scan: ScheduleScan, watcherRunning: boolean): { check: DoctorCheck; lines: string[] } {
-  const label = 'agendamentos';
+  const text = cliText().doctor;
+  const label = text.labels.schedules;
   const active = scan.schedules.filter((schedule) => schedule.status === 'active').length;
   const paused = scan.schedules.filter((schedule) => schedule.status === 'paused').length;
   const problems: string[] = [];
-  if (scan.unreadable.length > 0) problems.push(`${scan.unreadable.length} arquivo(s) ilegível(is); o watcher pula esse(s) agendamento(s)`);
-  if (scan.missingFiredRuns.length > 0) problems.push(`${scan.missingFiredRuns.length} execução(ões) disparada(s) sem pasta em runs/`);
-  if (active > 0 && !watcherRunning) problems.push(`${active} ativo(s), mas o watcher não está rodando: os horários serão perdidos`);
+  if (scan.unreadable.length > 0) problems.push(text.schedules.unreadableFiles(scan.unreadable.length));
+  if (scan.missingFiredRuns.length > 0) problems.push(text.schedules.missingRuns(scan.missingFiredRuns.length));
+  if (active > 0 && !watcherRunning) problems.push(text.schedules.watcherStopped(active));
   const lines = detailLines(scan);
-  if (problems.length === 0) {
-    return { check: { label, status: 'ok', detail: `${active} ativo(s), ${paused} pausado(s); arquivos legíveis e execuções disparadas presentes.` }, lines };
-  }
+  if (problems.length === 0) return { check: { label, status: 'ok', detail: text.schedules.ok(active, paused) }, lines };
   return { check: { label, status: scan.unreadable.length > 0 ? 'failed' : 'warning', detail: `${problems.join('; ')}.` }, lines };
 }

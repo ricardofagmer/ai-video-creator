@@ -1,6 +1,7 @@
 import { realpath, stat } from 'node:fs/promises';
 import { type FolderFileSource, type FolderReader, type FolderVersionSource, type ListFolderOptions } from '@studio/core/asset-store';
 import { type DataHome } from '@studio/core/paths';
+import { locateSandboxStudioRoot, type StudioRuntime } from '@studio/core/runtime';
 import {
   pinnedBinPath,
   realPathOfExistingPrefix,
@@ -41,7 +42,10 @@ export interface HyperframesStagePorts {
   realPath(path: string): Promise<string>;
   /** Throws only for a failure other than an absent component or a non-folder. */
   realFolder(path: string): Promise<RealFolder>;
-  /** The monorepo root (`STUDIO_ROOT` before resolution). */
+  /**
+   * `STUDIO_ROOT` before resolution: the monorepo root in development, the app's runtime folder
+   * when packaged (the sandbox denies `.env` reads under it).
+   */
   studioRoot(): string;
 }
 
@@ -60,7 +64,7 @@ async function realFolder(path: string): Promise<RealFolder> {
   }
 }
 
-export function realHyperframesStagePorts(dataHome: DataHome, folders: FolderReader): HyperframesStagePorts {
+export function realHyperframesStagePorts(dataHome: DataHome, folders: FolderReader, runtime: StudioRuntime): HyperframesStagePorts {
   return {
     dataHomeRoot: dataHome.root,
     readEngineFiles: readHyperframesEngineFiles,
@@ -73,6 +77,6 @@ export function realHyperframesStagePorts(dataHome: DataHome, folders: FolderRea
     realPathOfExistingPrefix,
     realPath: (path) => realpath(path),
     realFolder,
-    studioRoot: workspaceRoot,
+    studioRoot: () => locateSandboxStudioRoot(runtime, workspaceRoot()),
   };
 }

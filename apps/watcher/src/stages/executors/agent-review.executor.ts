@@ -22,7 +22,7 @@ export class AgentReviewExecutor extends BaseStageExecutor {
   protected override readonly appliesCallFaults = false;
 
   async estimate(): Promise<StageEstimate> {
-    return agentCallsEstimate(['evaluator'], this.isLive('claude'));
+    return agentCallsEstimate(['evaluator'], this.agentCallsBilled());
   }
 
   declaredOutputs(context: StagePlanningContext): readonly DeclaredOutput[] {

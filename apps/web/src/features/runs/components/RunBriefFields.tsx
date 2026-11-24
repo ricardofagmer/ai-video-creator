@@ -1,9 +1,10 @@
 'use client';
 
-import { FormField, Input, Textarea } from '@studio/ui';
+import { FormField, Input, TagInput } from '@studio/ui';
 import { type Recipe } from '@studio/shared/recipes';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { useWebMessages } from '@/lib/i18n/client';
 import { asksKeyMessages, asksSourceUrl, durationBounds, newRunFieldIds, type NewRunErrors, type NewRunField, type NewRunFormValues } from '../new-run-model';
 
 interface RunBriefFieldsProps {
@@ -20,18 +21,20 @@ interface RunBriefFieldsProps {
  * by "Nova execução" and "Nova comparação" so both build the same C2 `Brief` with `buildBrief`.
  */
 export function RunBriefFields({ values, errors, recipe, disabled, onChange }: RunBriefFieldsProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.runs.brief;
   const bounds = recipe === undefined ? null : durationBounds(recipe);
   const keyMessageRange = recipe?.inputs.keyMessages;
   return (
     <div className={layout.stack}>
-      <FormField id={newRunFieldIds.topic} label="Tema" error={errors.topic} disabled={disabled}>
+      <FormField id={newRunFieldIds.topic} label={texts.topic} error={errors.topic} disabled={disabled}>
         {({ invalid, ...control }) => (
           <Input {...control} invalid={invalid} maxLength={300} value={values.topic} onChange={(event) => onChange('topic', event.currentTarget.value)} />
         )}
       </FormField>
       <FormField
         id={newRunFieldIds.sourceUrl}
-        label="URL de origem"
+        label={texts.sourceUrl}
         optional={recipe === undefined || !asksSourceUrl(recipe)}
         error={errors.sourceUrl}
         disabled={disabled}
@@ -51,21 +54,28 @@ export function RunBriefFields({ values, errors, recipe, disabled, onChange }: R
       {recipe !== undefined && asksKeyMessages(recipe) && (
         <FormField
           id={newRunFieldIds.keyMessages}
-          label="Mensagens-chave"
+          label={texts.keyMessages}
           optional={keyMessageRange?.min === 0}
-          help="Uma por linha."
+          help={texts.keyMessagesHelp}
           error={errors.keyMessages}
           disabled={disabled}
         >
           {({ invalid, ...control }) => (
-            <Textarea {...control} invalid={invalid} value={values.keyMessages} onChange={(event) => onChange('keyMessages', event.currentTarget.value)} />
+            <TagInput
+              {...control}
+              separator="line"
+              invalid={invalid}
+              removeLabel={t.common.tagInput.remove}
+              value={values.keyMessages}
+              onChange={(value) => onChange('keyMessages', value)}
+            />
           )}
         </FormField>
       )}
       <FormField
         id={newRunFieldIds.targetDurationSec}
-        label="Duração alvo (segundos)"
-        help={bounds === null ? undefined : `Entre ${bounds.min} e ${bounds.max} segundos.`}
+        label={texts.targetDuration}
+        help={bounds === null ? undefined : texts.durationHelp(bounds.min, bounds.max)}
         error={errors.targetDurationSec}
         disabled={disabled}
       >

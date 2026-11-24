@@ -70,3 +70,24 @@ export function claimsFromKeyMessages(keyMessages: readonly string[], pageText: 
     };
   });
 }
+
+/**
+ * Site analysis key points the page text backs (spec Amendment): only a point with an evidence
+ * span becomes a claim, numbered after the key-message claims; a point with no span is dropped, so
+ * the analyst's reading never enters the script as an unverified fact.
+ */
+export function claimsFromKeyPoints(keyPoints: readonly string[], pageText: string, firstNumber: number): ClaimRecord[] {
+  const claims: ClaimRecord[] = [];
+  for (const statement of keyPoints) {
+    const evidence = findEvidence(statement, pageText);
+    if (evidence === null) continue;
+    claims.push({
+      claimId: `claim-${firstNumber + claims.length}`,
+      statement,
+      status: 'verified',
+      evidence,
+      evidenceRef: `research:${evidence.start}-${evidence.end}`,
+    });
+  }
+  return claims;
+}

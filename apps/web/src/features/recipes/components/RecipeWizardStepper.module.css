@@ -1,0 +1,104 @@
+/* New-recipe wizard: progress bar and stepper. Tokens from @studio/ui only. */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.track {
+  flex: 1;
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-meter-track);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  transition: width 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}
+
+.percent {
+  min-width: 4ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* A plain list of where the owner is; it is not a control, so it has no hover or focus look. */
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-6);
+  height: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-variant-numeric: tabular-nums;
+}
+
+.current {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.current .marker {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+
+.done {
+  color: var(--color-text);
+}
+
+.done .marker {
+  border-color: var(--color-success-border);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.heading {
+  margin: 0;
+  outline: none;
+}
+
+.heading:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { classNames, type VideoAspect } from '@studio/ui';
+import { classNames, useI18n, type VideoAspect } from '@studio/ui';
 import { type MouseEvent, type ReactElement } from 'react';
 import styles from '../review.module.css';
 
@@ -25,6 +25,7 @@ function preventContextMenu(event: MouseEvent<HTMLVideoElement>): void {
  * Known limit accepted by the owner: `nodownload` does not stop the owner saving what plays.
  */
 export function BiometricVideoPlayer({ src, title, aspect, caption }: BiometricVideoPlayerProps): ReactElement {
+  const { ui } = useI18n();
   return (
     <figure className={classNames(styles.playerFigure, aspect === '9:16' ? styles.playerPortrait : styles.playerLandscape)}>
       <div className={styles.playerFrame}>
@@ -39,7 +40,7 @@ export function BiometricVideoPlayer({ src, title, aspect, caption }: BiometricV
           onContextMenu={preventContextMenu}
         >
           <source src={src} type="video/mp4" />
-          <p>Este navegador não reproduz o vídeo.</p>
+          <p>{ui.review.videoUnsupported}</p>
         </video>
       </div>
       {caption !== undefined && <figcaption className={classNames('caption', styles.playerCaption)}>{caption}</figcaption>}

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { KebabIdSchema, Sha256Schema } from '../common/ids';
-import { JsonObjectSchema } from '../common/json';
+import { JsonObjectSchema, type JsonObject } from '../common/json';
 import { AssetRefSchema } from '../catalog/asset-kind';
 import { AspectRatioSchema, CanvasSchema, DurationRangeSchema, FpsSchema } from '../catalog/media';
 import {
@@ -109,6 +109,19 @@ export const RecipeStageSchema = z
   })
   .strict();
 export type RecipeStage = z.infer<typeof RecipeStageSchema>;
+
+/**
+ * `params` of the `research` stage (site analysis spec, 2026-11-23). Passthrough because the
+ * research executor may read other keys; `siteAnalysis` defaults on so older recipes gain it.
+ */
+export const ResearchStageParamsSchema = z.object({ siteAnalysis: z.boolean().default(true) }).passthrough();
+export type ResearchStageParams = z.infer<typeof ResearchStageParamsSchema>;
+
+/** Reads the research params; unknown or invalid input reads as the default (analysis on). */
+export function researchStageParams(params: JsonObject): { siteAnalysis: boolean } {
+  const parsed = ResearchStageParamsSchema.safeParse(params);
+  return { siteAnalysis: parsed.success ? parsed.data.siteAnalysis : true };
+}
 
 /** A human gate the recipe adds after a stage; `plan` and `final` always exist and are not listed. */
 export const RecipeGateSchema = z

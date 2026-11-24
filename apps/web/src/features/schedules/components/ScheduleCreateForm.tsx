@@ -1,12 +1,12 @@
 'use client';
 
-import { Alert, FormField, Input, Select } from '@studio/ui';
+import { Alert, FormField, Input, Select, useI18n } from '@studio/ui';
 import { type RecipeVersionView, type ScheduleView } from '@studio/shared/api';
 import { scheduleBounds } from '@studio/shared/schedules';
 import { useState, type FormEvent, type ReactElement } from 'react';
 import { describeApiError } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import layout from '@/features/common/layout.module.css';
-import { assetStatusLabels } from '@/features/catalog/catalog-labels';
 import { localTodayIso } from '@/features/metrics/metric-labels';
 import {
   buildRecurrence,
@@ -47,6 +47,10 @@ function focusFirstError(found: ScheduleErrors): void {
  * consent resets whenever a figure it covers changes.
  */
 export function ScheduleCreateForm({ formId, recipes, pending, onPendingChange, onCreated }: ScheduleCreateFormProps): ReactElement {
+  const t = useWebMessages();
+  const { ui } = useI18n();
+  const texts = t.schedules.create;
+  const errorTexts = t.schedules.errors;
   const [openedAt] = useState(() => new Date());
   const [values, setValues] = useState<ScheduleFormValues>(() =>
     initialScheduleValues({
@@ -62,7 +66,7 @@ export function ScheduleCreateForm({ formId, recipes, pending, onPendingChange, 
   const [serverError, setServerError] = useState<string | null>(null);
 
   const recipe = recipes.find((view) => view.ref === values.recipeRef);
-  const recurrence = buildRecurrence(values, openedAt);
+  const recurrence = buildRecurrence(values, openedAt, errorTexts);
   const figures = recipe === undefined ? null : costFigures(recipe.recipe, recurrence, openedAt);
 
   function update(patch: Partial<ScheduleFormValues>): void {
@@ -81,13 +85,13 @@ export function ScheduleCreateForm({ formId, recipes, pending, onPendingChange, 
     if (pending) return;
     setServerError(null);
     const found: ScheduleErrors = {};
-    const titleProblem = titleError(values.title);
+    const titleProblem = titleError(values.title, errorTexts);
     if (titleProblem !== undefined) found.title = titleProblem;
-    if (recipe === undefined) found.recipeRef = 'Escolha uma receita.';
-    const checked = buildRecurrence(values, new Date());
+    if (recipe === undefined) found.recipeRef = errorTexts.recipe;
+    const checked = buildRecurrence(values, new Date(), errorTexts);
     if (checked.kind === 'invalid') Object.assign(found, checked.errors);
-    if (queue.length === 0) found.briefs = 'Adicione pelo menos um briefing à fila.';
-    if (!consented) found.consent = 'Marque a confirmação para aceitar os custos máximos.';
+    if (queue.length === 0) found.briefs = errorTexts.briefs;
+    if (!consented) found.consent = errorTexts.consent;
     if (Object.keys(found).length > 0 || recipe === undefined || checked.kind === 'invalid' || figures === null) {
       setErrors(found);
       focusFirstError(found);
@@ -107,14 +111,14 @@ export function ScheduleCreateForm({ formId, recipes, pending, onPendingChange, 
       });
       onCreated(schedule);
     } catch (error) {
-      setServerError(describeApiError(error));
+      setServerError(describeApiError(error, t));
       onPendingChange(false);
     }
   }
 
   const recipeOptions = recipes.map((view) => ({
     value: view.ref,
-    label: `${view.recipe.name} · v${view.recipe.version} · ${assetStatusLabels[view.recipe.status]}`,
+    label: `${view.recipe.name} · v${view.recipe.version} · ${ui.status.asset[view.recipe.status]}`,
   }));
 
   return (
@@ -122,9 +126,9 @@ export function ScheduleCreateForm({ formId, recipes, pending, onPendingChange, 
       {serverError !== null && <Alert variant="error">{serverError}</Alert>}
       <section className={layout.stack} aria-labelledby={`${formId}-o-que`}>
         <h3 id={`${formId}-o-que`} className={styles.sectionHeading}>
-          O que roda
+          {texts.whatRuns}
         </h3>
-        <FormField id={scheduleFieldIds.title} label="Nome do agendamento" error={errors.title} disabled={pending}>
+        <FormField id={scheduleFieldIds.title} label={texts.title} error={errors.title} disabled={pending}>
           {({ invalid, ...control }) => (
             <Input
               {...control}
@@ -137,8 +141,8 @@ export function ScheduleCreateForm({ formId, recipes, pending, onPendingChange, 
         </FormField>
         <FormField
           id={scheduleFieldIds.recipeRef}
-          label="Receita"
-          help="A versão escolhida fica fixa no agendamento. Para usar outra versão, crie outro agendamento."
+          label={texts.recipe}
+          help={texts.recipeHelp}
           error={errors.recipeRef}
           disabled={pending}
         >
@@ -149,14 +153,14 @@ export function ScheduleCreateForm({ formId, recipes, pending, onPendingChange, 
       </section>
       <section className={layout.stack} aria-labelledby={`${formId}-quando`}>
         <h3 id={`${formId}-quando`} className={styles.sectionHeading}>
-          Quando
+          {texts.when}
         </h3>
         <ScheduleRecurrenceFields values={values} errors={errors} disabled={pending} zoneOptions={zoneOptions} onChange={update} />
       </section>
       {recipe !== undefined && (
         <section className={layout.stack} aria-labelledby={`${formId}-briefings`}>
           <h3 id={`${formId}-briefings`} className={styles.sectionHeading}>
-            Briefings
+            {texts.briefs}
           </h3>
           <ScheduleBriefQueueEditor key={recipe.ref} recipe={recipe} queue={queue} error={errors.briefs} disabled={pending} onQueueChange={setQueue} />
         </section>
@@ -164,7 +168,7 @@ export function ScheduleCreateForm({ formId, recipes, pending, onPendingChange, 
       {figures !== null && (
         <section className={layout.stack} aria-labelledby={`${formId}-custo`}>
           <h3 id={`${formId}-custo`} className={styles.sectionHeading}>
-            Custo
+            {texts.cost}
           </h3>
           <ScheduleCostConsent figures={figures} consented={consented} error={errors.consent} disabled={pending} onConsentChange={setConsented} />
         </section>

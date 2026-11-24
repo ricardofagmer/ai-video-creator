@@ -11,6 +11,11 @@
 // script opens no connection of its own and starts every child process with an argument array and
 // no shell. Output carries paths, versions and sizes, never a secret or an environment value.
 import { spawnSync } from 'node:child_process';
+//
+// scripts/package-dmg.mjs (ticket 03) imports the guards, the packager call, the fuses and the
+// signature from here, so both outputs share one definition of each; run directly, this file
+// behaves exactly as before.
+import { realpathSync } from 'node:fs';
 import { lstat, mkdir, readdir, readFile, rm, copyFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join, posix } from 'node:path';
@@ -20,11 +25,11 @@ import { parseArgs } from 'node:util';
 import { packager } from '@electron/packager';
 import { flipFuses, getCurrentFuseWire, FuseState, FuseV1Options, FuseVersion } from '@electron/fuses';
 
-const ELECTRON_VERSION = '45.4.1';
+export const ELECTRON_VERSION = '45.4.1';
 // vetting 0002 section 12, check 3: artifact-utils.js BASE_URL of @electron/get 5.1.0.
 const DOWNLOAD_HOST = 'https://github.com/electron/electron/releases/download/';
 const ELECTRON_CACHE = '~/Library/Caches/electron/';
-const APP_NAME = 'EngineOS Video Creator';
+export const APP_NAME = 'EngineOS Video Creator';
 const BUNDLE_ID = 'com.videostudio.shell';
 const TARGET_PLATFORM = 'darwin';
 const TARGET_ARCH = 'arm64';
@@ -36,11 +41,13 @@ const MAX_PATH_CHARS = 4096;
 const MIN_PORT = 1024;
 const MAX_PORT = 65535;
 
-const PACKAGE_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
-const DIST_MAIN = join(PACKAGE_DIR, 'dist', 'main.js');
-const OUT_DIR = join(PACKAGE_DIR, 'out');
+export const PACKAGE_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
+export const DIST_MAIN = join(PACKAGE_DIR, 'dist', 'main.js');
+export const OUT_DIR = join(PACKAGE_DIR, 'out');
 const STAGE_DIR = join(OUT_DIR, 'stage');
 const STAGED_FILES = ['main.js', 'package.json', 'shell-config.json'];
+// EngineOS brand kit v1 app tile, shown in Finder and the installer; the tray keeps its text title.
+const APP_ICON = join(PACKAGE_DIR, 'resources', 'engineos.icns');
 
 // vetting 0002 section 12 "Download redirect variables". @electron/get lets the environment win
 // over options passed in code, so refusing to run is the only reliable control. Names are compared
@@ -73,7 +80,7 @@ const FUSE_SETTINGS = [
   { option: FuseV1Options.GrantFileProtocolExtraPrivileges, name: 'GrantFileProtocolExtraPrivileges', enabled: false },
 ];
 
-class PackagingError extends Error {}
+export class PackagingError extends Error {}
 
 function fail(message) {
   throw new PackagingError(message);
@@ -87,7 +94,7 @@ function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function assertSafeHost() {
+export function assertSafeHost() {
   if (typeof process.getuid === 'function' && process.getuid() === 0) {
     fail('não rode como root nem com sudo: o app é construído para o seu usuário.');
   }
@@ -103,7 +110,7 @@ function normalizedVariableName(name) {
 }
 
 // Names only: a proxy or mirror value may carry credentials, so it is never printed.
-function assertNoRedirectVariables() {
+export function assertNoRedirectVariables() {
   const found = Object.keys(process.env).filter(
     (name) => process.env[name] !== undefined && REDIRECT_VARIABLES.has(normalizedVariableName(name)),
   );
@@ -162,7 +169,7 @@ function readArguments(rawArguments) {
   };
 }
 
-async function assertRegularFile(filePath, missingMessage) {
+export async function assertRegularFile(filePath, missingMessage) {
   try {
     if ((await lstat(filePath)).isFile()) return;
   } catch {
@@ -180,7 +187,7 @@ async function readJsonFile(filePath) {
 }
 
 // Reads electron's package.json and checksums.json as data; requiring `electron` would download it.
-async function readInstalledElectron() {
+export async function readInstalledElectron() {
   const resolveFromShell = createRequire(join(PACKAGE_DIR, 'package.json'));
   let manifestPath;
   try {
@@ -200,7 +207,7 @@ async function readInstalledElectron() {
   return frameworkChecksum;
 }
 
-async function readAppVersion() {
+export async function readAppVersion() {
   const manifest = await readJsonFile(join(PACKAGE_DIR, 'package.json'));
   const version = isRecord(manifest) ? manifest.version : undefined;
   if (typeof version !== 'string' || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version)) fail('apps/shell/package.json sem versão X.Y.Z.');
@@ -208,7 +215,7 @@ async function readAppVersion() {
 }
 
 // A missing folder is fine (it is created next); a symlink could point the rm below elsewhere.
-async function assertNotSymlink(folder) {
+export async function assertNotSymlink(folder) {
   let stats;
   try {
     stats = await lstat(folder);
@@ -233,15 +240,18 @@ async function stageApp(config, appVersion) {
   if (staged.join(',') !== STAGED_FILES.join(',')) fail(`a pasta de preparo tem arquivos inesperados: ${staged.join(', ')}.`);
 }
 
-async function packageApp(appVersion, frameworkChecksum) {
+// `folders` lets the .dmg build package its own staging folder into its own output folder.
+export async function packageApp(appVersion, frameworkChecksum, folders = {}) {
+  const stageDir = folders.stageDir ?? STAGE_DIR;
+  const outDir = folders.outDir ?? OUT_DIR;
   say(
     `Download do framework: Electron ${ELECTRON_VERSION} (${FRAMEWORK_ZIP}) de ${DOWNLOAD_HOST} ` +
       `(releases do GitHub de electron/electron), conferido com o checksums.json do pacote npm electron. ` +
       `O zip fica em cache em ${ELECTRON_CACHE} e é reaproveitado.`,
   );
   const outputFolders = await packager({
-    dir: STAGE_DIR,
-    out: OUT_DIR,
+    dir: stageDir,
+    out: outDir,
     name: APP_NAME,
     appBundleId: BUNDLE_ID,
     appVersion,
@@ -253,6 +263,7 @@ async function packageApp(appVersion, frameworkChecksum) {
     asarIntegrityDigest: true,
     prune: false,
     overwrite: true,
+    icon: APP_ICON,
     // Tray only: no Dock icon and no application menu bar entry.
     extendInfo: { LSUIElement: true },
     // Only the embedded, registry-covered checksum; no mirror, cache root or checksum bypass.
@@ -264,10 +275,15 @@ async function packageApp(appVersion, frameworkChecksum) {
   return appPath;
 }
 
-async function setFuses(appPath) {
+export async function setFuses(appPath) {
   const config = { version: FuseVersion.V1, resetAdHocDarwinSignature: false };
   for (const fuse of FUSE_SETTINGS) config[fuse.option] = fuse.enabled;
   await flipFuses(appPath, config);
+  await assertFuses(appPath);
+}
+
+// Reads the six fuses back from the framework binary; also run after the final signature (DI-AC-20).
+export async function assertFuses(appPath) {
   const wire = await getCurrentFuseWire(appPath);
   for (const fuse of FUSE_SETTINGS) {
     const expected = fuse.enabled ? FuseState.ENABLE : FuseState.DISABLE;
@@ -282,7 +298,7 @@ function runCodesign(codesignArguments, failureMessage) {
 }
 
 // After the fuse flip, which changes the framework binary and so invalidates its signature.
-function signAdHoc(appPath) {
+export function signAdHoc(appPath) {
   runCodesign(['--sign', '-', '--force', '--deep', appPath], 'a assinatura ad hoc falhou');
   runCodesign(['--verify', '--deep', '--strict', '--verbose=2', appPath], 'a verificação da assinatura falhou');
 }
@@ -310,10 +326,22 @@ async function main() {
   say(`tamanho: ${await sizeInBytes(appPath)} bytes`);
 }
 
-try {
-  await main();
-} catch (error) {
-  const reason = error instanceof PackagingError ? error.message : `falha inesperada: ${error instanceof Error ? error.message : 'erro desconhecido'}`;
-  process.stderr.write(`ERRO (empacotamento do app do menu): ${reason}\n`);
-  process.exitCode = 1;
+// Run only as the entry point: importing this module (package-dmg.mjs) must not package anything.
+function isEntryPoint() {
+  if (typeof process.argv[1] !== 'string') return false;
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isEntryPoint()) {
+  try {
+    await main();
+  } catch (error) {
+    const reason = error instanceof PackagingError ? error.message : `falha inesperada: ${error instanceof Error ? error.message : 'erro desconhecido'}`;
+    process.stderr.write(`ERRO (empacotamento do app do menu): ${reason}\n`);
+    process.exitCode = 1;
+  }
 }

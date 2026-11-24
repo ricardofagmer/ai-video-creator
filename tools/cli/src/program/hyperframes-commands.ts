@@ -4,6 +4,7 @@ import { hyperframesChromeInstallCommand } from '../commands/hyperframes-chrome.
 import { hyperframesTraceCommand } from '../commands/hyperframes-trace.command.js';
 import { hyperframesDisableCommand, hyperframesEnableCommand, hyperframesStatusCommand } from '../commands/hyperframes.command.js';
 import { hyperframesPorts } from '../hyperframes/real-ports.js';
+import { cliText } from '../i18n/messages.js';
 
 type ExitCodeSink = (code: number) => void;
 
@@ -13,27 +14,28 @@ type ExitCodeSink = (code: number) => void;
  * install` and `trace` (AC 69).
  */
 export function addHyperframesCommands(program: Command, dependencies: CommandDependencies, report: ExitCodeSink): void {
-  const hyperframes = program.command('hyperframes').description('motor HyperFrames: situação, Chrome, verificação de rede, ligar e desligar');
+  const text = cliText().program.hyperframes;
+  const hyperframes = program.command('hyperframes').description(text.description);
   hyperframes
     .command('status')
-    .description('mostra versão, Node, isolamento, Chrome, configuração, verificação, estado do motor e o próximo passo')
+    .description(text.status)
     .action(async () => report(await hyperframesStatusCommand(hyperframesPorts, dependencies)));
   hyperframes
     .command('chrome')
-    .description('Chrome do HyperFrames')
+    .description(text.chrome)
     .command('install')
-    .description('baixa o Chrome fixado para a pasta do estúdio (só no Terminal, com a versão digitada)')
+    .description(text.chromeInstall)
     .action(async () => report(await hyperframesChromeInstallCommand(hyperframesPorts, dependencies)));
   hyperframes
     .command('trace')
-    .description('verifica, dentro do isolamento, que a renderização não acessa a rede (só no Terminal, com confirmação digitada)')
+    .description(text.trace)
     .action(async () => report(await hyperframesTraceCommand(hyperframesPorts, dependencies)));
   hyperframes
     .command('enable')
-    .description('liga o motor, só quando Chrome, configuração e uma verificação aprovada estão em dia')
+    .description(text.enable)
     .action(async () => report(await hyperframesEnableCommand(hyperframesPorts, dependencies)));
   hyperframes
     .command('disable')
-    .description('desliga o motor (sempre funciona)')
+    .description(text.disable)
     .action(async () => report(await hyperframesDisableCommand(hyperframesPorts, dependencies)));
 }

@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
-import { EmbeddingsModule, onnxEmbeddingModelPortProvider } from '@studio/core/embeddings';
+import { type DynamicModule, Module } from '@nestjs/common';
+import { EmbeddingsModule, onnxEmbeddingModelPortProvider, runtimeEmbeddingManifestFile } from '@studio/core/embeddings';
+import { type StudioRuntime } from '@studio/core/runtime';
 import { CliModule } from './cli.module.js';
 
 /**
@@ -9,7 +10,15 @@ import { CliModule } from './cli.module.js';
  * `CliModule` owns, once. The model loads lazily, from the verified model folder only: booting
  * this module opens no network connection and loads no native runtime until a command embeds.
  */
-@Module({
-  imports: [CliModule, EmbeddingsModule.forRoot({ modelPort: onnxEmbeddingModelPortProvider() })],
-})
-export class CliSearchModule {}
+@Module({})
+export class CliSearchModule {
+  /**
+   * Plan C3 rev 3, DI-AC-03: the runtime comes from `CliSettings`, so `main.ts` stays the only
+   * reader of the environment and `doctor` and the model read one manifest (the checkout in
+   * development, `payload/resources/` when packaged).
+   */
+  static forRuntime(runtime: StudioRuntime): DynamicModule {
+    const modelPort = onnxEmbeddingModelPortProvider({ manifestPath: () => runtimeEmbeddingManifestFile(runtime) });
+    return { module: CliSearchModule, imports: [CliModule, EmbeddingsModule.forRoot({ modelPort })] };
+  }
+}

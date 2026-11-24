@@ -82,6 +82,12 @@ export abstract class BaseStageExecutor implements StageExecutorPort {
   protected isLive(provider: ProviderName): boolean {
     return this.dependencies.providerModes.isLive(provider);
   }
+
+  /** ADR 0011: agent calls on the Claude Code engine are not billed, so they estimate at USD 0. */
+  protected agentCallsBilled(): boolean {
+    const modes = this.dependencies.providerModes;
+    return modes.isLive('claude') && modes.usesClaudeCode?.() !== true;
+  }
 }
 
 function notApplicable(stageId: StageId): CheckEvidence {

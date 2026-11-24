@@ -52,12 +52,28 @@ export async function probeWatcherAgent(uid: number, environment: Readonly<Recor
   return { status: 'loaded-not-running' };
 }
 
-export type ToolVersion = { status: 'found'; version: string } | { status: 'missing' } | { status: 'failed' };
+/** `version` is null when the tool ran but printed no version line. */
+export type ToolVersion = { status: 'found'; version: string | null } | { status: 'missing' } | { status: 'failed' };
 
-/** `ffmpeg -version` / `ffprobe -version`, resolved through the child's PATH as the toolbox does. */
-export async function probeToolVersion(tool: 'ffmpeg' | 'ffprobe', environment: Readonly<Record<string, string>>): Promise<ToolVersion> {
-  const result = await runReadOnly(tool, ['-version'], environment);
+/**
+ * `ffmpeg -version` / `ffprobe -version`. `program` is the bare name in development mode, resolved
+ * through the child's PATH as the toolbox does, or the absolute bundled binary in packaged mode.
+ */
+export async function probeToolVersion(
+  tool: 'ffmpeg' | 'ffprobe',
+  environment: Readonly<Record<string, string>>,
+  program: string,
+): Promise<ToolVersion> {
+  const result = await runReadOnly(program, ['-version'], environment);
   if (result.status === 'failed') return result.missing ? { status: 'missing' } : { status: 'failed' };
   const version = new RegExp(`^${tool} version (\\S+)`).exec(result.stdout)?.[1];
-  return { status: 'found', version: version ?? 'desconhecida' };
+  return { status: 'found', version: version ?? null };
+}
+
+/** `node --version` prints one `v<major>.<minor>.<patch>` line; `program` is an absolute path. */
+export async function probeNodeVersion(program: string, environment: Readonly<Record<string, string>>): Promise<ToolVersion> {
+  const result = await runReadOnly(program, ['--version'], environment);
+  if (result.status === 'failed') return result.missing ? { status: 'missing' } : { status: 'failed' };
+  const version = /^(v\d+\.\d+\.\d+)/.exec(result.stdout.trim())?.[1];
+  return { status: 'found', version: version ?? null };
 }

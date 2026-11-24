@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type ReactElement, type ReactNode } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { Button } from '../button/Button';
 import styles from './UploadDropzone.module.css';
@@ -38,6 +39,7 @@ export function UploadDropzone({
   children,
   className,
 }: UploadDropzoneProps): ReactElement {
+  const { ui } = useI18n();
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -80,13 +82,13 @@ export function UploadDropzone({
     <div className={classNames(styles.wrapper, className)}>
       <div
         role="group"
-        aria-label="Área para soltar arquivos"
+        aria-label={ui.catalog.dropzoneLabel}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={classNames(styles.zone, dragging && styles.dragging, invalid && styles.invalid, disabled && styles.disabled)}
       >
-        <p className={classNames('body-sm', styles.title)}>{dragging ? 'Solte para enviar' : 'Arraste arquivos para cá'}</p>
+        <p className={classNames('body-sm', styles.title)}>{dragging ? ui.catalog.dropToUpload : ui.catalog.dragFiles}</p>
         {hint && (
           <p id={hintId} className={classNames('caption', styles.hint)}>
             {hint}
@@ -94,11 +96,11 @@ export function UploadDropzone({
         )}
         <div className={styles.buttons}>
           <Button variant="secondary" size="sm" disabled={disabled} aria-describedby={buttonDescribedBy} onClick={() => fileInputRef.current?.click()}>
-            {multiple ? 'Escolher arquivos' : 'Escolher arquivo'}
+            {multiple ? ui.catalog.chooseFiles : ui.catalog.chooseFile}
           </Button>
           {allowFolder && (
             <Button variant="ghost" size="sm" disabled={disabled} aria-describedby={buttonDescribedBy} onClick={() => folderInputRef.current?.click()}>
-              Escolher pasta
+              {ui.catalog.chooseFolder}
             </Button>
           )}
         </div>

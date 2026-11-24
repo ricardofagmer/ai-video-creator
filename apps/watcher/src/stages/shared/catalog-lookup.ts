@@ -1,5 +1,5 @@
 import { type QueryBus } from '@nestjs/cqrs';
-import { GetAssetVersionQuery } from '@studio/core/catalog';
+import { GetAssetVersionQuery, GetEntryFileTextQuery } from '@studio/core/catalog';
 import { type BoundAssetSummary } from '@studio/core/agents';
 import { type AssetKind, type AssetVersion } from '@studio/shared/catalog';
 import type { ResolvedAsset, StageExecutionContext } from '@studio/shared/ports';
@@ -26,6 +26,11 @@ export class CatalogLookup {
   async versionOfKind<Kind extends AssetKind>(asset: ResolvedAsset, kind: Kind): Promise<VersionOfKind<Kind> | null> {
     const version = await this.version(asset.ref);
     return isKind(version, kind) ? version : null;
+  }
+
+  /** The entry file (SKILL.md) of a skill version, as text; the caller never passes a biometric asset. */
+  async skillEntryText(ref: string): Promise<string> {
+    return (await this.queries.execute(new GetEntryFileTextQuery(ref))).text;
   }
 
   /** Binding summaries for the agent packets; core `bindingSummaries` drops biometric rows. */

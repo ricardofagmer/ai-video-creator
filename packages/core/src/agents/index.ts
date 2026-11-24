@@ -10,8 +10,10 @@ export {
   type CuratorAgentDefinition,
 } from './agent-roster';
 export * from './curator';
+export * from './reference-analyst';
 export { LEARNING_NOTES_GUARD_LINE } from './prompts/prompt-common';
 export { curatorPrompt } from './prompts/curator.prompt';
+export { referenceAnalystPrompt, renderReferenceAnalystMessage, type ReferenceAnalystMessageFacts, type ReferenceAnalystPrompt } from './prompts/reference-analyst.prompt';
 export { OutputScanner, type OutputScanResult } from './safety/output-scanner';
 export {
   AgentRunError,
@@ -31,6 +33,8 @@ export {
   type ToolCallGate,
 } from './tooling/agent-tool-set';
 export { type ToolCallTrace } from './sessions/session-stream';
+export { buildAnalystPacket, type AnalystPacketSource } from './packets/analyst.packet';
+export { mockSiteAnalysis } from './adapters/mock-outputs';
 export { buildPlannerPacket, type PlannerPacketSource } from './packets/planner.packet';
 export {
   buildDirectorPacket,

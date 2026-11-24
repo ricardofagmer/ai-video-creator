@@ -1,4 +1,4 @@
-import { formatUsd, type TimelinePhase, type TimelineStage, type TimelineStep } from '@studio/ui';
+import { formatUsd, type Locale, type TimelinePhase, type TimelineStage, type TimelineStep } from '@studio/ui';
 import {
   PhaseIdSchema,
   type NowFile,
@@ -8,25 +8,31 @@ import {
   type StepRecord,
   type StepStatus,
 } from '@studio/shared/run-format';
-import { phaseLabels, stageLabels } from '@/features/recipes/recipe-labels';
-import { formatDuration, stepLabels } from './run-labels';
+import { type WebMessages } from '@/messages';
+import { formatDuration } from './run-labels';
 
-function stepDetail(record: StepRecord): string | undefined {
+/** The texts and locale the timeline labels are written in. */
+export interface TimelineText {
+  runs: WebMessages['runs'];
+  locale: Locale;
+}
+
+function stepDetail(record: StepRecord, text: TimelineText): string | undefined {
   const parts: string[] = [];
-  if (record.attempts > 1) parts.push(`${record.attempts} tentativas`);
+  if (record.attempts > 1) parts.push(text.runs.timeline.attempts(record.attempts));
   const recoveries = record.recoveries.length;
-  if (recoveries > 0) parts.push(recoveries === 1 ? '1 recuperação' : `${recoveries} recuperações`);
+  if (recoveries > 0) parts.push(text.runs.timeline.recoveries(recoveries));
   // Engine text (redacted, C3); rendered as React text only.
   if (record.detail !== '') parts.push(record.detail);
   return parts.length === 0 ? undefined : parts.join(', ');
 }
 
-function toTimelineStep(record: StepRecord): TimelineStep {
+function toTimelineStep(record: StepRecord, text: TimelineText): TimelineStep {
   return {
     id: record.step,
-    label: stepLabels[record.step],
+    label: text.runs.steps[record.step],
     status: record.status,
-    detail: stepDetail(record),
+    detail: stepDetail(record, text),
     durationLabel: record.durationMs > 0 ? formatDuration(record.durationMs) : undefined,
   };
 }
@@ -41,24 +47,31 @@ function stageStatus(stage: StageRecord, runIsRunning: boolean, isCursorStage: b
   return 'pending';
 }
 
-function toTimelineStage(stage: StageRecord, run: RunFile, displayedStatus: RunStatus): TimelineStage {
+interface StageContext {
+  run: RunFile;
+  displayedStatus: RunStatus;
+  text: TimelineText;
+}
+
+function toTimelineStage(stage: StageRecord, { run, displayedStatus, text }: StageContext): TimelineStage {
   const isCursorStage = run.cursor?.stageNumber === stage.number;
   return {
     id: stage.stageId,
-    label: stageLabels[stage.stageId],
+    label: text.runs.stages[stage.stageId],
     status: stageStatus(stage, displayedStatus === 'running', isCursorStage),
-    steps: stage.steps.map(toTimelineStep),
-    costLabel: stage.costUsd > 0 || stage.outcome.status === 'delivered' ? formatUsd(stage.costUsd) : undefined,
+    steps: stage.steps.map((record) => toTimelineStep(record, text)),
+    costLabel: stage.costUsd > 0 || stage.outcome.status === 'delivered' ? formatUsd(stage.costUsd, text.locale) : undefined,
   };
 }
 
 /** run.json stages grouped by PRD 7.1 phase, in canonical order (design/telas/08). */
-export function buildTimeline(run: RunFile, displayedStatus: RunStatus): TimelinePhase[] {
+export function buildTimeline(run: RunFile, displayedStatus: RunStatus, text: TimelineText): TimelinePhase[] {
+  const context: StageContext = { run, displayedStatus, text };
   return PhaseIdSchema.options
     .map((phaseId) => ({
       id: phaseId,
-      label: phaseLabels[phaseId],
-      stages: run.stages.filter((stage) => stage.phaseId === phaseId).map((stage) => toTimelineStage(stage, run, displayedStatus)),
+      label: text.runs.phases[phaseId],
+      stages: run.stages.filter((stage) => stage.phaseId === phaseId).map((stage) => toTimelineStage(stage, context)),
     }))
     .filter((phase) => phase.stages.length > 0);
 }

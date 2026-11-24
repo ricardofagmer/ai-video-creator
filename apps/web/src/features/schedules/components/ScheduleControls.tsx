@@ -5,6 +5,7 @@ import { type ScheduleStatus } from '@studio/shared/schedules';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactElement } from 'react';
 import { describeApiError } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import { browserSchedulesApi } from '../schedules-api';
 import styles from '../schedules.module.css';
 
@@ -28,6 +29,8 @@ type ControlState =
  * touches a run that already exists.
  */
 export function ScheduleControls({ scheduleId, status }: ScheduleControlsProps): ReactElement | null {
+  const t = useWebMessages();
+  const texts = t.schedules.controls;
   const router = useRouter();
   const [state, setState] = useState<ControlState>({ status: 'idle' });
   const sending = state.status === 'sending';
@@ -44,7 +47,7 @@ export function ScheduleControls({ scheduleId, status }: ScheduleControlsProps):
       setState({ status: 'idle' });
       router.refresh();
     } catch (error) {
-      setState({ status: 'failed', message: describeApiError(error) });
+      setState({ status: 'failed', message: describeApiError(error, t) });
     }
   }
 
@@ -60,31 +63,31 @@ export function ScheduleControls({ scheduleId, status }: ScheduleControlsProps):
       {state.status === 'failed' && <Alert variant="error">{state.message}</Alert>}
       <div className={styles.actions}>
         {status === 'active' ? (
-          <Button variant="secondary" loading={busyWith === 'pause'} loadingLabel="Pausando…" disabled={sending} onClick={() => void send('pause')}>
-            Pausar
+          <Button variant="secondary" loading={busyWith === 'pause'} loadingLabel={texts.pausing} disabled={sending} onClick={() => void send('pause')}>
+            {texts.pause}
           </Button>
         ) : (
-          <Button variant="primary" loading={busyWith === 'resume'} loadingLabel="Retomando…" disabled={sending} onClick={() => void send('resume')}>
-            Retomar
+          <Button variant="primary" loading={busyWith === 'resume'} loadingLabel={texts.resuming} disabled={sending} onClick={() => void send('resume')}>
+            {texts.resume}
           </Button>
         )}
         <Button variant="danger" disabled={sending} onClick={() => setState({ status: 'confirming-delete' })}>
-          Excluir
+          {texts.delete}
         </Button>
       </div>
       <Dialog
         open={state.status === 'confirming-delete' || busyWith === 'delete'}
         onClose={closeDelete}
         role="alertdialog"
-        title="Excluir o agendamento?"
-        description="Nenhuma execução nova será criada por ele. As execuções que ele já criou continuam como estão, e o histórico de horários fica guardado. Não dá para desfazer."
+        title={texts.deleteTitle}
+        description={texts.deleteDescription}
         footer={
           <>
             <Button variant="secondary" disabled={sending} onClick={closeDelete}>
-              Cancelar
+              {texts.cancel}
             </Button>
-            <Button variant="danger" loading={busyWith === 'delete'} loadingLabel="Excluindo…" onClick={() => void send('delete')}>
-              Excluir agendamento
+            <Button variant="danger" loading={busyWith === 'delete'} loadingLabel={texts.deleting} onClick={() => void send('delete')}>
+              {texts.deleteSchedule}
             </Button>
           </>
         }

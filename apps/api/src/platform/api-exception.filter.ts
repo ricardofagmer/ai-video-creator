@@ -10,6 +10,7 @@ export function toErrorBody(mapped: MappedError, correlationId: string): ApiErro
   if (mapped.issues !== undefined && mapped.issues.length > 0) details.issues = mapped.issues;
   if (mapped.itemIds !== undefined) details.itemIds = mapped.itemIds;
   if (mapped.retryAfterSeconds !== undefined) details.retryAfterSeconds = mapped.retryAfterSeconds;
+  if (mapped.conflicts !== undefined && mapped.conflicts.length > 0) details.conflicts = mapped.conflicts;
   const body: ApiError = { statusCode: mapped.statusCode, code: mapped.code, reason: mapped.reason, message: mapped.message, correlationId };
   if (Object.keys(details).length > 0) body.details = details;
   return body;

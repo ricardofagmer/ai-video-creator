@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "contract": "plan 9.2, C4 rev 1",
+  "macosDeploymentTarget": "13.0",
+  "macosDeploymentTargetNote": "Electron 45.4.1 supports macOS Ventura (13) and up (electron/electron v45.4.1 README, read 2026-11-23); the bundled tools must not ask for less than the app itself.",
+  "sources": [
+    {
+      "name": "ffmpeg",
+      "version": "9.1",
+      "licence": "GPL-3.0-or-later",
+      "url": "https://ffmpeg.org/releases/ffmpeg-9.1.tar.xz",
+      "hosts": ["ffmpeg.org"],
+      "directory": "ffmpeg-9.1",
+      "sha256": "1a4d394ae63d190a526cd052eb4415c156b5c5e2df37efab41a7de0b8fde2433",
+      "note": "ffmpeg.org publishes no SHA-256 (vetting 0006 section 10.3). This value is the Homebrew formula's pin for the same URL (formulae.brew.sh/api/formula/ffmpeg.json, read twice on 2026-11-23). The detached OpenPGP signature below is checked as well, so a wrong value here stops the build rather than admitting another file.",
+      "signature": {
+        "url": "https://ffmpeg.org/releases/ffmpeg-9.1.tar.xz.asc",
+        "keyUrl": "https://ffmpeg.org/ffmpeg-devel.asc",
+        "fingerprint": "FCF986EA15E6E293A5644F10B4322F04D67658D8"
+      },
+      "licenceFiles": ["COPYING.GPLv3", "LICENSE.md", "COPYING.LGPLv3", "COPYING.GPLv2", "COPYING.LGPLv2.1"]
+    },
+    {
+      "name": "x264",
+      "version": "0.165.r3222",
+      "licence": "GPL-2.0-or-later",
+      "url": "https://code.videolan.org/videolan/x264.git",
+      "hosts": ["code.videolan.org"],
+      "directory": "x264",
+      "commit": "b35605ace3ddf7c1a5d67a2eb553f034aef41d55",
+      "note": "Head of the upstream 'stable' branch (code.videolan.org API, read 2026-11-23, committed 2025-06-08); Homebrew's x264 r3222 pins the same revision. The reason this build is GPL.",
+      "licenceFiles": ["COPYING"]
+    },
+    {
+      "name": "lame",
+      "version": "4.0",
+      "licence": "LGPL-2.0-or-later",
+      "url": "https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz",
+      "hosts": ["downloads.sourceforge.net", ".dl.sourceforge.net"],
+      "directory": "lame-4.0",
+      "sha256": "3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb",
+      "md5": "4b82945ffc410cb5d3947b9d6f890ae8",
+      "note": "The publisher lists MD5 only (sourceforge.net/projects/lame/rss?path=/lame, read 2026-11-23). The SHA-256 is the Homebrew formula's pin for the same URL (formulae.brew.sh/api/formula/lame.json, read 2026-11-23); both are checked. Needed for libmp3lame: local-voice.ts writes narration.mp3.",
+      "licenceFiles": ["COPYING"]
+    }
+  ]
+}

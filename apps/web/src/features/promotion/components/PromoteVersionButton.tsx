@@ -8,6 +8,7 @@ import layout from '@/features/common/layout.module.css';
 import { QualityScore } from '@/features/quality/components/QualityScore';
 import { type QualityFigures } from '@/features/quality/quality-labels';
 import { ApiRequestError } from '@/lib/api';
+import { useWebMessages } from '@/lib/i18n/client';
 import { browserPromotionApi } from '../promotion-api';
 import styles from '../promotion.module.css';
 import { ActivationSummary } from './ActivationSummary';
@@ -55,6 +56,8 @@ async function promote(target: PromotionTarget, request: PromoteVersionRequest):
  */
 export function PromoteVersionButton({ target, disabled, describedBy, evidenceComparisonId, onPromoted }: PromoteVersionButtonProps): ReactElement {
   const ref = refOf(target);
+  const messages = useWebMessages();
+  const t = messages.catalog.promotion;
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
@@ -73,7 +76,7 @@ export function PromoteVersionButton({ target, disabled, describedBy, evidenceCo
   async function confirm(): Promise<void> {
     if (pending) return;
     if (!acknowledged) {
-      setFieldErrors({ acknowledge: `Marque a confirmação para ativar ${ref}.` });
+      setFieldErrors({ acknowledge: t.acknowledgeRequired(ref) });
       document.getElementById(ACKNOWLEDGE_ID)?.focus();
       return;
     }
@@ -91,10 +94,10 @@ export function PromoteVersionButton({ target, disabled, describedBy, evidenceCo
       );
     } catch (error) {
       if (reasonRefused(error)) {
-        setFieldErrors({ reason: 'O motivo não foi aceito: textos com aparência de senha ou chave são recusados.' });
+        setFieldErrors({ reason: t.reasonRefused });
         document.getElementById(REASON_ID)?.focus();
       } else {
-        setServerError(describeApiError(error));
+        setServerError(describeApiError(error, messages));
       }
     } finally {
       setPending(false);
@@ -105,33 +108,29 @@ export function PromoteVersionButton({ target, disabled, describedBy, evidenceCo
     approval === null ? (
       <>
         <Button variant="secondary" disabled={pending} onClick={close}>
-          Cancelar
+          {t.cancel}
         </Button>
-        <Button variant="primary" loading={pending} loadingLabel="Ativando…" onClick={() => void confirm()}>
-          {`Ativar ${ref}`}
+        <Button variant="primary" loading={pending} loadingLabel={t.activating} onClick={() => void confirm()}>
+          {t.activateRef(ref)}
         </Button>
       </>
     ) : (
       <Button variant="primary" onClick={close}>
-        Concluir
+        {t.done}
       </Button>
     );
 
   return (
     <>
       <Button variant="primary" disabled={disabled} aria-describedby={describedBy} onClick={() => setOpen(true)}>
-        Ativar…
+        {t.open}
       </Button>
       <Dialog
         open={open}
         onClose={close}
         role="alertdialog"
-        title={approval === null ? `Ativar a versão v${target.version}?` : `Versão v${target.version} ativada`}
-        description={
-          approval === null
-            ? 'A versão ativa atual, se houver, passa a descontinuada. A aprovação fica registrada com o seu nome e a data.'
-            : 'Aprovação registrada. Ela fica visível na página da versão.'
-        }
+        title={approval === null ? t.confirmTitle(target.version) : t.doneTitle(target.version)}
+        description={approval === null ? t.confirmDescription : t.doneDescription}
         footer={footer}
       >
         {approval !== null ? (
@@ -140,18 +139,19 @@ export function PromoteVersionButton({ target, disabled, describedBy, evidenceCo
           <div className={layout.stack}>
             {serverError !== null && <Alert variant="error">{serverError}</Alert>}
             <p className={styles.refLine}>
-              Versão: <span className="mono">{ref}</span>
+              {t.versionLabel}
+              <span className="mono">{ref}</span>
             </p>
             {target.kind === 'asset' && (
               <p className={styles.refLine}>
                 <QualityScore {...target.quality} />
-                {` · ${target.activeLearnings === 1 ? '1 aprendizado ativo' : `${target.activeLearnings} aprendizados ativos`}`}
+                {` · ${t.activeLearnings(target.activeLearnings)}`}
               </p>
             )}
             {evidenceComparisonId !== null && (
               <Checkbox
                 id="promocao-evidencia"
-                label="Registrar a comparação de origem como evidência"
+                label={t.attachComparison}
                 description={<span className="mono">{evidenceComparisonId}</span>}
                 checked={attachComparison}
                 disabled={pending}
@@ -160,9 +160,9 @@ export function PromoteVersionButton({ target, disabled, describedBy, evidenceCo
             )}
             <FormField
               id={REASON_ID}
-              label="Motivo"
+              label={t.reason}
               optional
-              help="Fica registrado com a aprovação. Não escreva senhas nem chaves."
+              help={t.reasonHelp}
               error={fieldErrors.reason}
               disabled={pending}
             >
@@ -181,7 +181,8 @@ export function PromoteVersionButton({ target, disabled, describedBy, evidenceCo
               id={ACKNOWLEDGE_ID}
               label={
                 <>
-                  Confirmo que quero ativar <span className="mono">{ref}</span>
+                  {t.acknowledgeLabel}
+                  <span className="mono">{ref}</span>
                 </>
               }
               invalid={fieldErrors.acknowledge !== undefined}

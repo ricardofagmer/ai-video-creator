@@ -1,4 +1,5 @@
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { formatDuration } from '../output/format.js';
 import { withCliContext } from '../nest/cli-context.js';
 import { type CommandDependencies } from './command-dependencies.js';
@@ -13,10 +14,11 @@ import { type CommandDependencies } from './command-dependencies.js';
 export async function catalogRescoreCommand(dependencies: CommandDependencies): Promise<number> {
   const summary = await withCliContext((context) => context.qualityScores.rescore());
   const { printer } = dependencies;
-  printer.line(`Notas de qualidade recalculadas (fórmula v${summary.formulaVersion}, ${formatDuration(summary.durationMs)}):`);
-  printer.line(`  resultados de revisão lidos: ${summary.outcomesRead}`);
-  printer.line(`  versões com nota: ${summary.versionsScored}`);
-  printer.line(`  versões alteradas: ${summary.versionsChanged} (das quais ${summary.versionsCleared} ficaram sem nota)`);
-  if (summary.versionsChanged === 0) printer.line('Nenhum valor mudou.');
+  const text = cliText().commands.rescore;
+  printer.line(text.heading(summary.formulaVersion, formatDuration(summary.durationMs)));
+  printer.line(text.outcomesRead(summary.outcomesRead));
+  printer.line(text.versionsScored(summary.versionsScored));
+  printer.line(text.versionsChanged(summary.versionsChanged, summary.versionsCleared));
+  if (summary.versionsChanged === 0) printer.line(text.nothingChanged);
   return ExitCode.ok;
 }

@@ -57,3 +57,16 @@ export class ProviderWithoutCredentialError extends ProvidersError {
     this.name = 'ProviderWithoutCredentialError';
   }
 }
+
+/**
+ * ADR 0011: the `claude-code` engine is selected but the Claude Code CLI cannot be started. The
+ * owner installs Claude Code or sets `ENGINEOS_VIDEO_CREATOR_CLAUDE_BIN` to its absolute path.
+ */
+export class ClaudeCodeUnavailableError extends ProvidersError {
+  override readonly category = 'validation';
+
+  constructor() {
+    super('The claude-code engine is selected but the Claude Code CLI could not be started; install it or set ENGINEOS_VIDEO_CREATOR_CLAUDE_BIN');
+    this.name = 'ClaudeCodeUnavailableError';
+  }
+}

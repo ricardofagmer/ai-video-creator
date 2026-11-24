@@ -30,17 +30,18 @@
 .topbarInner {
   position: relative;
   display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    'brand end'
-    'nav nav';
+  /* One row at every width: language, theme and logout live in the drawer. */
+  grid-template-columns: auto auto 1fr;
+  grid-template-areas: 'menu brand end';
   align-items: center;
   gap: var(--space-2) var(--space-4);
   width: calc(100% - var(--space-4));
   max-width: var(--layout-max-width);
+  min-height: var(--layout-topbar-height);
   margin: 0 auto;
   padding: var(--space-3) var(--layout-gutter-mobile);
   background-color: var(--color-surface-glass);
+  background-image: var(--gradient-bar);
   border: 1px solid var(--color-border-glow);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-float);
@@ -62,48 +63,200 @@
 
 @media (min-width: 768px) {
   .topbarInner {
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas: 'brand nav end';
-    min-height: var(--layout-topbar-height);
-    padding: 0 var(--layout-gutter-desktop);
+    padding: var(--space-3) var(--layout-gutter-desktop);
   }
+}
+
+.menuButton {
+  grid-area: menu;
 }
 
 .brand {
   grid-area: brand;
+  min-width: 0;
 }
 
-.nav {
-  grid-area: nav;
-  display: flex;
-  gap: var(--space-1);
-  overflow-x: auto;
-}
-
+/* The status wraps instead of overflowing the bar. */
 .end {
   grid-area: end;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
 }
 
-.navLink {
+/* Menu and close buttons: square icon buttons; `Icon` sizes and strokes the glyph. */
+.iconButton {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
-  min-height: var(--control-height-md);
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  padding: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.iconButton:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface-muted);
+}
+
+/*
+ * Menu drawer: a modal <dialog> pinned to the left edge. No `display` here, or the closed dialog shows.
+ * Width reuses the auth card width (no drawer token in design/tokens.md) and always leaves a backdrop
+ * strip to tap on small screens.
+ */
+.drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(var(--layout-auth-card-width), calc(100vw - var(--space-12)));
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 0;
+  border-right: 1px solid var(--color-border-glow);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+
+.drawer::backdrop {
+  background-color: var(--color-overlay);
+  -webkit-backdrop-filter: var(--backdrop-overlay);
+  backdrop-filter: var(--backdrop-overlay);
+}
+
+.drawer[open] {
+  animation: drawer-slide var(--duration-normal) var(--ease-out);
+}
+
+.drawer[open]::backdrop {
+  animation: drawer-fade var(--duration-normal) var(--ease-out);
+}
+
+@keyframes drawer-slide {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes drawer-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer[open],
+  .drawer[open]::backdrop {
+    animation: none;
+  }
+}
+
+/* Header, a body that scrolls on its own, and the account footer that always stays visible. */
+.drawerPanel {
+  display: grid;
+  /* `minmax(0, …)` so a long label truncates instead of widening the track. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .drawerHeader {
+    padding: var(--space-5);
+  }
+}
+
+.drawerBody {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: var(--space-2);
+}
+
+/* A labelled group; the divider runs the full drawer width. */
+.section {
+  padding: var(--space-3) var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+/* The header already draws the line above the first group. */
+.drawerNav > .section:first-child {
+  border-top: 0;
+}
+
+.sectionTitle {
+  margin: 0;
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  letter-spacing: var(--letter-spacing-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.sectionItems {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+/* Drawer row: icon, then a label that ends in an ellipsis when it does not fit. */
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-height-lg);
   padding: 0 var(--space-3);
   position: relative;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-mono);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-snug);
+  color: var(--color-text);
+  text-align: start;
   text-decoration: none;
-  white-space: nowrap;
   border-radius: var(--radius-md);
   transition:
     background-color var(--duration-fast) var(--ease-standard),
     color var(--duration-fast) var(--ease-standard);
+}
+
+.navLink > svg {
+  color: var(--color-text-muted);
+}
+
+.navLink > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .navLink:hover {
@@ -111,24 +264,24 @@
   background-color: var(--color-surface-muted);
 }
 
-/* Beam: a gradient underline that charges from the left; full on the current page. */
+/* Beam: a gradient bar on the left edge that charges from the top; full on the current page. */
 .navLink::after {
   content: '';
   position: absolute;
-  left: var(--space-3);
-  right: var(--space-3);
-  bottom: var(--size-beam-offset);
-  height: var(--stroke-thin);
+  top: var(--space-2);
+  bottom: var(--space-2);
+  left: 0;
+  width: var(--stroke-thin);
   border-radius: var(--radius-xs);
   background: var(--gradient-brand);
   box-shadow: var(--shadow-beam);
-  transform: scaleX(0);
-  transform-origin: left;
+  transform: scaleY(0);
+  transform-origin: top;
   transition: transform var(--duration-slow) var(--ease-standard);
 }
 
 .navLink:hover::after {
-  transform: scaleX(1);
+  transform: scaleY(1);
 }
 
 .navLinkActive,
@@ -138,8 +291,129 @@
   background-color: var(--color-primary-soft);
 }
 
+.navLinkActive > svg {
+  color: inherit;
+}
+
 .navLinkActive::after {
-  transform: scaleX(1);
+  transform: scaleY(1);
+}
+
+.drawerItemButton {
+  margin: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.drawerItemButton:disabled {
+  cursor: wait;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-lg);
+  padding: 0 var(--space-3);
+}
+
+.settingRow > svg {
+  color: var(--color-text-muted);
+}
+
+.settingLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawerFooter {
+  padding: var(--space-2);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+/* The whole footer row is one button: avatar, name and detail, chevron. */
+.accountButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-2);
+  color: var(--color-text);
+  text-align: start;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.accountButton:hover {
+  background-color: var(--color-surface-muted);
+}
+
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  font-family: var(--font-display);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-on-brand);
+  background-image: var(--gradient-control);
+  border-radius: var(--radius-full);
+}
+
+.accountText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.accountName,
+.accountDetail {
+  overflow: hidden;
+  line-height: var(--line-height-snug);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountName {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.accountDetail {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.accountChevron {
+  color: var(--color-text-muted);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.accountButton[aria-expanded='true'] .accountChevron {
+  transform: rotate(180deg);
+}
+
+/* Never set `display` on `.accountMenu` itself, or `hidden` stops hiding it. */
+.accountMenu:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  padding-top: var(--space-1);
 }
 
 .main {

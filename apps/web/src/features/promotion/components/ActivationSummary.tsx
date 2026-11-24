@@ -1,9 +1,13 @@
-import { DescriptionList, textLinkClassName, type DescriptionItem } from '@studio/ui';
+'use client';
+
+import { DescriptionList, textLinkClassName, useI18n, type DescriptionItem } from '@studio/ui';
 import { type PromotionApprovalView } from '@studio/shared/api';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { formatDateTime } from '@/features/catalog/catalog-labels';
 import { QualityScore } from '@/features/quality/components/QualityScore';
+import { useWebMessages } from '@/lib/i18n/client';
+import { type WebMessages } from '@/messages';
 import styles from '../promotion.module.css';
 
 interface ActivationSummaryProps {
@@ -12,12 +16,12 @@ interface ActivationSummaryProps {
   showScore: boolean;
 }
 
-function evidenceItems(approval: PromotionApprovalView): DescriptionItem[] {
+function evidenceItems(approval: PromotionApprovalView, t: WebMessages['catalog']['promotion']): DescriptionItem[] {
   const { comparisonId, runIds } = approval.evidence;
   const items: DescriptionItem[] = [];
   if (comparisonId !== null) {
     items.push({
-      term: 'Comparação',
+      term: t.comparison,
       description: (
         <Link href={`/comparacoes/${comparisonId}`} className={textLinkClassName()}>
           <span className="mono">{comparisonId}</span>
@@ -27,7 +31,7 @@ function evidenceItems(approval: PromotionApprovalView): DescriptionItem[] {
   }
   if (runIds.length > 0) {
     items.push({
-      term: 'Execuções',
+      term: t.runs,
       description: (
         <ul className={styles.plainList}>
           {runIds.map((runId) => (
@@ -49,25 +53,27 @@ function evidenceItems(approval: PromotionApprovalView): DescriptionItem[] {
  * reason is owner text: it renders as text, keeping its line breaks, never as markup.
  */
 export function ActivationSummary({ approval, showScore }: ActivationSummaryProps): ReactElement {
+  const t = useWebMessages().catalog.promotion;
+  const { locale } = useI18n();
   const items: DescriptionItem[] = [
-    { term: 'Aprovada por', description: approval.decidedBy },
-    { term: 'Aprovada em', description: formatDateTime(approval.decidedAt) },
+    { term: t.approvedBy, description: approval.decidedBy },
+    { term: t.approvedAt, description: formatDateTime(approval.decidedAt, locale) },
     {
-      term: 'Motivo',
-      description: approval.reason === '' ? 'Sem motivo informado.' : <span className={styles.ownerText}>{approval.reason}</span>,
+      term: t.reason,
+      description: approval.reason === '' ? t.noReason : <span className={styles.ownerText}>{approval.reason}</span>,
     },
     {
-      term: 'Versão substituída',
-      description: approval.replacedVersion === null ? 'Nenhuma versão estava ativa.' : `v${approval.replacedVersion}, agora descontinuada`,
+      term: t.replacedVersion,
+      description: approval.replacedVersion === null ? t.noneActive : t.replaced(approval.replacedVersion),
     },
     ...(showScore
       ? [
           {
-            term: 'Nota na aprovação',
+            term: t.scoreAtApproval,
             // Rev 5 freezes the platform count too (R3-AC-07); an approval recorded before that has none (null).
             description: (
               <QualityScore
-                label="Nota"
+                label={t.scoreLabel}
                 qualityScore={approval.qualityScoreAtApproval}
                 qualitySampleSize={approval.sampleSizeAtApproval}
                 qualityPlatformSampleSize={approval.platformSampleSizeAtApproval ?? null}
@@ -76,7 +82,7 @@ export function ActivationSummary({ approval, showScore }: ActivationSummaryProp
           },
         ]
       : []),
-    ...evidenceItems(approval),
+    ...evidenceItems(approval, t),
   ];
   return <DescriptionList items={items} columns={2} />;
 }

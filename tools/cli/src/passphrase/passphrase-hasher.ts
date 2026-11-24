@@ -1,8 +1,10 @@
 import { hash } from '@node-rs/argon2';
 import { ARGON2ID_PHC_PATTERN } from '@studio/shared/api';
 import { CliError } from '../errors/cli.errors.js';
+import { cliText } from '../i18n/messages.js';
 
-export const MIN_PASSPHRASE_LENGTH = 12;
+/** Lowered from 12 on the owner's request (2026-11-22): a loopback-only, single-owner studio. */
+export const MIN_PASSPHRASE_LENGTH = 8;
 /** Bounds the hashing input; a longer value is refused, not cut. */
 export const MAX_PASSPHRASE_LENGTH = 1024;
 
@@ -11,19 +13,17 @@ const ARGON2_OPTIONS = { memoryCost: 19_456, timeCost: 2, parallelism: 1 };
 
 export type PassphraseProblem = 'too-short' | 'too-long' | 'mismatch' | 'unexpected-hash-format';
 
-const problemMessages: Readonly<Record<PassphraseProblem, string>> = {
-  'too-short': `A senha precisa de pelo menos ${MIN_PASSPHRASE_LENGTH} caracteres.`,
-  'too-long': `A senha passa de ${MAX_PASSPHRASE_LENGTH} caracteres.`,
-  mismatch: 'As duas senhas digitadas não conferem; nada foi gravado.',
-  'unexpected-hash-format': 'O hash gerado não está no formato argon2id esperado pela api; nada foi gravado.',
-};
+function problemMessage(problem: PassphraseProblem): string {
+  const message: (bound: number) => string = cliText().errors.passphrase[problem];
+  return message(problem === 'too-long' ? MAX_PASSPHRASE_LENGTH : MIN_PASSPHRASE_LENGTH);
+}
 
 /** Messages never contain the passphrase or its hash. */
 export class PassphraseRefusedError extends CliError {
   override readonly category: 'validation' | 'internal';
 
   constructor(readonly problem: PassphraseProblem) {
-    super(problemMessages[problem]);
+    super(problemMessage(problem));
     this.name = 'PassphraseRefusedError';
     this.category = problem === 'unexpected-hash-format' ? 'internal' : 'validation';
   }

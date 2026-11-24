@@ -11,6 +11,7 @@ import {
 } from '@studio/shared/run-files';
 import { RunIdSchema, displayedRunStatus, type NowFile, type RunFile, type RunId, type RunStatus } from '@studio/shared/run-format';
 import { CliError } from '../errors/cli.errors.js';
+import { cliText } from '../i18n/messages.js';
 
 /** One run as the CLI shows it, read straight from its folder through C5 (no api, no index). */
 export interface RunSnapshot {
@@ -38,7 +39,7 @@ export class RunUnreadableError extends CliError {
     readonly runId: RunId,
     readonly problem: UnreadableRunProblem,
   ) {
-    super(`O run.json da execução ${runId} não pôde ser lido (${problem}).`);
+    super(cliText().errors.runUnreadable(runId, problem));
     this.name = 'RunUnreadableError';
   }
 }

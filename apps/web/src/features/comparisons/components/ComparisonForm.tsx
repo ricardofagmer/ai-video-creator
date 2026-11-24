@@ -1,12 +1,12 @@
 'use client';
 
-import { Alert, Button, Card, FormField, Select, buttonClassName } from '@studio/ui';
+import { Alert, Button, Card, FormField, Select, buttonClassName, useI18n } from '@studio/ui';
 import { type RecipeVersionView } from '@studio/shared/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type FormEvent, type ReactElement } from 'react';
-import { assetStatusLabels } from '@/features/catalog/catalog-labels';
 import { describeApiError } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import layout from '@/features/common/layout.module.css';
 import { RunBriefFields } from '@/features/runs/components/RunBriefFields';
 import { RunReferencesPicker } from '@/features/runs/components/RunReferencesPicker';
@@ -52,6 +52,10 @@ const subjectFieldOrder: readonly ComparisonChoiceField[] = ['slot', 'assetRef',
  * `POST /comparisons` saves two `draft` runs and spends nothing; the comparison page starts them.
  */
 export function ComparisonForm({ recipes }: ComparisonFormProps): ReactElement {
+  const t = useWebMessages();
+  const { ui } = useI18n();
+  const texts = t.curations.compareForm;
+  const formTexts = t.curations.comparisons.form;
   const router = useRouter();
   const [values, setValues] = useState<NewRunFormValues>(() => initialValues(recipes[0]));
   const [choice, setChoice] = useState<ComparisonChoice>(emptyChoice);
@@ -92,7 +96,7 @@ export function ComparisonForm({ recipes }: ComparisonFormProps): ReactElement {
       const page = await browserStudioClient.listAssetVersions(bound.assetId, { limit: 100 });
       if (request === candidateRequest.current) setCandidates({ status: 'ready', options: candidateAssetVersions(page.items, bound.ref) });
     } catch (error) {
-      if (request === candidateRequest.current) setCandidates({ status: 'failed', message: describeApiError(error) });
+      if (request === candidateRequest.current) setCandidates({ status: 'failed', message: describeApiError(error, t) });
     }
   }
 
@@ -123,12 +127,12 @@ export function ComparisonForm({ recipes }: ComparisonFormProps): ReactElement {
     if (pending) return;
     setServerError(null);
     if (selected === undefined) {
-      setBriefErrors({ recipeRef: 'Escolha uma receita.' });
+      setBriefErrors({ recipeRef: formTexts.recipeRequired });
       document.getElementById(newRunFieldIds.recipeRef)?.focus();
       return;
     }
-    const brief = buildBrief(values, selected.recipe);
-    const subject = buildSubject(choice);
+    const brief = buildBrief(values, selected.recipe, t.runs.brief.errors);
+    const subject = buildSubject(choice, t.curations.comparisons.errors);
     const foundBrief = brief.kind === 'invalid' ? brief.errors : {};
     const foundSubject = subject.kind === 'invalid' ? subject.errors : {};
     setBriefErrors(foundBrief);
@@ -148,7 +152,7 @@ export function ComparisonForm({ recipes }: ComparisonFormProps): ReactElement {
       });
       router.push(`/comparacoes/${encodeURIComponent(comparison.comparisonId)}`);
     } catch (error) {
-      const message = describeApiError(error);
+      const message = describeApiError(error, t);
       if (error instanceof ApiRequestError && error.reason !== null && subjectReasons.has(error.reason)) {
         const onAsset = choice.kind === 'asset-binding';
         setChoiceErrors(onAsset ? { assetRef: message } : { recipeRef: message });
@@ -162,24 +166,24 @@ export function ComparisonForm({ recipes }: ComparisonFormProps): ReactElement {
 
   const recipeOptions = recipes.map((view) => ({
     value: view.ref,
-    label: `${view.recipe.name} · v${view.recipe.version} · ${assetStatusLabels[view.recipe.status]}`,
+    label: `${view.recipe.name} · v${view.recipe.version} · ${ui.status.asset[view.recipe.status]}`,
   }));
 
   return (
     <form className={layout.form} onSubmit={(event) => void handleSubmit(event)} noValidate>
       {serverError !== null && <Alert variant="error">{serverError}</Alert>}
-      <Card title="Versão A" description="A receita como está salva. As duas execuções usam o mesmo briefing e as mesmas referências.">
-        <FormField id={newRunFieldIds.recipeRef} label="Receita" error={briefErrors.recipeRef} disabled={pending}>
+      <Card title={texts.armA} description={texts.armADescription}>
+        <FormField id={newRunFieldIds.recipeRef} label={texts.recipe} error={briefErrors.recipeRef} disabled={pending}>
           {({ invalid, ...control }) => (
             <Select {...control} invalid={invalid} options={recipeOptions} value={values.recipeRef} onChange={(event) => chooseRecipe(event.currentTarget.value)} />
           )}
         </FormField>
       </Card>
-      <Card title="Versão B" description="Muda uma única coisa em relação à versão A.">
+      <Card title={texts.armB} description={formTexts.armBDescription}>
         <ComparisonSubjectFields
           choice={choice}
           errors={choiceErrors}
-          slotOptions={selected === undefined ? [] : bindingSlotOptions(selected.recipe)}
+          slotOptions={selected === undefined ? [] : bindingSlotOptions(selected.recipe, t.recipes.bindings.slots)}
           candidates={candidates}
           recipeVersionOptions={selected === undefined ? [] : otherRecipeVersions(recipes, selected)}
           disabled={pending}
@@ -188,19 +192,19 @@ export function ComparisonForm({ recipes }: ComparisonFormProps): ReactElement {
           onChange={updateChoice}
         />
       </Card>
-      <Card title="Briefing">
+      <Card title={texts.brief}>
         <RunBriefFields values={values} errors={briefErrors} recipe={selected?.recipe} disabled={pending} onChange={updateBrief} />
       </Card>
-      <Card title="Referências" description="Ativos do catálogo usados nas duas execuções. Opcional.">
+      <Card title={texts.references} description={texts.referencesDescription}>
         <RunReferencesPicker selected={references} onChange={setReferences} disabled={pending} />
       </Card>
-      <p className="caption">Criar a comparação não gasta nada: as duas execuções ficam em rascunho até você aceitar o custo máximo do par.</p>
+      <p className="caption">{texts.noSpend}</p>
       <div className={layout.formFooter}>
         <Link href="/comparacoes" className={buttonClassName({ variant: 'secondary' })}>
-          Cancelar
+          {formTexts.cancel}
         </Link>
-        <Button type="submit" variant="primary" loading={pending} loadingLabel="Criando…">
-          Criar comparação
+        <Button type="submit" variant="primary" loading={pending} loadingLabel={texts.creating}>
+          {formTexts.create}
         </Button>
       </div>
     </form>

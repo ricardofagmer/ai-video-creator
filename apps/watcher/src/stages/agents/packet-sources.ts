@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { UntrustedTextTooLongError, type AssetText, type PacketCoordinates } from '@studio/core/agents';
-import { type BrandKitSummary, type ModelRoleName, type RunArtifactId } from '@studio/shared/agents';
+import { WRITER_SKILLS_MAX, type BrandKitSummary, type ModelRoleName, type RunArtifactId } from '@studio/shared/agents';
 import { type TemplateDetails } from '@studio/shared/catalog';
 import type { StageExecutionContext, StageFailure } from '@studio/shared/ports';
 import { type ReviewSubject } from '@studio/shared/run-format';
 import { ZodError } from 'zod';
-import { boundOfKind, type CatalogLookup } from '../shared/catalog-lookup';
+import { EntryFileUnavailableError } from '@studio/core/catalog';
+import { boundAssets, boundOfKind, type CatalogLookup } from '../shared/catalog-lookup';
 import { needsPerson } from '../shared/stage-results';
 
 /** Artifact ids the Reviewer may read per subject (C7 RunArtifactReadTool, topology section 5). */
@@ -28,6 +29,31 @@ export async function boundPromptText(context: StageExecutionContext, preferredS
   const bound = boundOfKind(context, 'prompt', preferredSlot);
   if (bound === null || bound.asset.layout !== 'file' || bound.asset.sensitivity === 'biometric') return null;
   return { ref: bound.asset.ref, text: await readFile(bound.asset.absolutePath, 'utf8') };
+}
+
+/**
+ * Entry texts of every skill bound to `slot` (e.g. `skill:writer`), in binding order and at most
+ * `WRITER_SKILLS_MAX`. Biometric versions are never read. A bound skill whose entry file cannot be
+ * read is reported by ref, so the stage stops instead of running without guidance the owner chose.
+ */
+export async function boundSkillTexts(
+  context: StageExecutionContext,
+  catalog: CatalogLookup,
+  slot: string,
+): Promise<{ status: 'read'; skills: AssetText[] } | { status: 'unreadable'; ref: string }> {
+  const bound = boundAssets(context)
+    .filter((candidate) => candidate.slot === slot && candidate.asset.kind === 'skill' && candidate.asset.sensitivity !== 'biometric')
+    .slice(0, WRITER_SKILLS_MAX);
+  const skills: AssetText[] = [];
+  for (const { asset } of bound) {
+    try {
+      skills.push({ ref: asset.ref, text: await catalog.skillEntryText(asset.ref) });
+    } catch (error) {
+      if (!(error instanceof EntryFileUnavailableError)) throw error;
+      return { status: 'unreadable', ref: asset.ref };
+    }
+  }
+  return { status: 'read', skills };
 }
 
 export async function brandVoiceText(context: StageExecutionContext, catalog: CatalogLookup): Promise<AssetText | undefined> {

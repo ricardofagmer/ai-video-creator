@@ -46,7 +46,7 @@ Sub-decisions, each with the rejected alternative:
 | Processes | launchd manages only `apps/watcher`; web and api run under `studio start` / `studio stop` (D9) | launchd for all three: two always-on servers and open ports the owner did not ask for |
 | CLI | Ink CLI `studio` in `tools/cli`, reading the same run files as the web | Desktop shell (`.app`): not in R1 (D4) |
 | Python tools | Port `video_tool.py` and `captions.py` to TypeScript commands in `packages/toolbox` (D15) | A Python package in the monorepo: a second runtime for the install script and for CI |
-| Language | pt-BR interface and owner-facing docs; English code, identifiers and comments (D16) | English UI: the owner is the only user |
+| Language | Interface in pt-BR, es and en (pt-BR is the source), pt-BR owner-facing docs; English code, identifiers and comments (D16) | English UI: the owner is the only user |
 
 ## Decision
 

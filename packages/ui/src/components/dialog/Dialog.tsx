@@ -15,6 +15,10 @@ export interface DialogProps {
   footer: ReactNode;
   /** `alertdialog` for destructive confirmations (stop a run, reject a video): no backdrop dismissal. */
   role?: 'dialog' | 'alertdialog';
+  /** `wide` fills most of the viewport and scrolls only its body, so the title row and footer stay in view. */
+  size?: 'default' | 'wide';
+  /** Control shown at the end of the title row, such as a close button. */
+  headerAction?: ReactNode;
   className?: string;
 }
 
@@ -30,6 +34,8 @@ export function Dialog({
   children,
   footer,
   role = 'dialog',
+  size = 'default',
+  headerAction,
   className,
 }: DialogProps): ReactElement {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -48,8 +54,18 @@ export function Dialog({
     } else if (!open && dialog.open) {
       dialog.close();
       returnFocusRef.current?.focus();
+      returnFocusRef.current = null;
     }
   }, [open]);
+
+  // A route modal closes by navigating, which unmounts it while still open: focus goes back to its trigger then too.
+  useEffect(() => {
+    const returnFocus = returnFocusRef;
+    return () => {
+      const target = returnFocus.current;
+      if (target?.isConnected === true) target.focus({ preventScroll: true });
+    };
+  }, []);
 
   function handleCancel(event: SyntheticEvent<HTMLDialogElement>): void {
     // The parent owns `open`; Escape asks it to close instead of closing behind its back.
@@ -70,12 +86,15 @@ export function Dialog({
       aria-describedby={description ? descriptionId : undefined}
       onCancel={handleCancel}
       onClick={handleBackdropClick}
-      className={classNames(styles.dialog, className)}
+      className={classNames(styles.dialog, size === 'wide' && styles.wide, className)}
     >
       <div className={styles.panel}>
-        <h2 id={titleId} className="heading-2">
-          {title}
-        </h2>
+        <div className={styles.header}>
+          <h2 id={titleId} className="heading-2">
+            {title}
+          </h2>
+          {headerAction}
+        </div>
         {description && (
           <div id={descriptionId} className={classNames('body-sm', styles.description)}>
             {description}

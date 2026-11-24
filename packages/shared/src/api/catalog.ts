@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AbsolutePathSchema } from '../common/ids';
+import { AbsolutePathSchema, RelativePathSchema } from '../common/ids';
 import {
   AssetIdSchema,
   AssetKindSchema,
@@ -198,13 +198,37 @@ export const SaveAssetVersionUploadFieldsSchema = z
 export type SaveAssetVersionUploadFields = z.infer<typeof SaveAssetVersionUploadFieldsSchema>;
 
 /** `POST /catalog/assets/:assetId/versions/from-previous` (JSON): N+1 reusing the bytes of `fromVersion`. */
+/** A skill's entry file (SKILL.md) as text; core enforces the same 256 KiB byte cap in UTF-8. */
+export const ENTRY_FILE_TEXT_MAX_BYTES = 256 * 1024;
+
+const EntryFileTextSchema = z
+  .string()
+  .refine((text) => new TextEncoder().encode(text).byteLength <= ENTRY_FILE_TEXT_MAX_BYTES, {
+    message: `at most ${ENTRY_FILE_TEXT_MAX_BYTES} bytes as UTF-8`,
+  });
+
+/**
+ * N+1 from `fromVersion`. With `entryFile` (skills only, skills spec addendum T5) the stored folder
+ * keeps every other file and its entry file is replaced by `entryFile.text`; without it the bytes
+ * are reused as they are.
+ */
 export const SaveMetadataVersionRequestSchema = z
   .object({
     fromVersion: z.number().int().min(1),
     metadata: AssetMetadataInputSchema,
+    entryFile: z.object({ text: EntryFileTextSchema }).strict().optional(),
   })
   .strict();
 export type SaveMetadataVersionRequest = z.infer<typeof SaveMetadataVersionRequestSchema>;
+
+/** `GET .../versions/:version/entry-file`: the entry file of a skill version as UTF-8 text. */
+export const EntryFileViewSchema = z
+  .object({
+    path: RelativePathSchema,
+    text: z.string(),
+  })
+  .strict();
+export type EntryFileView = z.infer<typeof EntryFileViewSchema>;
 
 /**
  * Step 1 of the by-reference path validation (SPEC 0002 rev 4, section 13.4): `AbsolutePathSchema`,

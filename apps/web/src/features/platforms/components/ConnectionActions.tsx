@@ -6,8 +6,9 @@ import { type PlatformMode, type RevokeOutcome } from '@studio/shared/platforms'
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type ReactElement } from 'react';
 import { describePlatformApiError } from '@/features/common/platform-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
+import { type WebMessages } from '@/messages';
 import { platformLabels } from '@/features/metrics/metric-labels';
-import { IMPORT_FALLBACK_TEXT } from '../platform-labels';
 import { rememberConnectingPlatform } from '../connecting-platform';
 import { browserPlatformsApi } from '../platforms-api';
 import styles from '../platforms.module.css';
@@ -34,11 +35,8 @@ type ActionState =
  * decision 2026-11-21), so the owner is asked to remove the app's access on the platform only when
  * the platform did not confirm the revoke (`skipped` or `failed`).
  */
-function disconnectedText(name: string, revoke: RevokeOutcome): string {
-  if (revoke === 'revoked') {
-    return `O acesso guardado no estúdio foi apagado e a conta de ${name} confirmou a remoção do acesso do aplicativo.`;
-  }
-  return `O acesso guardado no estúdio foi apagado. Para garantir, remova também o acesso do aplicativo nas configurações da sua conta de ${name}.`;
+function disconnectedText(name: string, revoke: RevokeOutcome, t: WebMessages['platforms']['connection']): string {
+  return revoke === 'revoked' ? t.revoked(name) : t.notRevoked(name);
 }
 
 /**
@@ -49,6 +47,8 @@ function disconnectedText(name: string, revoke: RevokeOutcome): string {
  */
 export function ConnectionActions({ platform, mode, canConnect, hasAccount }: ConnectionActionsProps): ReactElement | null {
   const router = useRouter();
+  const t = useWebMessages();
+  const texts = t.platforms.connection;
   const [state, setState] = useState<ActionState>({ status: 'idle' });
   const busyRef = useRef(false);
   const name = platformLabels[platform];
@@ -65,7 +65,7 @@ export function ConnectionActions({ platform, mode, canConnect, hasAccount }: Co
       window.location.assign(started.authorizeUrl);
     } catch (error) {
       busyRef.current = false;
-      setState({ status: 'failed', message: describePlatformApiError(error, { platform, mode }) });
+      setState({ status: 'failed', message: describePlatformApiError(error, { platform, mode }, t) });
     }
   }
 
@@ -78,7 +78,7 @@ export function ConnectionActions({ platform, mode, canConnect, hasAccount }: Co
       setState({ status: 'disconnected', revoke: result.revoke });
       router.refresh();
     } catch (error) {
-      setState({ status: 'failed', message: describePlatformApiError(error, { platform, mode }) });
+      setState({ status: 'failed', message: describePlatformApiError(error, { platform, mode }, t) });
     } finally {
       busyRef.current = false;
     }
@@ -93,22 +93,22 @@ export function ConnectionActions({ platform, mode, canConnect, hasAccount }: Co
   return (
     <div className={styles.connection}>
       {state.status === 'failed' && <Alert variant="error">{state.message}</Alert>}
-      {state.status === 'disconnected' && <Alert variant="info">{disconnectedText(name, state.revoke)}</Alert>}
+      {state.status === 'disconnected' && <Alert variant="info">{disconnectedText(name, state.revoke, texts)}</Alert>}
       <div className={styles.actions}>
         {canConnect && (
           <Button
             variant="primary"
             loading={state.status === 'connecting'}
-            loadingLabel="Abrindo a plataforma…"
+            loadingLabel={texts.connecting}
             disabled={busy}
             onClick={() => void connect()}
           >
-            {hasAccount ? 'Reconectar' : 'Conectar'}
+            {hasAccount ? texts.reconnect : texts.connect}
           </Button>
         )}
         {hasAccount && (
           <Button variant="secondary" disabled={busy} onClick={() => setState({ status: 'confirming-disconnect' })}>
-            Desconectar
+            {texts.disconnect}
           </Button>
         )}
       </div>
@@ -116,15 +116,15 @@ export function ConnectionActions({ platform, mode, canConnect, hasAccount }: Co
         open={state.status === 'confirming-disconnect' || state.status === 'disconnecting'}
         onClose={closeDisconnect}
         role="alertdialog"
-        title={`Desconectar ${name}?`}
-        description={`O estúdio apaga o acesso guardado no Keychain e para de coletar métricas e de publicar em ${name}. ${IMPORT_FALLBACK_TEXT}`}
+        title={texts.disconnectTitle(name)}
+        description={texts.disconnectDescription(name, t.platforms.importFallback)}
         footer={
           <>
             <Button variant="secondary" disabled={state.status === 'disconnecting'} onClick={closeDisconnect}>
-              Cancelar
+              {texts.cancel}
             </Button>
-            <Button variant="danger" loading={state.status === 'disconnecting'} loadingLabel="Desconectando…" onClick={() => void disconnect()}>
-              Desconectar
+            <Button variant="danger" loading={state.status === 'disconnecting'} loadingLabel={texts.disconnecting} onClick={() => void disconnect()}>
+              {texts.disconnect}
             </Button>
           </>
         }

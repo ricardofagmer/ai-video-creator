@@ -1,5 +1,6 @@
 import { metricsBounds, type Platform } from '@studio/shared/metrics';
 import { ApiRequestError } from '@/lib/api';
+import { type WebMessages } from '@/messages';
 import { apiReasonText, describeApiError } from '@/features/common/api-error-text';
 import { platformLabels } from './metric-labels';
 
@@ -11,24 +12,24 @@ import { platformLabels } from './metric-labels';
 
 const CSV_NAME = /\.csv$/i;
 
-/** A pt-BR reason to refuse the chosen file before sending it, or null when it may be sent. */
-export function localFileProblem(file: File): string | null {
-  if (file.size > metricsBounds.maxFileBytes) return apiReasonText('metrics-file-too-large');
-  if (file.size === 0) return apiReasonText('metrics-empty-file');
-  if (!CSV_NAME.test(file.name)) return apiReasonText('metrics-not-csv');
+/** A reason, in the active language, to refuse the chosen file before sending it, or null when it may be sent. */
+export function localFileProblem(file: File, t: WebMessages): string | null {
+  if (file.size > metricsBounds.maxFileBytes) return apiReasonText('metrics-file-too-large', t);
+  if (file.size === 0) return apiReasonText('metrics-empty-file', t);
+  if (!CSV_NAME.test(file.name)) return apiReasonText('metrics-not-csv', t);
   return null;
 }
 
 /**
- * pt-BR text for a failed import: the column refusal names the chosen platform (section 4.4 text),
+ * The text for a failed import: the column refusal names the chosen platform (section 4.4 text),
  * and a 413 from the web proxy reads as the 2 MB limit, not as a catalog upload limit.
  */
-export function metricImportErrorText(error: unknown, platform: Platform): string {
+export function metricImportErrorText(error: unknown, platform: Platform, t: WebMessages): string {
   if (error instanceof ApiRequestError) {
     if (error.reason === 'metrics-required-column-missing') {
-      return `Não encontrei as colunas esperadas da exportação de ${platformLabels[platform]}. Confira se escolheu a plataforma certa.`;
+      return t.metrics.import.errors.columnsMissing(platformLabels[platform]);
     }
-    if (error.status === 413) return apiReasonText('metrics-file-too-large');
+    if (error.status === 413) return apiReasonText('metrics-file-too-large', t);
   }
-  return describeApiError(error);
+  return describeApiError(error, t);
 }

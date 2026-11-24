@@ -2,6 +2,10 @@
 
 Date: 2026-11-19
 Status: accepted (owner, 2026-11-21). The owner chose A2 + B1 + C1 (thin Electron menu-bar shell, watcher stays under launchd) on 2026-11-19 (SPEC 0006 Q1, "Electron menu-bar (Recommended)"). Vetting 0002 (`docs/vetting/0002-shell-runtime.md`) was approved with option P on 2026-11-19, and R3-08 part 2 was implemented by tickets 09 to 12 (see "Decision record (R3-08)").
+Partly superseded 2026-11-23 by ADR 0010 (`docs/adr/0010-desktop-installer-and-hosted-portal.md`):
+"installed by `scripts/install.sh` into `~/Applications`", "the shell spawns Homebrew's node" and
+"built locally only" are replaced by a self-contained app in a downloadable `.dmg`. The security
+posture stands. See "Amendment (2026-11-23, ADR 0010)" at the end.
 
 Decider: Ricardo Fagmer. The decision is the owner's, made on 2026-11-19
 (SPEC 0006 Q1). Sources: PRD 0001 (`docs/prds/0001-video-studio.md`) D4, D8, D9, section 3 (R3:
@@ -214,10 +218,10 @@ call.
 
 ### Dependencies (ticket 09)
 
-1. **Three exact pins**, in `apps/shell/package.json` `devDependencies` (lines 14-26): `electron`
+1. **Three exact pins**, in `apps/shell/package.json` `devDependencies` (lines 15-28): `electron`
    `45.4.1`, `@electron/packager` `20.3.0`, `@electron/fuses` `2.1.3`, with no range character. The
    package has no runtime `dependencies`. The framework version is pinned again where it is
-   downloaded: `ELECTRON_VERSION` in `apps/shell/scripts/package-app.mjs:23` and
+   downloaded: `ELECTRON_VERSION` in `apps/shell/scripts/package-app.mjs:28` and
    `STUDIO_ELECTRON_VERSION` in `scripts/lib/common.sh:23`. `pnpm-lock.yaml` gained additions only:
    38 packages, all inside the trees of vetting section 4, none with an install script (vetting
    section 12, check 2).
@@ -245,7 +249,7 @@ call.
    (`actions/studio-invoker.ts:11-12`). Exit code 0 is success, 5 is "dependency unavailable", any
    other code is a failure (`actions/studio-invoker.ts:7-9`). The CLI's output is neither shown nor
    logged.
-7. **Allowlisted child environment** (`actions/child-environment.ts:3-27`): `PATH` (fallback
+7. **Allowlisted child environment** (`actions/child-environment.ts:3-28`): `PATH` (fallback
    `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin` when a login item starts with
    none), `HOME`, `TMPDIR` and `LANG` when set, and `VIDEO_STUDIO_HOME`, `VIDEO_STUDIO_WEB_PORT`,
    `VIDEO_STUDIO_API_PORT` from the bundled configuration. No provider key and no `NODE_OPTIONS`.
@@ -268,32 +272,32 @@ call.
     `nextSlots` and schedule file readers (`state/schedule-summary.ts:1-2`); the count of runs at
     `review` from a bounded directory read (at most 2000 run folders, 2 MiB per `run.json`) parsed
     with the shared `RunFileSchema`, because `@studio/shared/run-files` has no lister and no size
-    bound (`state/review-summary.ts:8-18`). Labels are pt-BR (`menu/labels.ts:5-39`): "Iniciar",
+    bound (`state/review-summary.ts:8-18`). Labels are pt-BR (`menu/labels.ts:7-54`): "Iniciar",
     "Parar", "Abrir estúdio", "Abrir ao iniciar sessão", "Sair". "Iniciar" is enabled when api or
     web is not running, "Parar" when either is running or unknown, both only while no action is in
-    flight; "Abrir estúdio" only while the web is `running` (`menu/menu-model.ts:83-97`). An
+    flight; "Abrir estúdio" only while the web is `running` (`menu/menu-model.ts:101-115`). An
     invalid or missing configuration shows "Instalação incompleta: reinstale o estúdio" and "Sair"
-    only (`menu/menu-model.ts:124-131`).
+    only (`menu/menu-model.ts:142-150`).
 12. **Tray and Dock.** A text-title tray ("Estúdio") with an empty image: the repository has no
-    icon asset and none was added (`electron/shell-app.ts:97-99`). The Dock icon is hidden both in
-    code (`electron/shell-app.ts:95-96`) and by `LSUIElement` in the packaged `Info.plist`
-    (`apps/shell/scripts/package-app.mjs:257`).
+    icon asset and none was added (`electron/shell-app.ts:169-173`). The Dock icon is hidden both in
+    code (`electron/shell-app.ts:167-168`) and by `LSUIElement` in the packaged `Info.plist`
+    (`apps/shell/scripts/package-app.mjs:265`).
 13. **One browser hand-off.** `shell.openExternal(studioUrl(config.webPort))` is the only
-    `openExternal` call site (`electron/shell-app.ts:62-65`); `studioUrl` returns exactly
+    `openExternal` call site (`electron/shell-app.ts:80-83`); `studioUrl` returns exactly
     `http://127.0.0.1:<webPort>/` (`actions/studio-url.ts:8-11`).
-14. **Security handlers** (`electron/security.ts:10-24`): `app.enableSandbox()` and a
+14. **Security handlers** (`electron/security.ts:11-25`): `app.enableSandbox()` and a
     `web-contents-created` handler that denies window opening and cancels navigation, before
     `ready`; at `ready`, `setPermissionRequestHandler` and `setPermissionCheckHandler` both deny
     (the vetting section 12 correction of section 8 row 6). No window, web view, `autoUpdater` or
     `crashReporter` is used, and no command-line switch is appended anywhere (the section 12
     correction of row 12: no fuse blocks the remote-debugging switch, so its absence is the
-    control). A second instance quits (`electron/shell-app.ts:128-132`).
+    control). A second instance quits (`electron/shell-app.ts:242-246`).
 15. **Login item.** The "Abrir ao iniciar sessão" checkbox calls
     `app.setLoginItemSettings({ openAtLogin })` (`electron/login-item.ts:4-10`). The shell does
     not start the services at login: at startup it reads state only, and the services start only
     from "Iniciar". The process accepts one switch, `--unregister-login-item`
     (`cli/shell-arguments.ts:1-12`), which sets open-at-login to false and quits without a tray or
-    the single-instance lock (`electron/shell-app.ts:114-126`); the uninstaller uses it.
+    the single-instance lock (`electron/shell-app.ts:225-229`, `237-241`); the uninstaller uses it.
 16. **Baked `shell-config.json`** (`config/shell-config.ts:5-24`, `main.ts:4-6`): `format: 1`,
     `nodeBinary`, `cliMain`, `dataHome`, `webPort`, `apiPort`, written by the package script beside
     `main.js` inside `app.asar`, so the asar integrity fuse covers it. Reason: a login item starts
@@ -312,26 +316,26 @@ call.
 
 19. **Package script** `apps/shell/scripts/package-app.mjs`, run by the installer as
     `pnpm --filter @studio/shell run package -- --node-bin <abs> --cli-main <abs> --data-home <abs>
-    --web-port <port> --api-port <port>`. Guards, in order (lines 90-201): refuses root; macOS
+    --web-port <port> --api-port <port>`. Guards, in order (lines 95-206, called at 312-316): refuses root; macOS
     only; refuses to run while any download redirect variable of vetting section 12 is set, in any
-    spelling (13 normalized names, lines 45-64); strict arguments; `dist/main.js` present; the
+    spelling (13 normalized names, lines 50-69); strict arguments; `dist/main.js` present; the
     installed `electron` is 45.4.1 and its embedded `checksums.json` holds a sha-256 for
     `electron-v45.4.1-darwin-arm64.zip`.
-20. **Three staged files** (lines 222-234): `main.js`, `shell-config.json` and a minimal
+20. **Three staged files** (lines 227-239): `main.js`, `shell-config.json` and a minimal
     `package.json` (`name`, `version`, `main`); no `node_modules`, sources or maps. The packager
     runs with `asar: true` and `asarIntegrityDigest: true`.
-21. **App identity and download** (lines 23-31, 236-260): name "Video Studio", bundle id
+21. **App identity and download** (lines 28-36, 242-268): name "Video Studio", bundle id
     `com.videostudio.shell`, darwin arm64. The framework download is build-only, done by
     `@electron/packager` from GitHub releases of `electron/electron`
     (`https://github.com/electron/electron/releases/download/`), and is verified against the
     registry-covered embedded `checksums.json` rather than the remote `SHASUMS256.txt`. No
     `install-electron`, no dev binary, no mirror. The zip is cached in `~/Library/Caches/electron/`.
-22. **Six fuses, read back** (lines 66-74, 267-277): `RunAsNode`,
+22. **Six fuses, read back** (lines 71-79, 275-290): `RunAsNode`,
     `EnableNodeOptionsEnvironmentVariable`, `EnableNodeCliInspectArguments` and
     `GrantFileProtocolExtraPrivileges` off; `EnableEmbeddedAsarIntegrityValidation` and
     `OnlyLoadAppFromAsar` on. Each state is read back after flipping, and the script fails on a
     mismatch.
-23. **Ad-hoc signing** (lines 284-288): an explicit `codesign --sign - --force --deep` after the
+23. **Ad-hoc signing** (lines 297-301): an explicit `codesign --sign - --force --deep` after the
     fuse flip (which invalidates the framework signature; `resetAdHocDarwinSignature` is left
     `false`), then `codesign --verify --deep --strict`. No Developer ID, no notarization.
 24. **Install step 12 of 15** (`scripts/install.sh:520-714`), after the `studio` link and before the
@@ -427,3 +431,26 @@ questions"), the measured results are appended by the supervisor to
 
 The `du` and `ps` forms are suggestions for reading the values; the checks themselves are those of
 vetting section 11 and `R3-08-graph.md`.
+
+## Amendment (2026-11-23, ADR 0010)
+
+Appended; the sections above are left as decided. ADR 0010
+(`docs/adr/0010-desktop-installer-and-hosted-portal.md`) and PRD
+`docs/prds/2026-11-23-desktop-installer.md` add a packaged mode in which the app is shipped in a
+`.dmg` and sets itself up on first run.
+
+R3-AC-25.8 ("creates no `BrowserWindow` or web view") is superseded for the first-run setup window
+only. That window is the shell's single `BrowserWindow`, created in
+`apps/shell/src/electron/setup-window.ts`. It loads a bundled local file, with sandbox and
+context isolation on, Node integration off and dev tools off (`setup-window.ts:103-123`,
+`electron/security.ts:3-9`). The rest of R3-AC-25.8 is not superseded by this amendment.
+
+Not reconciled here (owner decision needed). As of this date the code no longer meets these
+statements as written, and ADR 0010 does not name them as superseded:
+
+- R3-AC-25.7, a single `openExternal` call site: the pair link and the update download also open
+  the browser (`electron/shell-app.ts:109`, `portal/portal-link.ts:64`, `portal/portal-service.ts:58`).
+- R3-AC-25.8, "makes no outbound request": the update check fetches the release manifest
+  (`portal/update-checker.ts:88`).
+- Section D, the passphrase is "never in the shell": in packaged mode it is typed in the setup
+  window.

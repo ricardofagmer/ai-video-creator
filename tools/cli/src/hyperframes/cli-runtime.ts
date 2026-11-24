@@ -10,6 +10,7 @@ import {
   type HyperframesBaseRuntime,
   type HyperframesRuntime,
 } from '@studio/hyperframes';
+import { locateMediaTool, locateNodeBinary, locateSandboxStudioRoot, type MediaToolName, type StudioRuntime } from '@studio/core/runtime';
 import { hyperframesPaths } from '@studio/shared/hyperframes';
 import { type CliSettings } from '../settings/cli-settings.js';
 import { HyperframesStepRefusedError } from './hyperframes.errors.js';
@@ -22,12 +23,11 @@ import { HyperframesStepRefusedError } from './hyperframes.errors.js';
 
 /** Used only if the child environment somehow lacks PATH; same order as the CLI's own fallback. */
 const FALLBACK_PATH = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin';
+/** Packaged fallback: system folders only, never Homebrew (DI-AC-03). */
+const PACKAGED_FALLBACK_PATH = '/usr/bin:/bin';
 const OWNER_HYPERFRAMES_FOLDER = '.hyperframes';
 /** `CHROME_DIR` is the whole Chrome cache root `<cache>/chrome`, where `chrome install` unpacks (B13). */
 const CHROME_CACHE_FOLDER = 'chrome';
-/** The CLI has no stage settings: ffmpeg and ffprobe are found by name on its child PATH (B12). */
-const FFMPEG_NAME = 'ffmpeg';
-const FFPROBE_NAME = 'ffprobe';
 
 /** Who the CLI records as the writer of the gate files. */
 export const HYPERFRAMES_CLI_ACTOR = 'cli';
@@ -35,15 +35,25 @@ export const HYPERFRAMES_CLI_ACTOR = 'cli';
 export function baseRuntime(settings: CliSettings, options: { binPath: string; tmpDir: string }): HyperframesBaseRuntime {
   const paths = hyperframesPaths(settings.dataHome.root);
   return {
-    // The CLI's own node binary, by absolute path: never resolved through PATH.
-    nodePath: process.execPath,
+    // By absolute path, never resolved through PATH: the CLI's own node, or the bundled one when packaged.
+    nodePath: locateNodeBinary(settings.runtime, process.execPath),
     binPath: options.binPath,
     configDir: paths.configDir,
     cacheDir: paths.cacheDir,
     homeDir: paths.homeDir,
     tmpDir: options.tmpDir,
-    path: settings.childEnvironment['PATH'] ?? FALLBACK_PATH,
+    path: settings.childEnvironment['PATH'] ?? (settings.runtime.mode === 'packaged' ? PACKAGED_FALLBACK_PATH : FALLBACK_PATH),
   };
+}
+
+/**
+ * The CLI has no stage settings: in development ffmpeg and ffprobe are found by name on its child
+ * PATH (B12); packaged mode passes the bundled binary's absolute path, which `resolveExecutable`
+ * takes as is, so a program on the PATH can never stand in for it.
+ */
+function mediaToolOf(runtime: StudioRuntime, tool: MediaToolName): string {
+  const location = locateMediaTool(runtime, tool);
+  return location.source === 'bundled' ? location.path : location.name;
 }
 
 export interface RenderRuntimeOptions {
@@ -108,12 +118,12 @@ export async function resolveRenderRuntime(settings: CliSettings, options: Rende
     // Named only as the folder the sandbox denies; the CLI never reads, lists or copies it (AC 84).
     ownerConfigDir: await realPathOfExistingPrefix(join(settings.homeDirectory, OWNER_HYPERFRAMES_FOLDER)),
     ownerHomeDir: await realPathOr(settings.homeDirectory, sandboxUnavailable),
-    studioRoot: await realPathOr(workspaceRoot(), sandboxUnavailable),
+    studioRoot: await realPathOr(locateSandboxStudioRoot(settings.runtime, workspaceRoot()), sandboxUnavailable),
     dataHomeRoot: await realPathOr(settings.dataHome.root, sandboxUnavailable),
     hyperframesRoot: await realPathOr(paths.root, sandboxUnavailable),
     chromeDir,
-    ffmpegBin: await resolveExecutable(FFMPEG_NAME, base.path),
-    ffprobeBin: await resolveExecutable(FFPROBE_NAME, base.path),
+    ffmpegBin: await resolveExecutable(mediaToolOf(settings.runtime, 'ffmpeg'), base.path),
+    ffprobeBin: await resolveExecutable(mediaToolOf(settings.runtime, 'ffprobe'), base.path),
     apiPort: settings.ports.api,
     webPort: settings.ports.web,
   };

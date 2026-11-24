@@ -29,5 +29,15 @@ export const browserTransport: ApiTransport = async (request) => {
   return response;
 };
 
+/**
+ * Same-origin URL of a voice sample for `<audio src>`, through the BFF like every other call. The
+ * `amostra` value only makes the browser fetch again when the sample changed (`updatedAt`): the
+ * route takes no query, so the BFF drops it before the api, and the clip stays `no-store`.
+ */
+export function voiceSampleAudioUrl(assetId: string, version: number, cacheKey: string): string {
+  const path = `${BFF_PREFIX}${apiPaths.assetVoiceSampleAudio(assetId, version)}`;
+  return cacheKey === '' ? path : `${path}?amostra=${encodeURIComponent(cacheKey)}`;
+}
+
 /** The C10 client for client components. */
 export const browserStudioClient: StudioClient = createStudioClient(browserTransport);

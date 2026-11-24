@@ -12,7 +12,8 @@ import { MonthToDateSpend } from './month-to-date.service';
  * only and reads `cost_entries` for month-to-date. Unlike `CostsModule` it registers no
  * `IndexRunCostHandler`, because indexing into SQLite belongs to the api and the CLI. The watcher
  * binds C6 `CurationCostPort` to the exported `CurationCostLedger` (SPEC 0005 section 5.8), which
- * writes `curations/<id>/cost.json` only; `IndexCurationCostHandler` is likewise absent here.
+ * writes `curations/<id>/cost.json` only; `IndexCurationCostHandler` is likewise absent here, and
+ * so is `IndexAssetJobCostHandler` (asset job cost.json is written by `AssetJobCostService`).
  */
 @Module({
   imports: [PathsModule, PrismaModule, ProvidersModule],

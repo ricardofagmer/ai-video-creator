@@ -1,8 +1,10 @@
 /**
  * C10 routes. The api's controllers use `apiRouteSegments` in their decorators and the web builds
  * URLs with `apiPaths`, so both read the same strings. Paths are relative to the api origin
- * (`http://127.0.0.1:4311` by default, A9). Every route except `health` and `auth/login` needs
- * the session cookie and answers 401 without it (criterion 27). Rows marked "rev 4" were added by
+ * (`http://127.0.0.1:4311` by default, A9). Every route except `health`, `auth/login` and the
+ * installer's `install/*` routes needs the session cookie and answers 401 without it (criterion 27,
+ * amended by ADR 0010: `install/presence` and `install/pair` are public, `install/status` needs a
+ * portal token instead of the session). Rows marked "rev 4" were added by
  * SPEC 0002 rev 4 (section 13.2, `API_CONTRACT_REVISION = 2`); neither by-reference route clashes
  * with a rev 3 route (`versions/by-reference` sits beside `versions/from-previous`). Rows marked
  * "R2" are contract revision 3 (SPEC 0003 section 4.3, `API_CONTRACT_REVISION = 3`); "R2 breaking"
@@ -29,6 +31,12 @@
  * | PUT | /catalog/assets/:assetId/versions/:version/learnings/:noteId/status | RetireLearningRequest | 200 LearningNoteView (R2) |
  * | POST | /catalog/search | SemanticSearchRequest | 200 SemanticSearchResponse (R2) |
  * | GET | /catalog/search/status | - | 200 SearchIndexStatusResponse (R2) |
+ * | GET | /catalog/assets/:assetId/versions/:version/image | - | 200 stored PNG/JPEG/WebP bytes (images upload) |
+ * | POST | /catalog/assets/:assetId/versions/:version/voice-sample | RequestVoiceSampleRequest | 202 VoiceSampleView (guided creation) |
+ * | GET | /catalog/assets/:assetId/versions/:version/voice-sample | - | 200 VoiceSampleView (guided creation) |
+ * | GET | /catalog/assets/:assetId/versions/:version/voice-sample/audio | - | 200 audio bytes, `no-store` (guided creation) |
+ * | POST | /catalog/assets/:assetId/versions/:version/reference-analysis | - | 202 ReferenceAnalysisView (guided creation) |
+ * | GET | /catalog/assets/:assetId/versions/:version/reference-analysis | - | 200 ReferenceAnalysisView (guided creation) |
  * | GET | /recipes | ListRecipesQuery | 200 RecipeVersionPageView |
  * | POST | /recipes | CreateRecipeRequest | 201 RecipeVersionView |
  * | POST | /recipes/:recipeId/versions | SaveRecipeVersionRequest | 201 RecipeVersionView |
@@ -74,6 +82,9 @@
  * | GET | /runs/:runId/publish | - | 200 RunPublishView (R4, rev 7) |
  * | POST | /runs/:runId/publish/:platform | PublishRequest | 202 PublishAttemptView; 200 when `idempotencyKey` repeats (R4, rev 7) |
  * | DELETE | /runs/:runId/publish/attempts/:attemptId | - | 200 PublishAttemptView `cancelled`; 409 once claimed (R4, rev 7) |
+ * | GET | /install/presence | - | 200 InstallPresence, 503 with no body on an unsupported platform (public; desktop installer C1 rev 2) |
+ * | POST | /install/pair | InstallPairRequest | 200 InstallPairing, 401 with no body (public; C1 rev 2) |
+ * | GET | /install/status | `Authorization: Bearer` portal token | 200 InstallStatus, 401 or 503 with no body (C1 rev 2) |
  *
  * Errors use `ApiError`: 400 request shape, 401 no session or wrong passphrase, 403 refused Host
  * or Origin, 404 unknown id, 409 state conflict (e.g. a live watcher owns the run), 413 upload too
@@ -113,6 +124,16 @@ export const apiRouteSegments = {
   watcher: 'watcher',
   /** Rev 4: last segment of the two by-reference catalog routes. */
   byReference: 'by-reference',
+  /** Skills spec addendum T5: last segment of `GET /catalog/assets/:id/versions/:version/entry-file`. */
+  entryFile: 'entry-file',
+  /** Images upload (2026-11-24): last segment of `GET /catalog/assets/:id/versions/:version/image`. */
+  image: 'image',
+  /** Guided-creation spec: segment of the voice sample routes, after `versions/:version`. */
+  voiceSample: 'voice-sample',
+  /** Guided-creation spec: last segment of `GET .../voice-sample/audio`. */
+  voiceSampleAudio: 'audio',
+  /** Guided-creation spec: segment of the reference analysis routes, after `versions/:version`. */
+  referenceAnalysis: 'reference-analysis',
   /** R2: controller base of `POST /catalog/search` and `GET /catalog/search/status`. */
   catalogSearch: 'catalog/search',
   /** R2: last segment of `GET /catalog/search/status`. */
@@ -149,6 +170,14 @@ export const apiRouteSegments = {
   publish: 'publish',
   /** R4 (rev 7): segment of the cancel route, after `runs/:runId/publish`. */
   publishAttempts: 'attempts',
+  /** Desktop installer C1 rev 1: controller base of the three `/install/*` routes (portal only). */
+  install: 'install',
+  /** C1 rev 1: last segment of `GET /install/presence` (public). */
+  installPresence: 'presence',
+  /** C1 rev 1: last segment of `POST /install/pair` (one-time code). */
+  installPair: 'pair',
+  /** C1 rev 1: last segment of `GET /install/status` (portal bearer token). */
+  installStatus: 'status',
 };
 
 export const apiPaths = {
@@ -164,6 +193,16 @@ export const apiPaths = {
     `/catalog/assets/${encodeURIComponent(assetId)}/versions/by-reference`,
   assetVersion: (assetId: string, version: number): string =>
     `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}`,
+  assetEntryFile: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/entry-file`,
+  assetImage: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/image`,
+  assetVoiceSample: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/voice-sample`,
+  assetVoiceSampleAudio: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/voice-sample/audio`,
+  assetReferenceAnalysis: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/reference-analysis`,
   assetVersionStatus: (assetId: string, version: number): string =>
     `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/status`,
   assetVersionPromotion: (assetId: string, version: number): string =>
@@ -216,4 +255,7 @@ export const apiPaths = {
     `/runs/${encodeURIComponent(runId)}/publish/${encodeURIComponent(platform)}`,
   runPublishAttempt: (runId: string, attemptId: string): string =>
     `/runs/${encodeURIComponent(runId)}/publish/attempts/${encodeURIComponent(attemptId)}`,
+  installPresence: (): string => '/install/presence',
+  installPair: (): string => '/install/pair',
+  installStatus: (): string => '/install/status',
 };

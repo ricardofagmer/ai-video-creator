@@ -51,6 +51,17 @@ const rows: readonly RouteRow[] = [
   { id: 'catalog.save-metadata-version', method: 'POST', pattern: 'catalog/assets/:assetId/versions/from-previous', body: 'json' },
   { id: 'catalog.save-version-by-reference', method: 'POST', pattern: 'catalog/assets/:assetId/versions/by-reference', body: 'json' },
   { id: 'catalog.version', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version' },
+  // SKILL.md text editing (skills page spec, T5): the entry file of one version as UTF-8 text.
+  { id: 'catalog.entry-file', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/entry-file' },
+  { id: 'catalog.image', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/image' },
+  // Guided creation (docs/specs/2026-11-23-guided-creation-design.md, amendment 1). The audio is
+  // bytes, not JSON: the api sends `no-store` and `nosniff`, and the proxy passes both on. No query
+  // is forwarded, so the player's cache-busting value never reaches the api.
+  { id: 'catalog.voice-sample', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/voice-sample' },
+  { id: 'catalog.voice-sample-request', method: 'POST', pattern: 'catalog/assets/:assetId/versions/:version/voice-sample', body: 'json' },
+  { id: 'catalog.voice-sample-audio', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/voice-sample/audio' },
+  { id: 'catalog.reference-analysis', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/reference-analysis' },
+  { id: 'catalog.reference-analysis-request', method: 'POST', pattern: 'catalog/assets/:assetId/versions/:version/reference-analysis' },
   { id: 'catalog.status', method: 'PUT', pattern: 'catalog/assets/:assetId/versions/:version/status', body: 'json' },
   // Rev 3 (SPEC 0003 section 4.3): the only way a version becomes `active`, one recorded owner approval per call.
   { id: 'catalog.promotion', method: 'POST', pattern: 'catalog/assets/:assetId/versions/:version/promotion', body: 'json' },

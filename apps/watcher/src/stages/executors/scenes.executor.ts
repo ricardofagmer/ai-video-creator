@@ -10,6 +10,8 @@ import { reviewSubject } from '../agents/reviewer';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
 import { CapturesIndexSchema, ReviewOutcomeSchema } from '../shared/stage-artifacts';
 import { agentCallsEstimate, evaluatorLoopRoles } from '../shared/stage-estimates';
+import { readReferenceAnalysesInput, referenceAnalysesField } from '../shared/reference-analyses-input';
+import { readSiteAnalysisInput, siteAnalysisCaveat, siteAnalysisField, type SiteAnalysisInput } from '../shared/site-analysis-input';
 import { readOptionalStageInput, readOwnOutput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { needsPerson, reportedSuccess, stageFailed, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
 import { stageTexts } from '../shared/stage-texts';
@@ -28,7 +30,7 @@ export class ScenesExecutor extends BaseStageExecutor {
   protected override readonly appliesCallFaults = false;
 
   async estimate(context: StagePlanningContext): Promise<StageEstimate> {
-    return agentCallsEstimate(evaluatorLoopRoles(DIRECTOR_ROLE, context), this.isLive('claude'));
+    return agentCallsEstimate(evaluatorLoopRoles(DIRECTOR_ROLE, context), this.agentCallsBilled());
   }
 
   declaredOutputs(context: StagePlanningContext): readonly DeclaredOutput[] {
@@ -39,8 +41,11 @@ export class ScenesExecutor extends BaseStageExecutor {
   }
 
   protected async run(context: StageExecutionContext, outputs: StageOutputSink): Promise<StageExecutionResult> {
-    const source = await this.directorSourceOf(context);
-    if ('class' in source) return stageFailed(source);
+    const siteAnalysis = await readSiteAnalysisInput(context);
+    const directorSource = await this.directorSourceOf(context, siteAnalysis);
+    if ('class' in directorSource) return stageFailed(directorSource);
+    // The `reference-analyses` artifact `script` wrote, when it wrote one; absent is the usual case.
+    const source: DirectorPacketSource = { ...directorSource, ...referenceAnalysesField(await readReferenceAnalysesInput(context)) };
     const models: ModelUse[] = [];
     const loop = await runEvaluatorLoop<ScenesOutput>({
       context,
@@ -56,7 +61,7 @@ export class ScenesExecutor extends BaseStageExecutor {
     }
     await outputs.writeJson('review-scenes-outcome', ReviewOutcomeSchema, loop.review);
     const caveat = loop.review.status === 'unavailable' ? ` ${stageTexts.reviewerUnavailableWarning}` : '';
-    return reportedSuccess(`${loop.output.scenes.length} cena(s) definida(s).${caveat}`, models);
+    return reportedSuccess(`${loop.output.scenes.length} cena(s) definida(s).${caveat}${siteAnalysisCaveat(siteAnalysis)}`, models);
   }
 
   protected async checkEvidence(context: StageExecutionContext, checks: readonly CheckId[]): Promise<CheckEvidenceMap> {
@@ -81,7 +86,7 @@ export class ScenesExecutor extends BaseStageExecutor {
     return { status: 'failed', failure, cause: call.cause };
   }
 
-  private async directorSourceOf(context: StageExecutionContext): Promise<DirectorPacketSource | StageFailure> {
+  private async directorSourceOf(context: StageExecutionContext, siteAnalysis: SiteAnalysisInput): Promise<DirectorPacketSource | StageFailure> {
     const ownerStop = (message: string, whatToDo: string): StageFailure => needsPerson({ kind: 'needs-person', stepKey: context.stepKey }, message, whatToDo);
     const script = await readOptionalStageInput(context, 'script', ScriptOutputSchema);
     if (script === null) return ownerStop(stageTexts.missingInput('script'), stageTexts.missingInputWhatToDo);
@@ -102,6 +107,8 @@ export class ScenesExecutor extends BaseStageExecutor {
       transitions: template.details.transitions,
       // SPEC 0005 section 5.6: the brief's notes, already capped by the `brief` step; never read here.
       learnings: context.stageBrief.learnings ?? [],
+      ...(context.brief.instructions === undefined ? {} : { ownerInstructions: context.brief.instructions }),
+      ...siteAnalysisField(siteAnalysis),
     };
   }
 }

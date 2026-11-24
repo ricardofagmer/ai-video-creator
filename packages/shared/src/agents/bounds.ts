@@ -1,4 +1,5 @@
 import {
+  ANALYST_ROLE,
   DIRECTOR_ROLE,
   EVALUATOR_ROLE,
   PLANNER_ROLE,
@@ -28,6 +29,8 @@ export const agentBounds: Readonly<Record<ModelRoleName, AgentBounds>> = {
   [DIRECTOR_ROLE]: { maxSteps: 12, maxToolCalls: 12, maxTokens: 120_000, maxUsd: 0.3, timeoutMs: 300_000 },
   [EVALUATOR_ROLE]: { maxSteps: 10, maxToolCalls: 10, maxTokens: 150_000, maxUsd: 0.25, timeoutMs: 300_000 },
   [RECOVERY_ROLE]: { maxSteps: 4, maxToolCalls: 4, maxTokens: 40_000, maxUsd: 0.3, timeoutMs: 120_000 },
+  // Site analysis spec: one screenshot read, then the answer; bounded like the planner.
+  [ANALYST_ROLE]: { maxSteps: 2, maxToolCalls: 1, maxTokens: 40_000, maxUsd: 0.2, timeoutMs: 120_000 },
 };
 
 /** FrameSampleTool widths (topology section 3.2: `width?: 512 | 768`, default 768). */

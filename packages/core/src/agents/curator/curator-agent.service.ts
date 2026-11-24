@@ -73,6 +73,9 @@ export class CuratorAgentService implements CuratorPort, OnModuleInit {
   /** Live mode fails the start, never the first curation: the key resolves and the model is priced. */
   onModuleInit(): void {
     if (!this.modes.isLive('claude')) return;
+    // ADR 0011: the Claude Code engine has no key. The Curator is not served by that engine yet,
+    // so a curation fails at its call with the typed credential error instead of blocking the start.
+    if (this.modes.usesClaudeCode()) return;
     this.modes.credentialFor('claude');
     this.pricing.priceUsd(toUsageQuantity(curatorAgentDefinition.defaultModelId, ZERO_USAGE));
   }

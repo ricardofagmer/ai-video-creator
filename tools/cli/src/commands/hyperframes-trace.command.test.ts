@@ -27,12 +27,12 @@ import {
 import { type SandboxDenial } from '../hyperframes/hyperframes-ports.js';
 import { HyperframesConfirmationError, HyperframesStepRefusedError } from '../hyperframes/hyperframes.errors.js';
 import {
-  TRACE_CHROME_CHANGED_AFTER_TEXT,
-  TRACE_CHROME_UNREADABLE_AFTER_TEXT,
-  TRACE_PROBE_FILE_REMOVED_TEXT,
   traceChromeBeforeText,
-  TRACE_CONTROL_NOT_LOGGED_TEXT,
+  traceChromeChangedAfterText,
+  traceChromeUnreadableAfterText,
+  traceControlNotLoggedText,
   traceInformationalDenialText,
+  traceProbeFileRemovedText,
 } from '../hyperframes/hyperframes-texts.js';
 import { hyperframesTraceCommand } from './hyperframes-trace.command.js';
 
@@ -339,7 +339,7 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       const trace = await storedTrace(studio);
       assert.equal(trace.result, 'pass');
       assert.equal(trace.controlDenied, true);
-      assert.deepEqual(trace.findings, [TRACE_CONTROL_NOT_LOGGED_TEXT]);
+      assert.deepEqual(trace.findings, [traceControlNotLoggedText()]);
       assert.deepEqual(fake.events.events, [{ event: 'hyperframes.trace-finished', result: 'pass', deniedNetwork: 0, controlDenied: true }]);
     });
 
@@ -355,7 +355,7 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       assert.equal(trace.result, 'fail');
       assert.equal(trace.controlDenied, false);
       assert.ok(trace.findings.some((finding) => finding.includes(CONTROL_TARGET) && finding.includes(String(CONTROL_TIMED_OUT))));
-      assert.equal(trace.findings.includes(TRACE_CONTROL_NOT_LOGGED_TEXT), false);
+      assert.equal(trace.findings.includes(traceControlNotLoggedText()), false);
     });
 
     it('fails, never passes, when the system log cannot be read', async () => {
@@ -370,7 +370,7 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       // The control's own proof is its exit code (section 18.7); the unread log alone fails the trace.
       assert.equal(trace.controlDenied, true);
       assert.ok(trace.findings.length > 0);
-      assert.equal(trace.findings.includes(TRACE_CONTROL_NOT_LOGGED_TEXT), false);
+      assert.equal(trace.findings.includes(traceControlNotLoggedText()), false);
     });
 
     it('fails with a finding when the render exits non-zero, and does not probe a picture', async () => {
@@ -566,8 +566,8 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
         const trace = await storedTrace(studio);
         assert.equal(trace.result, 'fail');
         assert.equal(trace.renderExitCode, 0);
-        assert.ok(trace.findings.includes(TRACE_CHROME_CHANGED_AFTER_TEXT));
-        assert.ok(studio.printer.text().includes(TRACE_CHROME_CHANGED_AFTER_TEXT));
+        assert.ok(trace.findings.includes(traceChromeChangedAfterText()));
+        assert.ok(studio.printer.text().includes(traceChromeChangedAfterText()));
       });
     }
 
@@ -589,8 +589,8 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       assert.equal(trace.result, 'fail');
       assert.equal(trace.renderExitCode, 0);
       assert.equal(trace.chromeSha256, '0'.repeat(64));
-      assert.ok(trace.findings.includes(TRACE_CHROME_UNREADABLE_AFTER_TEXT));
-      assert.equal(trace.findings.includes(TRACE_CHROME_CHANGED_AFTER_TEXT), false);
+      assert.ok(trace.findings.includes(traceChromeUnreadableAfterText()));
+      assert.equal(trace.findings.includes(traceChromeChangedAfterText()), false);
       assert.equal(trace.findings.filter((finding) => finding.startsWith('controle C2:')).length, 1);
     });
 
@@ -612,7 +612,7 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       assert.equal(trace.result, 'fail');
       assert.equal(trace.chromeSha256, '0'.repeat(64));
       assert.ok(trace.findings.includes(traceChromeBeforeText('unreadable')));
-      assert.equal(trace.findings.includes(TRACE_CHROME_UNREADABLE_AFTER_TEXT), false);
+      assert.equal(trace.findings.includes(traceChromeUnreadableAfterText()), false);
     });
 
     it('fails with a finding and starts no render when the binary changes after the verification, before the render', async () => {
@@ -737,8 +737,8 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       assert.equal(existsSync(probeFile.value), false);
       const trace = await storedTrace(studio);
       assert.equal(trace.result, 'fail');
-      assert.ok(trace.findings.includes(TRACE_PROBE_FILE_REMOVED_TEXT));
-      assert.ok(studio.printer.text().includes(TRACE_PROBE_FILE_REMOVED_TEXT));
+      assert.ok(trace.findings.includes(traceProbeFileRemovedText()));
+      assert.ok(studio.printer.text().includes(traceProbeFileRemovedText()));
     });
 
     it('removes and reports a file left by C3 even when C3 exited as refused', async () => {
@@ -757,7 +757,7 @@ describe('studio hyperframes trace (SPEC 0008 section 5.6)', () => {
       assert.ok(probeFile.value !== null, 'C3 was not started');
       assert.equal(existsSync(probeFile.value), false);
       const trace = await storedTrace(studio);
-      assert.ok(trace.findings.includes(TRACE_PROBE_FILE_REMOVED_TEXT));
+      assert.ok(trace.findings.includes(traceProbeFileRemovedText()));
     });
 
     it('lists non-network denials no control caused as informational findings and still passes', async () => {
