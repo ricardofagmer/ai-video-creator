@@ -508,6 +508,8 @@ function versionBase(id: string, contentHash: string): VersionBase {
     qualityPlatformSampleSize: 0,
     qualityScoredAt: null,
     notes: '',
+    purpose: '',
+    purposeSource: 'none',
   };
 }
 
@@ -701,6 +703,7 @@ export async function createCompositionHarness(options: CompositionHarnessOption
     assetResolver: unusedAssetResolver,
     manifestBuilder: new RunManifestBuilder(),
     hyperframes: ports,
+    referenceAnalyses: { readDone: async () => [] },
   });
 
   const params = options.params ?? {};

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { FRAME_WIDTH_LARGE_PX, toolEnvelopeSchema, toolLimits } from '@studio/shared/agents';
 import {
+  ASSET_PURPOSE_MAX_CHARS,
   AssetKindSchema,
   AssetRefSchema,
   AssetStatusSchema,
@@ -18,17 +19,24 @@ import {
 
 const { catalogSearch, assetDescribe, runArtifactRead, frameSample } = toolLimits;
 
+/**
+ * `purpose` bound for both catalog tools (ADR 0012 decision 8): the stored maximum, so the tools
+ * never cut an owner's text, but still a hard cap on what the model sees.
+ */
+export const purposeMaxChars = ASSET_PURPOSE_MAX_CHARS;
+
 function fitsCharacters(maxChars: number): (value: unknown) => boolean {
   return (value) => JSON.stringify(value).length <= maxChars;
 }
 
-/** One CatalogSearchTool row as the model sees it: no path, hash, sensitivity or license terms. */
+/** One CatalogSearchTool row as the model sees it: no path, hash, sensitivity, purpose source or license terms. */
 export const CatalogRowSchema = z
   .object({
     ref: AssetRefSchema,
     kind: AssetKindSchema,
     title: z.string().max(200),
     summary: z.string().max(catalogSearch.summaryMaxChars),
+    purpose: z.string().max(purposeMaxChars),
     tags: z.array(TagSchema).max(32),
     license: z.object({ name: z.string().max(200), allowedUses: z.array(LicenseUseSchema) }).strict().nullable(),
   })
@@ -60,6 +68,7 @@ export const AssetMetadataSchema = z
     kind: AssetKindSchema,
     title: z.string().max(200),
     summary: z.string().max(200),
+    purpose: z.string().max(purposeMaxChars),
     tags: z.array(TagSchema).max(32),
     license: LicenseSchema.nullable(),
     provenance: ProvenanceSchema.nullable(),

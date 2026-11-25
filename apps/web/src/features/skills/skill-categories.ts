@@ -32,6 +32,11 @@ export function tagsWithSkillCategory(tags: readonly string[], category: SkillCa
   return [category, ...tags.filter((tag) => !isSkillCategory(tag))];
 }
 
+/** The skill's own tags: every tag that is not a category. */
+export function ownSkillTags(tags: readonly string[]): string[] {
+  return tags.filter((tag) => !isSkillCategory(tag));
+}
+
 /** Skills per category, in tab order, leaving out the categories no skill has. */
 export function countSkillCategories(versions: readonly Pick<AssetVersionView, 'tags'>[]): Map<SkillCategory, number> {
   const counts = new Map<SkillCategory, number>();

@@ -11,7 +11,7 @@ export const authEn: Messages<typeof authPtBR> = {
   chip: 'Local panel · this Mac',
   headlineBefore: 'Your AI video studio, ',
   headlineHighlight: 'running on this Mac.',
-  lead: 'Catalog, recipes and runs in one panel. Nothing leaves the machine except the calls to the AI providers you configure.',
+  lead: 'Catalog, presets and runs in one panel. Nothing leaves the machine except the calls to the AI providers you configure.',
   sessionExpired: 'Your session ended. Sign in again to continue.',
   devSignInFailed: 'The development auto sign-in did not work. Check the passphrase in apps/web/.env.local or sign in below.',
   footnote: "The passphrase goes straight to the local API: it never stays in the URL, the browser's storage or the logs.",

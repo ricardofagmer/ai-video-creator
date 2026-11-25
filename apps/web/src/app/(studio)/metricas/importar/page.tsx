@@ -1,5 +1,5 @@
-import { PageHeader } from '@studio/ui';
 import type { Metadata } from 'next';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { MetricImportForm } from '@/features/metrics/components/MetricImportForm';
 import { getI18n } from '@/lib/i18n/server';
@@ -18,7 +18,13 @@ export default async function ImportMetricsPage() {
   const { t } = await getI18n();
   return (
     <div className={layout.page}>
-      <PageHeader title={t.metrics.import.title} description={t.metrics.import.description} />
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.metrics}
+        glyph="chart"
+        title={t.metrics.import.title}
+        description={t.metrics.import.description}
+      />
       <MetricImportForm />
     </div>
   );

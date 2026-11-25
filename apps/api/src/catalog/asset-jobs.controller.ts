@@ -2,6 +2,8 @@ import { Body, Controller, Get, Headers, HttpCode, Param, Post, Res, StreamableF
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   GetReferenceAnalysisQuery,
+  GetTemplatePreviewFileQuery,
+  GetTemplatePreviewQuery,
   GetVoiceSampleAudioQuery,
   GetVoiceSampleQuery,
   RequestReferenceAnalysisCommand,
@@ -13,6 +15,7 @@ import {
   apiRouteSegments,
   type ReferenceAnalysisView,
   type RequestVoiceSampleRequest,
+  type TemplatePreviewView,
   type VoiceSampleView,
 } from '@studio/shared/api';
 import { formatAssetRef, type AssetRef } from '@studio/shared/catalog';
@@ -27,6 +30,7 @@ type AssetVersionParams = z.output<typeof AssetVersionParamsSchema>;
 const versionPath = ':assetId/versions/:version';
 const voiceSamplePath = `${versionPath}/${apiRouteSegments.voiceSample}`;
 const referenceAnalysisPath = `${versionPath}/${apiRouteSegments.referenceAnalysis}`;
+const templatePreviewPath = `${versionPath}/${apiRouteSegments.templatePreview}`;
 
 function refOf(params: AssetVersionParams): AssetRef {
   return formatAssetRef({ assetId: params.assetId, version: params.version });
@@ -98,5 +102,32 @@ export class AssetJobsController {
   async getReferenceAnalysis(@Param(new ZodValidationPipe(AssetVersionParamsSchema)) params: AssetVersionParams): Promise<ReferenceAnalysisView> {
     const state = await this.queryBus.execute(new GetReferenceAnalysisQuery({ assetId: params.assetId, version: params.version }));
     return this.views.referenceAnalysis(refOf(params), state);
+  }
+
+  /** Never a 422: a version without a preview answers `none` with its `unavailable` reason. Read only; the api enqueues on register. */
+  @Get(templatePreviewPath)
+  async getTemplatePreview(@Param(new ZodValidationPipe(AssetVersionParamsSchema)) params: AssetVersionParams): Promise<TemplatePreviewView> {
+    const state = await this.queryBus.execute(new GetTemplatePreviewQuery({ assetId: params.assetId, version: params.version }));
+    return this.views.templatePreview(refOf(params), state);
+  }
+
+  /** 404 `asset-job-sample-not-ready` unless the preview is done with its clip on disk. */
+  @Get(`${templatePreviewPath}/${apiRouteSegments.templatePreviewClip}`)
+  async getTemplatePreviewClip(
+    @Param(new ZodValidationPipe(AssetVersionParamsSchema)) params: AssetVersionParams,
+    @Headers('range') rangeHeader: string | undefined,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const media = await this.queryBus.execute(new GetTemplatePreviewFileQuery({ assetId: params.assetId, version: params.version }, 'clip'));
+    return this.audio.stream({ ref: refOf(params), audio: media, rangeHeader, response });
+  }
+
+  @Get(`${templatePreviewPath}/${apiRouteSegments.templatePreviewPoster}`)
+  async getTemplatePreviewPoster(
+    @Param(new ZodValidationPipe(AssetVersionParamsSchema)) params: AssetVersionParams,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const media = await this.queryBus.execute(new GetTemplatePreviewFileQuery({ assetId: params.assetId, version: params.version }, 'poster'));
+    return this.audio.stream({ ref: refOf(params), audio: media, rangeHeader: undefined, response });
   }
 }

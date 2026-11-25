@@ -1,0 +1,48 @@
+<!doctype html>
+<!--
+  Cartoes de cena 9:16 (HyperFrames), studio-authored seed template. Same contract as the title
+  card (SPEC 0008 OD7 a): self-contained, no script, no remote reference, system fonts only.
+  The title stays as a small header; each scene's on-screen text takes the centre while that scene
+  is narrated. Scene N is visible from sceneNStartS to the next scene's start (durationS for the
+  last one); an empty scene text shows nothing. CSS custom property names are the variable ids in
+  lower case (scene1StartS becomes --scene1starts).
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Cartoes de cena</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div
+      id="scene-cards"
+      class="card"
+      data-composition-id="SceneCards"
+      data-start="0"
+      data-duration="600"
+      data-width="1080"
+      data-height="1920"
+      data-fps="30"
+      data-no-timeline
+      data-composition-variables='[{"id":"title","type":"string","label":"Title","default":""},{"id":"disclosure","type":"string","label":"Disclosure","default":""},{"id":"accent","type":"color","label":"Accent","default":"#f97316"},{"id":"durationS","type":"number","label":"Duration (s)","default":600,"min":3,"max":600},{"id":"scene1Text","type":"string","label":"Scene 1 text","default":""},{"id":"scene1StartS","type":"number","label":"Scene 1 start (s)","default":600,"min":0,"max":600},{"id":"scene2Text","type":"string","label":"Scene 2 text","default":""},{"id":"scene2StartS","type":"number","label":"Scene 2 start (s)","default":600,"min":0,"max":600},{"id":"scene3Text","type":"string","label":"Scene 3 text","default":""},{"id":"scene3StartS","type":"number","label":"Scene 3 start (s)","default":600,"min":0,"max":600},{"id":"scene4Text","type":"string","label":"Scene 4 text","default":""},{"id":"scene4StartS","type":"number","label":"Scene 4 start (s)","default":600,"min":0,"max":600},{"id":"scene5Text","type":"string","label":"Scene 5 text","default":""},{"id":"scene5StartS","type":"number","label":"Scene 5 start (s)","default":600,"min":0,"max":600},{"id":"scene6Text","type":"string","label":"Scene 6 text","default":""},{"id":"scene6StartS","type":"number","label":"Scene 6 start (s)","default":600,"min":0,"max":600}]'
+    >
+      <!-- The run's own picture (site capture, chosen images), written beside this file by the render. -->
+      <video id="background" class="clip background" src="media/background.mp4" data-start="0" data-duration="600" muted playsinline></video>
+      <div class="scrim" aria-hidden="true"></div>
+      <div class="accent-bar" aria-hidden="true"></div>
+      <header class="header">
+        <p class="disclosure" data-var-text="disclosure"></p>
+        <h1 class="title" data-var-text="title"></h1>
+      </header>
+      <main class="stage">
+          <p class="scene scene-1" data-var-text="scene1Text"></p>
+          <p class="scene scene-2" data-var-text="scene2Text"></p>
+          <p class="scene scene-3" data-var-text="scene3Text"></p>
+          <p class="scene scene-4" data-var-text="scene4Text"></p>
+          <p class="scene scene-5" data-var-text="scene5Text"></p>
+          <p class="scene scene-6" data-var-text="scene6Text"></p>
+      </main>
+    </div>
+  </body>
+</html>

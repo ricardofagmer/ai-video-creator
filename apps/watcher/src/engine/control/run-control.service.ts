@@ -1,10 +1,11 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { type RunStatus, type StepKey } from '@studio/shared/run-format';
+import { type RunStatus } from '@studio/shared/run-format';
 import { type ActiveRun } from '../active-run';
 import { type Clock } from '../clock';
-import { liveRunSpendUsd, runSpentWait } from '../cost/run-spend';
+import { liveRunSpendUsd } from '../cost/run-spend';
 import { CLOCK, RUN_CONTROL } from '../engine.tokens';
 import { type ControlState, type RunControlChannel } from '../seams';
+import { ownerTexts } from '../owner-texts';
 import { clip, textLimits } from '../text';
 import { StepGuard } from './step-guard';
 import { WATCHER_SHUTDOWN, watcherShutdownText } from './watcher-shutdown';
@@ -14,13 +15,16 @@ export type ControlHold = { kind: 'held'; status: RunStatus };
 /**
  * `control.json` and the run cost ceiling as the engine applies them (PRD 7.3, RUN-FORMAT 12):
  * between steps a `stop` ends the run `interrupted`, a `pause` ends it `paused` (the step that just
- * finished stays finished, the next one stays `pending`), and spend past `limits.costPerRunUsd`
- * puts it in `waiting`. While a step runs, `StepGuard` watches the same two files. A watcher
+ * finished stays finished, the next one stays `pending`). Spend past `limits.costPerRunUsd` is
+ * warned about once per execution and the run goes on (owner decision 2026-11-25). While a step
+ * runs, `StepGuard` watches control.json. A watcher
  * shutdown (R1-09, optional `WATCHER_SHUTDOWN`) releases the run without a status change, so it
  * resumes like a crash; an owner request read at the same time is applied first.
  */
 @Injectable()
 export class RunControlService {
+  private readonly costWarned = new WeakSet<ActiveRun>();
+
   constructor(
     @Inject(RUN_CONTROL) private readonly control: RunControlChannel,
     @Inject(CLOCK) private readonly clock: Clock,
@@ -64,7 +68,10 @@ export class RunControlService {
     if (this.shutdown?.aborted === true) return this.releaseForShutdown(active);
     const spentUsd = await liveRunSpendUsd(active.runDir);
     const limitUsd = active.snapshot.limits.costPerRunUsd;
-    if (spentUsd > limitUsd) return this.waitForCost(active, { spentUsd, limitUsd, stepKey: null });
+    if (spentUsd > limitUsd && !this.costWarned.has(active)) {
+      this.costWarned.add(active);
+      await active.emit({ type: 'log', level: 'warning', text: ownerTexts.costSpentReason(spentUsd, limitUsd), stepKey: null });
+    }
     return null;
   }
 
@@ -82,12 +89,6 @@ export class RunControlService {
   async releaseForShutdown(active: ActiveRun): Promise<ControlHold> {
     await active.emit({ type: 'log', level: 'warning', text: watcherShutdownText, stepKey: null });
     return { kind: 'held', status: 'running' };
-  }
-
-  async waitForCost(active: ActiveRun, spend: { spentUsd: number; limitUsd: number; stepKey: StepKey | null }): Promise<ControlHold> {
-    const wait = runSpentWait(spend.spentUsd, spend.limitUsd);
-    await active.setState({ status: 'waiting', since: this.now(), ...wait }, spend.stepKey);
-    return { kind: 'held', status: 'waiting' };
   }
 
   private async pause(active: ActiveRun): Promise<ControlHold> {

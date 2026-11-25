@@ -11,8 +11,11 @@ import { browserStudioClient } from '@/lib/api';
 import { useWebMessages } from '@/lib/i18n/client';
 import styles from '../catalog.module.css';
 import { catalogHref } from '../catalog-query';
+import { type CustomCategory } from '../custom-categories';
+import { type ImageCategory } from '../image-categories';
 import { IMAGE_LINK_URL_MAX, IMAGE_NAME_MAX, IMAGE_OWNER_MAX, imageLinkDraftOf, imageLinkUrlFrom } from '../image-link-draft';
 import { wikimediaFileUrlOf } from '../wikimedia-image-link';
+import { ImageCategoryPicker } from './ImageCategoryPicker';
 
 const FIELD_IDS = {
   link: 'imagem-link',
@@ -39,6 +42,8 @@ function purposeFrom(value: string): ImageDetails['purpose'] {
 interface ImageLinkBoxProps {
   /** The id from `?salvo=` after a save, already checked against the asset id rule; null otherwise. */
   savedAssetId: string | null;
+  /** The image categories this browser created, read by the page from their cookie. */
+  initialCustomCategories: readonly CustomCategory[];
 }
 
 /**
@@ -46,7 +51,7 @@ interface ImageLinkBoxProps {
  * `https:` image link shown as a thumbnail straight from the browser (the server never fetches it), then
  * saved as a draft image whose only file holds the link; or a file upload through the New item form.
  */
-export function ImageLinkBox({ savedAssetId }: ImageLinkBoxProps): ReactElement {
+export function ImageLinkBox({ savedAssetId, initialCustomCategories }: ImageLinkBoxProps): ReactElement {
   const t = useWebMessages();
   const texts = t.catalog.imageLink;
   const router = useRouter();
@@ -56,6 +61,7 @@ export function ImageLinkBox({ savedAssetId }: ImageLinkBoxProps): ReactElement 
   const [name, setName] = useState('');
   const [owner, setOwner] = useState('');
   const [purpose, setPurpose] = useState<ImageDetails['purpose']>('still');
+  const [category, setCategory] = useState<ImageCategory>('other');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -92,13 +98,14 @@ export function ImageLinkBox({ savedAssetId }: ImageLinkBoxProps): ReactElement 
     if (Object.keys(errors).length > 0) return;
 
     setSaving(true);
-    const draft = imageLinkDraftOf({ url: preview.url, name, owner, purpose, width: preview.width, height: preview.height });
+    const draft = imageLinkDraftOf({ url: preview.url, name, owner, purpose, category, width: preview.width, height: preview.height });
     try {
       await browserStudioClient.createAsset({
         fields: { assetId: draft.assetId, kind: draft.kind, metadata: draft.metadata },
         content: { layout: 'file', file: draft.file },
       });
-      const target = catalogHref({ section: 'images' });
+      // Lands on the saved image's category tab, so the new category shows up with the image in it.
+      const target = catalogHref({ section: 'images', templateCategory: category });
       router.push(`${target}${target.includes('?') ? '&' : '?'}salvo=${draft.assetId}`);
       clear();
       setSaving(false);
@@ -188,6 +195,7 @@ export function ImageLinkBox({ savedAssetId }: ImageLinkBoxProps): ReactElement 
               <FormField id={FIELD_IDS.name} label={texts.name} error={fieldErrors.name}>
                 {(control) => <Input {...control} value={name} maxLength={IMAGE_NAME_MAX} onChange={(event) => setName(event.target.value)} />}
               </FormField>
+              <ImageCategoryPicker idPrefix="imagem" value={category} onChange={setCategory} initialCustomCategories={initialCustomCategories} disabled={saving} />
               <FormField id={FIELD_IDS.purpose} label={texts.purpose}>
                 {(control) => (
                   <Select {...control} options={purposeOptions} value={purpose} onChange={(event) => setPurpose(purposeFrom(event.target.value))} />

@@ -1,0 +1,80 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "disclosure": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "accent": {
+      "type": "string",
+      "format": "color",
+      "default": "#f97316"
+    },
+    "durationS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene1Text": {
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "scene1StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene2Text": {
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "scene2StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene3Text": {
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "scene3StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene4Text": {
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "scene4StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene5Text": {
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "scene5StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene6Text": {
+      "type": "string",
+      "maxLength": 80,
+      "default": ""
+    },
+    "scene6StartS": {
+      "type": "number",
+      "default": 600
+    }
+  }
+}

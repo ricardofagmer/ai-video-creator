@@ -100,6 +100,8 @@ function versionBase(options: { ref: string; contentHash: string; sizeBytes: num
     qualityPlatformSampleSize: 0,
     qualityScoredAt: null,
     notes: '',
+    purpose: '',
+    purposeSource: 'none' as const,
   };
 }
 
@@ -111,7 +113,7 @@ export function musicVersion(ref: string, sensitivity: Sensitivity): AssetVersio
     layout: 'file',
     storage: { mode: 'store' },
     kind: 'music',
-    details: { durationMs: 1000, bpm: null, integratedLufs: null },
+    details: { durationMs: 1000, bpm: null, integratedLufs: null, categories: [] },
   };
 }
 

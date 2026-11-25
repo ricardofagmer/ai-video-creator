@@ -1,3 +1,4 @@
+import type { AssetJobErrorCode } from '@studio/shared/asset-jobs';
 import type { Messages } from '@studio/ui';
 import type { catalogPtBR } from './pt-BR';
 
@@ -37,8 +38,11 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
 
   list: {
     title: 'Catálogo',
-    description: 'Plantillas, modelos, prompts, medios y kits de marca usados en las recetas.',
+    description: 'Plantillas, modelos, prompts, medios y kits de marca usados en los presets.',
     uploadAsset: 'Subir activo',
+    edit: 'Editar',
+    editHidden: (name: string): string => `Editar ${name}`,
+    addKind: (kind: string): string => `Añadir ${kind}`,
     versionCount: (count: number): string => (count === 1 ? '1 versión' : `${count} versiones`),
     assetCount: (count: number): string => (count === 1 ? '1 activo' : `${count} activos`),
     emptyTitle: 'El catálogo está vacío',
@@ -77,6 +81,7 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     label: 'Tipos de activo',
     templateCategoriesLabel: 'Categorías de plantilla',
     referenceCategoriesLabel: 'Categorías de referencia',
+    imageCategoriesLabel: 'Categorías de imagen',
     all: 'Todos',
     kinds: {
       template: 'Plantillas',
@@ -143,6 +148,15 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     saving: 'Guardando…',
     saved: 'Sitio web guardado como borrador.',
     openSaved: 'Abrir ítem',
+    embedTitle: (hostname: string): string => `Sitio ${hostname}`,
+    embedCardTitle: 'Sitio web',
+    embedBlocked: 'Algunos sitios no aceptan mostrarse dentro de otra página; si queda en blanco, ábrelo en una pestaña nueva.',
+    frameRefused: 'Este sitio no permite vistas previas.',
+    openSite: (hostname: string): string => `Abrir ${hostname}`,
+    tags: 'Etiquetas',
+    tagsHelp: 'Separa con comas. La etiqueta site siempre se mantiene.',
+    tagsInvalid: (tag: string): string => `"${tag}" no es una etiqueta válida: usa minúsculas, números, - o .`,
+    tooManyTags: (max: number): string => `Usa como máximo ${max} etiquetas.`,
   },
   promptForm: {
     title: 'Nuevo prompt',
@@ -154,6 +168,12 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     textRequired: 'Escribe el texto del prompt.',
     ownerRequired: 'Indica el responsable.',
     submit: 'Guardar prompt',
+    open: 'Nuevo prompt',
+    cancel: 'Cancelar',
+    editTitle: (name: string): string => `Editar prompt: ${name}`,
+    editHelp: 'Al guardar, la versión actual se conserva y tus cambios pasan a ser la siguiente versión.',
+    editSubmit: 'Guardar nueva versión',
+    editUnavailable: 'No se pudo abrir este prompt para editarlo. Puede que se haya eliminado.',
     saving: 'Guardando…',
     saved: 'Prompt guardado como borrador.',
     openSaved: 'Abrir ítem',
@@ -229,6 +249,14 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
       cover: 'Portadas',
       other: 'Otras',
     },
+    imageCategories: {
+      people: 'Personas',
+      products: 'Productos',
+      scenes: 'Escenas',
+      icons: 'Iconos',
+      logos: 'Logos',
+      other: 'Sin categoría',
+    },
   },
 
   asset: {
@@ -284,6 +312,16 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     updatedAt: 'Actualizado el',
     tags: 'Etiquetas',
     usage: 'Uso',
+    tagEditor: {
+      edit: 'Editar etiquetas',
+      save: 'Guardar etiquetas',
+      saving: 'Guardando…',
+      cancel: 'Cancelar',
+      help: 'Letras minúsculas, números, guiones y puntos. Guardar crea una nueva versión en borrador.',
+      none: 'Aún no hay etiquetas.',
+      invalid: (tag: string): string => `"${tag}" no es una etiqueta válida: usa letras minúsculas, números, guiones y puntos.`,
+      tooMany: (max: number): string => `Usa como máximo ${max} etiquetas.`,
+    },
     sensitivity: 'Sensibilidad',
     storedByReference: 'Almacenado por referencia',
     hiddenPath: 'Ruta oculta (material biométrico)',
@@ -293,6 +331,7 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     durationRangeValue: (minSeconds: number, maxSeconds: number): string => `${minSeconds}–${maxSeconds} s`,
     provider: 'Proveedor',
     modelReference: 'Referencia del modelo',
+    speechModel: 'Modelo de voz',
     localPath: 'Ruta local',
     modelReferenceEnv: (name: string): string => `variable de entorno ${name}`,
     modelReferenceKeychain: (name: string): string => `elemento del Llavero ${name}`,
@@ -347,7 +386,7 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     deprecate: 'Descontinuar',
     deprecating: 'Descontinuando…',
     confirmTitle: (version: number): string => `¿Descontinuar la versión v${version}?`,
-    confirmDescription: 'Las recetas y ejecuciones anteriores siguen usando esta versión. Las nuevas recetas no podrán elegirla.',
+    confirmDescription: 'Los presets y ejecuciones anteriores siguen usando esta versión. Los nuevos presets no podrán elegirla.',
     cancel: 'Cancelar',
   },
 
@@ -470,7 +509,9 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
         literal: 'Id público',
       },
       modelIdRefValue: 'Referencia del modelo',
-      modelIdRefHelp: 'Nunca pegues una clave aquí.',
+      modelIdRefHelp: 'Nunca pegues una clave aquí. Para una voz ElevenLabs, elige Id público y pega el id de la voz.',
+      voiceModelId: 'Id del modelo de voz',
+      voiceModelIdHelp: 'Modelo ElevenLabs de esta voz, como eleven_multilingual_v2. Vacío usa el predeterminado.',
       subKind: 'Tipo de referencia',
       subKinds: {
         video: 'Video',
@@ -496,6 +537,8 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
       durationSec: 'Duración (s)',
       bpm: 'BPM',
       integratedLufs: 'Sonoridad integrada (LUFS)',
+      musicCategories: 'Categorías',
+      musicCategoriesHelp: (max) => `Hasta ${max}: el ambiente y los instrumentos de la pista. La IA las usa para elegir la música de un video.`,
       brandKit: 'Kit de marca',
       brandKitHelp: 'Colores, fuentes, logos, subtítulos y zonas seguras en JSON.',
     },
@@ -601,7 +644,7 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     platforms: (w) =>
       `Cuando el video de una ejecución se publicó y tiene métricas, las plataformas entran como una cuarta señal (peso ${w.platform}): visualizaciones, tasa de interacción y, cuando la plataforma lo informa, el porcentaje visto, siempre comparados con la mediana de tus propios videos en esa plataforma, nunca con un número absoluto. Solo cuentan los videos con al menos ${w.minViews} visualizaciones. No afecta la nota hasta que haya ${w.baselineMinVideos} videos con métricas en la misma plataforma. Con las cuatro señales juntas, el ajuste de una ejecución queda entre ${w.cut} y ${w.raise}; tu evaluación sigue mandando.`,
     prior: (w) =>
-      `Con pocas ejecuciones, la nota se acerca a un promedio de referencia, que cuenta como ${w.priorWeight} ejecuciones: el promedio de la receta, si tiene al menos ${w.priorMinRuns} ejecuciones revisadas; si no, el del tipo de activo; si no, el de todo el estudio; si no, ${w.neutral}. Por eso una sola ejecución con 5 estrellas no se convierte en una nota 5.`,
+      `Con pocas ejecuciones, la nota se acerca a un promedio de referencia, que cuenta como ${w.priorWeight} ejecuciones: el promedio del preset, si tiene al menos ${w.priorMinRuns} ejecuciones revisadas; si no, el del tipo de activo; si no, el de todo el estudio; si no, ${w.neutral}. Por eso una sola ejecución con 5 estrellas no se convierte en una nota 5.`,
     limits: (formulaVersion) =>
       `Límites conocidos: la nota atribuye el resultado de toda la ejecución a cada versión que usó; las ejecuciones que fallaron antes de la revisión no cuentan; y, como toda ejecución revisada ya pasó las comprobaciones de medios, las comprobaciones solo separan "aprobada" de "aprobada con avisos". La nota se recalcula con cada revisión registrada y cada importación de métricas, y nunca activa nada por sí sola. Versión de la fórmula: ${formulaVersion}.`,
   },
@@ -633,6 +676,58 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     waitedTooLong: 'La muestra está tardando más de 2 minutos. Inténtalo de nuevo más tarde.',
     audioUnreadable: 'El navegador no pudo reproducir la muestra.',
   },
+  templatePreview: {
+    rendering: 'Generando vista previa…',
+    clipLabel: (name) => `Vista previa de la plantilla ${name}`,
+    descriptions: {
+      hook: 'Una apertura corta que capta la atención en los primeros segundos del video.',
+      title: 'Una cartela de título con texto animado para abrir el video o separar sus partes.',
+      'tool-demo': 'Muestra una herramienta resolviendo una tarea paso a paso, con el texto en pantalla.',
+      'ai-battle': 'Pone dos IA lado a lado en la misma tarea y muestra cuál lo hizo mejor.',
+      automation: 'Explica una automatización paso a paso, del disparador al resultado.',
+      'product-tour': 'Un recorrido guiado por las pantallas y funciones de un producto.',
+      other: 'Una plantilla de video lista para usar en los presets.',
+    },
+  },
+  musicPreview: {
+    play: 'Escuchar',
+    pause: 'Pausar',
+    retry: 'Intentar de nuevo',
+    namedLabel: (action, trackName) => `${action}: música ${trackName}`,
+    audioUnreadable: 'El navegador no pudo reproducir la música.',
+  },
+  musicChoice: {
+    modeLegend: 'Cómo elegir la música',
+    track: 'Elegir la canción',
+    trackDescription: 'La misma pista en todos los videos de este preset.',
+    auto: 'La IA decide',
+    autoDescription: 'En cada video, la IA elige del catálogo una pista de estas categorías, o genera una.',
+    categoriesLegend: 'Categorías',
+    autoHelp: (max) => `Marca hasta ${max}. Ninguna marcada: sirve cualquier categoría.`,
+    limitReached: (max) => `Ya hay ${max} categorías. Desmarca una para elegir otra.`,
+    any: 'Cualquiera',
+    noCategories: 'Sin categoría',
+    autoSummary: (categories) => `La IA decide: ${categories}`,
+    categories: {
+      animated: 'Animada',
+      excited: 'Emocionante',
+      sad: 'Triste',
+      upset: 'Molesta',
+      boring: 'Monótona',
+      classic: 'Clásica',
+      electronic: 'Electrónica',
+      thoughtful: 'Reflexiva',
+      guitar: 'Guitarra eléctrica',
+      'acoustic-guitar': 'Guitarra acústica',
+      piano: 'Piano',
+      voices: 'Voces',
+      calm: 'Tranquila',
+      happy: 'Alegre',
+      epic: 'Épica',
+      cinematic: 'Cinematográfica',
+      'lo-fi': 'Lo-fi',
+    },
+  },
   referenceAnalysis: {
     title: 'Análisis de la IA',
     byAi: 'Escrito por la IA a partir del video. Tus notas quedan aparte y no cambian.',
@@ -660,5 +755,31 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
       promptNotes: 'Notas para las creaciones',
       cautions: 'Precauciones',
     },
+  },
+  purpose: {
+    heading: 'Para qué sirve',
+    pending: 'La IA está escribiendo para qué sirve este elemento…',
+    failed: (code: AssetJobErrorCode | null): string =>
+      code === null ? 'La IA no pudo escribir para qué sirve este elemento.' : `La IA no pudo escribir para qué sirve este elemento. ${catalogEs.assetJobErrors[code]}`,
+    refused: (code: AssetJobErrorCode | null): string =>
+      code === null ? 'Se rechazó el pedido de escribir para qué sirve este elemento.' : `Se rechazó el pedido de escribir para qué sirve este elemento. ${catalogEs.assetJobErrors[code]}`,
+    retry: 'Intentar de nuevo',
+    regenerate: 'Generar de nuevo con IA',
+    edit: 'Editar',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    empty: 'Todavía no hay una descripción de para qué sirve este elemento.',
+    ownerEdited: 'Escrito por ti',
+    backfillButton: (count: number): string => (count === 1 ? 'Describir 1 elemento sin finalidad' : `Describir ${count} elementos sin finalidad`),
+    backfillConfirmTitle: '¿Describir los elementos con IA?',
+    backfillConfirmBody: (count: number): string =>
+      count === 1
+        ? 'La IA escribirá para qué sirve 1 elemento del catálogo. Esto puede generar costos y respeta el límite de gasto del mes.'
+        : `La IA escribirá para qué sirven ${count} elementos del catálogo. Esto puede generar costos y respeta el límite de gasto del mes.`,
+    backfillDone: (count: number): string => (count === 1 ? '1 elemento se envió a la IA para describirlo.' : `${count} elementos se enviaron a la IA para describirlos.`),
+    backfillQueueFull: (count: number): string =>
+      count === 1
+        ? '1 elemento no cupo en la cola. Inténtalo de nuevo cuando la cola se vacíe.'
+        : `${count} elementos no cupieron en la cola. Inténtalo de nuevo cuando la cola se vacíe.`,
   },
 };

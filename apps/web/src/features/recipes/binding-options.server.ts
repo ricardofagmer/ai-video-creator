@@ -1,11 +1,11 @@
 import 'server-only';
 import { type AssetVersionView } from '@studio/shared/api';
 import { type Binding } from '@studio/shared/recipes';
-import { formatAssetRef, parseAssetRef } from '@studio/shared/catalog';
-import { isVoiceVersion } from '@/features/voices/voice-asset';
+import { parseAssetRef } from '@studio/shared/catalog';
 import { isNotFound } from '@/lib/api';
 import { serverStudioClient } from '@/lib/api/server';
 import { getI18n } from '@/lib/i18n/server';
+import { bindingOptionOf, compositionFactsOf } from './binding-option';
 import { type BindingOption } from './recipe-form-model';
 import { WRITER_SKILL_SLOT, editorKinds, slotSpecs } from './recipe-slots';
 
@@ -24,10 +24,7 @@ export async function loadBindingOptions(basePins: readonly Binding[]): Promise<
     // The owner's skills usually stay drafts; the writer may still use them (2026-11-23 decision).
     client.searchAssets({ kinds: ['skill'], statuses: ['draft'], sensitivity: 'exclude-biometric', limit: 100 }),
   ]);
-  const options: BindingOption[] = [...page.items, ...draftSkills.items].map((version) => {
-    const ref = formatAssetRef({ assetId: version.id, version: version.version });
-    return { ref, contentHash: version.contentHash, kind: version.kind, label: `${version.name} · ${ref}`, ...compositionFactsOf(version) };
-  });
+  const options: BindingOption[] = [...page.items, ...draftSkills.items].map(bindingOptionOf);
   const outsidePins = basePins.filter((pin) => !options.some((option) => option.ref === pin.ref));
   const pinVersions = await Promise.all(outsidePins.map((pin) => (pinNeedsDetails(pin) ? readPinVersion(pin) : Promise.resolve(null))));
   outsidePins.forEach((pin, index) => {
@@ -43,12 +40,6 @@ export async function loadBindingOptions(basePins: readonly Binding[]): Promise<
     });
   });
   return options.sort((left, right) => left.label.localeCompare(right.label, locale));
-}
-
-/** The parts of a version the editor's composition rules and "Ouvir" need; nothing else of its content. */
-function compositionFactsOf(version: AssetVersionView): Pick<BindingOption, 'templateDetails' | 'voice'> {
-  if (version.kind === 'template') return { templateDetails: version.details };
-  return isVoiceVersion(version) ? { voice: true } : {};
 }
 
 /** A kept pin that is no longer active: only the template and the voice slot need its details. */

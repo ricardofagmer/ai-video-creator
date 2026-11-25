@@ -43,7 +43,8 @@
   background-color: var(--color-surface-glass);
   background-image: var(--gradient-bar);
   border: 1px solid var(--color-border-glow);
-  border-radius: var(--radius-lg);
+  /* On a phone the status wraps onto a second row, so the bar is a rounded card, not a capsule. */
+  border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-float);
   -webkit-backdrop-filter: var(--backdrop-glass);
   backdrop-filter: var(--backdrop-glass);
@@ -53,8 +54,8 @@
 .topbarInner::after {
   content: '';
   position: absolute;
-  left: var(--space-5);
-  right: var(--space-5);
+  left: var(--space-10);
+  right: var(--space-10);
   bottom: -1px;
   height: 1px;
   background: var(--gradient-rail);
@@ -64,6 +65,8 @@
 @media (min-width: 768px) {
   .topbarInner {
     padding: var(--space-3) var(--layout-gutter-desktop);
+    /* One row from here up: a capsule floating over the page. */
+    border-radius: var(--radius-full);
   }
 }
 
@@ -99,7 +102,7 @@
   color: var(--color-text-muted);
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
@@ -432,4 +435,130 @@
   .main {
     padding: var(--space-8) var(--layout-gutter-desktop) var(--space-16);
   }
+}
+
+/*
+ * Desktop rail: a floating capsule on the left edge, vertically centred, one icon-over-label item
+ * per destination. Below the desktop breakpoint it is hidden and the drawer is the navigation.
+ */
+.rail {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .shellWithRail {
+    padding-left: calc(var(--layout-rail-width) + var(--space-4));
+  }
+
+  .shellWithRail .menuButton {
+    display: none;
+  }
+
+  .shellWithRail .topbarInner {
+    grid-template-columns: auto 1fr;
+    grid-template-areas: 'brand end';
+    padding-left: var(--space-8);
+    padding-right: var(--space-5);
+  }
+
+  .rail {
+    position: fixed;
+    top: 50%;
+    left: var(--space-4);
+    z-index: var(--z-sticky);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    width: var(--layout-rail-width);
+    max-height: calc(100vh - var(--space-8));
+    padding: var(--space-1);
+    background-color: var(--color-surface-glass);
+    background-image: var(--gradient-bar);
+    border: 1px solid var(--color-border-glow);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-float);
+    -webkit-backdrop-filter: var(--backdrop-glass);
+    backdrop-filter: var(--backdrop-glass);
+    transform: translateY(-50%);
+  }
+}
+
+/* The links scroll inside the capsule on a short window; the menu item below stays in view. */
+.railNav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.railLink {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: var(--layout-rail-item-height);
+  margin: 0;
+  padding: var(--space-2) var(--space-0-5);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-muted);
+  text-align: center;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+/* A long label wraps onto a second line before it is cut. */
+.railLink > span:last-child {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.railLink:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface-muted);
+}
+
+/* The track clips anything drawn outside it, so the focus ring sits inside the item. */
+.railLink:focus-visible {
+  outline-offset: -2px;
+}
+
+.railLinkActive,
+.railLinkActive:hover {
+  color: var(--color-primary-soft-text);
+  font-weight: var(--font-weight-bold);
+  background-color: var(--color-primary-soft);
+  box-shadow: var(--shadow-sm), var(--shadow-inset-glow);
+}
+
+.railMenuButton {
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  padding-top: var(--space-3);
+}
+
+.railAvatar {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  font-size: var(--font-size-sm);
 }

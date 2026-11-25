@@ -202,17 +202,17 @@ export const metricsEn: Messages<typeof metricsPtBR> = {
     },
     reviewTime: {
       title: 'Time from brief to review',
-      description: 'Per recipe: the most recent run versus the first one.',
-      caption: 'Time from brief to review, per recipe',
+      description: 'Per preset: the most recent run versus the first one.',
+      caption: 'Time from brief to review, per preset',
       empty: 'No run has reached review yet.',
-      columns: { recipe: 'Recipe', runs: 'Runs', first: 'First', latest: 'Most recent', verdict: 'Faster than the first' },
+      columns: { recipe: 'Preset', runs: 'Runs', first: 'First', latest: 'Most recent', verdict: 'Faster than the first' },
     },
     ratingTrend: {
       title: 'Rating trend',
-      description: 'Per recipe: average of the last 5 ratings versus the 5 before them.',
-      caption: 'Rating trend, per recipe',
+      description: 'Per preset: average of the last 5 ratings versus the 5 before them.',
+      caption: 'Rating trend, per preset',
       empty: 'No run has been rated yet.',
-      columns: { recipe: 'Recipe', latest: 'Latest', previous: 'Previous', verdict: 'Rating held' },
+      columns: { recipe: 'Preset', latest: 'Latest', previous: 'Previous', verdict: 'Rating held' },
     },
     catalogRuns: {
       title: 'Catalog assets per run',

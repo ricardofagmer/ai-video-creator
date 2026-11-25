@@ -16,6 +16,10 @@ const httpUrlSchema = z
 /** Owner instructions per run (docs/specs/2026-11-23-images-prompts-and-run-instructions-design.md). */
 export const BRIEF_INSTRUCTIONS_MAX = 2000;
 
+/** `use`: record the site page and offer it to the scenes. `skip`: read the page, never show it. */
+export const SiteCaptureAnswerSchema = z.enum(['use', 'skip']);
+export type SiteCaptureAnswer = z.infer<typeof SiteCaptureAnswerSchema>;
+
 /**
  * The owner's brief for one run (PRD 6, topology section 5 `Brief`, fixture of topology section 11).
  * Run-specific references are kept beside it in run.json, not inside it.
@@ -33,6 +37,12 @@ export const BriefSchema = z
      * checkout or on the new run, or filled from a saved prompt. Optional so older run.json files parse.
      */
     instructions: z.string().trim().min(1).max(BRIEF_INSTRUCTIONS_MAX).optional(),
+    /**
+     * The owner's answer to "use screenshots of the site in the video?", asked when `sourceUrl` is
+     * set (docs/specs/2026-11-25-site-capture-and-visual-media-design.md). Optional so older
+     * run.json files parse; a new run with a `sourceUrl` is refused without it.
+     */
+    siteCapture: SiteCaptureAnswerSchema.optional(),
   })
   .strict();
 export type Brief = z.infer<typeof BriefSchema>;

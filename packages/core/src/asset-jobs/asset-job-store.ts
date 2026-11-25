@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   type AssetJobFile,
   type AssetJobKind,
+  type AssetPurposeJobFile,
   type ReferenceAnalysisJobFile,
+  type TemplatePreviewJobFile,
   type VoiceSampleJobFile,
 } from '@studio/shared/asset-jobs';
 import {
@@ -24,6 +26,8 @@ export type AssetJobLookup<Job> = { status: 'none' } | { status: 'present'; job:
 export interface AssetJobFileOf {
   'voice-sample': VoiceSampleJobFile;
   'reference-analysis': ReferenceAnalysisJobFile;
+  'template-preview': TemplatePreviewJobFile;
+  'asset-purpose': AssetPurposeJobFile;
 }
 
 function isJobOfKind<Kind extends AssetJobKind>(file: AssetJobFile, kind: Kind): file is AssetJobFile & AssetJobFileOf[Kind] {

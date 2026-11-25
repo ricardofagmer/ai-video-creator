@@ -1,6 +1,7 @@
-import { Alert, PageHeader } from '@studio/ui';
+import { Alert } from '@studio/ui';
 import { ConnectionResultQuerySchema, type ConnectionResultQuery } from '@studio/shared/api';
 import type { Metadata } from 'next';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { ConnectionResultNotice } from '@/features/platforms/components/ConnectionResultNotice';
 import { PlatformCard } from '@/features/platforms/components/PlatformCard';
@@ -38,7 +39,20 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
 
   return (
     <div className={layout.page}>
-      <PageHeader title={texts.title} description={texts.description} />
+      <StudioHero
+        eyebrow={t.common.heroEyebrows.accounts}
+        glyph="user"
+        title={texts.title}
+        description={texts.description}
+        facts={
+          platforms.status === 'failed'
+            ? []
+            : [
+                texts.platformCount(platforms.platforms.length),
+                texts.connectedCount(platforms.platforms.filter((view) => view.connectedAt !== null).length),
+              ]
+        }
+      />
       {result !== null && <ConnectionResultNotice result={result} />}
       {platforms.status === 'failed' ? (
         <Alert variant="warning">{texts.loadFailed(platforms.message)}</Alert>

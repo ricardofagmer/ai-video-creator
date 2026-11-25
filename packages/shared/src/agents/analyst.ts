@@ -16,12 +16,12 @@ import { ANALYZE_SITE_TASK, OutputContractSchema } from './protocol';
  */
 export const SITE_ANALYSIS_PAGE_TEXT_MAX = 28_000;
 
-// The page is fetched by the tool runner, which only accepts https; anything else is refused here too.
-const httpsUrlSchema = z
+// The tool runner decides which pages it fetches (https, or http on a local-network host); this only fixes the scheme.
+const pageUrlSchema = z
   .string()
   .url()
   .max(2048)
-  .refine((value) => value.startsWith('https://'), { message: 'sourceUrl must be https' });
+  .refine((value) => /^https?:\/\//.test(value), { message: 'sourceUrl must be http or https' });
 
 const analysisLineSchema = z.string().min(1).max(300);
 
@@ -48,7 +48,7 @@ export const SiteAnalysisArtifactSchema = z
   .object({
     format: z.literal(1),
     mode: z.enum(['live', 'mock']),
-    sourceUrl: httpsUrlSchema,
+    sourceUrl: pageUrlSchema,
     screenshot: z.boolean(),
     analysis: SiteAnalysisSchema,
   })
@@ -66,7 +66,7 @@ export const AnalystPacketSchema = z
     inputs: z
       .object({
         brief: BriefSchema,
-        sourceUrl: httpsUrlSchema,
+        sourceUrl: pageUrlSchema,
         pageTitle: z.string().max(500),
         /** Page text cut to `SITE_ANALYSIS_PAGE_TEXT_MAX`, delimited. */
         pageText: UntrustedTextSchema,

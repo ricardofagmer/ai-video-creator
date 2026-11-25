@@ -1,9 +1,10 @@
-import { EmptyState, PageHeader, buttonClassName, textLinkClassName } from '@studio/ui';
+import { EmptyState, buttonClassName, textLinkClassName } from '@studio/ui';
 import { type AssetVersionView, type EntryFileView } from '@studio/shared/api';
 import { AssetIdSchema } from '@studio/shared/catalog';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { CatalogModal } from '@/features/catalog/components/CatalogModal';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { SkillEditForm } from '@/features/skills/components/SkillEditForm';
 import { ApiRequestError, isNotFound } from '@/lib/api';
@@ -73,16 +74,22 @@ export async function SkillEditView({ assetId, presentation }: SkillEditViewProp
       />
     ) : (
       <div className={layout.page}>
-        {!inModal && (
-          <Link href="/skills" className={textLinkClassName()}>
-            {texts.newPage.backToList}
-          </Link>
-        )}
         {inModal ? (
           // The dialog's own title already names the skill.
           <p className="caption">{texts.edit.description}</p>
         ) : (
-          <PageHeader title={texts.edit.title(skill.name)} description={texts.edit.description} />
+          <StudioHero
+            variant="compact"
+            eyebrow={t.common.heroEyebrows.skills}
+            back={
+              <Link href="/skills" className={textLinkClassName()}>
+                {texts.newPage.backToList}
+              </Link>
+            }
+            title={texts.edit.title(skill.name)}
+            description={texts.edit.description}
+            facts={[texts.list.version(skill.version)]}
+          />
         )}
         <SkillEditForm base={skill} entryFile={await loadEntryFile(skill)} />
       </div>

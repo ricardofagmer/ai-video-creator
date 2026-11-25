@@ -30,16 +30,18 @@ export interface PriceTable {
   models: Readonly<Record<string, ModelPrice>>;
   ttsPerCharacter: Readonly<Record<'elevenlabs' | 'local-voice', UnitPrice>>;
   renderPerSecond: UnitPrice;
+  musicPerSecond: Readonly<Record<'elevenlabs', UnitPrice>>;
 }
 
 export const PRICE_TABLE: PriceTable = {
-  version: '2026-11-21.1',
-  readAt: '2026-11-21',
+  version: '2026-11-25.1',
+  readAt: '2026-11-25',
   sources: [
     'claude-api skill reference, Current Models table (cached 2026-11-03), read 2026-11-18',
     'https://platform.claude.com/docs/en/about-claude/pricing',
     'PRD 0001 D7 and SPEC 0002 C11: local voice and Remotion render run on the owner Mac',
     'https://elevenlabs.io/pricing, Creator plan, read 2026-11-21 (owner plan, owner-approved rate)',
+    'https://elevenlabs.io/pricing/api, Music Generation, read 2026-11-25 (owner-approved rate)',
   ],
   models: {
     'claude-opus-5-5': {
@@ -79,5 +81,15 @@ export const PRICE_TABLE: PriceTable = {
     usdPerUnit: 0,
     basis: 'local-process',
     source: 'PRD 0001 D7: Remotion renders on the owner Mac in R1 (no cloud render provider)',
+  },
+  musicPerSecond: {
+    // Published API rate, USD 0.15 per generated minute (0.15 / 60). The quantity priced is the
+    // requested track length. Excludes fine-tunes and taxes. Re-read on a plan or model change.
+    elevenlabs: {
+      status: 'priced',
+      usdPerUnit: 0.0025,
+      basis: 'published-rate',
+      source: 'elevenlabs.io/pricing/api, Music Generation USD 0.15 per minute, read 2026-11-25',
+    },
   },
 };

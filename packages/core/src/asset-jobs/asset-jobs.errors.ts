@@ -5,7 +5,8 @@ import { type InputIssue } from '../catalog';
 export type AssetJobErrorCategory = 'validation' | 'not_found' | 'conflict' | 'dependency' | 'internal';
 
 /**
- * The `ApiError.reason` of an asset job refusal. All but the last two are frozen in
+ * The `ApiError.reason` of an asset job refusal. All but `asset-purpose-job-open` (ADR 0012, a
+ * 409 by its category) and the last two are frozen in
  * `apiGuidedCreationErrorReasons` (`@studio/shared/api`); input validation keeps the generic
  * invalid-input shape the other modules use, and a corrupt `job.json` is an internal error
  * like `curation-file-corrupt`.
@@ -17,6 +18,7 @@ export type AssetJobErrorReason =
   | 'asset-job-biometric-refused'
   | 'asset-job-queue-full'
   | 'asset-job-sample-not-ready'
+  | 'asset-purpose-job-open'
   | 'invalid-asset-job-input'
   | 'asset-job-file-corrupt';
 
@@ -95,6 +97,20 @@ export class AssetJobQueueFullError extends AssetJobError {
   ) {
     super(`Asset job queue is full: ${queued} ${kind} jobs requested`);
     this.name = 'AssetJobQueueFullError';
+  }
+}
+
+/**
+ * 409 (ADR 0012, C-P4): the version's purpose job is `requested` or `running`; a new generation is
+ * asked only once it ended. Its status comes from the `conflict` category.
+ */
+export class AssetPurposeJobOpenError extends AssetJobError {
+  override readonly category = 'conflict';
+  override readonly reason = 'asset-purpose-job-open';
+
+  constructor(readonly ref: string) {
+    super(`Asset purpose job is still open: ${ref}`);
+    this.name = 'AssetPurposeJobOpenError';
   }
 }
 

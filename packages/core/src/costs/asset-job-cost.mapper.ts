@@ -27,13 +27,14 @@ export function assetJobSessionOccurredAt(session: AssetJobCostSession): Date {
   return new Date(session.occurredAt);
 }
 
-/** The cost-file usage of a port usage; null for a quantity no asset job bills (render). */
+/** The cost-file usage of a port usage; null for a quantity no asset job bills (render, music). */
 export function assetJobCostUsageOf(usage: UsageQuantity): AssetJobCostUsage | null {
   switch (usage.kind) {
     case 'model':
     case 'tts':
       return usage;
     case 'render':
+    case 'music':
       return null;
   }
 }

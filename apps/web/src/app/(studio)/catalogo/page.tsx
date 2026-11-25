@@ -1,6 +1,6 @@
-import { EmptyState, PageHeader, buttonClassName, textLinkClassName } from '@studio/ui';
-import { type AssetVersionView } from '@studio/shared/api';
-import { AssetIdSchema, type AssetKind } from '@studio/shared/catalog';
+import { EmptyState, Icon, buttonClassName, textLinkClassName } from '@studio/ui';
+import { PurposeBackfillCountViewSchema, apiPaths, type AssetVersionView } from '@studio/shared/api';
+import { AssetIdSchema, parseAssetRef, type AssetKind } from '@studio/shared/catalog';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
@@ -10,7 +10,9 @@ import { CatalogKindTabs } from '@/features/catalog/components/CatalogKindTabs';
 import { CatalogLinkBox } from '@/features/catalog/components/CatalogLinkBox';
 import { CatalogModeSwitch } from '@/features/catalog/components/CatalogModeSwitch';
 import { ImageLinkBox } from '@/features/catalog/components/ImageLinkBox';
-import { NewPromptForm } from '@/features/catalog/components/NewPromptForm';
+import { NewPromptForm, type PromptEditing } from '@/features/catalog/components/NewPromptForm';
+import { PurposeBackfillButton } from '@/features/catalog/components/PurposeBackfillButton';
+import { PROMPT_EDIT_PARAM, addHrefOf } from '@/features/catalog/catalog-edit-href';
 import { SiteLinkBox } from '@/features/catalog/components/SiteLinkBox';
 import { catalogGroupLabel, countCatalogKinds, groupCatalogVersions, type CatalogKindCounts } from '@/features/catalog/catalog-groups';
 import {
@@ -20,16 +22,22 @@ import {
   representativeVersions,
   type CatalogFilters,
 } from '@/features/catalog/catalog-query';
-import { CATALOG_KIND_PANEL_ID, kindsOfSection, onlyKindOfSection, sectionHasCategories, versionInSection } from '@/features/catalog/catalog-sections';
+import catalogStyles from '@/features/catalog/catalog.module.css';
+import { CATALOG_KIND_PANEL_ID, type CatalogSection, kindsOfSection, onlyKindOfSection, sectionHasCategories, versionInSection } from '@/features/catalog/catalog-sections';
 import { kindTabsOf, sectionTabsOf, templateCategoryTabsOf } from '@/features/catalog/catalog-tab-items';
-import { TEMPLATE_CATEGORY_PANEL_ID, templateCategoryOf } from '@/features/catalog/template-categories';
+import { IMAGE_CATEGORIES_COOKIE, groupImagesByCategory, imageCategoryLabelOf } from '@/features/catalog/image-categories';
+import { sectionCategoryOf } from '@/features/catalog/section-categories';
+import { TEMPLATE_CATEGORY_PANEL_ID } from '@/features/catalog/template-categories';
 import { videoLinkFrom, type VideoLink } from '@/features/catalog/video-link';
+import { SkillsCatalogPanel } from '@/features/skills/components/SkillsCatalogPanel';
+import { skillCategoryFrom } from '@/features/skills/skill-categories';
 import {
   CUSTOM_CATEGORIES_COOKIE,
   customCategoriesFromCookie,
   customCategoryLabels,
   type CustomCategory,
 } from '@/features/catalog/custom-categories';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { CatalogFavoriteCount } from '@/features/favorites/components/CatalogFavoriteCount';
 import { FavoritesEmptyState } from '@/features/favorites/components/FavoritesEmptyState';
@@ -38,7 +46,8 @@ import { QualityFormulaExplanation } from '@/features/quality/components/Quality
 import { SemanticSearchPanel } from '@/features/search/components/SemanticSearchPanel';
 import { loadSearchIndexStatus } from '@/features/search/semantic-search-api.server';
 import { type AssetSearchParams } from '@/lib/api/client';
-import { serverStudioClient } from '@/lib/api/server';
+import { requestJson } from '@/lib/api';
+import { serverStudioClient, serverTransport } from '@/lib/api/server';
 import { getI18n } from '@/lib/i18n/server';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -110,7 +119,9 @@ async function LexicalCatalog({
   const groupTab = filters.kind ?? onlyKindOfSection(filters.section);
   const selectedCategory = filters.templateCategory;
   const versions =
-    selectedCategory === null ? data.versions : data.versions.filter((version) => templateCategoryOf(version) === selectedCategory);
+    selectedCategory === null
+      ? data.versions
+      : data.versions.filter((version) => sectionCategoryOf(filters.section, version) === selectedCategory);
   const filtered = hasNonKindFilters(filters) || selectedCategory !== null;
   // One entry per card: the favorites filter counts and hides cards by their asset id.
   const cardIds = versions.map((version) => version.id);
@@ -118,12 +129,24 @@ async function LexicalCatalog({
     sectionHasCategories(filters.section) && data.versions.length > 0
       ? templateCategoryTabsOf({ filters, items: data.versions, exact: data.nextCursor === null, customLabels, t: t.catalog, locale })
       : null;
-  const categoryTabsLabel = filters.section === 'references' ? t.catalog.tabs.referenceCategoriesLabel : t.catalog.tabs.templateCategoriesLabel;
+  const categoryTabsLabel =
+    filters.section === 'references'
+      ? t.catalog.tabs.referenceCategoriesLabel
+      : filters.section === 'images'
+        ? t.catalog.tabs.imageCategoriesLabel
+        : t.catalog.tabs.templateCategoriesLabel;
   // Sites hold one subtype only, so a "Sites" heading under the Sites tab would just repeat it.
+  // Images sit under one heading per category; a picked category tab already names its only group.
   const groups: CatalogGridGroup[] =
     filters.section === 'sites'
       ? [{ id: 'catalogo-grupo-sites', label: null, versions }]
-      : groupCatalogVersions(versions, groupTab).map((group) => ({
+      : filters.section === 'images'
+        ? groupImagesByCategory(versions).map((group) => ({
+            id: `catalogo-grupo-imagem-${group.category.replace('.', '-')}`,
+            label: selectedCategory === null ? imageCategoryLabelOf(group.category, t.catalog.categories.imageCategories, customLabels) : null,
+            versions: group.versions,
+          }))
+        : groupCatalogVersions(versions, groupTab).map((group) => ({
           id: group.id,
           label: catalogGroupLabel(group, groupTab, t.catalog),
           versions: group.versions,
@@ -198,11 +221,13 @@ async function LexicalCatalog({
       <CatalogFilterBar
         key={`${filters.text}|${filters.section}|${filters.kind ?? ''}|${filters.status ?? ''}|${filters.sort}|${filters.minQuality ?? ''}|${filters.minSampleSize ?? ''}`}
         filters={filters}
+        trailing={
+          <>
+            <CatalogModeSwitch filters={filters} />
+            <OnlyFavoritesButton scope="catalog" ids={cardIds} />
+          </>
+        }
       />
-      <div className={layout.row}>
-        <OnlyFavoritesButton scope="catalog" ids={cardIds} />
-      </div>
-      <CatalogModeSwitch filters={filters} />
       <QualityFormulaExplanation />
       {categoryTabs !== null ? (
         <CatalogKindTabs label={categoryTabsLabel} tabs={categoryTabs} panelId={TEMPLATE_CATEGORY_PANEL_ID} appearance="segmented">
@@ -223,14 +248,17 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const parameters = await searchParams;
   const filters = catalogFiltersFrom(parameters);
   const meaning = filters.mode === 'meaning';
-  const [indexStatus, lexical, translations, cookieStore] = await Promise.all([
+  const [indexStatus, lexical, translations, cookieStore, purposeMissing] = await Promise.all([
     meaning ? loadSearchIndexStatus() : null,
     meaning ? null : loadLexicalCatalog(filters),
     getI18n(),
     cookies(),
+    loadPurposeMissing(),
   ]);
   // The category names this browser created (custom-categories.ts), so tabs and the save form show them as typed.
   const customCategories: readonly CustomCategory[] = customCategoriesFromCookie(cookieStore.get(CUSTOM_CATEGORIES_COOKIE)?.value);
+  const imageCustomCategories: readonly CustomCategory[] = customCategoriesFromCookie(cookieStore.get(IMAGE_CATEGORIES_COOKIE)?.value);
+  const sectionCustomCategories = filters.section === 'images' ? imageCustomCategories : customCategories;
   const { t, locale } = translations;
   const counts = lexical?.counts ?? null;
   const tabTexts = { t: t.catalog, locale };
@@ -239,10 +267,20 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     filters.section === 'references' && typeof parameters.link === 'string' ? videoLinkFrom(parameters.link) : { status: 'absent' };
   const saved = parameters.salvo;
   const savedAssetId = typeof saved === 'string' && AssetIdSchema.safeParse(saved).success ? saved : null;
+  const editing = filters.section === 'prompts' ? await loadPromptEditing(parameters[PROMPT_EDIT_PARAM]) : null;
+  // Sections without their own add box get one button per kind they hold, or only the open kind tab's.
+  // The Skills tab is the skills page itself (category tabs, Import and New skill), not the generic grid.
+  const skillsTab = !meaning && filters.section === 'ai-writing' && filters.kind === 'skill';
+  const addKinds: readonly AssetKind[] = skillsTab || SECTIONS_WITH_OWN_ADD_BOX.has(filters.section)
+    ? []
+    : filters.kind === null
+      ? kindsOfSection(filters.section)
+      : [filters.kind];
 
   // Each mode puts the mode switch right under its own search input.
-  const content =
-    lexical === null ? (
+  const content = skillsTab ? (
+    <SkillsCatalogPanel category={skillCategoryFrom(typeof parameters.categoria === 'string' ? parameters.categoria : undefined)} savedAssetId={savedAssetId} />
+  ) : lexical === null ? (
       <SemanticSearchPanel
         status={indexStatus}
         kinds={queryKindsOf(filters)}
@@ -251,25 +289,40 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
         modeSwitch={<CatalogModeSwitch filters={filters} />}
       />
     ) : (
-      <LexicalCatalog filters={filters} data={lexical} customLabels={customCategoryLabels(customCategories)} />
+      <LexicalCatalog filters={filters} data={lexical} customLabels={customCategoryLabels(sectionCustomCategories)} />
     );
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        eyebrow={t.common.heroEyebrows.catalog}
+        glyph="reel"
         title={t.catalog.list.title}
         description={t.catalog.list.description}
         actions={
-          <Link href="/catalogo/novo" className={buttonClassName({ variant: 'primary' })}>
-            {t.catalog.list.uploadAsset}
-          </Link>
+          <>
+            {purposeMissing !== null && <PurposeBackfillButton missing={purposeMissing} />}
+            <Link href="/catalogo/novo" className={buttonClassName({ variant: 'primary' })}>
+              {t.catalog.list.uploadAsset}
+            </Link>
+          </>
         }
       />
       <CatalogKindTabs label={t.catalog.sections.label} tabs={sectionTabsOf(filters, counts, tabTexts)}>
         {filters.section === 'references' && <CatalogLinkBox link={link} savedAssetId={savedAssetId} customCategories={customCategories} t={t.catalog.linkBox} />}
         {filters.section === 'sites' && <SiteLinkBox savedAssetId={savedAssetId} />}
-        {filters.section === 'images' && <ImageLinkBox savedAssetId={savedAssetId} />}
-        {filters.section === 'prompts' && <NewPromptForm savedAssetId={savedAssetId} />}
+        {filters.section === 'images' && <ImageLinkBox savedAssetId={savedAssetId} initialCustomCategories={imageCustomCategories} />}
+        {filters.section === 'prompts' && <NewPromptForm key={editing === null ? 'new' : editing.ref} savedAssetId={savedAssetId} editing={editing} />}
+        {addKinds.length > 0 && (
+          <div className={catalogStyles.sectionAddBar}>
+            {addKinds.map((kind) => (
+              <Link key={kind} href={addHrefOf(kind)} className={buttonClassName({ variant: 'secondary' })}>
+                <Icon name="plus" size="sm" />
+                <span>{t.catalog.list.addKind(t.catalog.kinds[kind])}</span>
+              </Link>
+            ))}
+          </div>
+        )}
         {kindTabs === null ? (
           content
         ) : (
@@ -280,4 +333,43 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       </CatalogKindTabs>
     </div>
   );
+}
+
+/** Sections whose own box already adds their kind (references, sites, images, prompts). */
+const SECTIONS_WITH_OWN_ADD_BOX: ReadonlySet<CatalogSection> = new Set<CatalogSection>(['references', 'sites', 'images', 'prompts']);
+
+/**
+ * `GET purposes/backfill` (ADR 0012 decision 9, AP-13): versions still without a purpose. The
+ * button is an extra, so a failed count leaves the catalog as it is and only hides the button; an
+ * expired session is the catalog search's own redirect.
+ */
+async function loadPurposeMissing(): Promise<number | null> {
+  try {
+    const view = await requestJson(serverTransport('throw'), { method: 'GET', path: apiPaths.purposeBackfill() }, PurposeBackfillCountViewSchema);
+    return view.missing;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `?editar=<assetId>@<version>` on the Prompts section: the prompt version and its stored text, so the form opens
+ * filled in. The value is untrusted, so it is parsed; a bad ref or a failed load answers `unavailable`.
+ */
+async function loadPromptEditing(raw: string | string[] | undefined): Promise<PromptEditing | null> {
+  if (typeof raw !== 'string') return null;
+  let ref: { assetId: string; version: number };
+  try {
+    ref = parseAssetRef(raw);
+  } catch {
+    return { status: 'unavailable', ref: raw };
+  }
+  try {
+    const client = serverStudioClient();
+    const [version, entry] = await Promise.all([client.getAssetVersion(ref.assetId, ref.version), client.readEntryFile(ref.assetId, ref.version)]);
+    if (version.kind !== 'prompt') return { status: 'unavailable', ref: raw };
+    return { status: 'ready', ref: raw, version, text: entry.text };
+  } catch {
+    return { status: 'unavailable', ref: raw };
+  }
 }

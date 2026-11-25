@@ -17,6 +17,7 @@ import {
   SetAssetStatusResponseSchema,
   SetRecipeStatusResponseSchema,
   SetVersionStatusRequestSchema,
+  TemplatePreviewViewSchema,
   VoiceSampleViewSchema,
   WatcherStatusResponseSchema,
   apiPaths,
@@ -38,6 +39,7 @@ import {
   type SetAssetStatusResponse,
   type SetRecipeStatusResponse,
   type SetVersionStatusRequest,
+  type TemplatePreviewView,
   type VoiceSampleView,
   type WatcherStatusResponse,
 } from '@studio/shared/api';
@@ -115,6 +117,8 @@ export interface StudioClient {
   /** Section 4: asks the AI to look at a saved video reference again. */
   requestReferenceAnalysis(assetId: string, version: number, signal?: AbortSignal): Promise<ReferenceAnalysisView>;
   getReferenceAnalysis(assetId: string, version: number, signal?: AbortSignal): Promise<ReferenceAnalysisView>;
+  /** Template preview (2026-11-25): the state of a template version's preview clip, rendered on register. */
+  getTemplatePreview(assetId: string, version: number, signal?: AbortSignal): Promise<TemplatePreviewView>;
 }
 
 export function createStudioClient(transport: ApiTransport): StudioClient {
@@ -236,5 +240,7 @@ export function createStudioClient(transport: ApiTransport): StudioClient {
       requestJson(transport, { method: 'POST', path: apiPaths.assetReferenceAnalysis(assetId, version), signal }, ReferenceAnalysisViewSchema),
     getReferenceAnalysis: (assetId, version, signal) =>
       requestJson(transport, { method: 'GET', path: apiPaths.assetReferenceAnalysis(assetId, version), signal }, ReferenceAnalysisViewSchema),
+    getTemplatePreview: (assetId, version, signal) =>
+      requestJson(transport, { method: 'GET', path: apiPaths.assetTemplatePreview(assetId, version), signal }, TemplatePreviewViewSchema),
   };
 }

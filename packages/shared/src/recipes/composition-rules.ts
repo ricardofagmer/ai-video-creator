@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { AssetKindSchema, AssetRefSchema, type AssetKind, type AssetRef, type AssetStatus } from '../catalog/asset-kind';
 import { type TemplateDetails } from '../catalog/kind-details';
 import { type Recipe } from './recipe';
+import { musicChoiceOf } from './recipe-parts';
 
 /**
  * Composition rules (docs/specs/2026-11-23-guided-creation-design.md section 3): choices that
@@ -16,6 +17,10 @@ export type SingleSlotKind = z.infer<typeof SingleSlotKindSchema>;
 
 /** A stage that cannot run without its binding, and the slot it needs. */
 export const stageRequiredSlots = [
+  // The script and scenes executors stop for a person without these (script.executor.ts, scenes.executor.ts),
+  // so the preset is refused at save time instead of halfway through a run.
+  { stageId: 'script', slot: 'prompt:writer' },
+  { stageId: 'scenes', slot: 'brand-kit' },
   { stageId: 'narration', slot: 'voice' },
   { stageId: 'music', slot: 'music' },
   { stageId: 'composition', slot: 'template' },
@@ -26,8 +31,8 @@ export const CompositionConflictSchema = z.discriminatedUnion('rule', [
   z
     .object({
       rule: z.literal('stage-needs-binding'),
-      stageId: z.enum(['narration', 'music', 'composition']),
-      slot: z.enum(['voice', 'music', 'template']),
+      stageId: z.enum(['script', 'scenes', 'narration', 'music', 'composition']),
+      slot: z.enum(['prompt:writer', 'brand-kit', 'voice', 'music', 'template']),
     })
     .strict(),
   z
@@ -49,6 +54,8 @@ export const CompositionConflictSchema = z.discriminatedUnion('rule', [
       templateMaxSec: z.number().positive(),
     })
     .strict(),
+  /** A song is bound while the music stage is set to pick one itself: only one of the two can win. */
+  z.object({ rule: z.literal('music-mode-conflict') }).strict(),
 ]);
 export type CompositionConflict = z.infer<typeof CompositionConflictSchema>;
 
@@ -97,11 +104,16 @@ export function recipeConflicts(recipe: RecipeCompositionFacts, template: Templa
   const conflicts: CompositionConflict[] = [];
   const enabled = new Set(recipe.graph.stages.filter((stage) => stage.enabled).map((stage) => stage.stageId));
   const slots = new Set(recipe.bindings.map((binding) => binding.slot));
+  const musicStage = recipe.graph.stages.find((stage) => stage.stageId === 'music' && stage.enabled);
+  const musicIsAuto = musicStage !== undefined && musicChoiceOf(musicStage.params).mode === 'auto';
   for (const required of stageRequiredSlots) {
+    // In `auto` mode the music stage picks its own track, so it needs no bound song.
+    if (required.stageId === 'music' && musicIsAuto) continue;
     if (enabled.has(required.stageId) && !slots.has(required.slot)) {
       conflicts.push({ rule: 'stage-needs-binding', stageId: required.stageId, slot: required.slot });
     }
   }
+  if (musicIsAuto && slots.has('music')) conflicts.push({ rule: 'music-mode-conflict' });
   if (template === null) return conflicts;
   const { format } = recipe;
   if (format.aspect !== template.aspect) {

@@ -45,13 +45,17 @@ export function WizardProduction({ runId, initialState, startFailed }: WizardPro
     if (reviewReady) router.refresh();
   }, [reviewReady, router]);
 
+  // The waiting notice sits under the step the run stopped at; with no position it stays on top.
+  const position = currentPosition(run, live.state.now);
+  const waitingNotice = state.status === 'waiting' ? <RunWaitingNotice run={run} state={state} onChanged={live.refresh} /> : null;
+
   return (
     <div className={layout.stack}>
       <div className={runStyles.liveGrid}>
         <div className={runStyles.notice}>
           {startFailed && displayedStatus === 'draft' && <Alert variant="error">{t.wizard.production.startFailed}</Alert>}
           {displayedStatus === 'draft' && <StartRunNotice runId={runId} onStarted={live.refresh} />}
-          {state.status === 'waiting' && <RunWaitingNotice run={run} state={state} onChanged={live.refresh} />}
+          {position === undefined && waitingNotice}
           {state.status === 'failed' && (
             <Alert variant="error" title={texts.failedTitle}>
               <span lang={locale === 'pt-BR' ? undefined : 'pt-BR'}>{state.reason}</span>
@@ -80,7 +84,11 @@ export function WizardProduction({ runId, initialState, startFailed }: WizardPro
         </div>
         <div className={runStyles.timeline}>
           <Card title={texts.timelineCard}>
-            <StepTimeline phases={buildTimeline(run, displayedStatus, { runs: t.runs, locale })} current={currentPosition(run, live.state.now)} />
+            <StepTimeline
+              phases={buildTimeline(run, displayedStatus, { runs: t.runs, locale })}
+              current={position}
+              currentStepContent={position === undefined ? undefined : waitingNotice}
+            />
           </Card>
         </div>
         <div className={runStyles.plan}>

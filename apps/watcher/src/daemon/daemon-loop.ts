@@ -10,7 +10,7 @@ import { RunEngine } from '../engine/run-engine';
 import { BusyIntervalTracker } from '../schedules/busy-interval.tracker';
 import { ScheduleStep } from '../schedules/schedule-step';
 import { DaemonLoopAlreadyRunningError } from './daemon.errors';
-import { DAEMON_SHUTDOWN, MAX_CONSECUTIVE_RUN_FAILURES, RUN_SCAN_INTERVAL_MS } from './daemon.settings';
+import { DAEMON_SHUTDOWN, MAX_ASSET_JOBS_BEFORE_RUN, MAX_CONSECUTIVE_RUN_FAILURES, RUN_SCAN_INTERVAL_MS } from './daemon.settings';
 import { interruptibleDelay } from './interruptible-delay';
 import { type RunCandidate, type RunTrigger } from './run-classification';
 import { RunScanner } from './run-scanner';
@@ -54,7 +54,9 @@ type MetricsPollIdleStep = Pick<MetricsPollStep, 'run'>;
  * Asset jobs (guided-creation design section 1): stale `running` voice-sample and
  * reference-analysis jobs are swept at start, after the publish sweep; on `none` the asset-job step
  * runs last, after the curation step, under `busy.track`, so a run, a curation and a job never
- * overlap. A job that ran sends the loop back to scanning `runs/`.
+ * overlap. A job that ran sends the loop back to scanning `runs/`. Before a run executes, up to
+ * `MAX_ASSET_JOBS_BEFORE_RUN` open jobs end first, so a reference's analysis exists when the run's
+ * `script` stage reads it.
  */
 @Injectable()
 export class DaemonLoop {
@@ -91,6 +93,9 @@ export class DaemonLoop {
         if (next.kind === 'candidate') {
           // A8: awaited to the end before the next scan; further startable runs wait in runs/ as the queue.
           const { candidate } = next;
+          // A reference the owner just saved may still wait for its analysis: open asset jobs end
+          // first, so the run's writer and director get the analysis instead of starting without it.
+          await this.assetJobsBeforeRun();
           await this.busy.track(() => this.execute(candidate));
           continue;
         }
@@ -115,6 +120,13 @@ export class DaemonLoop {
     if (await this.busy.track(() => this.metricsPoll.run(), (called) => called)) return true;
     if (await this.busy.track(() => this.curations.claimNext(), (ran) => ran)) return true;
     return this.busy.track(() => this.assetJobs.claimNext(), (ran) => ran);
+  }
+
+  /** Bounded so a long queue of jobs cannot hold a run back without limit. */
+  private async assetJobsBeforeRun(): Promise<void> {
+    for (let ran = 0; ran < MAX_ASSET_JOBS_BEFORE_RUN && !this.shutdown.aborted; ran += 1) {
+      if (!(await this.busy.track(() => this.assetJobs.claimNext(), (worked) => worked))) return;
+    }
   }
 
   private async nextRun(): Promise<NextRun> {

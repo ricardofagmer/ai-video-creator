@@ -46,7 +46,7 @@ export { EmptyState } from './components/feedback/EmptyState';
 export type { EmptyStateProps } from './components/feedback/EmptyState';
 export { ErrorState } from './components/feedback/ErrorState';
 export type { ErrorStateProps } from './components/feedback/ErrorState';
-export { AppShell, DrawerSection, drawerItemClassName, navLinkClassName } from './components/layout/AppShell';
+export { AppShell, DrawerSection, drawerItemClassName, navLinkClassName, railLinkClassName } from './components/layout/AppShell';
 export type { AppShellAccount, AppShellPreference, AppShellProps, DrawerSectionProps, NavLinkClassNameOptions } from './components/layout/AppShell';
 export { PageHeader } from './components/layout/PageHeader';
 export type { PageHeaderProps } from './components/layout/PageHeader';

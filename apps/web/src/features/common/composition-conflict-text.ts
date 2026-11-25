@@ -27,6 +27,8 @@ export function compositionConflictText(conflict: CompositionConflict, t: WebMes
       };
       return conflict.subject === 'run-target' ? texts.runTarget(range) : texts.recipeRange(range);
     }
+    case 'music-mode-conflict':
+      return texts.musicModeConflict;
   }
 }
 

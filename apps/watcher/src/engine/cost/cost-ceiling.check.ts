@@ -7,13 +7,13 @@ import { ExecutorRegistry } from '../executor-registry';
 import { ownerTexts } from '../owner-texts';
 import { type PreflightVerdict } from '../seams';
 import { planningContextFor, recipeStageOf, type StageWorkspace } from '../stage-workspace';
-import { invalidEstimateWait, liveRunSpendUsd, monthEstimateWait, runEstimateWait, type CostCeilingWait } from './run-spend';
+import { liveRunSpendUsd } from './run-spend';
 
-function waitVerdict(wait: CostCeilingWait): PreflightVerdict {
-  return { status: 'failed', failure: { origin: 'guard', ...wait } };
+function warned(detail: string): PreflightVerdict {
+  return { status: 'passed', detail, caveat: true };
 }
 
-/** A figure a ceiling can be compared with: `NaN > limit` is false, so anything else must fail closed. */
+/** A figure a ceiling can be compared with: `NaN > limit` is false, so anything else is reported as invalid. */
 export function isUsableUsd(value: number): boolean {
   return Number.isFinite(value) && value >= 0;
 }
@@ -24,9 +24,10 @@ export function isUsableUsd(value: number): boolean {
  * this stage and of every stage still pending. The month figure is the ledger's month-to-date
  * (`cost_entries` plus the live run's cost.json, deduplicated by run and session: SPEC 0002 rev 2)
  * plus only the pending estimate: the live run's billed spend is already inside month-to-date, so
- * adding it again would count it twice. Reaching either ceiling is never retried: the step returns
- * a `guard` failure and the run waits. A figure that is not a finite, non-negative number (an
- * executor estimate of NaN, an unreadable ledger answer) fails closed the same way (baseline review).
+ * adding it again would count it twice. Reaching either ceiling does not stop the run (owner
+ * decision 2026-11-25): the step passes with a caveat that states both amounts, so `preflight` ends
+ * `warning`. A figure that is not a finite, non-negative number (an executor estimate of NaN, an
+ * unreadable ledger answer) is warned about the same way.
  */
 @Injectable()
 export class CostCeilingCheck {
@@ -43,13 +44,13 @@ export class CostCeilingCheck {
     const laterUsd = await this.laterStagesEstimateUsd(run, workspace.location.stageNumber);
     const pendingUsd = stageEstimate.usd + laterUsd;
     const runEstimateUsd = spentUsd + pendingUsd;
-    if (![spentUsd, stageEstimate.usd, laterUsd, costPerRunUsd].every(isUsableUsd)) return waitVerdict(invalidEstimateWait('run', costPerRunUsd));
-    if (runEstimateUsd > costPerRunUsd) return waitVerdict(runEstimateWait(runEstimateUsd, costPerRunUsd));
+    if (![spentUsd, stageEstimate.usd, laterUsd, costPerRunUsd].every(isUsableUsd)) return warned(ownerTexts.costEstimateInvalidReason);
+    if (runEstimateUsd > costPerRunUsd) return warned(ownerTexts.costRunReason(runEstimateUsd, costPerRunUsd));
 
     const monthToDateUsd = await this.ledger.monthToDateUsd(this.clock.now());
     const monthUsd = monthToDateUsd + pendingUsd;
-    if (![monthToDateUsd, costPerMonthUsd].every(isUsableUsd)) return waitVerdict(invalidEstimateWait('month', costPerMonthUsd));
-    if (monthUsd > costPerMonthUsd) return waitVerdict(monthEstimateWait(monthUsd, costPerMonthUsd));
+    if (![monthToDateUsd, costPerMonthUsd].every(isUsableUsd)) return warned(ownerTexts.costEstimateInvalidReason);
+    if (monthUsd > costPerMonthUsd) return warned(ownerTexts.costMonthReason(monthUsd, costPerMonthUsd));
     return { status: 'passed', detail: ownerTexts.costChecked(runEstimateUsd, costPerRunUsd, monthUsd, costPerMonthUsd) };
   }
 

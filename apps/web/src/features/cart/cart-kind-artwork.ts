@@ -1,13 +1,8 @@
 import { type AssetKind } from '@studio/shared/catalog';
-import { type SkillGlyphName, type SkillTone } from '@/features/skills/skill-artwork';
-
-export interface CartKindArtwork {
-  glyph: SkillGlyphName;
-  tone: SkillTone;
-}
+import { type StudioArtwork } from '@/features/common/studio-artwork';
 
 /** Glyph and gradient tone of a cart tile, per asset kind, in the Skills page's visual language. */
-export const cartKindArtwork: Record<AssetKind, CartKindArtwork> = {
+export const cartKindArtwork: Record<AssetKind, StudioArtwork> = {
   template: { glyph: 'film', tone: 'sunset' },
   'ai-model': { glyph: 'motion', tone: 'violet' },
   reference: { glyph: 'magnifier', tone: 'dusk' },

@@ -235,9 +235,10 @@ Classes globais de `packages/ui/src/styles/utilities.css`, com o nome da primeir
 | --- | --- | --- |
 | `--radius-xs` | `2px` | Linha de destaque da navegação |
 | `--radius-sm` | `6px` | Badge, passo atual |
-| `--radius-md` | `10px` | Botões, campos, Alert, tabelas, listas |
-| `--radius-lg` | `16px` | Cards, Dialog, dropzone, player |
-| `--radius-xl` | `20px` | Card do login, superfícies de destaque |
+| `--radius-md` | `12px` | Botões, campos, Alert, tabelas, listas |
+| `--radius-lg` | `20px` | Cards, Dialog, dropzone, player |
+| `--radius-xl` | `24px` | Card do login, superfícies de destaque |
+| `--radius-2xl` | `28px` | Trilho flutuante de navegação e cartões de destaque |
 | `--radius-full` | `9999px` | Marcadores de status, Spinner, nota 1-5, trilho do CostMeter |
 
 ## 5. Sombras
@@ -300,6 +301,8 @@ CSS variables não funcionam em `@media`; as media queries usam o número litera
 | --- | --- | --- |
 | `--layout-max-width` | `1280px` | Largura máxima do conteúdo |
 | `--layout-topbar-height` | `64px` | Altura da top bar a partir de `md` |
+| `--layout-rail-width` | `104px` | Largura do trilho flutuante de navegação (desktop) |
+| `--layout-rail-item-height` | `60px` | Altura mínima de um item do trilho |
 | `--layout-auth-card-width` | `400px` | Card do login |
 | `--layout-form-max-width` | `720px` | Formulários de envio e editor de receita |
 | `--layout-gutter-mobile` | `16px` | Margem lateral abaixo de `md` |

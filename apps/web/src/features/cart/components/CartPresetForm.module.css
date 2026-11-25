@@ -1,0 +1,76 @@
+/* Checkout's "Save as preset" panel: the action that ends the checkout, framed like the cart banner. Tokens from @studio/ui. */
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  background:
+    radial-gradient(60% 120% at 100% 0%, var(--color-glow-blue), transparent 70%),
+    radial-gradient(45% 90% at 0% 100%, var(--color-glow-cyan), transparent 70%),
+    var(--color-surface);
+  border: 1px solid var(--color-border-glow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm), var(--shadow-inset-glow);
+}
+
+/* Brand stripe along the top edge marks this as the step that saves. */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: var(--space-4);
+  left: var(--space-4);
+  height: 3px;
+  background: var(--gradient-brand);
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-soft-text);
+  border-radius: var(--radius-md);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.headerText h3,
+.headerText p {
+  margin: 0;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+/* Name and owner side by side once the dialog is wide; the description takes the full row. */
+@media (min-width: 640px) {
+  .fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+}

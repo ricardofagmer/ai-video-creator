@@ -188,6 +188,31 @@ export const HyperframesRenderRequestSchema = z
     audio: absolutePath,
     output: absolutePath,
     scratchDir: absolutePath,
+    /**
+     * The picture behind the template's text: the segments are cut, in order, into one clip of
+     * `lengthS` written at `file` inside `templateDir` before the render. Absent when the template
+     * does not reference that file.
+     */
+    background: z
+      .object({
+        file: z.literal('media/background.mp4'),
+        lengthS: z.number().positive().max(3600),
+        segments: z
+          .array(
+            z
+              .object({
+                kind: z.enum(['video', 'image', 'blank']),
+                /** Null only for `blank`. */
+                source: absolutePath.nullable(),
+                durationS: z.number().positive().max(3600),
+              })
+              .strict(),
+          )
+          .min(1)
+          .max(32),
+      })
+      .strict()
+      .optional(),
     runtime: z
       .object({
         binPath: absolutePath,

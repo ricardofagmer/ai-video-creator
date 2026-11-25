@@ -1,4 +1,4 @@
-import { type AssetMetadataInput } from '@studio/shared/api';
+import { type AssetMetadataInput, type AssetVersionView } from '@studio/shared/api';
 import { assetIdFromName } from './asset-form/asset-form-model';
 
 export const PROMPT_NAME_MAX = 120;
@@ -36,5 +36,31 @@ export function promptDraftOf(input: PromptInput): PromptDraft {
       details: { variables: [] },
     },
     file: new File([input.text.slice(0, PROMPT_TEXT_MAX)], `${assetId}.md`, { type: 'text/markdown' }),
+  };
+}
+
+export interface PromptVersion {
+  metadata: AssetMetadataInput;
+  file: File;
+}
+
+/**
+ * Version N+1 of a stored prompt: the base's metadata carried over with the edited name and owner, and the
+ * edited text as the version's only Markdown file (the same shape promptDraftOf saves).
+ */
+export function promptVersionOf(base: AssetVersionView, input: PromptInput): PromptVersion {
+  return {
+    metadata: {
+      name: input.name.trim().slice(0, PROMPT_NAME_MAX),
+      summary: base.summary,
+      owner: input.owner.trim().slice(0, PROMPT_OWNER_MAX),
+      tags: [...base.tags],
+      provenance: base.provenance ?? undefined,
+      license: base.license ?? undefined,
+      sensitivity: base.sensitivity,
+      notes: base.notes,
+      details: base.details,
+    },
+    file: new File([input.text.slice(0, PROMPT_TEXT_MAX)], `${base.id}.md`, { type: 'text/markdown' }),
   };
 }

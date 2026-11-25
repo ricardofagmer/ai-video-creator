@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
-import { type SkillGlyphName } from '../skill-artwork';
+import { type StudioGlyphName } from '../studio-artwork';
 
-const glyphs: Record<SkillGlyphName, ReactElement> = {
+const glyphs: Record<StudioGlyphName, ReactElement> = {
   camera: (
     <>
       <rect x="3" y="7" width="12" height="10" rx="2" />
@@ -79,15 +79,46 @@ const glyphs: Record<SkillGlyphName, ReactElement> = {
       <circle cx="17" cy="12" r="1.500" />
     </>
   ),
+  calendar: (
+    <>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M4 10h16M9 3v4M15 3v4M8.500 14h2M13.500 14h2M8.500 17h2" />
+    </>
+  ),
+  compare: (
+    <>
+      <rect x="3" y="5" width="7.500" height="14" rx="1.500" />
+      <rect x="13.500" y="5" width="7.500" height="14" rx="1.500" />
+      <path d="M12 3v18" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.500 20c1-4 4-6 7.500-6s6.500 2 7.500 6" />
+    </>
+  ),
+  play: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 8.500v7l6-3.500z" />
+    </>
+  ),
+  sparkles: (
+    <>
+      <path d="M10 3l1.600 4.400L16 9l-4.400 1.600L10 15l-1.600-4.400L4 9l4.400-1.600z" />
+      <path d="M18 14l.800 2.200L21 17l-2.200.800L18 20l-.800-2.200L15 17l2.200-.800z" />
+    </>
+  ),
 };
 
-interface SkillGlyphProps {
-  name: SkillGlyphName;
+interface StudioGlyphProps {
+  name: StudioGlyphName;
   className?: string;
 }
 
-/** A media glyph of the Skills page, always decorative: the skill's name and category say what it is. */
-export function SkillGlyph({ name, className }: SkillGlyphProps): ReactElement {
+/** A media glyph of the studio, always decorative: the text beside it says what a thing is. */
+export function StudioGlyph({ name, className }: StudioGlyphProps): ReactElement {
   return (
     <svg
       viewBox="0 0 24 24"

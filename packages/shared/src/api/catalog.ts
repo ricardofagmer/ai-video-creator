@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AssetJobErrorCodeSchema } from '../asset-jobs/asset-job';
 import { AbsolutePathSchema, RelativePathSchema } from '../common/ids';
 import {
   AssetIdSchema,
@@ -9,6 +10,7 @@ import {
   TagSchema,
 } from '../catalog/asset-kind';
 import {
+  ASSET_PURPOSE_MAX_CHARS,
   AiModelAssetVersionSchema,
   AssetLayoutSchema,
   BrandKitAssetVersionSchema,
@@ -41,13 +43,28 @@ export type AssetStorageView = z.infer<typeof AssetStorageViewSchema>;
  *   (no current vector), `stale` (vector from another model), `unavailable` (model absent or
  *   rejected);
  * - `learnings`: the version's notes, active and retired, newest first;
- * - `activation`: the approval that made it `active`, or null.
+ * - `activation`: the approval that made it `active`, or null;
+ * - `purposeJob`: the open or failed purpose job (ADR 0012, C-P2), or null.
  */
+/**
+ * ADR 0012 (C-P2): the version's open or failed `asset-purpose` job. `null` means no job, or a
+ * `done` one, whose text is already copied into `purpose`. `errorCode` is set for `failed` and
+ * `refused` only.
+ */
+export const AssetPurposeJobViewSchema = z
+  .object({
+    status: z.enum(['requested', 'running', 'failed', 'refused']),
+    errorCode: AssetJobErrorCodeSchema.nullable(),
+  })
+  .strict();
+export type AssetPurposeJobView = z.infer<typeof AssetPurposeJobViewSchema>;
+
 const versionView = {
   storage: AssetStorageViewSchema,
   searchIndex: z.enum(['indexed', 'pending', 'stale', 'unavailable']),
   learnings: z.array(LearningNoteViewSchema).max(50),
   activation: PromotionApprovalViewSchema.nullable(),
+  purposeJob: AssetPurposeJobViewSchema.nullable(),
 };
 
 /** C1 `embedding` is omitted: no response of any route carries a vector (SPEC 0003 L8, R2-AC-10). */
@@ -311,3 +328,33 @@ export function mimeTypeForFileName(name: string): string | null {
  */
 export const SetVersionStatusRequestSchema = z.object({ status: AssetStatusSchema }).strict();
 export type SetVersionStatusRequest = z.infer<typeof SetVersionStatusRequestSchema>;
+
+/**
+ * Markup and formatting an owner purpose may not carry (ADR 0012, C-P4): HTML or tag brackets,
+ * code backticks, Markdown emphasis, headings, list bullets, links and control characters (a line
+ * break included). The purpose is shown as an `alt` and a `title`, so plain text is the only safe
+ * shape. Same rule as the purpose writer's output check (AP-04).
+ */
+const ASSET_PURPOSE_MARKUP_PATTERN = /[<>`*_#[\]|]|^\s*[-+]\s|\p{Cc}/mu;
+
+/**
+ * `PUT .../purpose` body (ADR 0012, C-P4): the owner's purpose text. Runs of spaces and tabs become
+ * one space and the ends are trimmed before the 1..280 check, so a text of blanks is refused.
+ * Sets `purposeSource: owner`; no job overwrites it afterwards (AP-03).
+ */
+export const SetAssetPurposeRequestSchema = z
+  .object({
+    purpose: z
+      .string()
+      .max(ASSET_PURPOSE_MAX_CHARS * 4)
+      .transform((text) => text.replace(/[ \t]+/g, ' ').trim())
+      .pipe(
+        z
+          .string()
+          .min(1)
+          .max(ASSET_PURPOSE_MAX_CHARS)
+          .refine((text) => !ASSET_PURPOSE_MARKUP_PATTERN.test(text), { message: 'purpose must be plain text without markup' }),
+      ),
+  })
+  .strict();
+export type SetAssetPurposeRequest = z.input<typeof SetAssetPurposeRequestSchema>;

@@ -1,7 +1,8 @@
-import { EmptyState, PageHeader, StatusBadge, buttonClassName } from '@studio/ui';
+import { EmptyState, StatusBadge, buttonClassName } from '@studio/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { type ReactElement } from 'react';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { loadReviewData } from '@/features/review/review-data.server';
 import { WizardFlow } from '@/features/wizard/components/WizardFlow';
@@ -23,8 +24,8 @@ interface CreateVideoPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-function Header({ texts }: { texts: WebMessages['wizard'] }): ReactElement {
-  return <PageHeader title={texts.title} description={texts.description} />;
+function Header({ t, facts }: { t: WebMessages; facts?: readonly string[] }): ReactElement {
+  return <StudioHero eyebrow={t.common.heroEyebrows.create} glyph="sparkles" title={t.wizard.title} description={t.wizard.description} facts={facts} />;
 }
 
 /** Steps 5 and 6 for `?execucao=<runId>`: the step follows the run's state, so a reload resumes there. */
@@ -74,7 +75,7 @@ export default async function CreateVideoPage({ searchParams }: CreateVideoPageP
     const runId = typeof query.execucao === 'string' ? query.execucao : '';
     return (
       <div className={layout.page}>
-        <Header texts={t.wizard} />
+        <Header t={t} />
         <RunSteps runId={runId} startFailed={query.aviso === 'inicio-falhou'} t={t} />
       </div>
     );
@@ -83,7 +84,7 @@ export default async function CreateVideoPage({ searchParams }: CreateVideoPageP
   const { recipes, options } = await loadWizardSetup(locale);
   return (
     <div className={layout.page}>
-      <Header texts={t.wizard} />
+      <Header t={t} facts={recipes.length === 0 ? [] : [t.wizard.recipeCount(recipes.length)]} />
       {recipes.length === 0 ? (
         <EmptyState
           title={t.wizard.noRecipesTitle}

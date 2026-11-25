@@ -2,6 +2,7 @@ import {
   AiModelDetailsSchema,
   BrandKitDetailsSchema,
   ImageDetailsSchema,
+  MusicCategorySchema,
   MusicDetailsSchema,
   PromptDetailsSchema,
   ReferenceDetailsSchema,
@@ -10,6 +11,7 @@ import {
   TemplateDetailsSchema,
   type AspectRatio,
   type AssetKind,
+  type MusicCategory,
   type PromptVariable,
 } from '@studio/shared/catalog';
 import { type AssetVersionView } from '@studio/shared/api';
@@ -41,6 +43,14 @@ export function detailFieldId(key: string): string {
 
 export const VARIABLES_FIELD_ID = 'variaveis';
 
+/** The ticked categories of the form text (comma-separated ids); an id the list does not know is dropped. */
+export function musicCategoriesOfField(text: string): MusicCategory[] {
+  return text.split(',').flatMap((item) => {
+    const parsed = MusicCategorySchema.safeParse(item.trim());
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
 const brandKitSkeleton = {
   colors: [{ name: 'primaria', hex: '#000000' }],
   fonts: [],
@@ -58,7 +68,7 @@ export function defaultDetailFields(kind: AssetKind): DetailFields {
     case 'template':
       return { engine: 'remotion', fps: '30', inputSchema: '{}', sceneSchema: '', cameraMoves: '', transitions: '' };
     case 'ai-model':
-      return { modelType: 'provider-model', provider: 'other', modelIdRefType: 'env', modelIdRefValue: '' };
+      return { modelType: 'provider-model', provider: 'other', modelIdRefType: 'env', modelIdRefValue: '', voiceModelId: '' };
     case 'reference':
       return { subKind: 'video', referenceNotes: '' };
     case 'skill':
@@ -101,6 +111,7 @@ export function detailFieldsOf(version: AssetVersionView): DetailFields {
         provider: version.details.provider,
         modelIdRefType: reference.type,
         modelIdRefValue: reference.type === 'literal' ? reference.value : reference.name,
+        voiceModelId: version.details.voiceModelId ?? '',
       };
     }
     case 'reference':
@@ -114,6 +125,7 @@ export function detailFieldsOf(version: AssetVersionView): DetailFields {
         durationSec: String(version.details.durationMs / 1000),
         bpm: optionalNumber(version.details.bpm),
         integratedLufs: optionalNumber(version.details.integratedLufs),
+        categories: version.details.categories.join(','),
       };
     case 'sfx':
       return { durationSec: String(version.details.durationMs / 1000) };
@@ -257,10 +269,12 @@ function rawDetails(kind: AssetKind, reader: FieldReader, variables: readonly Pr
     case 'ai-model': {
       const type = reader.required('modelIdRefType');
       const value = reader.required('modelIdRefValue');
+      const voiceModelId = reader.text('voiceModelId');
       return {
         modelType: reader.required('modelType'),
         provider: reader.required('provider'),
         modelIdRef: type === 'literal' ? { type, value } : { type, name: value },
+        ...(voiceModelId === '' ? {} : { voiceModelId }),
       };
     }
     case 'reference':
@@ -275,6 +289,8 @@ function rawDetails(kind: AssetKind, reader: FieldReader, variables: readonly Pr
         durationMs: seconds === null ? null : Math.round(seconds * 1000),
         bpm: reader.number('bpm', { optional: true }),
         integratedLufs: reader.number('integratedLufs', { optional: true }),
+        // Ids from the checkboxes; MusicDetailsSchema refuses unknown ones, repeats and more than the maximum.
+        categories: reader.list('categories'),
       };
     }
     case 'sfx': {

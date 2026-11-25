@@ -7,6 +7,8 @@ export const platformsEs: Messages<typeof platformsPtBR> = {
     description:
       'Tus cuentas de YouTube, Instagram y TikTok. Cada plataforma la habilitas tú, por separado, después de que apruebe la aplicación; el estudio solo publica cuando haces clic en Publicar en una ejecución aprobada.',
     loadFailed: (detail) => `No se pudieron cargar las cuentas. ${detail}`,
+    platformCount: (count) => (count === 1 ? '1 plataforma' : `${count} plataformas`),
+    connectedCount: (count) => (count === 1 ? '1 cuenta conectada' : `${count} cuentas conectadas`),
   },
   capabilityStatus: {
     unsupported: 'Publica en la aplicación y pega el enlace',

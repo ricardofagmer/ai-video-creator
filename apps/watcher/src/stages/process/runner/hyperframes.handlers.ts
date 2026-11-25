@@ -1,13 +1,20 @@
-import { realpath, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, realpath, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { ExternalToolError } from '@ace/toolbox/dist/errors';
 import { runTool } from '@ace/toolbox/dist/media/exec-tool';
 import { probeMedia } from '@ace/toolbox/dist/media/ffprobe';
-import { ANALYSIS_TIMEOUT_MS, ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS } from '@ace/toolbox/dist/media/media-tools';
-import { HyperframesSandboxUnavailableError, renderPicture, type HyperframesProcessPort, type HyperframesRuntime } from '@studio/hyperframes';
-import { hyperframesBounds } from '@studio/shared/hyperframes';
+import { ANALYSIS_TIMEOUT_MS, ENCODE_TIMEOUT_MS, FFMPEG_WRITE_ARGS, H264_VIDEO_ARGS } from '@ace/toolbox/dist/media/media-tools';
+import {
+  HyperframesSandboxUnavailableError,
+  checkPicture,
+  completeRenderRuntime,
+  renderPicture,
+  type HyperframesProcessPort,
+  type HyperframesRuntime,
+  type RunProbe,
+} from '@studio/hyperframes';
 import { type HyperframesRenderRequest } from '../tool-runner.protocol';
-import { FILE_INPUT_GUARD_ARGS, fileInputArgs } from './ffmpeg-input';
+import { fileInputArgs } from './ffmpeg-input';
 
 /*
  * The tool-runner side of a HyperFrames render (SPEC 0008 section 5.2): `variables.json`, one
@@ -17,22 +24,13 @@ import { FILE_INPUT_GUARD_ARGS, fileInputArgs } from './ffmpeg-input';
  */
 
 const NARRATION_SAMPLE_RATE = '44100';
-const FPS_TOLERANCE = 0.01;
 /** Used only if the runner's minimal environment somehow lacks PATH. */
 const FALLBACK_PATH = '/usr/bin:/bin';
 
-export interface PictureProbe {
-  codec: string;
-  pixelFormat: string;
-  width: number;
-  height: number;
-  fps: number;
-  durationS: number;
-}
-
 export interface HyperframesRenderPorts {
   process: HyperframesProcessPort;
-  probePicture(ffprobePath: string, file: string): Promise<PictureProbe | null>;
+  /** Runs ffprobe by a fixed argv with no shell and answers its stdout. */
+  runProbe: RunProbe;
   /** The real path of an existing file or folder; read-only on the disk. */
   realPath(path: string): Promise<string>;
 }
@@ -44,63 +42,14 @@ export class PictureCheckError extends ExternalToolError {
   }
 }
 
-function field(source: unknown, key: string): unknown {
-  return typeof source === 'object' && source !== null ? Reflect.get(source, key) : undefined;
-}
-
-function frameRate(text: unknown): number | null {
-  if (typeof text !== 'string') return null;
-  const [numerator, denominator] = text.split('/').map((part) => Number.parseFloat(part));
-  if (numerator === undefined || denominator === undefined || !Number.isFinite(numerator) || !(denominator > 0)) return null;
-  return numerator / denominator;
-}
-
-/** The first video stream of ffprobe's JSON, or null when any field is missing. */
-export function parsePictureProbe(json: string): PictureProbe | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    // Unparseable ffprobe output means the picture cannot be checked; the caller refuses it.
-    return null;
-  }
-  const streams = field(parsed, 'streams');
-  const stream: unknown = Array.isArray(streams) ? streams[0] : undefined;
-  const codec = field(stream, 'codec_name');
-  const pixelFormat = field(stream, 'pix_fmt');
-  const width = field(stream, 'width');
-  const height = field(stream, 'height');
-  const fps = frameRate(field(stream, 'avg_frame_rate'));
-  const durationText = field(field(parsed, 'format'), 'duration');
-  const durationS = typeof durationText === 'string' ? Number.parseFloat(durationText) : Number.NaN;
-  if (typeof codec !== 'string' || typeof pixelFormat !== 'string' || typeof width !== 'number' || typeof height !== 'number') return null;
-  if (fps === null || !Number.isFinite(durationS)) return null;
-  return { codec, pixelFormat, width, height, fps, durationS };
-}
-
-/** Check ids, empty when the picture is what the request asked for (section 5.2 step 4). */
-export function pictureMismatches(probe: PictureProbe, request: Pick<HyperframesRenderRequest, 'width' | 'height' | 'fps' | 'durationS'>): string[] {
-  const mismatches: string[] = [];
-  if (probe.codec !== 'h264') mismatches.push('codec');
-  if (probe.pixelFormat !== 'yuv420p') mismatches.push('pixel-format');
-  if (probe.width !== request.width || probe.height !== request.height) mismatches.push('size');
-  if (Math.abs(probe.fps - request.fps) > FPS_TOLERANCE) mismatches.push('fps');
-  if (probe.durationS < request.durationS - hyperframesBounds.pictureFrameTolerance / request.fps) mismatches.push('duration');
-  return mismatches;
-}
-
-async function probeWithFfprobe(ffprobePath: string, file: string): Promise<PictureProbe | null> {
-  const { stdout } = await runTool(
-    ffprobePath,
-    ['-v', 'error', ...FILE_INPUT_GUARD_ARGS, '-select_streams', 'v:0', '-show_entries', 'stream=codec_name,pix_fmt,width,height,avg_frame_rate:format=duration', '-of', 'json', file],
-    ANALYSIS_TIMEOUT_MS,
-  );
-  return parsePictureProbe(stdout);
+async function runFfprobe(program: string, args: readonly string[]): Promise<string> {
+  const { stdout } = await runTool(program, [...args], ANALYSIS_TIMEOUT_MS);
+  return stdout;
 }
 
 /** The child's own ports: the real sandboxed process adapter, ffprobe and the file system's real paths. */
 export function realHyperframesRenderPorts(process: HyperframesProcessPort): HyperframesRenderPorts {
-  return { process, probePicture: probeWithFfprobe, realPath: (path) => realpath(path) };
+  return { process, runProbe: runFfprobe, realPath: (path) => realpath(path) };
 }
 
 /**
@@ -117,32 +66,90 @@ async function realSandboxPath(ports: HyperframesRenderPorts, path: string): Pro
   }
 }
 
-/** The parent's runtime plus the child's own `nodePath`, `tmpDir` and `path`, the two paths real. */
-async function runtimeOf(request: HyperframesRenderRequest, ports: HyperframesRenderPorts): Promise<HyperframesRuntime> {
-  const [nodePath, tmpDir] = await Promise.all([
-    // The runner's own node binary, by absolute path: never resolved through PATH.
-    realSandboxPath(ports, process.execPath),
-    realSandboxPath(ports, request.scratchDir),
-  ]);
-  // SPEC 0008 section 4.5 (`PATH` = `StageSettings.path`) and section 17.5 ("the child still adds
-  // `path`"): the parent spawns this runner with `minimalChildEnv`, whose PATH is
-  // `StageSettings.path`, so this read is that setting. It is an environment value, never a `-D`
-  // sandbox parameter (AC 88).
-  return { ...request.runtime, nodePath, tmpDir, path: process.env['PATH'] ?? FALLBACK_PATH };
+/**
+ * The parent's checked runtime completed with this runner's own node binary, the scratch folder and
+ * PATH. SPEC 0008 section 4.5 (`PATH` = `StageSettings.path`) and section 17.5 ("the child still
+ * adds `path`"): the parent spawns this runner with `minimalChildEnv`, whose PATH is
+ * `StageSettings.path`, so this read is that setting.
+ */
+async function runtimeOf(request: HyperframesRenderRequest): Promise<HyperframesRuntime> {
+  const completed = await completeRenderRuntime(request.runtime, {
+    nodePath: process.execPath,
+    tmpDir: request.scratchDir,
+    path: process.env['PATH'] ?? FALLBACK_PATH,
+  });
+  // A path that cannot be resolved refuses before any start; the error carries no path (K12).
+  if (completed.status === 'refused') throw new HyperframesSandboxUnavailableError();
+  return completed.runtime;
+}
+
+type Background = NonNullable<HyperframesRenderRequest['background']>;
+
+/** Still images are opened by their own demuxers; the guard of `ffmpeg-input.ts` admits media containers only. */
+const IMAGE_INPUT_GUARD_ARGS: readonly string[] = ['-protocol_whitelist', 'file', '-format_whitelist', 'image2,png_pipe,jpeg_pipe,webp_pipe'];
+const BLANK_COLOR = '0x0b0b0f';
+/** A still drifts in by this much over its stretch, so an image scene is not a frozen frame. */
+const STILL_ZOOM_END = 1.12;
+
+function seconds(value: number): string {
+  return value.toFixed(3);
+}
+
+/**
+ * Writes the background clip into the staged template copy: every segment scaled to cover the
+ * canvas and cut to its stretch, joined in order, the last frame held to `lengthS`. A capture used
+ * by several scenes keeps playing from where the scene before it stopped, wrapping at its end.
+ */
+async function buildBackground(request: HyperframesRenderRequest, background: Background, templateDir: string, runtime: HyperframesRuntime): Promise<void> {
+  const { width, height, fps } = request;
+  const inputs: string[] = [];
+  const chains: string[] = [];
+  const playedS = new Map<string, number>();
+  const cover = `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`;
+  for (const [index, segment] of background.segments.entries()) {
+    const duration = seconds(segment.durationS);
+    const label = `[v${index}]`;
+    if (segment.kind === 'blank' || segment.source === null) {
+      inputs.push('-f', 'lavfi', '-t', duration, '-i', `color=c=${BLANK_COLOR}:s=${width}x${height}:r=${fps}`);
+      chains.push(`[${index}:v]setsar=1,format=yuv420p${label}`);
+      continue;
+    }
+    if (segment.kind === 'image') {
+      inputs.push('-loop', '1', '-framerate', String(fps), '-t', duration, ...IMAGE_INPUT_GUARD_ARGS, '-i', segment.source);
+      const frames = Math.max(1, Math.round(segment.durationS * fps));
+      const zoom = `zoompan=z='1+${(STILL_ZOOM_END - 1).toFixed(2)}*on/${frames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=${width}x${height}:fps=${fps}`;
+      chains.push(`[${index}:v]scale=${width * 2}:${height * 2}:force_original_aspect_ratio=increase,crop=${width * 2}:${height * 2},${zoom},setsar=1,format=yuv420p${label}`);
+      continue;
+    }
+    const sourceS = (await probeMedia(runtime.ffprobeBin, segment.source)).durationS;
+    const offset = sourceS > 0 ? (playedS.get(segment.source) ?? 0) % sourceS : 0;
+    playedS.set(segment.source, offset + segment.durationS);
+    inputs.push('-stream_loop', '-1', '-ss', seconds(offset), '-t', duration, ...fileInputArgs(segment.source));
+    chains.push(`[${index}:v]${cover},fps=${fps},setsar=1,format=yuv420p${label}`);
+  }
+  const playedTotal = background.segments.reduce((sum, segment) => sum + segment.durationS, 0);
+  const hold = Math.max(0, background.lengthS - playedTotal);
+  const joined = `${background.segments.map((_segment, index) => `[v${index}]`).join('')}concat=n=${background.segments.length}:v=1:a=0,tpad=stop_mode=clone:stop_duration=${seconds(hold)}[out]`;
+  const output = join(templateDir, background.file);
+  await mkdir(dirname(output), { recursive: true, mode: 0o700 });
+  await runTool(
+    runtime.ffmpegBin,
+    [...FFMPEG_WRITE_ARGS, ...inputs, '-filter_complex', [...chains, joined].join(';'), '-map', '[out]', '-an', ...H264_VIDEO_ARGS, '-r', String(fps), '-g', String(fps), '-t', seconds(background.lengthS), output],
+    ENCODE_TIMEOUT_MS,
+  );
 }
 
 export async function hyperframesRender(request: HyperframesRenderRequest, ports: HyperframesRenderPorts): Promise<{ durationS: number; renderSeconds: number }> {
   const variablesFile = join(request.scratchDir, 'variables.json');
   await writeFile(variablesFile, `${JSON.stringify(request.variables)}\n`, { flag: 'wx', mode: 0o600 });
   const picture = join(request.scratchDir, 'picture.mp4');
-  const [runtime, templateDir] = await Promise.all([runtimeOf(request, ports), realSandboxPath(ports, request.templateDir)]);
+  const [runtime, templateDir] = await Promise.all([runtimeOf(request), realSandboxPath(ports, request.templateDir)]);
+  if (request.background !== undefined) await buildBackground(request, request.background, templateDir, runtime);
   const { renderSeconds } = await renderPicture({ templateDir, variablesFile, output: picture, runtime }, { process: ports.process });
 
   // The media programs are the resolved runtime paths, not the unresolved settings (SPEC 0008 sections 18.1 G3 and 18.5).
-  const probe = await ports.probePicture(runtime.ffprobeBin, picture);
-  if (probe === null) throw new PictureCheckError(['unreadable']);
-  const mismatches = pictureMismatches(probe, request);
-  if (mismatches.length > 0) throw new PictureCheckError(mismatches);
+  const check = await checkPicture({ ffprobeBin: runtime.ffprobeBin, file: picture, expected: request }, ports.runProbe);
+  if (check.mismatches.length > 0) throw new PictureCheckError(check.mismatches);
 
   const duration = request.durationS.toFixed(3);
   await runTool(

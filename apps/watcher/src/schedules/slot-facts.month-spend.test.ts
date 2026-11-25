@@ -77,7 +77,10 @@ interface CollectorFixture {
 async function realCollector(harness: ScheduleHarness, schedule: ScheduleFile, spend: SpendSource): Promise<CollectorFixture> {
   const facts = passingFacts(schedule, harness.fixtureRun);
   assert.ok(facts.recipe.state === 'found');
-  const { version } = facts.recipe;
+  // The committed fixture recipe binds no voice, which the composition rules refuse for an enabled
+  // `narration` stage; with one bound, the month spend is the only guard these tests exercise.
+  const voice = { slot: 'voice', ref: 'narrator-voice@1', contentHash: 'c'.repeat(64) };
+  const version = { ...facts.recipe.version, recipe: { ...facts.recipe.version.recipe, bindings: [...facts.recipe.version.recipe.bindings, voice] } };
   const logger = new CapturingLogger();
   const app = await NestFactory.createApplicationContext(
     {
@@ -85,7 +88,7 @@ async function realCollector(harness: ScheduleHarness, schedule: ScheduleFile, s
       providers: [
         { provide: ScheduleStore, useValue: harness.store },
         { provide: ScheduleRunsReader, useValue: new ScheduleRunsReader(harness.dataHome) },
-        { provide: recipeReaderToken(), useValue: { findVersion: async () => version, unresolved: async () => ({ bindings: [], references: [] }) } },
+        { provide: recipeReaderToken(), useValue: { findVersion: async () => version, unresolved: async () => ({ bindings: [], references: [] }), templateDetails: async () => null } },
         { provide: CostLedgerService, useValue: { monthToDateUsd: spend } },
         SlotFactsCollector,
       ],

@@ -3,11 +3,13 @@ import {
   PromoteFromRunResponseSchema,
   ReviewDecisionRequestSchema,
   ReviewDecisionResponseSchema,
+  SaveRunVideoResponseSchema,
   apiPaths,
   type PromoteFromRunRequest,
   type PromoteFromRunResponse,
   type ReviewDecisionRequest,
   type ReviewDecisionResponse,
+  type SaveRunVideoResponse,
 } from '@studio/shared/api';
 import { browserTransport, checkedBody, requestJson, type ApiTransport } from '@/lib/api';
 
@@ -19,6 +21,8 @@ import { browserTransport, checkedBody, requestJson, type ApiTransport } from '@
 export interface ReviewApi {
   recordReview(runId: string, request: ReviewDecisionRequest): Promise<ReviewDecisionResponse>;
   promoteFromRun(runId: string, request: PromoteFromRunRequest): Promise<PromoteFromRunResponse>;
+  /** Saves the run's final video as a catalog video of its preset. */
+  saveRunVideo(runId: string): Promise<SaveRunVideoResponse>;
 }
 
 function createReviewApi(transport: ApiTransport): ReviewApi {
@@ -35,6 +39,7 @@ function createReviewApi(transport: ApiTransport): ReviewApi {
         { method: 'POST', path: apiPaths.runPromote(runId), body: { kind: 'json', value: checkedBody(PromoteFromRunRequestSchema, request) } },
         PromoteFromRunResponseSchema,
       ),
+    saveRunVideo: (runId) => requestJson(transport, { method: 'POST', path: apiPaths.runSaveVideo(runId) }, SaveRunVideoResponseSchema),
   };
 }
 

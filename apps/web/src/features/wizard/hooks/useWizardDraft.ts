@@ -33,16 +33,20 @@ export function useWizardDraft(runnableRefs: readonly string[]): WizardDraftStat
 
   useEffect(() => {
     const stored = readDraft(sessionDraftStorage());
+    // Biometric items never become references; recipe pins are chosen later, in step 3.
+    const fromCart = runReferencesFromCart(cartActions.snapshot(), new Set());
     if (stored !== null) {
-      setDraft(draftForRecipes(stored, runnableRefs));
+      // A restored draft still takes what the cart holds now, or an image added to the cart after
+      // the draft was started would never reach the run.
+      const restoredDraft = draftForRecipes(stored, runnableRefs);
+      const added = fromCart.filter((ref) => !restoredDraft.references.includes(ref)).slice(0, Math.max(0, MAX_REFERENCES - restoredDraft.references.length));
+      setDraft(added.length === 0 ? restoredDraft : { ...restoredDraft, references: [...restoredDraft.references, ...added] });
+      setCartReferencesAdded(added.length);
       setRestored(true);
-    } else {
-      // Biometric items never become references; recipe pins are chosen later, in step 3.
-      const fromCart = runReferencesFromCart(cartActions.snapshot(), new Set()).slice(0, MAX_REFERENCES);
-      if (fromCart.length > 0) {
-        setDraft((current) => ({ ...current, references: fromCart }));
-        setCartReferencesAdded(fromCart.length);
-      }
+    } else if (fromCart.length > 0) {
+      const references = fromCart.slice(0, MAX_REFERENCES);
+      setDraft((current) => ({ ...current, references }));
+      setCartReferencesAdded(references.length);
     }
     setLoaded(true);
     // Read once on arrival; later changes of the recipe list come with a new page load.

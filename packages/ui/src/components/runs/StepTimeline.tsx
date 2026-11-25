@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { StatusBadge } from '../status/StatusBadge';
@@ -40,12 +40,14 @@ export interface StepTimelineProps {
   phases: readonly TimelinePhase[];
   /** Stage and step that `now.json` reports; the stage opens and the step gets `aria-current="step"`. */
   current?: { stageId: string; stepId: string };
+  /** Shown under the current step, inside its row: what the run waits for at that step and its answer buttons. */
+  currentStepContent?: ReactNode;
   label?: string;
   className?: string;
 }
 
 /** Run timeline: phases, then stages (expandable), then the seven fixed steps with their status. */
-export function StepTimeline({ phases, current, label, className }: StepTimelineProps): ReactElement {
+export function StepTimeline({ phases, current, currentStepContent, label, className }: StepTimelineProps): ReactElement {
   const { ui } = useI18n();
   return (
     <div role="region" aria-label={label ?? ui.runs.timelineLabel} className={classNames(styles.timeline, className)}>
@@ -80,6 +82,9 @@ export function StepTimeline({ phases, current, label, className }: StepTimeline
                             <StatusBadge kind="step" status={step.status} />
                             {step.durationLabel && <span className="caption">{step.durationLabel}</span>}
                             {step.detail && <span className={classNames('caption', styles.stepDetail)}>{step.detail}</span>}
+                            {isCurrentStep && currentStepContent !== undefined && currentStepContent !== null && (
+                              <div className={styles.stepSlot}>{currentStepContent}</div>
+                            )}
                           </li>
                         );
                       })}

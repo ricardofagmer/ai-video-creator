@@ -40,7 +40,7 @@ export class PreflightStep implements StepHandler {
     }
 
     const estimate = await workspace.executor.estimate(workspace.planningContext());
-    // An invalid estimate is never recorded (run.json would refuse it); the cost check fails closed on it.
+    // An invalid estimate is never recorded (run.json would refuse it); the cost check warns about it.
     if (isUsableUsd(estimate.usd)) workspace.active.setStageEstimate(workspace.location.stageNumber, estimate);
 
     const cost = await this.costCeiling.check(workspace, estimate);
@@ -51,7 +51,9 @@ export class PreflightStep implements StepHandler {
       const verdict = await check.check(workspace, signal);
       if (verdict.status === 'failed') return { kind: 'failed', failure: verdict.failure, detail: `${check.name}: ${failureDetail(verdict.failure)}` };
     }
-    return { kind: 'passed', detail: `${ownerTexts.assetsVerified(resolution.assets.length, estimate.usd)} ${cost.detail}` };
+    const usableEstimateUsd = isUsableUsd(estimate.usd) ? estimate.usd : 0;
+    const detail = `${ownerTexts.assetsVerified(resolution.assets.length, usableEstimateUsd)} ${cost.detail}`;
+    return { kind: cost.caveat === true ? 'passed-with-caveat' : 'passed', detail };
   }
 }
 

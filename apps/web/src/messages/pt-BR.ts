@@ -60,7 +60,7 @@ export const webPtBR = {
     navigation: {
       create: 'Criar vídeo',
       catalog: 'Catálogo',
-      recipes: 'Receitas',
+      recipes: 'Presets',
       skills: 'Skills',
       runs: 'Execuções',
       comparisons: 'Comparações',

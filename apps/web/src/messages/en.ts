@@ -59,7 +59,7 @@ export const webEn: WebMessages = {
     navigation: {
       create: 'Create video',
       catalog: 'Catalog',
-      recipes: 'Recipes',
+      recipes: 'Presets',
       skills: 'Skills',
       runs: 'Runs',
       comparisons: 'Comparisons',

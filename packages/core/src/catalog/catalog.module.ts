@@ -12,10 +12,12 @@ import { HyperframesTemplateCheck } from './hyperframes-template.check';
 import { SkillEntryFileService } from './skill-entry-file';
 import { CreateAssetHandler } from './commands/create-asset.handler';
 import { SaveAssetVersionHandler } from './commands/save-asset-version.handler';
+import { SetAssetPurposeHandler } from './commands/set-asset-purpose.handler';
 import { SetAssetStatusHandler } from './commands/set-asset-status.handler';
 import { FindAssetVersionsByContentHashHandler } from './queries/find-asset-versions-by-hash.handler';
 import { GetAssetVersionHandler } from './queries/get-asset-version.handler';
 import { GetEntryFileTextHandler } from './queries/get-entry-file-text.handler';
+import { GetAudioContentHandler } from './queries/get-audio-content.handler';
 import { GetImageContentHandler } from './queries/get-image-content.handler';
 import { ListAssetVersionsHandler } from './queries/list-asset-versions.handler';
 import { SearchAssetsHandler } from './queries/search-assets.handler';
@@ -39,9 +41,12 @@ import { SearchAssetsHandler } from './queries/search-assets.handler';
     CreateAssetHandler,
     SaveAssetVersionHandler,
     SetAssetStatusHandler,
+    // ADR 0012 (C-P4): the owner's purpose edit. Never in CatalogReadModule: the watcher writes no row.
+    SetAssetPurposeHandler,
     GetAssetVersionHandler,
     GetEntryFileTextHandler,
     GetImageContentHandler,
+    GetAudioContentHandler,
     ListAssetVersionsHandler,
     SearchAssetsHandler,
     FindAssetVersionsByContentHashHandler,

@@ -11,9 +11,12 @@ import {
   type RecoveryPacket,
   type ReviewPacket,
   type RunArtifactId,
+  type ScenesOutput,
+  type ScriptOutput,
 } from '@studio/shared/agents';
 import { type Brief, type RubricCriterion } from '@studio/shared/recipes';
 import { type QaMetrics, type ReviewSubject, type StageId, type StepName } from '@studio/shared/run-format';
+import { runArtifactSources } from '../tools/run-artifact.sources';
 import { delimitUntrusted, packetBaseFor, type PacketCoordinates } from './packet-support';
 
 const BRIEF_SUMMARY_MAX_CHARS = 1000;
@@ -28,6 +31,8 @@ export interface ReviewPacketSource {
   readonly artifactIds: readonly RunArtifactId[];
   /** Render reviews only. */
   readonly qaMetrics?: QaMetrics;
+  /** Script and scenes reviews: the unrecorded draft the loop is judging. */
+  readonly draft?: ScriptOutput | ScenesOutput;
 }
 
 function briefSummary(brief: Brief): string {
@@ -42,6 +47,12 @@ function briefSummary(brief: Brief): string {
  */
 export function buildReviewPacket(source: ReviewPacketSource): ReviewPacket {
   const readable = runArtifactAllowlists[EVALUATOR_ROLE];
+  // The current stage records its outputs only after the review loop, so pointing the Reviewer at
+  // one of them would only answer not-produced-yet; the draft under review travels inline instead.
+  const producedHere = (artifactId: RunArtifactId): boolean => {
+    const artifactSource = runArtifactSources[artifactId];
+    return artifactSource.kind === 'stage-output' && artifactSource.producedBy === source.coordinates.stageId;
+  };
   return ReviewPacketSchema.parse({
     ...packetBaseFor(EVALUATOR_ROLE, source.coordinates),
     task: REVIEW_TASK,
@@ -56,7 +67,8 @@ export function buildReviewPacket(source: ReviewPacketSource): ReviewPacket {
           threshold: criterion.threshold,
         })),
       briefSummary: briefSummary(source.brief),
-      artifactIds: source.artifactIds.filter((artifactId) => readable.includes(artifactId)),
+      artifactIds: source.artifactIds.filter((artifactId) => readable.includes(artifactId) && !producedHere(artifactId)),
+      ...(source.draft === undefined ? {} : { draft: source.draft }),
       ...(source.qaMetrics === undefined ? {} : { qaMetrics: source.qaMetrics }),
     },
     constraints: { evidenceRequired: true, passDecisionIsEngines: true },

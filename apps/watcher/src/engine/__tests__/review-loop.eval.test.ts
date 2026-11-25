@@ -4,41 +4,32 @@ import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import { Logger } from '@nestjs/common';
 import { REVIEW_UNAVAILABLE_TEXT, type Revision } from '@studio/core/agents';
-import { type AgentsPort, type ReviewVerdict } from '@studio/shared/agents';
-import type { AssetResolverPort, StageEventInput, StageExecutionContext, StageExecutorPort } from '@studio/shared/ports';
-import { readRunFile, runDirectory, writeRunFile } from '@studio/shared/run-files';
-import { formatStepKey, type RunFile, type StageEstimate, type StageLocation, type StepRecord } from '@studio/shared/run-format';
+import { type ReviewVerdict } from '@studio/shared/agents';
+import type { StageEventInput, StageExecutionContext } from '@studio/shared/ports';
+import { readRunFile, runDirectory } from '@studio/shared/run-files';
+import { formatStepKey, type RunFile, type StageLocation } from '@studio/shared/run-format';
 import { runEvaluatorLoop, type EvaluatorLoopResult, type GeneratorAttempt, type ReviewAttempt } from '../../stages/agents/evaluator-loop';
-import { reviewerScoreEvidence, revisionsExhaustedFailure } from '../../stages/agents/review-evidence';
+import { reviewCaveat, reviewerScoreEvidence } from '../../stages/agents/review-evidence';
+import { type ReviewOutcome } from '../../stages/shared/stage-artifacts';
 import { stageTexts } from '../../stages/shared/stage-texts';
 import { createWatcherHome } from '../../test-support';
-import { ActiveRun, type StepPosition } from '../active-run';
-import { type Clock } from '../clock';
-import { ControlFileChannel } from '../control/control-file.channel';
-import { RunControlService } from '../control/run-control.service';
-import { RecoveryPolicy } from '../failure/recovery.policy';
-import { StepFailureHandler } from '../failure/step-failure.handler';
-import { emptyBaseline } from '../run-budget';
-import { planningContextFor, StageWorkspace } from '../stage-workspace';
+import { planningContextFor } from '../stage-workspace';
 
 /*
  * Evals of the evaluator loop row of topology 0001 section 11 (ticket 02 criterion 5): a retry
  * happens only when the Reviewer sets `retryRecommended` with a non-blank `retryInstruction`; at
- * most `limits.revisionsPerStage` (2) revisions; a spent budget with the Reviewer still asking ends
- * in `waiting` for the owner; a Reviewer failure is a warning, not a failure. The mock executors do
- * not run the loop, so it is driven directly with a scripted generator and Reviewer on an
- * execution context of the committed fixture's `script` stage; the budget case then hands the
- * loop's result to the engine's real failure handler on a working copy of the fixture run.
+ * most `limits.revisionsPerStage` (2) revisions; a spent budget with the Reviewer still asking keeps
+ * the last draft and leaves a caveat (owner decision 2026-11-24: a review never stops the run); a
+ * Reviewer failure is a warning, not a failure. The mock executors do not run the loop, so it is
+ * driven directly with a scripted generator and Reviewer on an execution context of the committed
+ * fixture's `script` stage.
  */
 
 const FIXTURE_DIR = resolve(__dirname, '../../../fixtures/product-tour-16x9');
 const NOW = new Date('2026-11-21T12:00:00.000Z');
 const SCRIPT_LOCATION: StageLocation = { stageNumber: 4, stageId: 'script' };
 const STEP_KEY = formatStepKey({ stageId: 'script', step: 'execute', attempt: 1 });
-const ZERO_ESTIMATE: StageEstimate = { tokens: 0, ttsChars: 0, renderSec: 0, usd: 0 };
 const logLevels: readonly ('log' | 'warn' | 'error' | 'debug' | 'verbose')[] = ['log', 'warn', 'error', 'debug', 'verbose'];
-
-const clock: Clock = { now: () => NOW };
 
 interface Draft {
   text: string;
@@ -127,38 +118,6 @@ async function runScriptedLoop(context: StageExecutionContext, reviews: readonly
   return { result, revisionsSeen, reviewCalls };
 }
 
-class InertExecutor implements StageExecutorPort {
-  readonly stageId = SCRIPT_LOCATION.stageId;
-
-  async estimate(): Promise<StageEstimate> {
-    return ZERO_ESTIMATE;
-  }
-
-  declaredOutputs(): [] {
-    return [];
-  }
-
-  async execute(): Promise<never> {
-    throw new Error('the failure handler must not run the executor');
-  }
-
-  async verify(): Promise<never> {
-    throw new Error('the failure handler must not run verify');
-  }
-}
-
-const inertResolver: AssetResolverPort = {
-  resolve: async (): Promise<never> => {
-    throw new Error('no asset is resolved while a failure is handled');
-  },
-};
-
-function scriptExecuteRecord(run: RunFile): StepRecord {
-  const record = run.stages[SCRIPT_LOCATION.stageNumber - 1]?.steps.find((candidate) => candidate.step === 'execute');
-  if (record === undefined) throw new Error('the fixture run has no script execute step');
-  return record;
-}
-
 describe('evaluator loop evals (topology 0001 section 11, ticket 02 criterion 5)', () => {
   let home: { root: string; close(): Promise<void> } | undefined;
   let fixture: RunFile;
@@ -212,39 +171,16 @@ describe('evaluator loop evals (topology 0001 section 11, ticket 02 criterion 5)
     assert.equal(events.filter((event) => event.type === 'review.verdict').length, 3, 'a review was not recorded as a review.verdict event');
   });
 
-  it('holds the run waiting for the owner when the revision budget is spent', async () => {
+  it('lets the last draft go on with a caveat when the revision budget is spent', async () => {
     const stillAsking = verdict({ retryRecommended: true, retryInstruction: 'Reescreva a abertura.', blockingIssues: ['A abertura não cita o produto.'] });
     const { result } = await runScriptedLoop(context, [{ status: 'ok', verdict: stillAsking }]);
     if (result.status !== 'revisions-exhausted') throw new Error(`expected revisions-exhausted, got ${result.status}`);
-    const failure = revisionsExhaustedFailure('script', result.verdict);
+    // What the script and scenes executors record for a spent budget.
+    const review: ReviewOutcome = { format: 1, status: 'recorded', revisions: result.revisions, verdict: result.verdict };
 
-    await writeRunFile(runDir, fixture);
-    const active = new ActiveRun({ runDir, run: fixture, pid: 4242, clock, baseline: emptyBaseline });
-    await active.start();
-    const position: StepPosition = { ...SCRIPT_LOCATION, step: 'execute', attempt: 1 };
-    const stepKey = await active.beginStep(position);
-    let agentCalls = 0;
-    const unreachableAgents: AgentsPort = {
-      run: async (): Promise<never> => {
-        agentCalls += 1;
-        throw new Error('a needs-person failure must not call Recovery');
-      },
-    };
-    const handler = new StepFailureHandler(new RecoveryPolicy(unreachableAgents, clock), new RunControlService(new ControlFileChannel(), clock), clock);
-    const workspace = new StageWorkspace({ active, location: SCRIPT_LOCATION, executor: new InertExecutor(), resolver: inertResolver });
-
-    const resolution = await handler.handle({ workspace, position, stepKey, failure: { origin: 'executor', failure }, detail: failure.message });
-    await active.finish();
-
-    const persisted = await readRunFile(runDir);
-    assert.deepEqual(resolution, { kind: 'held', status: 'waiting' });
-    assert.equal(persisted.state.status, 'waiting');
-    if (persisted.state.status === 'waiting') {
-      assert.deepEqual(persisted.state.cause, { kind: 'revisions-exhausted', stageId: 'script', issues: ['A abertura não cita o produto.'] });
-      assert.ok(persisted.state.whatToDo.trim().length > 0);
-    }
-    assert.equal(scriptExecuteRecord(persisted).status, 'pending');
-    assert.equal(agentCalls, 0);
+    assert.deepEqual(result.output, { text: 'rascunho 3' }, 'the last draft is the one kept');
+    assert.equal(reviewCaveat(context, review, true), stageTexts.reviewerContinued(3, ['A abertura não cita o produto.']));
+    assert.notEqual(reviewerScoreEvidence(context, review).outcome, 'failed', 'a review never fails the stage');
   });
 
   it('accepts the last output with a warning when the Reviewer is unavailable', async () => {

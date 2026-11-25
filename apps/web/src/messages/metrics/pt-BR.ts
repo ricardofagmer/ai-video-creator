@@ -213,17 +213,17 @@ export const metricsPtBR = {
     },
     reviewTime: {
       title: 'Tempo do briefing à revisão',
-      description: 'Por receita: a execução mais recente contra a primeira.',
-      caption: 'Tempo do briefing à revisão, por receita',
+      description: 'Por preset: a execução mais recente contra a primeira.',
+      caption: 'Tempo do briefing à revisão, por preset',
       empty: 'Nenhuma execução chegou à revisão ainda.',
-      columns: { recipe: 'Receita', runs: 'Execuções', first: 'Primeira', latest: 'Mais recente', verdict: 'Mais rápida que a primeira' },
+      columns: { recipe: 'Preset', runs: 'Execuções', first: 'Primeira', latest: 'Mais recente', verdict: 'Mais rápida que a primeira' },
     },
     ratingTrend: {
       title: 'Tendência de nota',
-      description: 'Por receita: média das últimas 5 avaliações contra as 5 anteriores.',
-      caption: 'Tendência de nota, por receita',
+      description: 'Por preset: média das últimas 5 avaliações contra as 5 anteriores.',
+      caption: 'Tendência de nota, por preset',
       empty: 'Nenhuma execução foi avaliada ainda.',
-      columns: { recipe: 'Receita', latest: 'Últimas', previous: 'Anteriores', verdict: 'Nota mantida' },
+      columns: { recipe: 'Preset', latest: 'Últimas', previous: 'Anteriores', verdict: 'Nota mantida' },
     },
     catalogRuns: {
       title: 'Ativos do catálogo por execução',

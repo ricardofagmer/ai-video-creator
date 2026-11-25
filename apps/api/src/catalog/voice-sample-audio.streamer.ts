@@ -1,14 +1,21 @@
 import { constants } from 'node:fs';
 import { open, type FileHandle } from 'node:fs/promises';
 import { Injectable, Logger, StreamableFile } from '@nestjs/common';
-import { AssetJobSampleNotReadyError, type VoiceSampleAudio } from '@studio/core/asset-jobs';
+import { AssetJobSampleNotReadyError } from '@studio/core/asset-jobs';
 import { type AssetRef } from '@studio/shared/catalog';
 import { type Response } from 'express';
 import { parseByteRange } from '../runs/byte-range';
 
+/** A checked job file: a voice sample's clip or a template preview's clip or poster. */
+export interface AssetJobMedia {
+  absolutePath: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
 export interface VoiceSampleStreamRequest {
   ref: AssetRef;
-  audio: VoiceSampleAudio;
+  audio: AssetJobMedia;
   rangeHeader: string | undefined;
   response: Response;
 }
@@ -22,7 +29,8 @@ function errnoCode(error: unknown): string | null {
  * biometric material: it is served with `no-store`, never cached, copied or named in a log, and the
  * response carries no file name. `Range` is honoured the way the run artifact route honours it, so
  * a browser `<audio>` element can seek. Every refusal is the same 404 `asset-job-sample-not-ready`;
- * the log names the ref and the failed check only, never the path.
+ * the log names the ref and the failed check only, never the path. Template preview clips and
+ * posters (2026-11-25) stream through the same checks.
  */
 @Injectable()
 export class VoiceSampleAudioStreamer {
@@ -59,7 +67,7 @@ export class VoiceSampleAudioStreamer {
   }
 
   /** O_NOFOLLOW refuses a final component swapped for a link after the query's lstat. */
-  private async openClip(ref: AssetRef, audio: VoiceSampleAudio): Promise<FileHandle> {
+  private async openClip(ref: AssetRef, audio: AssetJobMedia): Promise<FileHandle> {
     try {
       return await open(audio.absolutePath, constants.O_RDONLY | constants.O_NOFOLLOW);
     } catch (error) {

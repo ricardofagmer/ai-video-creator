@@ -1,7 +1,7 @@
 'use client';
 
 import { type RecipeVersionView } from '@studio/shared/api';
-import { type CompositionConflict } from '@studio/shared/recipes';
+import { type CompositionConflict, type MusicChoice } from '@studio/shared/recipes';
 import { Alert, Button } from '@studio/ui';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactElement } from 'react';
@@ -45,15 +45,21 @@ interface WizardFlowProps {
   options: readonly BindingOption[];
 }
 
-/** A recipe chosen in step 2 resets the step 3 answers: they were pins of another recipe. */
+/** A recipe chosen in step 2 resets the step 3 answers: they were pins and the music choice of another recipe. */
 function withRecipe(draft: WizardDraft, view: RecipeVersionView): WizardDraft {
   const typed = draft.values.targetDurationSec.trim();
   return {
     ...draft,
     values: { ...draft.values, recipeRef: view.ref, targetDurationSec: typed === '' ? defaultTargetDuration(view.recipe) : typed },
     choices: {},
+    musicChoice: null,
     saved: null,
   };
+}
+
+/** The preset a draft starts with: the first active version, else the first runnable one. */
+function defaultRecipeOf(recipes: readonly RecipeVersionView[]): RecipeVersionView | undefined {
+  return recipes.find((view) => view.recipe.status === 'active') ?? recipes[0];
 }
 
 /**
@@ -79,6 +85,13 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
     shownStep.current = draft.step;
   }, [draft.step]);
 
+  // The preset step is optional: a draft with no preset takes the default one, and step 2 only changes it.
+  const defaultRecipe = defaultRecipeOf(recipes);
+  useEffect(() => {
+    if (draft.values.recipeRef !== '' || defaultRecipe === undefined) return;
+    update((current) => (current.values.recipeRef === '' ? withRecipe(current, defaultRecipe) : current));
+  }, [draft.values.recipeRef, defaultRecipe, update]);
+
   const base = recipes.find((view) => view.ref === draft.values.recipeRef);
   const review = reviewOf(draft, recipes, options, t.runs.brief.errors);
 
@@ -103,6 +116,11 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
   function chooseSlot(slot: WizardSlot, ref: string): void {
     setServerConflicts([]);
     update((current) => ({ ...current, choices: { ...current.choices, [slot]: ref } }));
+  }
+
+  function chooseMusic(musicChoice: MusicChoice): void {
+    setServerConflicts([]);
+    update((current) => ({ ...current, musicChoice }));
   }
 
   /** Only what the step itself can tell; the brief against the recipe is checked at review. */
@@ -198,9 +216,26 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
             cartReferencesAdded={cartReferencesAdded}
           />
         )}
-        {draft.step === 'recipe' && <WizardRecipeStep recipes={recipes} selectedRef={draft.values.recipeRef} error={recipeError} onChoose={chooseRecipe} />}
+        {draft.step === 'recipe' && (
+          <WizardRecipeStep
+            recipes={recipes}
+            selectedRef={draft.values.recipeRef}
+            error={recipeError}
+            onChoose={chooseRecipe}
+            references={draft.references}
+            onReferencesChange={(references) => update((current) => ({ ...current, references }))}
+          />
+        )}
         {draft.step === 'style' && base !== undefined && review.kind === 'ready' && (
-          <WizardStyleStep base={base.recipe} choices={draft.choices} options={options} changed={review.composed.changed} onChoose={chooseSlot} />
+          <WizardStyleStep
+            base={base.recipe}
+            choices={draft.choices}
+            musicChoice={draft.musicChoice}
+            options={options}
+            changed={review.composed.changed}
+            onChoose={chooseSlot}
+            onMusicChoiceChange={chooseMusic}
+          />
         )}
         {draft.step === 'style' && base === undefined && <Alert variant="warning">{texts.recipe.required}</Alert>}
         {draft.step === 'review' && review.kind === 'ready' && (

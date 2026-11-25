@@ -123,6 +123,6 @@ describe('v1 end-to-end eval, all providers mocked (topology 0001 section 11, ti
       'a mocked session was priced above $0',
     );
     assert.equal(run.totals.costUsd, 0);
-    assert.deepEqual(run.totals.costByProvider, { claude: 0, tts: 0, render: 0 });
+    assert.deepEqual(run.totals.costByProvider, { claude: 0, tts: 0, render: 0, music: 0 });
   });
 });

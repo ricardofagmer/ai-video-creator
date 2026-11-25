@@ -1,5 +1,5 @@
 import { ReviewVerdictSchema } from '@studio/shared/agents';
-import { SensitivitySchema } from '@studio/shared/catalog';
+import { AssetRefSchema, SensitivitySchema } from '@studio/shared/catalog';
 import { z } from 'zod';
 
 /**
@@ -105,6 +105,31 @@ export const ReviewOutcomeSchema = z.discriminatedUnion('status', [
   z.object({ format: z.literal(1), status: z.literal('unavailable'), revisions: z.number().int().min(0).max(5), reason: z.string().max(500) }).strict(),
 ]);
 export type ReviewOutcome = z.infer<typeof ReviewOutcomeSchema>;
+
+const sha256 = z.string().regex(/^[a-f0-9]{64}$/);
+const pickReason = z.string().min(1).max(300);
+
+/**
+ * Sidecar of `music` in auto mode (docs/specs/2026-11-25-ai-music-choice-design.md section 3.5):
+ * which song the video carries and why. A rerun of the same run reuses it while it still resolves.
+ */
+export const MusicPickRecordSchema = z.discriminatedUnion('source', [
+  z.object({ format: z.literal(1), source: z.literal('catalog'), ref: AssetRefSchema, contentHash: sha256, reason: pickReason }).strict(),
+  z
+    .object({
+      format: z.literal(1),
+      source: z.literal('generated'),
+      ref: z.literal('generated'),
+      contentHash: sha256,
+      reason: pickReason,
+      engine: z.enum(['mock', 'elevenlabs']),
+      /** Run-relative path of the generated track (declared output `music-track`). */
+      path: relativePath,
+      lengthMs: z.number().int().positive(),
+    })
+    .strict(),
+]);
+export type MusicPickRecord = z.infer<typeof MusicPickRecordSchema>;
 
 /** Which file the QA media review measured, so `package` ships exactly that file. */
 export const QaSubjectSchema = z

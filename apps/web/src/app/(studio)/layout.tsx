@@ -43,6 +43,7 @@ export default async function StudioLayout({ children, watcher }: StudioLayoutPr
         </Link>
       }
       navigation={<StudioNavigation />}
+      rail={<StudioNavigation variant="rail" />}
       status={
         <>
           {watcher}

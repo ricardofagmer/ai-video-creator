@@ -7,6 +7,7 @@ import { FavoriteToggleButton } from '@/features/favorites/components/FavoriteTo
 import styles from '../catalog.module.css';
 import { imageLinkOf } from '../image-link-draft';
 import { storedImageHref } from '../stored-image';
+import { CatalogPreviewHover } from './CatalogPreviewHover';
 
 interface CatalogLibraryTileProps {
   version: AssetVersionView;
@@ -22,13 +23,15 @@ export function CatalogLibraryTile({ version, linkToVersion }: CatalogLibraryTil
   const imageLink = imageLinkOf(version);
   // A linked image loads straight from the owner's link (CSP `img-src https:`); the server never fetches it.
   const source = imageLink?.href ?? storedImageHref(version);
+  // AP-11: the purpose names the picture for screen readers; the hover popover shows it to sighted users.
+  const purpose = version.purpose.trim();
   return (
-    <div className={styles.libraryTile}>
+    <div className={styles.libraryTile} data-preview-card>
       <Link href={href} className={styles.libraryThumb} tabIndex={-1} aria-hidden="true">
         {source !== null && (
           <img
             src={source}
-            alt=""
+            alt={purpose}
             width={160}
             height={160}
             loading="lazy"
@@ -40,6 +43,7 @@ export function CatalogLibraryTile({ version, linkToVersion }: CatalogLibraryTil
       <Link href={href} className={styles.libraryName} title={version.name}>
         {version.name}
       </Link>
+      <CatalogPreviewHover version={version} />
       <div className={styles.libraryActions}>
         <CartToggleButton item={cartItemOf(version)} iconOnly />
         <FavoriteToggleButton scope="catalog" id={version.id} name={version.name} />

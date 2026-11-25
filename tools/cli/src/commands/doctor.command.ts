@@ -84,7 +84,7 @@ async function platformSections(context: CliContext, signal: AbortSignal): Promi
  */
 async function hyperframesSections(dependencies: CommandDependencies): Promise<DoctorSection[]> {
   try {
-    const status = await readHyperframesStatus(dependencies.settings, { now: new Date(), sandboxAvailable: sandboxExecExists() });
+    const status = await readHyperframesStatus(dependencies.settings, { sandboxAvailable: sandboxExecExists() });
     return hyperframesChecks(status).map(only);
   } catch (error) {
     if (dependencies.signal.aborted) throw error;

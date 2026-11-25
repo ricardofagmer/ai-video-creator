@@ -1,10 +1,12 @@
 import { formatNumber, type Locale } from '@studio/ui';
 import { type AssetVersionView } from '@studio/shared/api';
+import { type StudioGlyphName } from '@/features/common/studio-artwork';
 import { type WebMessages } from '@/messages';
 import { catalogTabId, type CatalogKindCounts } from './catalog-groups';
 import { catalogSectionTabHref, catalogTabHref, templateCategoryTabHref, type CatalogFilters } from './catalog-query';
 import { catalogSectionTabId, catalogSections, kindsOfSection, onlyKindOfSection, type CatalogSection } from './catalog-sections';
 import { type CatalogKindTab } from './components/CatalogKindTabs';
+import { countImageCategories, imageCategoryFrom, imageCategoryLabelOf } from './image-categories';
 import { categoryLabelOf, countTemplateCategories, templateCategoryTabId, type CatalogCategory } from './template-categories';
 
 /** What every tab builder needs to write its labels and counts. */
@@ -19,6 +21,17 @@ function sectionCount(counts: CatalogKindCounts, section: CatalogSection): numbe
   return section === 'references' ? total - counts.websites : total;
 }
 
+/** One media glyph per section, so the top menu reads like a video editor's toolbar. */
+const sectionGlyphs: Record<CatalogSection, StudioGlyphName> = {
+  references: 'film',
+  sites: 'magnifier',
+  templates: 'clapperboard',
+  images: 'camera',
+  prompts: 'script',
+  'ai-writing': 'sparkles',
+  'media-brand': 'palette',
+};
+
 /** The section tabs: always all of them, in the same places; counts only in search by words. */
 export function sectionTabsOf(filters: CatalogFilters, counts: CatalogKindCounts | null, { t, locale }: CatalogTabTexts): CatalogKindTab[] {
   return catalogSections.map((section) => ({
@@ -27,6 +40,7 @@ export function sectionTabsOf(filters: CatalogFilters, counts: CatalogKindCounts
     count: counts === null ? null : formatNumber(sectionCount(counts, section), locale),
     href: catalogSectionTabHref(filters, section),
     selected: filters.section === section,
+    glyph: sectionGlyphs[section],
   }));
 }
 
@@ -52,7 +66,7 @@ export function kindTabsOf(filters: CatalogFilters, counts: CatalogKindCounts | 
 }
 
 /**
- * The category tabs of Video templates or References: "All" then each category some item on this page
+ * The category tabs of Video templates, References or Images: "All" then each category some item on this page
  * has, plus the selected one so a hand-typed URL still shows where it is. Counts are of this page, so
  * they are left out when there is a next page.
  */
@@ -71,14 +85,21 @@ export function templateCategoryTabsOf({
   /** Names of the user-created categories this browser keeps (custom-categories.ts). */
   customLabels: ReadonlyMap<string, string>;
 } & CatalogTabTexts): CatalogKindTab[] {
-  const counts = countTemplateCategories(items);
+  const images = filters.section === 'images';
+  const counts: ReadonlyMap<CatalogCategory, number> = images ? countImageCategories(items) : countTemplateCategories(items);
+  const labelOf = (category: CatalogCategory): string => {
+    const imageCategory = images ? imageCategoryFrom(category) : null;
+    return imageCategory === null
+      ? categoryLabelOf(category, t.categories.templateTypes, customLabels)
+      : imageCategoryLabelOf(imageCategory, t.categories.imageCategories, customLabels);
+  };
   const categories: (CatalogCategory | null)[] = [null, ...counts.keys()];
   if (filters.templateCategory !== null && !counts.has(filters.templateCategory)) categories.push(filters.templateCategory);
   return categories.map((category) => {
     const count = category === null ? items.length : (counts.get(category) ?? 0);
     return {
       id: templateCategoryTabId(category),
-      label: category === null ? t.tabs.all : categoryLabelOf(category, t.categories.templateTypes, customLabels),
+      label: category === null ? t.tabs.all : labelOf(category),
       count: exact ? formatNumber(count, locale) : null,
       href: templateCategoryTabHref(filters, category),
       selected: filters.templateCategory === category,

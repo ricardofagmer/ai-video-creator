@@ -169,9 +169,10 @@
   /* 4. Radii */
   --radius-xs: 2px;
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
   --radius-full: 9999px;
 
   /* 5. Shadows (colour from the shadow tokens above, so dark mode follows) */
@@ -210,6 +211,8 @@
   /* 8. Layout and control sizes */
   --layout-max-width: 1280px;
   --layout-topbar-height: 64px;
+  --layout-rail-width: 104px;
+  --layout-rail-item-height: 60px;
   --layout-auth-card-width: 400px;
   --layout-form-max-width: 720px;
   --layout-gutter-mobile: 16px;

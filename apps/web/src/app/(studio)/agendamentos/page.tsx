@@ -1,8 +1,9 @@
-import { Alert, EmptyState, PageHeader } from '@studio/ui';
+import { Alert, EmptyState } from '@studio/ui';
 import { type RecipeVersionView } from '@studio/shared/api';
 import { scheduleBounds } from '@studio/shared/schedules';
 import type { Metadata } from 'next';
 import type { ReactElement } from 'react';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { NewScheduleButton } from '@/features/schedules/components/NewScheduleButton';
 import { ScheduleSummaryCard } from '@/features/schedules/components/ScheduleSummaryCard';
@@ -28,10 +29,25 @@ export default async function SchedulesPage() {
   const runnable: readonly RecipeVersionView[] = recipes.status === 'ready' ? recipes.recipes : [];
   const atLimit = list.status === 'ready' && list.schedules.length >= scheduleBounds.maxSchedules;
   const newButton = <NewScheduleButton recipes={runnable} atLimit={atLimit} />;
+  // A failed load has no counts to show, so the hero shows no facts rather than a false zero.
+  const facts =
+    list.status === 'ready'
+      ? [
+          texts.count(list.schedules.length, scheduleBounds.maxSchedules),
+          texts.activeCount(list.schedules.filter((schedule) => schedule.status === 'active').length),
+        ]
+      : [];
 
   return (
     <div className={layout.page}>
-      <PageHeader title={texts.title} description={texts.description} actions={newButton} />
+      <StudioHero
+        eyebrow={t.common.heroEyebrows.schedules}
+        glyph="calendar"
+        title={texts.title}
+        description={texts.description}
+        facts={facts}
+        actions={newButton}
+      />
       <CreationNotice
         texts={texts}
         recipesFailed={recipes.status === 'failed'} noRecipes={recipes.status === 'ready' && runnable.length === 0} atLimit={atLimit} />

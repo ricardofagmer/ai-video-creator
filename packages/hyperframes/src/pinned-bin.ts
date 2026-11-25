@@ -1,7 +1,8 @@
 import { readFileSync, realpathSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { join } from 'node:path';
 import { HYPERFRAMES_PIN } from '@studio/shared/hyperframes';
 import { HyperframesPinMismatchError } from './errors';
+import { isInsideFolder } from './inside-folder';
 import { dependencyTreeRoot, packageRoot } from './package-paths';
 
 /*
@@ -19,10 +20,6 @@ function versionOf(manifest: unknown): string | null {
   const name: unknown = Reflect.get(manifest, 'name');
   const version: unknown = Reflect.get(manifest, 'version');
   return name === 'hyperframes' && typeof version === 'string' ? version : null;
-}
-
-function isInside(folder: string, candidate: string): boolean {
-  return candidate.startsWith(folder.endsWith(sep) ? folder : `${folder}${sep}`);
 }
 
 function realPathOrNull(path: string): string | null {
@@ -58,12 +55,12 @@ export function pinnedBinPath(): string {
   const packageFolder = realPathOrNull(join(packageRoot(), 'node_modules', 'hyperframes'));
   if (packageFolder === null) throw new HyperframesPinMismatchError('not-installed');
   const workspaceModules = realPathOrNull(dependencyTreeRoot());
-  if (workspaceModules === null || !isInside(workspaceModules, packageFolder)) {
+  if (workspaceModules === null || !isInsideFolder(workspaceModules, packageFolder)) {
     throw new HyperframesPinMismatchError('outside-workspace');
   }
   if (readInstalledVersion(packageFolder) !== HYPERFRAMES_PIN) throw new HyperframesPinMismatchError('other-version');
   const binPath = realPathOrNull(join(packageFolder, BIN_RELATIVE_PATH));
   if (binPath === null) throw new HyperframesPinMismatchError('not-installed');
-  if (!isInside(packageFolder, binPath)) throw new HyperframesPinMismatchError('outside-workspace');
+  if (!isInsideFolder(packageFolder, binPath)) throw new HyperframesPinMismatchError('outside-workspace');
   return binPath;
 }

@@ -5,11 +5,12 @@ import { type CheckId, type DeclaredOutput, type ModelUse, type StageEstimate } 
 import { callAgent } from '../agents/agent-call';
 import { runEvaluatorLoop, type GeneratorAttempt } from '../agents/evaluator-loop';
 import { boundPromptText, boundSkillTexts, boundTemplate, brandVoiceText, buildPacket, coordinatesOf } from '../agents/packet-sources';
-import { reviewerScoreEvidence, revisionsExhaustedFailure } from '../agents/review-evidence';
+import { reviewCaveat, reviewerScoreEvidence } from '../agents/review-evidence';
 import { reviewSubject } from '../agents/reviewer';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
-import { ClaimsArtifactSchema, ReviewOutcomeSchema, type ClaimsArtifact } from '../shared/stage-artifacts';
+import { ClaimsArtifactSchema, ReviewOutcomeSchema, type ClaimsArtifact, type ReviewOutcome } from '../shared/stage-artifacts';
 import { agentCallsEstimate, evaluatorLoopRoles } from '../shared/stage-estimates';
+import { ownerReferencesField, readOwnerReferences } from '../shared/owner-references-input';
 import { readRunReferenceAnalyses, referenceAnalysesField, referenceAnalysesOutput, writeReferenceAnalyses } from '../shared/reference-analyses-input';
 import { readSiteAnalysisInput, siteAnalysisCaveat, siteAnalysisField, type SiteAnalysisInput } from '../shared/site-analysis-input';
 import { readOptionalStageInput, readOwnOutput, stageOutput, type StageOutputSink } from '../shared/stage-io';
@@ -50,23 +51,26 @@ export class ScriptExecutor extends BaseStageExecutor {
     const referenceAnalyses = await readRunReferenceAnalyses(context, this.dependencies.referenceAnalyses);
     const writerSource = await this.writerSourceOf(context, siteAnalysis);
     if ('class' in writerSource) return stageFailed(writerSource);
-    const source: WriterPacketSource = { ...writerSource, ...referenceAnalysesField(referenceAnalyses) };
+    // Image, text and other references have no analysis: their name, the owner's notes and a text
+    // reference's content reach the writer directly, so nothing the owner chose is left out.
+    const ownerReferences = await readOwnerReferences(context, this.dependencies.catalog);
+    const source: WriterPacketSource = { ...writerSource, ...referenceAnalysesField(referenceAnalyses), ...ownerReferencesField(ownerReferences) };
     const models: ModelUse[] = [];
     const loop = await runEvaluatorLoop<ScriptOutput>({
       context,
       subject: 'script',
       generate: (revision) => this.write(context, { ...source, ...(revision === undefined ? {} : { revision }) }, models),
-      review: () => reviewSubject(this.dependencies, { context, subject: 'script', models }),
+      review: (draft) => reviewSubject(this.dependencies, { context, subject: 'script', models, draft }),
     });
     if (loop.status === 'generator-failed') return stageFailed(loop.failure, models);
     await outputs.writeJson('script', ScriptOutputSchema, loop.output);
     await writeReferenceAnalyses(context, outputs, referenceAnalyses);
-    if (loop.status === 'revisions-exhausted') {
-      await outputs.writeJson('review-script-outcome', ReviewOutcomeSchema, { format: 1, status: 'recorded', revisions: loop.revisions, verdict: loop.verdict });
-      return stageFailed(revisionsExhaustedFailure(this.stageId, loop.verdict), models);
-    }
-    await outputs.writeJson('review-script-outcome', ReviewOutcomeSchema, loop.review);
-    const caveat = loop.review.status === 'unavailable' ? ` ${stageTexts.reviewerUnavailableWarning}` : '';
+    // Owner decision 2026-11-24: a review never stops the run; the last draft goes on with a caveat.
+    const exhausted = loop.status === 'revisions-exhausted';
+    const review: ReviewOutcome = exhausted ? { format: 1, status: 'recorded', revisions: loop.revisions, verdict: loop.verdict } : loop.review;
+    await outputs.writeJson('review-script-outcome', ReviewOutcomeSchema, review);
+    const reviewNote = review.status === 'unavailable' ? stageTexts.reviewerUnavailableWarning : reviewCaveat(context, review, exhausted);
+    const caveat = reviewNote === null ? '' : ` ${reviewNote}`;
     return reportedSuccess(`Roteiro com ${loop.output.scenes.length} cena(s).${caveat}${siteAnalysisCaveat(siteAnalysis)}`, models);
   }
 
@@ -120,6 +124,7 @@ export class ScriptExecutor extends BaseStageExecutor {
       ...(skills.skills.length === 0 ? {} : { skills: skills.skills }),
       ...(brandVoice === undefined ? {} : { brandVoice }),
       format: { narration: context.recipe.format.narration, sceneCount: context.recipe.format.sceneCount },
+      ...(template === null ? {} : { narrationCeilingSec: template.details.duration.maxSec }),
       // SPEC 0005 section 5.6: the brief's notes, already capped by the `brief` step; never read here.
       learnings: context.stageBrief.learnings ?? [],
       ...siteAnalysisField(siteAnalysis),

@@ -72,19 +72,23 @@ export function NewRunForm({ recipes, preselectedRef, templates }: NewRunFormPro
   const [cartReferencesAdded, setCartReferencesAdded] = useState(0);
   const cartReadRef = useRef(false);
 
-  // `?carrinho=1` (after "save and create video"): cart items the recipe does not pin become references.
+  // Cart items the recipe does not pin become references on every arrival, so an image in the cart
+  // is never left out of the run. `?carrinho=1` (after "save and create video") also carries the
+  // instructions and the site written at checkout.
   useEffect(() => {
-    if (cartReadRef.current || searchParams.get(CART_QUERY) !== '1') return;
+    if (cartReadRef.current) return;
     cartReadRef.current = true;
-    const checkoutInstructions = cartInstructionsActions.snapshot();
-    if (checkoutInstructions !== '') {
-      setInstructions(checkoutInstructions);
-      setInstructionsFromCart(true);
-    }
-    const checkoutSourceUrl = checkoutSourceUrlFrom(checkoutSourceUrlText(cartInstructionsActions.sourceUrlSnapshot(), cartActions.snapshot()));
-    if (checkoutSourceUrl !== null) {
-      setValues((previous) => (previous.sourceUrl.trim() === '' ? { ...previous, sourceUrl: checkoutSourceUrl } : previous));
-      setSourceUrlFromCart(checkoutSourceUrl);
+    if (searchParams.get(CART_QUERY) === '1') {
+      const checkoutInstructions = cartInstructionsActions.snapshot();
+      if (checkoutInstructions !== '') {
+        setInstructions(checkoutInstructions);
+        setInstructionsFromCart(true);
+      }
+      const checkoutSourceUrl = checkoutSourceUrlFrom(checkoutSourceUrlText(cartInstructionsActions.sourceUrlSnapshot(), cartActions.snapshot()));
+      if (checkoutSourceUrl !== null) {
+        setValues((previous) => (previous.sourceUrl.trim() === '' ? { ...previous, sourceUrl: checkoutSourceUrl } : previous));
+        setSourceUrlFromCart(checkoutSourceUrl);
+      }
     }
     const pinned = new Set((selected?.recipe.bindings ?? []).map((binding) => binding.ref));
     const fromCart = runReferencesFromCart(cartActions.snapshot(), pinned).slice(0, MAX_RUN_REFERENCES);

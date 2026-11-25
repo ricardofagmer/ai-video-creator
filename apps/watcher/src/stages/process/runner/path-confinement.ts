@@ -121,13 +121,23 @@ export async function confineRequest(request: ToolRunnerRequest, roots: RunnerRo
       for (const clip of request.clips) clips.push({ ...clip, path: await read('clips.path', clip.path) });
       return { ...request, clips, output: await write('output', request.output) };
     }
-    case 'hyperframes-render':
+    case 'hyperframes-render': {
+      let background = request.background;
+      if (background !== undefined) {
+        const segments = [];
+        for (const segment of background.segments) {
+          segments.push({ ...segment, source: segment.source === null ? null : await read('background.segments.source', segment.source) });
+        }
+        background = { ...background, segments };
+      }
       return {
         ...request,
+        ...(background === undefined ? {} : { background }),
         templateDir: await read('templateDir', request.templateDir),
         audio: await read('audio', request.audio),
         output: await write('output', request.output),
         scratchDir: await confineWriteDirectory('scratchDir', request.scratchDir, roots),
       };
+    }
   }
 }

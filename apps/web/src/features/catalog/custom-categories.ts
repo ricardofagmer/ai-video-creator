@@ -89,10 +89,13 @@ export function customCategoriesFromCookie(raw: string | undefined): CustomCateg
   return categories;
 }
 
-/** The `document.cookie` assignment that keeps the list for five years on every studio page. */
-export function customCategoriesCookie(categories: readonly CustomCategory[]): string {
+/**
+ * The `document.cookie` assignment that keeps the list for five years on every studio page. Each
+ * section keeps its own list (References here by default, Images in image-categories.ts).
+ */
+export function customCategoriesCookie(categories: readonly CustomCategory[], cookieName: string = CUSTOM_CATEGORIES_COOKIE): string {
   const value = encodeURIComponent(JSON.stringify(categories.slice(-CUSTOM_CATEGORIES_MAX)));
-  return `${CUSTOM_CATEGORIES_COOKIE}=${value}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+  return `${cookieName}=${value}; Path=/; Max-Age=${COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
 }
 
 /** Labels by id, for the category tabs. */

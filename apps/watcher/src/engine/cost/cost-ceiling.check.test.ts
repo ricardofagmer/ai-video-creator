@@ -18,7 +18,6 @@ import { emptyBaseline } from '../run-budget';
 import { type PreflightVerdict } from '../seams';
 import { StageWorkspace } from '../stage-workspace';
 import { ExecuteStep } from '../steps/execute.step';
-import { type StepOutcome } from '../steps/step-handler';
 import { CostCeilingCheck } from './cost-ceiling.check';
 
 /*
@@ -42,7 +41,6 @@ function usd(value: number): StageEstimate {
 
 class FakeExecutor implements StageExecutorPort {
   readonly estimatedParams: JsonObject[] = [];
-  executeCalls = 0;
 
   constructor(
     readonly stageId: StageId,
@@ -59,8 +57,7 @@ class FakeExecutor implements StageExecutorPort {
   }
 
   async execute(): Promise<never> {
-    this.executeCalls += 1;
-    throw new Error('execute must not be reached when the cost ceiling holds the run');
+    throw new Error('the fake executor runs no stage');
   }
 
   async verify(): Promise<[]> {
@@ -114,81 +111,73 @@ function rig(options: { planUsd: () => number; laterUsd?: () => number; monthToD
   return { check: new CostCeilingCheck(ledgerAnswering(options.monthToDateUsd ?? 0), registry, clock), workspace, planExecutor };
 }
 
-function assertInvalidEstimateWait(verdict: PreflightVerdict, ceiling: 'run' | 'month'): void {
-  assert.equal(verdict.status, 'failed');
-  if (verdict.status !== 'failed' || verdict.failure.origin !== 'guard') throw new Error('expected a guard failure');
-  assert.equal(verdict.failure.reason, ownerTexts.costEstimateInvalidReason);
-  assert.equal(verdict.failure.cause.kind, 'cost-ceiling');
-  if (verdict.failure.cause.kind !== 'cost-ceiling') return;
-  assert.equal(verdict.failure.cause.ceiling, ceiling);
-  // The run.json contract needs finite figures, so the wait can be written.
-  assert.ok(Number.isFinite(verdict.failure.cause.estimateUsd));
+/** Owner decision 2026-11-25: a ceiling never stops the run; the verdict passes with a caveat the owner sees. */
+function assertInvalidEstimateWarned(verdict: PreflightVerdict): void {
+  assert.deepEqual(verdict, { status: 'passed', detail: ownerTexts.costEstimateInvalidReason, caveat: true });
 }
 
-describe('CostCeilingCheck fails closed on figures that cannot be compared', () => {
-  it('passes a finite estimate under both ceilings', async () => {
+describe('CostCeilingCheck warns about figures that cannot be compared', () => {
+  it('passes a finite estimate under both ceilings, with no caveat', async () => {
     const { check, workspace } = rig({ planUsd: () => 0.5 });
-    assert.equal((await check.check(workspace, usd(0.5))).status, 'passed');
+    const verdict = await check.check(workspace, usd(0.5));
+    assert.equal(verdict.status, 'passed');
+    assert.equal(verdict.status === 'passed' && verdict.caveat === true, false);
   });
 
-  it('holds the run on a NaN stage estimate instead of passing it', async () => {
+  it('warns, with both amounts, when the estimate passes the run ceiling', async () => {
+    // costPerRunUsd is 3 in the fixture.
+    const { check, workspace } = rig({ planUsd: () => 10 });
+    assert.deepEqual(await check.check(workspace, usd(10)), { status: 'passed', detail: ownerTexts.costRunReason(10, 3), caveat: true });
+  });
+
+  it('warns about a NaN stage estimate', async () => {
     const { check, workspace } = rig({ planUsd: () => Number.NaN });
-    assertInvalidEstimateWait(await check.check(workspace, usd(Number.NaN)), 'run');
+    assertInvalidEstimateWarned(await check.check(workspace, usd(Number.NaN)));
   });
 
-  it('holds the run when a later stage estimates Infinity', async () => {
+  it('warns when a later stage estimates Infinity', async () => {
     const { check, workspace } = rig({ planUsd: () => 0.1, laterUsd: () => Number.POSITIVE_INFINITY });
-    assertInvalidEstimateWait(await check.check(workspace, usd(0.1)), 'run');
+    assertInvalidEstimateWarned(await check.check(workspace, usd(0.1)));
   });
 
-  it('holds the run when the ledger answers NaN for the month', async () => {
+  it('warns when the ledger answers NaN for the month', async () => {
     const { check, workspace } = rig({ planUsd: () => 0.1, monthToDateUsd: Number.NaN });
-    assertInvalidEstimateWait(await check.check(workspace, usd(0.1)), 'month');
+    assertInvalidEstimateWarned(await check.check(workspace, usd(0.1)));
   });
 
-  it('holds the run on a negative estimate', async () => {
+  it('warns about a negative estimate', async () => {
     const { check, workspace } = rig({ planUsd: () => -1 });
-    assertInvalidEstimateWait(await check.check(workspace, usd(-1)), 'run');
+    assertInvalidEstimateWarned(await check.check(workspace, usd(-1)));
   });
 });
 
-describe('ExecuteStep checks the ceilings before a retried attempt', () => {
+describe('ExecuteStep estimates again before a retried attempt and never stops on a ceiling', () => {
+  // The fixture run has no stage brief on disk, so a step that got past the cost check stops reading it.
+  // A ceiling that still held the attempt would return a `guard` failure instead of rejecting.
+  const PAST_THE_COST_CHECK = { name: 'RunFileNotFoundError' };
+
   function executeStep(check: CostCeilingCheck): ExecuteStep {
     const drafter = new NextBriefDrafter(new ExecutorRegistry([]), clock, new StageBriefComposer(new MockLearningNotes()));
     return new ExecuteStep(drafter, check);
   }
 
-  function assertHeldByCeiling(outcome: StepOutcome): void {
-    assert.equal(outcome.kind, 'failed');
-    if (outcome.kind !== 'failed') return;
-    assert.equal(outcome.failure.origin, 'guard');
-    if (outcome.failure.origin !== 'guard') return;
-    assert.equal(outcome.failure.cause.kind, 'cost-ceiling');
-  }
-
-  it('refuses a retry-step attempt whose estimate passes the run ceiling, before the executor runs', async () => {
+  it('runs a retry-step attempt whose estimate passes the run ceiling', async () => {
     // costPerRunUsd is 3 in the fixture; preflight passed earlier in this execution.
-    const { check, workspace, planExecutor } = rig({ planUsd: () => 10 });
+    const { check, workspace } = rig({ planUsd: () => 10 });
     workspace.markCostChecked();
-    const outcome = await executeStep(check).run({ workspace, attempt: 2, stepKey: 'plan:execute:2', signal: new AbortController().signal });
-    assertHeldByCeiling(outcome);
-    assert.equal(planExecutor.executeCalls, 0);
+    await assert.rejects(executeStep(check).run({ workspace, attempt: 2, stepKey: 'plan:execute:2', signal: new AbortController().signal }), PAST_THE_COST_CHECK);
   });
 
   it('estimates with the patched params of a retry-with-params, whose new params preflight never saw', async () => {
     const { check, workspace, planExecutor } = rig({ planUsd: () => 10 });
     workspace.markCostChecked();
     workspace.useParams({ ...workspace.recipeParams(), patchedForRetry: 2 });
-    const outcome = await executeStep(check).run({ workspace, attempt: 1, stepKey: 'plan:execute:1', signal: new AbortController().signal });
-    assertHeldByCeiling(outcome);
+    await assert.rejects(executeStep(check).run({ workspace, attempt: 1, stepKey: 'plan:execute:1', signal: new AbortController().signal }), PAST_THE_COST_CHECK);
     assert.equal(planExecutor.estimatedParams.at(-1)?.patchedForRetry, 2);
-    assert.equal(planExecutor.executeCalls, 0);
   });
 
-  it('holds a retried attempt whose estimate is NaN', async () => {
-    const { check, workspace, planExecutor } = rig({ planUsd: () => Number.NaN });
-    const outcome = await executeStep(check).run({ workspace, attempt: 3, stepKey: 'plan:execute:3', signal: new AbortController().signal });
-    assertHeldByCeiling(outcome);
-    assert.equal(planExecutor.executeCalls, 0);
+  it('runs a retried attempt whose estimate is NaN', async () => {
+    const { check, workspace } = rig({ planUsd: () => Number.NaN });
+    await assert.rejects(executeStep(check).run({ workspace, attempt: 3, stepKey: 'plan:execute:3', signal: new AbortController().signal }), PAST_THE_COST_CHECK);
   });
 });

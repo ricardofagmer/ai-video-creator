@@ -79,9 +79,10 @@ export function catalogSectionTabId(section: CatalogSection): string {
 }
 
 /**
- * Sections whose items are sorted into content categories (hook, title, …) by tag: Video templates,
- * and References since docs/specs/2026-11-23-reference-link-save-and-categories-design.md.
+ * Sections whose items are sorted into content categories by tag: Video templates, References since
+ * docs/specs/2026-11-23-reference-link-save-and-categories-design.md, and Images since
+ * docs/specs/2026-11-24-catalog-image-categories.md (which has its own list, image-categories.ts).
  */
 export function sectionHasCategories(section: CatalogSection): boolean {
-  return section === 'templates' || section === 'references';
+  return section === 'templates' || section === 'references' || section === 'images';
 }

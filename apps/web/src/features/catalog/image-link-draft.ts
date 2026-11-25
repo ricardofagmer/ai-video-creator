@@ -2,6 +2,7 @@ import { type AssetMetadataInput, type AssetVersionView } from '@studio/shared/a
 import { type ImageDetails } from '@studio/shared/catalog';
 import { httpsUrlFrom } from '../common/https-url';
 import { assetIdFromName } from './asset-form/asset-form-model';
+import { tagsWithImageCategory, type ImageCategory } from './image-categories';
 
 export const IMAGE_LINK_URL_MAX = 2048;
 export const IMAGE_NAME_MAX = 120;
@@ -15,6 +16,8 @@ export interface ImageLinkInput {
   name: string;
   owner: string;
   purpose: ImageDetails['purpose'];
+  /** Saved as its `cat.<slug>` tag; `other` saves none. */
+  category: ImageCategory;
   width: number;
   height: number;
 }
@@ -62,7 +65,7 @@ export function imageLinkDraftOf(input: ImageLinkInput): ImageLinkDraft {
     metadata: {
       name: input.name.trim().slice(0, IMAGE_NAME_MAX),
       owner: input.owner.trim().slice(0, IMAGE_OWNER_MAX),
-      tags: ['link'],
+      tags: tagsWithImageCategory(['link'], input.category),
       provenance: { source: { type: 'url', url: href }, author: input.url.hostname, capturedAt: null },
       sensitivity: 'third-party',
       details,

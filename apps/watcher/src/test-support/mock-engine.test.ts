@@ -2,10 +2,11 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, resolve, sep } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import { Logger } from '@nestjs/common';
 import { readApprovalFile, readControlRequest, readRunFile } from '@studio/shared/run-files';
+import { ownerTexts } from '../engine/owner-texts';
 import { InvalidMockFaultError } from '../mocks/mock-fault';
 import {
   InvalidProcessIdError,
@@ -61,13 +62,15 @@ describe('startMockEngine (ticket 01 criterion 2)', () => {
     assert.equal((await readRunFile(handle.runDir)).state.status, 'review');
   });
 
-  it('stops in waiting at the plan gate without the plan approval', async () => {
+  it('passes the plan gate with a warning and reaches review without the plan approval', async () => {
     handle = await startMockEngine({ withPlanApproval: false });
 
     const result = await handle.execute();
 
-    assert.equal(result.status, 'waiting');
+    assert.equal(result.status, 'review');
     assert.equal((await readApprovalFile(handle.runDir)).status, 'absent');
+    const events = await readFile(join(handle.runDir, 'events.jsonl'), 'utf8');
+    assert.ok(events.includes(JSON.stringify(ownerTexts.gateSkipped(ownerTexts.planGateLabel))), 'the skipped gate is warned about');
   });
 
   it('works on a copy inside a temp runs root and leaves the committed fixture unchanged', async () => {

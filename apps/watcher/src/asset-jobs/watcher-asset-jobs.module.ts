@@ -7,8 +7,10 @@ import { SystemClock } from '../engine/clock';
 import { AssetJobScanner } from './asset-job-scanner';
 import { AssetJobSpend } from './asset-job-spend';
 import { AssetJobStep } from './asset-job-step';
+import { AssetPurposeHandler } from './asset-purpose.handler';
 import { ASSET_JOB_COST, ASSET_JOBS_CLOCK, ASSET_JOBS_PROCESS, ASSET_JOBS_STOP, type AssetJobProcess } from './asset-jobs.tokens';
 import { ReferenceAnalysisHandler } from './reference-analysis.handler';
+import { TemplatePreviewHandler } from './template-preview.handler';
 import { VoiceSampleHandler } from './voice-sample.handler';
 
 export interface WatcherAssetJobsModuleOptions {
@@ -18,7 +20,8 @@ export interface WatcherAssetJobsModuleOptions {
    * The daemon's `WatcherModule` registration object (catalog selection, core agents), imported
    * as-is so the step shares its instances: `ASSET_RESOLVER` (the catalog resolver, read-only, full
    * re-hash), `STAGE_SETTINGS` (ffmpeg, ffprobe, local voice, ElevenLabs voice id) and
-   * `REFERENCE_ANALYST` (core `ReferenceAnalystService`). A second `AgentsModule.register` here
+   * `REFERENCE_ANALYST` (core `ReferenceAnalystService`) and `ASSET_PURPOSE_WRITER` (core
+   * `AssetPurposeWriterService`). A second `AgentsModule.register` here
    * would build a second agent graph.
    */
   ports: DynamicModule;
@@ -47,6 +50,8 @@ export class WatcherAssetJobsModule {
         AssetJobSpend,
         VoiceSampleHandler,
         ReferenceAnalysisHandler,
+        TemplatePreviewHandler,
+        AssetPurposeHandler,
         AssetJobStep,
       ],
       exports: [AssetJobStep],

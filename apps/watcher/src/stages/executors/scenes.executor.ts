@@ -5,16 +5,18 @@ import { type CheckId, type DeclaredOutput, type ModelUse, type StageEstimate } 
 import { callAgent } from '../agents/agent-call';
 import { runEvaluatorLoop, type GeneratorAttempt } from '../agents/evaluator-loop';
 import { boundTemplate, brandKitSummary, buildPacket, coordinatesOf } from '../agents/packet-sources';
-import { reviewerScoreEvidence, revisionsExhaustedFailure } from '../agents/review-evidence';
+import { reviewCaveat, reviewerScoreEvidence } from '../agents/review-evidence';
 import { reviewSubject } from '../agents/reviewer';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
-import { CapturesIndexSchema, ReviewOutcomeSchema } from '../shared/stage-artifacts';
+import { CapturesIndexSchema, ReviewOutcomeSchema, type ReviewOutcome } from '../shared/stage-artifacts';
 import { agentCallsEstimate, evaluatorLoopRoles } from '../shared/stage-estimates';
+import { ownerReferencesField, readOwnerReferences, readReferenceMedia } from '../shared/owner-references-input';
 import { readReferenceAnalysesInput, referenceAnalysesField } from '../shared/reference-analyses-input';
 import { readSiteAnalysisInput, siteAnalysisCaveat, siteAnalysisField, type SiteAnalysisInput } from '../shared/site-analysis-input';
 import { readOptionalStageInput, readOwnOutput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { needsPerson, reportedSuccess, stageFailed, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
 import { stageTexts } from '../shared/stage-texts';
+import { directorMusicField } from '../music/director-music';
 import { sceneRefsEvidence } from './scene-refs';
 
 const JSON_MIME = 'application/json';
@@ -45,22 +47,28 @@ export class ScenesExecutor extends BaseStageExecutor {
     const directorSource = await this.directorSourceOf(context, siteAnalysis);
     if ('class' in directorSource) return stageFailed(directorSource);
     // The `reference-analyses` artifact `script` wrote, when it wrote one; absent is the usual case.
-    const source: DirectorPacketSource = { ...directorSource, ...referenceAnalysesField(await readReferenceAnalysesInput(context)) };
+    const ownerReferences = await readOwnerReferences(context, this.dependencies.catalog);
+    const source: DirectorPacketSource = {
+      ...directorSource,
+      ...referenceAnalysesField(await readReferenceAnalysesInput(context)),
+      ...ownerReferencesField(ownerReferences),
+      ...(await directorMusicField(context, this.dependencies.catalog)),
+    };
     const models: ModelUse[] = [];
     const loop = await runEvaluatorLoop<ScenesOutput>({
       context,
       subject: 'scenes',
       generate: (revision) => this.direct(context, { ...source, ...(revision === undefined ? {} : { revision }) }, models),
-      review: () => reviewSubject(this.dependencies, { context, subject: 'scenes', models }),
+      review: (draft) => reviewSubject(this.dependencies, { context, subject: 'scenes', models, draft }),
     });
     if (loop.status === 'generator-failed') return stageFailed(loop.failure, models);
     await outputs.writeJson('scenes', ScenesOutputSchema, loop.output);
-    if (loop.status === 'revisions-exhausted') {
-      await outputs.writeJson('review-scenes-outcome', ReviewOutcomeSchema, { format: 1, status: 'recorded', revisions: loop.revisions, verdict: loop.verdict });
-      return stageFailed(revisionsExhaustedFailure(this.stageId, loop.verdict), models);
-    }
-    await outputs.writeJson('review-scenes-outcome', ReviewOutcomeSchema, loop.review);
-    const caveat = loop.review.status === 'unavailable' ? ` ${stageTexts.reviewerUnavailableWarning}` : '';
+    // Owner decision 2026-11-24: a review never stops the run; the last draft goes on with a caveat.
+    const exhausted = loop.status === 'revisions-exhausted';
+    const review: ReviewOutcome = exhausted ? { format: 1, status: 'recorded', revisions: loop.revisions, verdict: loop.verdict } : loop.review;
+    await outputs.writeJson('review-scenes-outcome', ReviewOutcomeSchema, review);
+    const reviewNote = review.status === 'unavailable' ? stageTexts.reviewerUnavailableWarning : reviewCaveat(context, review, exhausted);
+    const caveat = reviewNote === null ? '' : ` ${reviewNote}`;
     return reportedSuccess(`${loop.output.scenes.length} cena(s) definida(s).${caveat}${siteAnalysisCaveat(siteAnalysis)}`, models);
   }
 
@@ -101,7 +109,8 @@ export class ScenesExecutor extends BaseStageExecutor {
       script,
       capturesIndex: (captures?.captures ?? []).map(({ captureId, label, durationMs }) => ({ captureId, label, durationMs })),
       templateSceneSchema: template.details.sceneSchema ?? {},
-      boundAssets: await catalog.boundSummaries(context),
+      // The recipe's pins, then the pictures and clips the owner put on this run: both may be shown.
+      boundAssets: [...(await catalog.boundSummaries(context)), ...(await readReferenceMedia(context, catalog))],
       brandKit,
       cameraMoves: template.details.cameraMoves,
       transitions: template.details.transitions,

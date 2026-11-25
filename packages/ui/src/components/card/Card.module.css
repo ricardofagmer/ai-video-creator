@@ -6,8 +6,8 @@
   padding: var(--space-5);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm), var(--shadow-inset-glow);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-md), var(--shadow-inset-glow);
 }
 
 @media (min-width: 768px) {

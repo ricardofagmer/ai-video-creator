@@ -1,6 +1,7 @@
-import { PageHeader, textLinkClassName } from '@studio/ui';
+import { textLinkClassName } from '@studio/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { loadBindingOptions } from '@/features/recipes/binding-options.server';
 import { RecipeEditor } from '@/features/recipes/components/RecipeEditor';
@@ -17,7 +18,10 @@ export default async function NewRecipePage() {
   const { t } = await getI18n();
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.recipes}
+        glyph="script"
         back={
           <Link href="/receitas" className={textLinkClassName()}>
             {t.recipes.detail.back}

@@ -1,5 +1,6 @@
 'use client';
 
+import { type AssetVersionView } from '@studio/shared/api';
 import { Alert, FormField, Input, Select, buttonClassName } from '@studio/ui';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactElement } from 'react';
@@ -37,6 +38,8 @@ interface SaveReferenceLinkFormProps {
   post: VideoPost;
   /** The categories this browser created before (custom-categories.ts), read from the cookie on the server. */
   initialCustomCategories: readonly CustomCategory[];
+  /** Given by a screen that must stay where it is (a dialog): called with the saved version instead of opening the catalog. */
+  onSaved?: (saved: AssetVersionView) => void;
 }
 
 /**
@@ -45,7 +48,7 @@ interface SaveReferenceLinkFormProps {
  * the api validates the metadata again. Only the parsed post reaches the stored link. "New category"
  * adds a category to this browser's list, selects it, and the saved item carries it as a tag.
  */
-export function SaveReferenceLinkForm({ post, initialCustomCategories }: SaveReferenceLinkFormProps): ReactElement {
+export function SaveReferenceLinkForm({ post, initialCustomCategories, onSaved }: SaveReferenceLinkFormProps): ReactElement {
   const t = useWebMessages();
   const texts = t.catalog.linkBox.save;
   const builtInLabels = t.catalog.categories.templateTypes;
@@ -135,10 +138,14 @@ export function SaveReferenceLinkForm({ post, initialCustomCategories }: SaveRef
     setSaving(true);
     const draft = referenceLinkDraftOf({ post, name, category, owner, author });
     try {
-      await browserStudioClient.createAsset({
+      const saved = await browserStudioClient.createAsset({
         fields: { assetId: draft.assetId, kind: draft.kind, metadata: draft.metadata },
         content: { layout: 'file', file: draft.file },
       });
+      if (onSaved !== undefined) {
+        onSaved(saved);
+        return;
+      }
       const target = catalogHref({ section: 'references', templateCategory: category });
       router.push(`${target}${target.includes('?') ? '&' : '?'}salvo=${draft.assetId}`);
     } catch (error) {

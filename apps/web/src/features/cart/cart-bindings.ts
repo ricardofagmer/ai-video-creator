@@ -1,5 +1,5 @@
 import { WRITER_SKILLS_MAX } from '@studio/shared/agents';
-import { cartConflicts, type CompositionConflict } from '@studio/shared/recipes';
+import { cartConflicts, promptSlotOf, type CompositionConflict } from '@studio/shared/recipes';
 import { type BindingOption } from '@/features/recipes/recipe-form-model';
 import { editorKinds, slotSpecs, type SlotSpec } from '@/features/recipes/recipe-slots';
 import { type CartItem } from './cart-store';
@@ -38,11 +38,21 @@ export function fillSlotsFromCart(
     (item) => !conflictRefs.has(item.ref) && options.some((option) => option.ref === item.ref && option.kind === item.kind),
   );
   const used: string[] = [];
+  // A prompt written for one agent goes to that agent's slot first, so stage order never hands the
+  // Scriptwriter's prompt to the Planner.
+  for (const spec of slots) {
+    if (spec.kind !== 'prompt' || (bindings[spec.slot] ?? '') !== '') continue;
+    const own = bindable.find((item) => item.kind === 'prompt' && !used.includes(item.ref) && promptSlotOf(item.ref) === spec.slot);
+    if (own === undefined) continue;
+    bindings[spec.slot] = own.ref;
+    used.push(own.ref);
+  }
   for (const spec of slots) {
     const sameKindSlots = slots.filter((candidate) => candidate.kind === spec.kind).length;
     const replace = sameKindSlots === 1;
     if (!replace && (bindings[spec.slot] ?? '') !== '') continue;
-    const next = bindable.find((item) => item.kind === spec.kind && !used.includes(item.ref));
+    // A prompt that names its agent waits for that agent's slot; only unnamed prompts fill by stage order.
+    const next = bindable.find((item) => item.kind === spec.kind && !used.includes(item.ref) && (item.kind !== 'prompt' || promptSlotOf(item.ref) === null));
     if (next === undefined) continue;
     bindings[spec.slot] = next.ref;
     used.push(next.ref);
@@ -62,6 +72,9 @@ export function fillSlotsFromCart(
 
 /** Where checkout says a cart item goes; the recipe editor applies the same rules against the live catalog. */
 export type CartDestination = 'slot' | 'writer-skill' | 'reference' | 'unused';
+
+/** The order checkout lists the destinations in. */
+export const cartDestinationOrder: readonly CartDestination[] = ['slot', 'writer-skill', 'reference', 'unused'];
 
 const slotKinds = new Set(slotSpecs.map((spec) => spec.kind));
 

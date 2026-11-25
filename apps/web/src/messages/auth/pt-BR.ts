@@ -10,7 +10,7 @@ export const authPtBR = {
   chip: 'Painel local · este Mac',
   headlineBefore: 'Seu estúdio de vídeo com IA, ',
   headlineHighlight: 'rodando neste Mac.',
-  lead: 'Catálogo, receitas e execuções em um só painel. Nada sai da máquina além das chamadas aos provedores de IA que você configurar.',
+  lead: 'Catálogo, presets e execuções em um só painel. Nada sai da máquina além das chamadas aos provedores de IA que você configurar.',
   sessionExpired: 'Sua sessão terminou. Entre de novo para continuar.',
   devSignInFailed: 'O login automático de desenvolvimento não funcionou. Confira a senha em apps/web/.env.local ou entre abaixo.',
   footnote: 'A senha vai direto para a API local: nunca fica na URL, no armazenamento do navegador nem nos logs.',

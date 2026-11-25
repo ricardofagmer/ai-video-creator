@@ -8,10 +8,9 @@ import {
   type HyperframesCommandPorts,
   type HyperframesEventPort,
   type HyperframesSystemPort,
-  type PictureProbeRead,
+  type ProbeOutput,
   type SandboxLogRead,
 } from './hyperframes-ports.js';
-import { parsePictureProbe, pictureProbeArgs } from './picture-probe.js';
 import { SANDBOX_DENIAL_PREDICATE, parseSandboxDenials } from './sandbox-log.js';
 
 /*
@@ -62,11 +61,9 @@ const macSystemPort: HyperframesSystemPort = {
     const result = await runBounded(LOG_PATH, args, { environment: { PATH: SYSTEM_PATH, LANG: 'C' }, timeoutMs: LOG_TIMEOUT_MS, maxBytes: LOG_MAX_BYTES });
     return result.status === 'ok' ? { status: 'read', denials: parseSandboxDenials(result.stdout) } : { status: 'unavailable' };
   },
-  async probePicture(file, searchPath, ffprobeBin): Promise<PictureProbeRead> {
-    const result = await runBounded(ffprobeBin, pictureProbeArgs(file), { environment: { PATH: searchPath }, timeoutMs: PROBE_TIMEOUT_MS, maxBytes: PROBE_MAX_BYTES });
-    if (result.status !== 'ok') return { status: 'unavailable' };
-    const probe = parsePictureProbe(result.stdout);
-    return probe === null ? { status: 'unavailable' } : { status: 'read', probe };
+  async readProbe(program, args, searchPath): Promise<ProbeOutput> {
+    const result = await runBounded(program, args, { environment: { PATH: searchPath }, timeoutMs: PROBE_TIMEOUT_MS, maxBytes: PROBE_MAX_BYTES });
+    return result.status === 'ok' ? { status: 'read', stdout: result.stdout } : { status: 'unavailable' };
   },
   pause: (milliseconds, signal) => delay(milliseconds, undefined, { signal }),
 };

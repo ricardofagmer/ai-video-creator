@@ -1,8 +1,9 @@
-import { Alert, Badge, EmptyState, PageHeader, buttonClassName, textLinkClassName } from '@studio/ui';
+import { Alert, Badge, EmptyState, buttonClassName, textLinkClassName } from '@studio/ui';
 import { type ComparisonView } from '@studio/shared/api';
 import { ComparisonIdSchema } from '@studio/shared/catalog';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { comparisonStatusTones, subjectText, verificationWarnings } from '@/features/comparisons/comparison-labels';
 import { loadArmAspects, loadComparison } from '@/features/comparisons/comparison-page.server';
@@ -77,7 +78,10 @@ export default async function ComparisonPage({ params }: ComparisonPageProps) {
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.comparisons}
+        glyph="compare"
         back={
           <Link href="/comparacoes" className={textLinkClassName()}>
             {texts.new.back}

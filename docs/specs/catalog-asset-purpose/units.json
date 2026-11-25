@@ -1,0 +1,136 @@
+{
+  "feature": "catalog-asset-purpose",
+  "contractRevision": "plan-rev1",
+  "units": [
+    {
+      "id": "01-purpose-tracer-bullet",
+      "dependsOn": [],
+      "files": [
+        "packages/core/prisma",
+        "packages/shared/src/catalog/asset-version.ts",
+        "packages/shared/src/api/catalog.ts",
+        "packages/shared/src/api/routes.ts",
+        "packages/shared/src/asset-jobs",
+        "packages/core/src/catalog/asset-version.mapper.ts",
+        "packages/core/src/catalog/asset-version.repository.ts",
+        "packages/core/src/catalog/asset-purpose.sync.ts",
+        "packages/core/src/catalog/queries",
+        "packages/core/src/catalog/commands/create-asset.handler.ts",
+        "packages/core/src/asset-jobs",
+        "packages/core/src/agents/asset-purpose-writer",
+        "packages/core/src/agents/prompts/asset-purpose.prompt.ts",
+        "packages/core/src/agents/index.ts",
+        "packages/shared/src/ports",
+        "apps/watcher/src/asset-jobs",
+        "apps/api/src/catalog/asset-purpose.controller.ts",
+        "apps/api/src/catalog/catalog.module.ts",
+        "apps/api/src/catalog/catalog.controller.ts",
+        "apps/web/src/features/catalog/components/AssetPurposeCard.tsx",
+        "apps/web/src/features/catalog/views/AssetDetailView.tsx",
+        "apps/web/src/messages/catalog"
+      ],
+      "agent": "backend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev1",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "02-purpose-content-readers",
+      "dependsOn": [
+        "01-purpose-tracer-bullet"
+      ],
+      "files": [
+        "apps/watcher/src/asset-jobs/asset-purpose.input.ts",
+        "apps/watcher/src/asset-jobs/asset-purpose.content.ts"
+      ],
+      "agent": "llm-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev1",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "03-purpose-owner-edit",
+      "dependsOn": [
+        "01-purpose-tracer-bullet"
+      ],
+      "files": [
+        "packages/core/src/catalog/commands/set-asset-purpose.command.ts",
+        "packages/core/src/catalog/commands/set-asset-purpose.handler.ts",
+        "apps/api/src/catalog/asset-purpose-edit.controller.ts",
+        "apps/web/src/features/catalog/components/AssetPurposeEditor.tsx"
+      ],
+      "agent": "frontend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev1",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "04-purpose-hover-and-copy",
+      "dependsOn": [
+        "01-purpose-tracer-bullet"
+      ],
+      "files": [
+        "apps/web/src/features/catalog/components/CatalogAssetItem.tsx",
+        "apps/web/src/features/catalog/components/CatalogLibraryTile.tsx",
+        "packages/core/src/catalog/commands/save-asset-version.handler.ts"
+      ],
+      "agent": "frontend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev1",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "05-purpose-backfill",
+      "dependsOn": [
+        "01-purpose-tracer-bullet"
+      ],
+      "files": [
+        "packages/core/src/catalog/queries/count-missing-purposes.query.ts",
+        "packages/core/src/catalog/queries/count-missing-purposes.handler.ts",
+        "packages/core/src/asset-jobs/commands/request-purpose-backfill.command.ts",
+        "packages/core/src/asset-jobs/commands/request-purpose-backfill.handler.ts",
+        "apps/api/src/catalog/asset-purpose-backfill.controller.ts",
+        "apps/web/src/features/catalog/components/PurposeBackfillButton.tsx",
+        "apps/web/src/app/(studio)/catalogo/page.tsx"
+      ],
+      "agent": "backend-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev1",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    },
+    {
+      "id": "06-purpose-agent-tools",
+      "dependsOn": [
+        "01-purpose-tracer-bullet"
+      ],
+      "files": [
+        "packages/core/src/agents/tools/catalog-search.tool.ts",
+        "packages/core/src/agents/tools/asset-describe.tool.ts",
+        "packages/core/src/agents/tools/tool-results.ts",
+        "packages/shared/src/agents/tool-limits.ts"
+      ],
+      "agent": "llm-coordinator",
+      "modelTier": "build",
+      "contractRevision": "plan-rev1",
+      "requiredChecks": [
+        "scoped-diff-inspection",
+        "contract-inspection"
+      ]
+    }
+  ]
+}

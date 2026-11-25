@@ -64,7 +64,8 @@ function mockNarration(sceneNumber: number, topic: string, wordCount: number): s
   for (let index = 0; words.length < wordCount; index += 1) {
     words.push(FILLER_WORDS[index % FILLER_WORDS.length] ?? 'texto');
   }
-  return `${words.join(' ')}.`;
+  // A long topic makes the opening alone exceed the budget; trim so the mock voice keeps the target.
+  return `${words.slice(0, wordCount).join(' ')}.`;
 }
 
 /** One scene per verified claim (at least one), each citing its claim. */
@@ -107,7 +108,14 @@ function mockScenes(packet: DirectorPacket): ScenesOutput {
         : { type: CAPTURE_VISUAL, captureId: capture.captureId, inMs: 0, outMs: capture.durationMs };
     return { sceneId: scene.sceneId, visual, cameraMove, transition };
   });
-  return { scenes, citedRefs: [] };
+  // Naming the first candidate lets a mock run exercise the music stage's pick path end to end.
+  const firstCandidate = packet.inputs.music?.candidates[0];
+  if (firstCandidate === undefined) return { scenes, citedRefs: [] };
+  return {
+    scenes,
+    citedRefs: [],
+    musicPick: { ref: firstCandidate.ref, reason: `${SIMULATED_LABEL}: primeira faixa candidata.` },
+  };
 }
 
 /** Scores every rubric criterion 4 with evidence and recommends no retry. */

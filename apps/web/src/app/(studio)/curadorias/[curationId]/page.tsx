@@ -1,9 +1,10 @@
-import { Alert, Badge, Card, EmptyState, PageHeader, buttonClassName, formatUsd, textLinkClassName, type Locale } from '@studio/ui';
+import { Alert, Badge, Card, EmptyState, buttonClassName, formatUsd, textLinkClassName, type Locale } from '@studio/ui';
 import { type CurationView } from '@studio/shared/api';
 import { curationBounds, isTerminalCurationStatus } from '@studio/shared/curation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import {
   curatedVersionHref,
@@ -157,7 +158,10 @@ export default async function CurationPage({ params }: CurationPageProps) {
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.curations}
+        glyph="magnifier"
         back={
           subjectHref === null ? undefined : (
             <Link href={subjectHref} className={textLinkClassName()}>

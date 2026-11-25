@@ -1,18 +1,29 @@
 import { type SelectOption } from '@studio/ui';
-import { type AssetKind } from '@studio/shared/catalog';
+import { MUSIC_CATEGORIES_MAX, type AssetKind } from '@studio/shared/catalog';
 import { type WebMessages } from '@/messages';
 
-/** How one kind-specific field is drawn; the values and their parsing live in kind-details-model. */
-export interface DetailFieldSpec {
+interface DetailFieldBase {
   key: string;
   label: string;
-  control: 'text' | 'mono' | 'number' | 'textarea' | 'json' | 'select' | 'list';
-  options?: readonly SelectOption[];
   optional?: boolean;
   help?: string;
   /** Spans both columns of the field grid. */
   wide?: boolean;
 }
+
+/** A field drawn as one labelled control; the values and their parsing live in kind-details-model. */
+export interface ControlDetailFieldSpec extends DetailFieldBase {
+  control: 'text' | 'mono' | 'number' | 'textarea' | 'json' | 'select' | 'list';
+  options?: readonly SelectOption[];
+}
+
+/** The music categories: a group of checkboxes with a legend, kept as comma-separated ids in the form. */
+export interface MusicCategoriesDetailFieldSpec extends DetailFieldBase {
+  control: 'music-categories';
+}
+
+/** How one kind-specific field is drawn. */
+export type DetailFieldSpec = ControlDetailFieldSpec | MusicCategoriesDetailFieldSpec;
 
 /** PRD 5.2 kind-specific fields per kind (design/telas/04 item 5); `prompt` uses the variables table. */
 export function detailFieldSpecsOf(t: WebMessages['catalog']['form']['kindDetails']): Readonly<Record<AssetKind, readonly DetailFieldSpec[]>> {
@@ -74,6 +85,7 @@ export function detailFieldSpecsOf(t: WebMessages['catalog']['form']['kindDetail
       ],
     },
     { key: 'modelIdRefValue', label: t.modelIdRefValue, control: 'mono', help: t.modelIdRefHelp },
+    { key: 'voiceModelId', label: t.voiceModelId, control: 'mono', optional: true, help: t.voiceModelIdHelp },
   ],
   reference: [
     {
@@ -117,6 +129,7 @@ export function detailFieldSpecsOf(t: WebMessages['catalog']['form']['kindDetail
     { key: 'durationSec', label: t.durationSec, control: 'number' },
     { key: 'bpm', label: t.bpm, control: 'number', optional: true },
     { key: 'integratedLufs', label: t.integratedLufs, control: 'number', optional: true },
+    { key: 'categories', label: t.musicCategories, control: 'music-categories', optional: true, help: t.musicCategoriesHelp(MUSIC_CATEGORIES_MAX), wide: true },
   ],
   sfx: [{ key: 'durationSec', label: t.durationSec, control: 'number' }],
   'brand-kit': [{ key: 'brandKitJson', label: t.brandKit, control: 'json', help: t.brandKitHelp, wide: true }],

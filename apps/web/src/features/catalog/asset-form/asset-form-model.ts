@@ -175,7 +175,8 @@ export function referencePathOf(values: Pick<AssetFormValues, 'referencePath'>):
   return values.referencePath.trim();
 }
 
-function tagsOf(text: string): string[] {
+/** The comma-separated tag field as a list, empty entries dropped. */
+export function tagsOf(text: string): string[] {
   return text
     .split(',')
     .map((tag) => tag.trim())

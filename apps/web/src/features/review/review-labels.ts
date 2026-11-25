@@ -14,5 +14,6 @@ export const checkOutcomeResults: Readonly<Record<CheckResult['outcome'], QaResu
 export function costSessionActor(session: CostSession, t: WebMessages['runs']['review']['cost']): string {
   if (session.kind === 'model') return `${session.role} · ${session.modelId}`;
   if (session.kind === 'tts') return t.ttsProviders[session.provider];
+  if (session.kind === 'music') return t.music;
   return t.render;
 }

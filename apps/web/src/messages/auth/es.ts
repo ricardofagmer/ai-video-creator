@@ -11,7 +11,7 @@ export const authEs: Messages<typeof authPtBR> = {
   chip: 'Panel local · este Mac',
   headlineBefore: 'Tu estudio de video con IA, ',
   headlineHighlight: 'funcionando en este Mac.',
-  lead: 'Catálogo, recetas y ejecuciones en un solo panel. Nada sale de la máquina, salvo las llamadas a los proveedores de IA que configures.',
+  lead: 'Catálogo, presets y ejecuciones en un solo panel. Nada sale de la máquina, salvo las llamadas a los proveedores de IA que configures.',
   sessionExpired: 'Tu sesión terminó. Vuelve a entrar para continuar.',
   devSignInFailed: 'El inicio de sesión automático de desarrollo no funcionó. Revisa la contraseña en apps/web/.env.local o entra abajo.',
   footnote: 'La contraseña va directo a la API local: nunca queda en la URL, en el almacenamiento del navegador ni en los registros.',

@@ -5,6 +5,7 @@ import {
   RecordGateDecisionCommand,
   RecordReviewDecisionCommand,
   RequestRunControlCommand,
+  SaveRunVideoCommand,
 } from '@studio/core/review';
 import {
   GateDecisionRequestSchema,
@@ -21,6 +22,7 @@ import {
   type ReviewDecisionResponse,
   type RunControlRequest,
   type RunControlResponse,
+  type SaveRunVideoResponse,
 } from '@studio/shared/api';
 import { formatAssetRef } from '@studio/shared/catalog';
 import { type Response } from 'express';
@@ -99,6 +101,19 @@ export class RunDecisionsController {
         decidedBy: principal.subject,
       }),
     );
+    this.searchIndex.afterResponse(response, [formatAssetRef({ assetId: result.assetId, version: result.version })]);
+    return result;
+  }
+
+  /** Saves the run's `final.mp4` as a `reference` video asset for its preset; indexed after the response. */
+  @Post(':runId/save-video')
+  @HttpCode(201)
+  async saveVideo(
+    @Param(new ZodValidationPipe(RunParamsSchema)) params: RunParams,
+    @CurrentPrincipal() principal: Principal,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<SaveRunVideoResponse> {
+    const result = await this.commandBus.execute(new SaveRunVideoCommand({ runId: params.runId, decidedBy: principal.subject }));
     this.searchIndex.afterResponse(response, [formatAssetRef({ assetId: result.assetId, version: result.version })]);
     return result;
   }

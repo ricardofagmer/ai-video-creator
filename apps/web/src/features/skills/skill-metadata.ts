@@ -13,6 +13,8 @@ export interface SkillFormInput {
   name: string;
   briefing: string;
   category: SkillCategory;
+  /** The skill's own tags (no category); only the edit form sets them, others keep the stored ones. */
+  tags?: readonly string[];
 }
 
 export type SkillInputProblem = 'name-required' | 'briefing-too-long' | 'owner-required' | 'id-invalid';
@@ -57,15 +59,15 @@ export function newSkillMetadataOf(input: SkillFormInput & { owner: string; entr
 }
 
 /**
- * Metadata of version N+1 after an edit: name, briefing and the single category tag change; every
- * other field and tag is carried over from the version the edit started from.
+ * Metadata of version N+1 after an edit: name, briefing, the single category tag and the own tags
+ * change; every other field is carried over from the version the edit started from.
  */
 export function editedSkillMetadataOf(base: AssetVersionView, input: SkillFormInput, entryFile: string): AssetMetadataInput {
   return {
     name: input.name.trim().slice(0, SKILL_NAME_MAX),
     summary: base.summary,
     owner: base.owner,
-    tags: tagsWithSkillCategory(base.tags, input.category),
+    tags: tagsWithSkillCategory([...new Set(input.tags ?? base.tags)], input.category),
     provenance: base.provenance ?? undefined,
     license: base.license ?? undefined,
     sensitivity: base.sensitivity,

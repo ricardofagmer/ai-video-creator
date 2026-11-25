@@ -204,17 +204,17 @@ export const metricsEs: Messages<typeof metricsPtBR> = {
     },
     reviewTime: {
       title: 'Tiempo del briefing a la revisión',
-      description: 'Por receta: la ejecución más reciente frente a la primera.',
-      caption: 'Tiempo del briefing a la revisión, por receta',
+      description: 'Por preset: la ejecución más reciente frente a la primera.',
+      caption: 'Tiempo del briefing a la revisión, por preset',
       empty: 'Ninguna ejecución llegó a la revisión todavía.',
-      columns: { recipe: 'Receta', runs: 'Ejecuciones', first: 'Primera', latest: 'Más reciente', verdict: 'Más rápida que la primera' },
+      columns: { recipe: 'Preset', runs: 'Ejecuciones', first: 'Primera', latest: 'Más reciente', verdict: 'Más rápida que la primera' },
     },
     ratingTrend: {
       title: 'Tendencia de la nota',
-      description: 'Por receta: promedio de las últimas 5 evaluaciones frente a las 5 anteriores.',
-      caption: 'Tendencia de la nota, por receta',
+      description: 'Por preset: promedio de las últimas 5 evaluaciones frente a las 5 anteriores.',
+      caption: 'Tendencia de la nota, por preset',
       empty: 'Todavía no se evaluó ninguna ejecución.',
-      columns: { recipe: 'Receta', latest: 'Últimas', previous: 'Anteriores', verdict: 'Nota mantenida' },
+      columns: { recipe: 'Preset', latest: 'Últimas', previous: 'Anteriores', verdict: 'Nota mantenida' },
     },
     catalogRuns: {
       title: 'Activos del catálogo por ejecución',

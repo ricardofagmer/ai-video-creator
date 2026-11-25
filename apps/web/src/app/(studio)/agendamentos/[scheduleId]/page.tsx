@@ -4,7 +4,6 @@ import {
   Card,
   DescriptionList,
   EmptyState,
-  PageHeader,
   buttonClassName,
   formatUsd,
   textLinkClassName,
@@ -15,6 +14,7 @@ import { type ScheduleView } from '@studio/shared/api';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { formatDateTime } from '@/features/runs/run-labels';
 import { ScheduleBriefList } from '@/features/schedules/components/ScheduleBriefList';
@@ -93,7 +93,10 @@ export default async function SchedulePage({ params }: SchedulePageProps) {
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.schedules}
+        glyph="calendar"
         back={
           <Link href="/agendamentos" className={textLinkClassName()}>
             {texts.back}

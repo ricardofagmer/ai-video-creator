@@ -5,7 +5,7 @@ import { mandatoryStages, PhaseIdSchema, stageOrder, stagePhase, type StageId } 
 import { type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { useWebMessages } from '@/lib/i18n/client';
-import { recipeFieldIds, type RecipeFormValues } from '../recipe-form-model';
+import { recipeFieldIds } from '../recipe-form-model';
 
 export interface RecipeStagesSectionProps {
   enabledStages: readonly StageId[];
@@ -118,13 +118,11 @@ export function RecipeGatesSection({ scriptApproval, scriptEnabled, onChange }: 
   );
 }
 
-export interface RecipeInputsSectionProps {
-  values: Pick<RecipeFormValues, 'requireSourceUrl' | 'requireKeyMessages'>;
-  onChange: (patch: Partial<RecipeFormValues>) => void;
-}
-
-/** design/telas/06 card "Entradas do briefing" (C2 `inputs`; the topic is always required). */
-export function RecipeInputsSection({ values, onChange }: RecipeInputsSectionProps): ReactElement {
+/**
+ * design/telas/06 card "Entradas do briefing" (C2 `inputs`). Only the topic is required; the source
+ * URL and the key messages are shown unchecked because a preset can no longer require them.
+ */
+export function RecipeInputsSection(): ReactElement {
   const texts = useWebMessages().recipes.inputs;
   return (
     <fieldset className={layout.fieldset}>
@@ -135,14 +133,16 @@ export function RecipeInputsSection({ values, onChange }: RecipeInputsSectionPro
           <Checkbox
             id="entrada-url"
             label={texts.sourceUrl}
-            checked={values.requireSourceUrl}
-            onChange={(event) => onChange({ requireSourceUrl: event.currentTarget.checked })}
+            checked={false}
+            disabled
+            readOnly
           />
           <Checkbox
             id="entrada-mensagens"
             label={texts.keyMessages}
-            checked={values.requireKeyMessages}
-            onChange={(event) => onChange({ requireKeyMessages: event.currentTarget.checked })}
+            checked={false}
+            disabled
+            readOnly
           />
         </div>
       </Card>

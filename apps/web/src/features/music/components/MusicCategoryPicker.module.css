@@ -1,0 +1,12 @@
+/* The category checkboxes: spacing matches the kit's RadioGroup (legend, then options). Tokens only. */
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-1);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

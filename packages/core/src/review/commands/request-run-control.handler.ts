@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { z } from 'zod';
+import { BriefSchema, type Brief } from '@studio/shared/recipes';
 import { readControlRequest, writeControlRequest } from '@studio/shared/run-files';
 import {
   RunIdSchema,
@@ -18,7 +19,7 @@ import { RequestRunControlCommand, type RunControlRequest, type RunControlResult
 const RunControlRequestSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('pause') }).strict(),
   z.object({ kind: z.literal('stop') }).strict(),
-  z.object({ kind: z.literal('resume') }).strict(),
+  z.object({ kind: z.literal('resume'), brief: BriefSchema.optional() }).strict(),
 ]);
 
 /** `pause` and `stop` reach a watcher between steps, or at the start of a pending run's execution. */
@@ -29,14 +30,14 @@ const interruptibleStatuses: readonly RunStatus[] = ['pending', 'running'];
  * so both flags are kept; a `pause` or `stop` drops an unread `resume`, and `resume` clears both
  * because the owner asked the held run to continue.
  */
-function nextControl(request: RunControlRequest, current: ControlRequest | null, at: number): ControlRequest {
+function nextControl(request: RunControlRequest, current: ControlRequest | null, at: number, brief: Brief | undefined): ControlRequest {
   switch (request.kind) {
     case 'pause':
       return { pause: true, stop: current?.stop ?? false, at };
     case 'stop':
       return { pause: current?.pause ?? false, stop: true, at };
     case 'resume':
-      return { pause: false, stop: false, resume: true, at };
+      return brief === undefined ? { pause: false, stop: false, resume: true, at } : { pause: false, stop: false, resume: true, at, brief };
   }
 }
 
@@ -64,9 +65,14 @@ export class RequestRunControlHandler implements ICommandHandler<RequestRunContr
         throw new ReviewNotAllowedError(runId, shown, 'status');
       }
       const current = await readControlRequest(loaded.runDir);
-      const control = nextControl(request, current.status === 'present' ? current.value : null, Date.now());
+      // The corrected brief keeps the run's format and language: both come from the pinned preset.
+      const brief =
+        request.kind === 'resume' && request.brief !== undefined
+          ? { ...request.brief, format: loaded.run.brief.format, language: loaded.run.brief.language }
+          : undefined;
+      const control = nextControl(request, current.status === 'present' ? current.value : null, Date.now(), brief);
       await writeControlRequest(loaded.runDir, control);
-      this.logger.log({ event: 'review.control-requested', runId, kind: request.kind, status: shown });
+      this.logger.log({ event: 'review.control-requested', runId, kind: request.kind, status: shown, briefCorrected: brief !== undefined });
       return { runId };
     });
   }

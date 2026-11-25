@@ -13,8 +13,8 @@ import { type StageWorkspace } from '../stage-workspace';
 import { clip, textLimits } from '../text';
 import { stepsToReopen } from './recovery-allowlist';
 
-/** `retry` keeps running this stage; `restart` reruns earlier stages; `held` ends the execution. */
-export type FailureResolution = { kind: 'retry' } | { kind: 'restart' } | { kind: 'held'; status: RunStatus };
+/** `retry` keeps running this stage; `restart` reruns earlier stages; `held` ends the execution; `done` settled the step with a warning. */
+export type FailureResolution = { kind: 'retry' } | { kind: 'restart' } | { kind: 'held'; status: RunStatus } | { kind: 'done'; detail: string };
 
 export interface FailedStep {
   workspace: StageWorkspace;
@@ -28,8 +28,8 @@ type Decided = { kind: 'decided'; decision: StepFailureDecision } | { kind: 'thr
 
 /**
  * Applies the failure policy to one failed step attempt (PRD 7.3, K3). The policy, and its Recovery
- * call, run under their own `StepGuard`: the Recovery budget timeout, a `stop` and the run cost
- * ceiling still apply while the engine decides. Every Recovery call is recorded on the failed step
+ * call, run under their own `StepGuard`: the Recovery budget timeout and a `stop` still apply
+ * while the engine decides. Every Recovery call is recorded on the failed step
  * and as a `step.recovery` event before the decision takes effect.
  */
 @Injectable()
@@ -60,15 +60,11 @@ export class StepFailureHandler {
     }
     guard.close();
 
-    // A stop or the run ceiling overrides whatever the policy answered while they arrived.
+    // A stop overrides whatever the policy answered while it arrived.
     const interruption = guard.interruption;
     if (interruption?.kind === 'stop') {
       await active.endStep(position, 'pending', `${failed.detail} ${ownerTexts.stopRequested}`);
       return this.runControl.interrupt(active, interruption.reason);
-    }
-    if (interruption?.kind === 'cost-ceiling') {
-      await active.endStep(position, 'pending', failed.detail);
-      return this.runControl.waitForCost(active, { spentUsd: interruption.spentUsd, limitUsd: interruption.limitUsd, stepKey });
     }
     // Like a crash: the failed step stays as it is and the next start resumes it (R1-09, criterion 13).
     if (interruption?.kind === 'shutdown') return this.runControl.releaseForShutdown(active);
@@ -96,6 +92,11 @@ export class StepFailureHandler {
         await active.apply((run) => resetStages(run, range, ownerTexts.stepReopened));
         await active.emit({ type: 'log', level: 'warning', text: decision.detail, stepKey });
         return { kind: 'restart' };
+      }
+      case 'accept': {
+        // `failed.detail` opens with the postcondition ("every check passed"), which reads wrong on an accepted failure.
+        await active.endStep(position, 'warning', decision.detail);
+        return { kind: 'done', detail: decision.detail };
       }
       case 'wait': {
         // The step goes back to `pending` so a resumed run starts it again with attempt + 1.

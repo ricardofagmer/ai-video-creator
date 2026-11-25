@@ -61,7 +61,8 @@ export class PackageExecutor extends BaseStageExecutor {
       stageFailed(needsPerson({ kind: 'needs-person', stepKey: context.stepKey }, message, whatToDo));
     const subject = await readOptionalStageInput(context, 'qa-subject', QaSubjectSchema);
     const video = latestVideoInput(context);
-    if (subject === null || !subject.passed || video === undefined) return ownerStop(stageTexts.qaNotPassed, stageTexts.qaNotPassedWhatToDo);
+    // A video QA did not pass is still packaged: its failed checks reach qa/summary.json as warnings.
+    if (subject === null || video === undefined) return ownerStop(stageTexts.qaNotPassed, stageTexts.qaNotPassedWhatToDo);
     const videoPath = await resolveInsideRunReal(context.runDir, subject.path);
     if (video.path !== subject.path || (await sha256OfFile(videoPath)) !== subject.contentHash) {
       return ownerStop(stageTexts.qaSubjectChanged, stageTexts.qaNotPassedWhatToDo);
@@ -83,6 +84,7 @@ export class PackageExecutor extends BaseStageExecutor {
     const report = reportMarkdown({
       title: script?.title ?? context.brief.topic,
       run: await readRunFile(context.runDir),
+      writtenByStage: this.stageId,
       summary,
       outcomes,
       egress: (await readEgressEntries(context.runDir)).entries,

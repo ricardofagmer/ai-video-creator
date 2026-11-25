@@ -1,8 +1,7 @@
 'use client';
 
 import { type AssetVersionView, type ReferenceAnalysisView } from '@studio/shared/api';
-import { Alert, Spinner, textLinkClassName } from '@studio/ui';
-import Link from 'next/link';
+import { Alert, Spinner } from '@studio/ui';
 import { useEffect, useState, type ReactElement } from 'react';
 import { ReferenceAnalysisCard } from '@/features/catalog/components/ReferenceAnalysisCard';
 import { describeApiError } from '@/features/common/api-error-text';
@@ -26,7 +25,8 @@ function isVideoReference(version: AssetVersionView): boolean {
 }
 
 /**
- * One chosen reference: its name linked to the catalog item and, for a video, whether its AI
+ * One chosen reference: its name (plain text: nothing on the wizard navigates, owner rule
+ * 2026-11-25) and, for a video, whether its AI
  * analysis is ready (the catalog's own card, which polls while the analysis runs).
  */
 export function WizardReferenceItem({ assetId, version }: WizardReferenceItemProps): ReactElement {
@@ -62,7 +62,6 @@ export function WizardReferenceItem({ assetId, version }: WizardReferenceItemPro
     // `t` only words the error; reading again when the language changes is not needed.
   }, [assetId, version]);
 
-  const catalogHref = `/catalogo/${encodeURIComponent(assetId)}?versao=${version}`;
   const ref = `${assetId}@${version}`;
 
   if (state.status === 'loading') return <Spinner size="sm" label={texts.loading} />;
@@ -77,9 +76,7 @@ export function WizardReferenceItem({ assetId, version }: WizardReferenceItemPro
   return (
     <div className={styles.referenceItem}>
       <span className={styles.rowName}>
-        <Link href={catalogHref} className={textLinkClassName()} aria-label={texts.openItem(item.name)}>
-          {item.name}
-        </Link>
+        <span>{item.name}</span>
         <span className="mono caption">{ref}</span>
       </span>
       {analysis === null ? (
@@ -88,7 +85,7 @@ export function WizardReferenceItem({ assetId, version }: WizardReferenceItemPro
         <ReferenceAnalysisCard
           assetId={assetId}
           version={version}
-          newVersionHref={`/catalogo/novo?de=${encodeURIComponent(assetId)}&versao=${version}`}
+          newVersionHref={null}
           initialView={analysis.view}
           initialError={analysis.error}
         />

@@ -93,7 +93,7 @@ export function renderPlan(sources: {
   return { scenes, files };
 }
 
-function sceneTimings(scenes: ScenesOutput, narration: NarrationIndex): { startS: number; endS: number }[] {
+export function sceneTimings(scenes: ScenesOutput, narration: NarrationIndex): { startS: number; endS: number }[] {
   const byScene = new Map(narration.sceneTimings.map((timing) => [timing.sceneId, timing]));
   const matched = scenes.scenes.map((scene) => byScene.get(scene.sceneId));
   if (matched.every((timing) => timing !== undefined && timing.endS > timing.startS)) {
@@ -103,7 +103,7 @@ function sceneTimings(scenes: ScenesOutput, narration: NarrationIndex): { startS
   return scenes.scenes.map((_scene, index) => ({ startS: index * slotS, endS: (index + 1) * slotS }));
 }
 
-function visualAsset(
+export function visualAsset(
   visual: ScenesOutput['scenes'][number]['visual'],
   sources: {
     runDirPathOf: (relativePath: string) => string;

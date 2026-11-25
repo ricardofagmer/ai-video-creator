@@ -38,7 +38,7 @@ pt-BR, en and es. No api, no database; the server still fetches nothing.
 - [x] Wikipedia and Commons image-page links are rewritten to the file's address in the browser
 - [x] Broken thumbnail hidden; clearer message for a page link; texts in three languages
 - [x] Seen working on a stand-in page (see Verification)
-- [ ] Seen on the real Catálogo → Imagens page (blocked: the owner's session at 4320 expired)
+- [x] Seen on the real Catálogo → Imagens page (see Verification)
 
 ## What was made
 - `wikimedia-image-link.ts`: `wikimediaFileUrlOf(url)`. For a host `*.wikipedia.org` (mobile too) or
@@ -54,15 +54,13 @@ pt-BR, en and es. No api, no database; the server still fetches nothing.
 ## Not done
 - No typecheck, lint or test run (owner: "Skip for now"). No test written for `wikimediaFileUrlOf`;
   the web package has `node:test` files but no test script to run them.
-- Not seen on the real page yet.
 - Only Wikipedia and Wikimedia Commons pages are understood. Any other page link (a Google Images
   result, a Pinterest pin, an Instagram post) still fails, now with the clearer message.
 - The saved address is the `Special:FilePath` one, which redirects to the file on every load.
 - An SVG reports its own drawing size (the LEGO logo: 150 × 150 px), which is what gets saved.
 
 ## User checklist
-- [ ] Look at Catálogo → Imagens with a Wikipedia image-page link the next time the dev api (the one
-      that accepts 127.0.0.1:4320) runs, or after the desktop app is repackaged with this change
+- [x] Dev api running and signed in at 127.0.0.1:4320 (owner, 2026-11-24: "Done, check")
 - [ ] Approve typecheck and lint for `@studio/web` and `@studio/ui` (4 commands, under Verification)
 
 ## Human decisions
@@ -95,6 +93,15 @@ No HITL reason fired: risk low, no external effect.
   web origin (`apps/api/src/platform/api-config.ts`: default `http://127.0.0.1:4310`), so a sign-in
   from `127.0.0.1:4320` is refused, and the page at 4310 is the packaged build without this change.
   Owner: "Leave it for now (Recommended)". Unavailable evidence, not a pass.
+
+- Real page, looked at, not a check run (owner's Chrome, http://127.0.0.1:4320/catalogo?secao=imagens,
+  pt-BR, 2026-11-24, after the owner said "Done, check"): the owner's link
+  `https://pt.wikipedia.org/wiki/Lego#/media/Ficheiro:LEGO_logo.svg` and "Mostrar" showed the LEGO
+  logo; image `src` `https://pt.wikipedia.org/wiki/Special:FilePath/LEGO_logo.svg`, natural size
+  150 × 150, caption "150 × 150 px · link de página da Wikipédia trocado pelo endereço do arquivo da
+  imagem", with the Nome, Categoria, Uso and Responsável fields and "Salvar imagem". Nothing was
+  saved; the box was cleared with "Limpar". The plain article link (warning only, no broken box) was
+  seen on the stand-in page only.
 
 ## Changes registered
 Not a git repository; files listed by hand.

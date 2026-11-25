@@ -1,15 +1,18 @@
-import { Alert, Card, EmptyState, PageHeader, StatusBadge, buttonClassName, textLinkClassName } from '@studio/ui';
+import { Alert, Card, EmptyState, StatusBadge, buttonClassName, textLinkClassName } from '@studio/ui';
 import { type RecipeVersionView } from '@studio/shared/api';
 import { ComparisonIdSchema } from '@studio/shared/catalog';
 import { RecipeIdSchema } from '@studio/shared/recipes';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { FocusHeadingOnVersionChange } from '@/features/catalog/components/FocusHeadingOnVersionChange';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { SubjectCurationsCard } from '@/features/curations/components/SubjectCurationsCard';
 import { curationBlockedText, recipeCurationSubject } from '@/features/curations/curation-subject';
 import { ActivationSummary } from '@/features/promotion/components/ActivationSummary';
 import { loadBindingOptions } from '@/features/recipes/binding-options.server';
+import { PresetVideosCard } from '@/features/recipes/components/PresetVideosCard';
+import { loadPresetVideos } from '@/features/recipes/preset-videos.server';
 import { RecipeEditor } from '@/features/recipes/components/RecipeEditor';
 import { RecipeStatusControls, RecipeStatusNotice } from '@/features/recipes/components/RecipeStatusControls';
 import { RecipeVersionSelect } from '@/features/recipes/components/RecipeVersionSelect';
@@ -76,14 +79,17 @@ export default async function RecipePage({ params, searchParams }: RecipePagePro
 
   const { recipe } = current;
   const nextVersion = (versions[0]?.recipe.version ?? recipe.version) + 1;
-  const options = await loadBindingOptions(recipe.bindings);
+  const [options, presetVideos] = await Promise.all([loadBindingOptions(recipe.bindings), loadPresetVideos(recipe.id)]);
   // `?comparacao=` from a comparison page: offered as optional evidence in the promotion dialog.
   const comparison = ComparisonIdSchema.safeParse(typeof query.comparacao === 'string' ? query.comparacao : '');
 
   return (
     <div className={layout.page}>
       <FocusHeadingOnVersionChange version={recipe.version} />
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.recipes}
+        glyph="script"
         back={
           <Link href="/receitas" className={textLinkClassName()}>
             {texts.back}
@@ -131,6 +137,7 @@ export default async function RecipePage({ params, searchParams }: RecipePagePro
       {recipe.status === 'active' && current.activation === null && (
         <Alert variant="info">{texts.activatedWithoutApproval}</Alert>
       )}
+      <PresetVideosCard result={presetVideos} aspect={recipe.format.aspect === '9:16' ? '9:16' : '16:9'} texts={texts.videos} />
       <SubjectCurationsCard
         subject={recipeCurationSubject(current)}
         blockedText={curationBlockedText({ status: recipe.status, biometric: false }, t.curations.blocked)}

@@ -1,6 +1,6 @@
 import { type RecipeDefinitionInput } from '@studio/shared/api';
 import { type AssetKind } from '@studio/shared/catalog';
-import { type Binding, type Recipe } from '@studio/shared/recipes';
+import { musicChoiceOf, withMusicChoice, type Binding, type MusicChoice, type Recipe } from '@studio/shared/recipes';
 import { type StageId } from '@studio/shared/run-format';
 import { type BindingOption } from '@/features/recipes/recipe-form-model';
 import { slotSpecs, type SlotSpec } from '@/features/recipes/recipe-slots';
@@ -46,6 +46,23 @@ export function chosenRefOf(recipe: Pick<Recipe, 'bindings'>, choices: WizardCho
   return options.some((option) => option.ref === choice) ? choice : basePin;
 }
 
+/** The music choice a recipe stores in its `music` stage params; "Choose the song" when it says nothing. */
+export function musicChoiceOfRecipe(recipe: Pick<Recipe, 'graph'>): MusicChoice {
+  return musicChoiceOf(recipe.graph.stages.find((stage) => stage.stageId === 'music')?.params ?? {});
+}
+
+function sameMusicChoice(left: MusicChoice, right: MusicChoice): boolean {
+  if (left.mode === 'track' || right.mode === 'track') return left.mode === right.mode;
+  return left.categories.length === right.categories.length && left.categories.every((category) => right.categories.includes(category));
+}
+
+/** The owner's step 3 answers the recipe is composed from. */
+export interface WizardAnswers {
+  choices: WizardChoices;
+  /** null keeps the base recipe's music choice. */
+  musicChoice: MusicChoice | null;
+}
+
 export interface ComposedRecipe {
   /** The base recipe with the step 3 pins, for the composition rules. */
   recipe: Recipe;
@@ -60,15 +77,20 @@ function kindOfSlot(slot: WizardSlot): AssetKind {
 /**
  * The base recipe with the owner's voice and style. Unchanged slots keep the base binding (and its
  * hash); a changed slot takes the option's hash. Slots of stages the recipe does not run are left
- * as the base has them.
+ * as the base has them. "AI decides" goes into the music stage's params and leaves the music slot
+ * empty (docs/specs/2026-11-25-ai-music-choice-design.md).
  */
-export function composeRecipe(base: Recipe, choices: WizardChoices, options: readonly BindingOption[]): ComposedRecipe {
+export function composeRecipe(base: Recipe, answers: WizardAnswers, options: readonly BindingOption[]): ComposedRecipe {
+  const { choices } = answers;
+  const musicOn = enabledStagesOf(base).has('music');
+  const baseMusic = musicChoiceOfRecipe(base);
+  const music = musicOn && answers.musicChoice !== null ? answers.musicChoice : baseMusic;
   let bindings: Binding[] = [...base.bindings];
   const addedKinds = new Set<AssetKind>();
   let changed = false;
   for (const spec of wizardSlotsOf(base)) {
     const basePin = basePinOf(base, spec.slot);
-    const ref = chosenRefOf(base, choices, spec.slot, options);
+    const ref = spec.slot === 'music' && music.mode === 'auto' ? '' : chosenRefOf(base, choices, spec.slot, options);
     if (ref === (basePin?.ref ?? '')) continue;
     const option = options.find((candidate) => candidate.ref === ref);
     if (ref !== '' && option === undefined) continue;
@@ -82,7 +104,9 @@ export function composeRecipe(base: Recipe, choices: WizardChoices, options: rea
   }
   // A new pin must be of a kind the recipe accepts, or core refuses the version.
   const allowedKinds = [...new Set<AssetKind>([...base.allowedKinds, ...addedKinds])];
-  return { recipe: { ...base, bindings, allowedKinds }, changed };
+  if (sameMusicChoice(music, baseMusic)) return { recipe: { ...base, bindings, allowedKinds }, changed };
+  const stages = base.graph.stages.map((stage) => (stage.stageId === 'music' ? { ...stage, params: withMusicChoice(stage.params, music) } : stage));
+  return { recipe: { ...base, graph: { ...base.graph, stages }, bindings, allowedKinds }, changed: true };
 }
 
 /**
@@ -109,8 +133,11 @@ export function definitionOf(recipe: Recipe): RecipeDefinitionInput {
   };
 }
 
-/** Identifies one composed set of pins on one base version, so a retry reuses the version it already saved. */
-export function compositionKeyOf(baseRef: string, recipe: Pick<Recipe, 'bindings'>): string {
+/** Identifies one composed set of pins and music choice on one base version, so a retry reuses the version it already saved. */
+export function compositionKeyOf(baseRef: string, recipe: Pick<Recipe, 'bindings' | 'graph'>): string {
   const pins = wizardSlotIds.map((slot) => `${slot}=${basePinOf(recipe, slot)?.ref ?? ''}`);
-  return `${baseRef}|${pins.join(',')}`;
+  const music = musicChoiceOfRecipe(recipe);
+  // "Choose the song" adds nothing, so keys remembered before the music choice existed still match.
+  const musicKey = music.mode === 'track' ? '' : `|music=auto:${music.categories.join('+')}`;
+  return `${baseRef}|${pins.join(',')}${musicKey}`;
 }

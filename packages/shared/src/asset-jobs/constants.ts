@@ -15,6 +15,9 @@ export const assetJobFileNames = {
   egress: 'egress.jsonl',
   sampleMp3: 'sample.mp3',
   sampleWav: 'sample.wav',
+  /** A template preview's muted clip and its poster frame. */
+  previewMp4: 'preview.mp4',
+  previewPng: 'preview.png',
   /** Billed calls of this job, written by the watcher and indexed by the api (spec Amendment 3). */
   cost: 'cost.json',
 } as const;
@@ -66,4 +69,25 @@ export const voiceSampleBounds = Object.freeze({
   jobTimeoutMs: 120_000,
   /** A sample is one sentence; a larger clip is not a sample. */
   audioMaxBytes: 5 * 1024 * 1024,
+});
+
+/**
+ * Bounds of one asset purpose job (ADR 0012): one tool-less text call that answers at most 280
+ * characters, so a small output cap is enough.
+ */
+export const assetPurposeBounds = Object.freeze({
+  maxOutputTokens: 400,
+  callTimeoutMs: 60_000,
+  /** The call plus the catalog read and the job writes around it. */
+  jobTimeoutMs: 90_000,
+  /** Checked before the call against the month ceiling; a call that could cost more is refused. */
+  worstCaseUsd: 0.1,
+});
+
+/** Bounds of one template preview job: a short muted clip rendered from the template's sample input. */
+export const templatePreviewBounds = Object.freeze({
+  clipSeconds: 6,
+  jobTimeoutMs: 300_000,
+  clipMaxBytes: 20 * 1024 * 1024,
+  posterMaxBytes: 5 * 1024 * 1024,
 });

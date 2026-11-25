@@ -33,6 +33,12 @@ export interface AppShellProps {
    * the label in a `<span>`); the current one carries `aria-current="page"`.
    */
   navigation: ReactNode;
+  /**
+   * Desktop rail: the same destinations as a flat column of links styled with `railLinkClassName`
+   * (an icon above the label in a `<span>`). Hidden below the desktop breakpoint, where the drawer
+   * is the navigation.
+   */
+  rail?: ReactNode;
   /** Persistent status, for example `<WatcherIndicator />`. */
   status?: ReactNode;
   /** Rows of the drawer's Preferences section, below the navigation. */
@@ -46,19 +52,22 @@ export interface AppShellProps {
 
 /**
  * Private layout: skip link, sticky one-row navbar (menu button, brand, status), a menu drawer, then
- * the page content. The drawer is a native modal `<dialog>`: `showModal()` gives the focus trap and
+ * the page content. On desktop a floating rail carries the navigation and its last item opens the
+ * drawer, which keeps Preferences and the account; the navbar's menu button is then hidden. The drawer is a native modal `<dialog>`: `showModal()` gives the focus trap and
  * the inert page; it closes on Escape, a backdrop click, a link click and browser back/forward, and
  * focus returns to the menu button. Inside it: a header, a body that scrolls on its own (navigation
  * groups, then Preferences) and an account footer that stays pinned; the footer's chevron expands
  * the account menu, and Escape closes that menu before the drawer. While open, the page scroll is
  * locked and a classic scrollbar's width is added as padding so the page does not shift.
  */
-export function AppShell({ brand, navigation, status, preferences, account, children, mainId = 'conteudo' }: AppShellProps): ReactElement {
+export function AppShell({ brand, navigation, rail, status, preferences, account, children, mainId = 'conteudo' }: AppShellProps): ReactElement {
   const { ui } = useI18n();
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const drawerRef = useRef<HTMLDialogElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  // Whichever button opened the drawer (navbar or rail) gets the focus back when it closes.
+  const openerRef = useRef<HTMLButtonElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const accountButtonRef = useRef<HTMLButtonElement>(null);
   const drawerId = useId();
@@ -69,7 +78,7 @@ export function AppShell({ brand, navigation, status, preferences, account, chil
   useEffect(() => {
     const drawer = drawerRef.current;
     if (!open || !drawer) return undefined;
-    const menuButton = menuButtonRef.current;
+    const opener = openerRef.current ?? menuButtonRef.current;
     const root = document.documentElement;
     // Measured before locking: a classic scrollbar disappears with `overflow: hidden`.
     const scrollbarWidth = window.innerWidth - root.clientWidth;
@@ -87,7 +96,7 @@ export function AppShell({ brand, navigation, status, preferences, account, chil
       root.style.paddingRight = previousPaddingRight;
       window.removeEventListener('popstate', handlePopState);
       if (drawer.open) drawer.close();
-      menuButton?.focus();
+      opener?.focus();
     };
   }, [open]);
 
@@ -111,7 +120,8 @@ export function AppShell({ brand, navigation, status, preferences, account, chil
     if (onBackdrop || onLink) setOpen(false);
   }
 
-  function openDrawer(): void {
+  function openDrawer(event: MouseEvent<HTMLButtonElement>): void {
+    openerRef.current = event.currentTarget;
     setAccountOpen(false);
     setOpen(true);
   }
@@ -120,10 +130,36 @@ export function AppShell({ brand, navigation, status, preferences, account, chil
   const initial = account ? (Array.from(account.name.trim())[0]?.toLocaleUpperCase() ?? '') : '';
 
   return (
-    <div className={styles.shell}>
+    <div className={classNames(styles.shell, rail !== undefined && styles.shellWithRail)}>
       <a href={`#${mainId}`} className={styles.skipLink}>
         {ui.shell.skipLink}
       </a>
+      {rail !== undefined && (
+        <aside className={styles.rail}>
+          <nav aria-label={ui.shell.mainNavigation} className={styles.railNav}>
+            {rail}
+          </nav>
+          <button
+            type="button"
+            className={classNames(styles.railLink, styles.railMenuButton)}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            aria-controls={drawerId}
+            aria-label={menuLabel}
+            title={menuLabel}
+            onClick={openDrawer}
+          >
+            {account !== undefined ? (
+              <span className={classNames(styles.avatar, styles.railAvatar)} aria-hidden="true">
+                {initial}
+              </span>
+            ) : (
+              <Icon name="menu" />
+            )}
+            <span>{ui.shell.menuTitle}</span>
+          </button>
+        </aside>
+      )}
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
           <button
@@ -245,6 +281,11 @@ export interface NavLinkClassNameOptions {
 /** Classes for a menu drawer navigation link (`next/link`): an icon, then the label in a `<span>`. */
 export function navLinkClassName({ active = false, className }: NavLinkClassNameOptions = {}): string {
   return classNames(styles.navLink, active && styles.navLinkActive, className);
+}
+
+/** Classes for a desktop rail link (`next/link`): an icon above the label in a `<span>`. */
+export function railLinkClassName({ active = false, className }: NavLinkClassNameOptions = {}): string {
+  return classNames(styles.railLink, active && styles.railLinkActive, className);
 }
 
 /** Row style for a `<button>` in the drawer: icon, then the label in a `<span>`. */

@@ -16,6 +16,9 @@ export const ASSET_JOBS_CLOCK = Symbol('ASSET_JOBS_CLOCK');
 /** C6 `ReferenceAnalystPort`, bound to core `REFERENCE_ANALYST_PORT` (catalog selection with core agents only). */
 export const REFERENCE_ANALYST = Symbol('REFERENCE_ANALYST');
 
+/** `AssetPurposeWriterPort` (ADR 0012), bound to core `ASSET_PURPOSE_WRITER_PORT` (catalog selection with core agents only). */
+export const ASSET_PURPOSE_WRITER = Symbol('ASSET_PURPOSE_WRITER');
+
 /** C6 `AssetJobCostPort`, bound to core `AssetJobCostService`. */
 export const ASSET_JOB_COST = Symbol('ASSET_JOB_COST');
 

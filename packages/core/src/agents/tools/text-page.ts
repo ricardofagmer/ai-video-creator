@@ -38,3 +38,9 @@ export function delimitedTextPage(request: TextPageRequest): TextPage {
     pagination: end < total ? `characters ${request.offset}-${end - 1} of ${total}; pass offset=${end}` : null,
   };
 }
+
+/** The offset a `_pagination` note of `delimitedTextPage` asks for, or null when it asks for none. */
+export function nextOffsetOf(pagination: string | undefined): number | null {
+  const match = pagination === undefined ? null : /pass offset=(\d+)$/.exec(pagination);
+  return match?.[1] === undefined ? null : Number.parseInt(match[1], 10);
+}

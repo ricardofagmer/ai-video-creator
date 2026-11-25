@@ -4,10 +4,11 @@ import { Card, FormField, Input, Select, TagInput, Textarea, type FieldControlPr
 import { type AssetKind } from '@studio/shared/catalog';
 import { type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { MusicCategoryPicker } from '@/features/music/components/MusicCategoryPicker';
 import { useWebMessages } from '@/lib/i18n/client';
 import { type FieldErrors } from './form-messages';
-import { detailFieldSpecsOf, type DetailFieldSpec } from './kind-detail-fields';
-import { detailFieldId, VARIABLES_FIELD_ID, type DetailFields, type PromptVariableRow } from './kind-details-model';
+import { detailFieldSpecsOf, type ControlDetailFieldSpec } from './kind-detail-fields';
+import { detailFieldId, musicCategoriesOfField, VARIABLES_FIELD_ID, type DetailFields, type PromptVariableRow } from './kind-details-model';
 import { PromptVariablesEditor } from './PromptVariablesEditor';
 
 export interface KindDetailsSectionProps {
@@ -26,7 +27,7 @@ function DetailControl({
   control,
   onChange,
 }: {
-  spec: DetailFieldSpec;
+  spec: ControlDetailFieldSpec;
   value: string;
   control: FieldControlProps;
   onChange: (value: string) => void;
@@ -63,6 +64,21 @@ export function KindDetailsSection({ kind, fields, variables, errors, disabled, 
           <div className={layout.fieldGrid}>
             {detailFieldSpecsOf(texts)[kind].map((spec) => {
               const id = detailFieldId(spec.key);
+              if (spec.control === 'music-categories') {
+                return (
+                  <div key={spec.key} className={layout.fieldWide}>
+                    <MusicCategoryPicker
+                      idPrefix={id}
+                      legend={spec.label}
+                      help={spec.help ?? ''}
+                      value={musicCategoriesOfField(fields[spec.key] ?? '')}
+                      error={errors[id]}
+                      disabled={disabled}
+                      onChange={(categories) => onFieldChange(spec.key, categories.join(','))}
+                    />
+                  </div>
+                );
+              }
               return (
                 <FormField
                   key={spec.key}

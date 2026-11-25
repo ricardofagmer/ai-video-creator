@@ -39,6 +39,9 @@ function base(id: string): VersionBase {
     searchIndex: 'indexed',
     learnings: [],
     activation: null,
+    purpose: '',
+    purposeSource: 'none',
+    purposeJob: null,
   };
 }
 
@@ -78,7 +81,7 @@ const template169 = template('horizontal', '16:9');
 const template916b = template('vertical-b', '9:16');
 const voice = aiModel('voz', 'voice-clone');
 const provider = aiModel('claude', 'provider-model');
-const song: AssetVersionView = { ...base('trilha'), kind: 'music', details: { durationMs: 1000, bpm: null, integratedLufs: null } };
+const song: AssetVersionView = { ...base('trilha'), kind: 'music', details: { durationMs: 1000, bpm: null, integratedLufs: null, categories: [] } };
 const skill: AssetVersionView = { ...base('roteiro'), kind: 'skill', details: { entryFile: 'SKILL.md', description: '' } };
 const fixtures = [song, template916a, voice, template169, skill, template916b, provider];
 

@@ -231,6 +231,8 @@ function versionBase(id: string, contentHash: string): VersionBase {
     qualityPlatformSampleSize: 0,
     qualityScoredAt: null,
     notes: '',
+    purpose: '',
+    purposeSource: 'none',
   };
 }
 
@@ -311,6 +313,7 @@ async function createStageWorld(): Promise<StageWorld> {
     assetResolver: new MockAssetResolver(),
     manifestBuilder: new RunManifestBuilder(),
     hyperframes: new RecordingHyperframesPorts(join(home.root, 'data-home')),
+    referenceAnalyses: { readDone: async () => [] },
   });
   return {
     root: home.root,
@@ -647,8 +650,10 @@ describe('stage executors under mock ports (ticket 03 criterion 1)', () => {
 
     it('stops for the owner when a live capture targets a non-https page', async () => {
       world.modes.live.add('capture');
+      // Plain http is read only on a local-network host (owner decision, 2026-11-24); a public host must be https.
+      const brief: Brief = { ...world.run.brief, sourceUrl: 'http://app.example.test/tour' };
 
-      const failure = needsPersonOf(await execute(world, 'research'));
+      const failure = needsPersonOf(await execute(world, 'research', { brief }));
 
       assert.equal(failure.cause.kind, 'needs-person');
       assert.deepEqual(world.runner.requests, []);
@@ -698,13 +703,16 @@ describe('stage executors under mock ports (ticket 03 criterion 1)', () => {
       );
     });
 
-    it('stops with claim-without-evidence when no research backs the claims and the recipe omits the check', async () => {
-      const failure = needsPersonOf(await execute(world, 'verify'));
+    it('drops key messages no research backs and continues', async () => {
+      const result = await execute(world, 'verify');
 
-      assert.deepEqual(failure.cause, { kind: 'claim-without-evidence', claimIds: ['claim-1', 'claim-2', 'claim-3'] });
+      assert.equal(result.status, 'reported-success');
+      const claims = await readJsonFile(stageFile(world, 'verify', 'claims.json'), ClaimsArtifactSchema);
+      assert.deepEqual(claims.claims, []);
+      assert.match(result.status === 'reported-success' ? result.summary : '', /Removida\(s\) por falta de evidência/);
     });
 
-    it('leaves unbacked claims to a failed claims-evidence check when the recipe lists it', async () => {
+    it('passes claims-evidence after dropping unbacked key messages', async () => {
       const context = contextFor(world, 'verify', { checks: ['claims-evidence'] });
       const executor = world.registry.forStage('verify');
 
@@ -712,7 +720,7 @@ describe('stage executors under mock ports (ticket 03 criterion 1)', () => {
       const checks = await executor.verify(context);
 
       assert.equal(result.status, 'reported-success');
-      assert.equal(checks.find((check) => check.checkId === 'claims-evidence')?.outcome, 'failed');
+      assert.equal(checks.find((check) => check.checkId === 'claims-evidence')?.outcome, 'passed');
     });
   });
 
@@ -1140,13 +1148,13 @@ describe('stage executors under mock ports (ticket 03 criterion 1)', () => {
       assert.deepEqual({ sessions: cost.value.sessions, totalUsd: cost.value.totalUsd }, { sessions: [], totalUsd: 0 });
     });
 
-    it('stops for the owner and ships nothing when QA did not pass', async () => {
+    it('ships the measured video when QA did not pass (owner decision 2026-11-25: checks warn, never stop)', async () => {
       const inputs = await packageInputs({ passed: false, measuredBytes: finalBytes });
 
-      const failure = needsPersonOf(await execute(world, 'package', { inputs, assets: await boundAssets() }));
+      const result = await execute(world, 'package', { inputs, assets: await boundAssets() });
 
-      assert.equal(failure.cause.kind, 'needs-person');
-      assert.equal(await pathExists(resolveInsideRun(world.runDir, runFileNames.finalVideo)), false);
+      assert.equal(result.status, 'reported-success');
+      assert.equal(await readFile(resolveInsideRun(world.runDir, runFileNames.finalVideo), 'utf8'), finalBytes);
     });
 
     it('stops for the owner when the video changed after QA measured it', async () => {

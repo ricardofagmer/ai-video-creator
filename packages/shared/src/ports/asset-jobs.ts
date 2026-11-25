@@ -1,6 +1,6 @@
 import type { ReferenceAnalysisEntry, ReferenceStyleAnalysis } from '../agents/reference-analysis';
 import type { AssetJobKind } from '../asset-jobs/asset-job';
-import type { AssetRef } from '../catalog/asset-kind';
+import type { AssetKind, AssetRef } from '../catalog/asset-kind';
 import type { SessionId } from '../common/ids';
 import type { UsageQuantity } from './cost-ledger';
 
@@ -76,4 +76,66 @@ export interface AssetJobCostPort {
   monthToDateUsd(at: Date): Promise<number>;
   /** The owner's month ceiling in USD. */
   monthCeilingUsd(): Promise<number>;
+}
+
+/** The image types the purpose writer may receive; the catalog stores no other image type. */
+export type AssetPurposeImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp';
+
+/**
+ * Asset content the purpose writer may read beside the metadata (ADR 0012 decision 5, C-P6, AP-06).
+ * Built only by the watcher's input builder, never for a biometric row:
+ * - `none`: metadata only (music, SFX, links, unreadable content and every other kind);
+ * - `text`: the entry text of a prompt, skill or template, at most 12 000 characters;
+ *   `truncated` says the source was longer;
+ * - `image`: the bytes of one stored image, at most 5 MB, never fetched from a link;
+ * - `reference-analysis`: the `done` analysis of a video reference, labelled with its mode.
+ * Every variant is data for the model, never instructions.
+ */
+export type AssetPurposeContent =
+  | { kind: 'none' }
+  | { kind: 'text'; text: string; truncated: boolean }
+  | { kind: 'image'; mimeType: AssetPurposeImageMimeType; bytes: Uint8Array }
+  | { kind: 'reference-analysis'; mode: 'live' | 'mock'; analysis: ReferenceStyleAnalysis };
+
+/** The facts every purpose input carries; for a biometric row they are the whole input (AP-05). */
+export interface AssetPurposeFacts {
+  name: string;
+  kind: AssetKind;
+  tags: readonly string[];
+}
+
+/**
+ * What the purpose writer reads about one version. `biometric`: name, kind and tags only, never a
+ * path, hash, byte, summary, note or detail. `metadata`: the facts plus the owner's summary, the
+ * kind's details and the bounded content. Every text is data for the model, never instructions.
+ */
+export type AssetPurposeWriterInput =
+  | ({ scope: 'biometric' } & AssetPurposeFacts)
+  | ({ scope: 'metadata'; summary: string; details: unknown; content: AssetPurposeContent } & AssetPurposeFacts);
+
+export interface AssetPurposeWriterRequest {
+  ref: AssetRef;
+  input: AssetPurposeWriterInput;
+  signal: AbortSignal;
+}
+
+/**
+ * One purpose call's result; `usd` is what the call billed (0 in mock mode). An answer that is
+ * empty, longer than 280 characters, carries markup or fails redaction is `provider-error` (AP-04).
+ */
+export type AssetPurposeWriterResult =
+  | { status: 'ok'; mode: 'live' | 'mock'; purpose: string; sessionId: SessionId; usage: UsageQuantity | null; usd: number }
+  | {
+      status: 'failed';
+      reason: 'timed-out' | 'provider-error' | 'rate-limited' | 'credential-refused';
+      sessionId: SessionId;
+      usage: UsageQuantity | null;
+      usd: number;
+    };
+
+/** The asset purpose writer (ADR 0012): exactly one model call per `write`, no tools. */
+export interface AssetPurposeWriterPort {
+  /** True when the model provider is live; false means `write` answers with the labelled stand-in. */
+  isLive(): boolean;
+  write(request: AssetPurposeWriterRequest): Promise<AssetPurposeWriterResult>;
 }

@@ -14,6 +14,16 @@ export interface SiteLinkInput {
   url: URL;
   name: string;
   owner: string;
+  /** The owner's own tags; `site` is always added first. */
+  tags?: readonly string[];
+}
+
+/** Every saved website carries this tag, whatever else the owner adds. */
+export const SITE_TAG = 'site';
+
+/** The tags of a saved website: `site` first, then the owner's, without repeats. */
+export function siteTagsOf(tags: readonly string[]): string[] {
+  return [...new Set([SITE_TAG, ...tags])];
 }
 
 /** The create-asset request for one site saved by link: id, kind, metadata and the tiny text file. */
@@ -43,7 +53,7 @@ export function siteLinkDraftOf(input: SiteLinkInput): SiteLinkDraft {
     metadata: {
       name: input.name.trim().slice(0, SITE_NAME_MAX),
       owner: input.owner.trim().slice(0, SITE_OWNER_MAX),
-      tags: ['site'],
+      tags: siteTagsOf(input.tags ?? []),
       provenance: { source: { type: 'url', url: href }, author: input.url.hostname, capturedAt: null },
       sensitivity: 'third-party',
       details,

@@ -1,13 +1,20 @@
-import { Alert, Card, EmptyState, PageHeader, StatusBadge, VersionList, buttonClassName, formatBytes, textLinkClassName } from '@studio/ui';
+import { Alert, Card, EmptyState, StatusBadge, VersionList, buttonClassName, formatBytes, textLinkClassName } from '@studio/ui';
 import { type AssetVersionView, type ReferenceAnalysisView } from '@studio/shared/api';
 import { AssetIdSchema, ComparisonIdSchema } from '@studio/shared/catalog';
 import type { ReactElement } from 'react';
 import Link from 'next/link';
 import { cartItemOf } from '@/features/cart/cart-item';
+import { cartKindArtwork } from '@/features/cart/cart-kind-artwork';
 import { CartToggleButton } from '@/features/cart/components/CartToggleButton';
 import { AssetVersionDetails } from '@/features/catalog/components/AssetVersionDetails';
+import { SiteEmbed } from '@/features/catalog/components/SiteEmbed';
 import { VideoEmbed } from '@/features/catalog/components/VideoEmbed';
+import { siteLinkOf } from '@/features/catalog/site-link-draft';
+import { imageLinkOf } from '@/features/catalog/image-link-draft';
 import { referencePostOf } from '@/features/catalog/reference-post';
+import { storedImageHref } from '@/features/catalog/stored-image';
+import { AssetPurposeCard } from '@/features/catalog/components/AssetPurposeCard';
+import { AssetPurposeEditor } from '@/features/catalog/components/AssetPurposeEditor';
 import { ReferenceAnalysisCard } from '@/features/catalog/components/ReferenceAnalysisCard';
 import { FocusHeadingOnVersionChange } from '@/features/catalog/components/FocusHeadingOnVersionChange';
 import { VersionQualityCard } from '@/features/catalog/components/VersionQualityCard';
@@ -16,6 +23,7 @@ import { VersionStatusControls } from '@/features/catalog/components/VersionStat
 import { formatDateTime } from '@/features/catalog/catalog-labels';
 import { LICENSE_ALERT_ID, activationBlockedByLicense, statusNoticeFrom, type StatusNotice } from '@/features/catalog/status-notice';
 import catalogStyles from '@/features/catalog/catalog.module.css';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { SubjectCurationsCard } from '@/features/curations/components/SubjectCurationsCard';
 import { assetCurationSubject, curationBlockedText } from '@/features/curations/curation-subject';
@@ -118,12 +126,25 @@ export async function AssetDetailView({ assetId, query, presentation }: AssetDet
   const activeLearnings = current.learnings.filter((note) => note.status === 'active').length;
   const showLicenseAlert = (blocked && current.status !== 'active') || notice === 'licenca';
   const referencePost = referencePostOf(current);
+  const imageLink = imageLinkOf(current);
+  const storedImage = storedImageHref(current);
+  const siteLink = siteLinkOf(current);
   const curationSubject = assetCurationSubject(current);
   const newVersionHref = `/catalogo/novo?de=${current.id}&versao=${current.version}`;
   const analysis = isVideoReference(current) ? await loadReferenceAnalysis(current, t) : null;
 
   const workCards = (
     <>
+      {/* ADR 0012 (AP-09, AP-10): what the item is for, first among the work cards. The key carries the
+          purpose fields, so an owner edit or regenerate, followed by the page refresh, starts the card
+          again from the new view. */}
+      <AssetPurposeCard
+        key={`purpose-${current.id}@${current.version}:${current.purposeSource}:${current.purposeJob?.status ?? 'no-job'}:${current.purpose}`}
+        assetId={current.id}
+        version={current.version}
+        initial={{ purpose: current.purpose, purposeSource: current.purposeSource, purposeJob: current.purposeJob }}
+        editor={<AssetPurposeEditor assetId={current.id} version={current.version} />}
+      />
       {analysis !== null && (
         <ReferenceAnalysisCard
           key={`${current.id}@${current.version}`}
@@ -184,7 +205,10 @@ export async function AssetDetailView({ assetId, query, presentation }: AssetDet
   return (
     <div className={layout.page}>
       <FocusHeadingOnVersionChange version={current.version} />
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.catalog}
+        glyph={cartKindArtwork[current.kind].glyph}
         back={
           presentation === 'page' ? (
             <Link href="/catalogo" className={textLinkClassName()}>
@@ -236,6 +260,30 @@ export async function AssetDetailView({ assetId, query, presentation }: AssetDet
           </Card>
           <AssetVersionDetails version={current} />
         </div>
+      )}
+      {/* The picture itself, as on its card: a saved link straight from the owner's https URL, an upload through the BFF. */}
+      {referencePost === null && (imageLink !== null || storedImage !== null) && (
+        <img
+          className={catalogStyles.detailImage}
+          src={imageLink?.href ?? storedImage ?? undefined}
+          alt={current.name}
+          decoding="async"
+          referrerPolicy={imageLink !== null ? 'no-referrer' : undefined}
+        />
+      )}
+      {/* A saved website, live in a sandboxed frame; the browser loads it from the owner's link, never the server. */}
+      {siteLink !== null && (
+        <Card title={t.catalog.siteLink.embedCardTitle}>
+          <div className={catalogStyles.siteDetail}>
+            <SiteEmbed href={siteLink.href} title={t.catalog.siteLink.embedTitle(siteLink.hostname)} mode="live" />
+            <p className="caption">
+              {t.catalog.siteLink.embedBlocked}{' '}
+              <a href={siteLink.href} target="_blank" rel="noopener noreferrer" className={textLinkClassName()}>
+                {t.catalog.siteLink.openSite(siteLink.hostname)}
+              </a>
+            </p>
+          </div>
+        </Card>
       )}
       {showLicenseAlert && (
         <div id={LICENSE_ALERT_ID}>

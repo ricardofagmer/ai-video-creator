@@ -1,3 +1,4 @@
+import { compositionIds, TemplateIdSchema, type TemplateId } from '@studio/shared/ace';
 import { videoLinkFrom, type AssetVersion, type VideoPost } from '@studio/shared/catalog';
 
 /** Which job a version can have; every answer but `ok` is shown on the reference's page. */
@@ -51,4 +52,22 @@ export function referenceAnalysisEligibility(version: AssetVersion): ReferenceAn
   if (version.mimeType === 'text/plain') return referenceLinkPostOf(version) === null ? 'link-only' : 'ok';
   if (version.layout !== 'file' || !version.mimeType.startsWith('video/')) return 'not-a-video-reference';
   return 'ok';
+}
+
+/** Which preview a version can have; every answer but `ok` is the view's `unavailable`. */
+export type TemplatePreviewEligibility = 'ok' | 'not-a-template' | 'not-supported';
+
+/**
+ * The 9:16 `@ace/video` template a composition id renders, or null. Only these have a sample input
+ * (`buildSampleInput`), so only these get a preview clip for now; hook, HyperFrames and 16:9 tour
+ * templates are `not-supported` until they have one (template preview, 2026-11-25).
+ */
+export function previewTemplateIdOf(compositionId: string): TemplateId | null {
+  return TemplateIdSchema.options.find((templateId) => compositionIds[templateId] === compositionId) ?? null;
+}
+
+export function templatePreviewEligibility(version: AssetVersion): TemplatePreviewEligibility {
+  if (version.kind !== 'template') return 'not-a-template';
+  if (version.details.engine !== 'remotion') return 'not-supported';
+  return previewTemplateIdOf(version.details.compositionId) === null ? 'not-supported' : 'ok';
 }

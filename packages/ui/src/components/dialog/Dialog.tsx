@@ -19,6 +19,8 @@ export interface DialogProps {
   size?: 'default' | 'wide';
   /** Control shown at the end of the title row, such as a close button. */
   headerAction?: ReactNode;
+  /** Styles the title row and description as one block; without it the DOM stays as before. */
+  headerClassName?: string;
   className?: string;
 }
 
@@ -36,6 +38,7 @@ export function Dialog({
   role = 'dialog',
   size = 'default',
   headerAction,
+  headerClassName,
   className,
 }: DialogProps): ReactElement {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -77,6 +80,22 @@ export function Dialog({
     if (role === 'dialog' && event.target === event.currentTarget) onClose();
   }
 
+  const heading = (
+    <>
+      <div className={styles.header}>
+        <h2 id={titleId} className="heading-2">
+          {title}
+        </h2>
+        {headerAction}
+      </div>
+      {description && (
+        <div id={descriptionId} className={classNames('body-sm', styles.description)}>
+          {description}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <dialog
       ref={dialogRef}
@@ -89,16 +108,10 @@ export function Dialog({
       className={classNames(styles.dialog, size === 'wide' && styles.wide, className)}
     >
       <div className={styles.panel}>
-        <div className={styles.header}>
-          <h2 id={titleId} className="heading-2">
-            {title}
-          </h2>
-          {headerAction}
-        </div>
-        {description && (
-          <div id={descriptionId} className={classNames('body-sm', styles.description)}>
-            {description}
-          </div>
+        {headerClassName === undefined ? (
+          heading
+        ) : (
+          <header className={headerClassName}>{heading}</header>
         )}
         {children && <div className={styles.body}>{children}</div>}
         <div className={styles.footer}>{footer}</div>

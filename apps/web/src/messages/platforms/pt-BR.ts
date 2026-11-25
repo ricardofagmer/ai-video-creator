@@ -7,6 +7,8 @@ export const platformsPtBR = {
     description:
       'As suas contas no YouTube, Instagram e TikTok. Cada plataforma é liberada por você, separadamente, depois que ela aprovar o aplicativo; o estúdio só publica quando você clica em Publicar numa execução aprovada.',
     loadFailed: (detail: string): string => `Não foi possível carregar as contas. ${detail}`,
+    platformCount: (count: number): string => (count === 1 ? '1 plataforma' : `${count} plataformas`),
+    connectedCount: (count: number): string => (count === 1 ? '1 conta conectada' : `${count} contas conectadas`),
   },
   /** Section 5.3, verbatim (`capabilityStatusLabels` of `@studio/shared/platforms`). */
   capabilityStatus: {

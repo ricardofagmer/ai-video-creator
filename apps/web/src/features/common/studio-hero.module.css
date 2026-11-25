@@ -1,4 +1,4 @@
-/* Cinema banner of the Skills page. Colours, spacing and motion come from @studio/ui tokens. */
+/* Cinema banner at the top of every studio page. Colours, spacing and motion come from @studio/ui tokens. */
 
 .hero {
   position: relative;
@@ -42,6 +42,41 @@
   .hero {
     padding: var(--space-10) var(--space-8);
   }
+}
+
+/* Detail and form pages: the same banner, slimmer and without the art. */
+.compact {
+  padding: var(--space-6) var(--space-5);
+}
+
+@media (min-width: 768px) {
+  .compact {
+    padding: var(--space-8) var(--space-8);
+  }
+}
+
+.back {
+  font-size: var(--font-size-sm);
+}
+
+.titleLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.titleLine h1 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .text {

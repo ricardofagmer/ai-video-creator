@@ -1,6 +1,6 @@
 'use client';
 
-import { type CompositionConflict } from '@studio/shared/recipes';
+import { type CompositionConflict, type Recipe } from '@studio/shared/recipes';
 import { Alert, Button, Card, DescriptionList, useI18n, type DescriptionItem } from '@studio/ui';
 import { type ReactElement } from 'react';
 import { CompositionConflictList } from '@/features/common/components/CompositionConflictList';
@@ -11,7 +11,7 @@ import { newRunFieldOrder } from '@/features/runs/new-run-model';
 import { useWebMessages } from '@/lib/i18n/client';
 import { type WebMessages } from '@/messages';
 import { type WizardDraft } from '../wizard-draft';
-import { basePinOf, wizardSlotsOf, type WizardSlot } from '../wizard-recipe';
+import { basePinOf, musicChoiceOfRecipe, wizardSlotsOf, type WizardSlot } from '../wizard-recipe';
 import { type WizardReview } from '../wizard-review';
 import { stepsToFix, type DraftStep } from '../wizard-steps';
 import styles from '../wizard.module.css';
@@ -47,6 +47,14 @@ function pinLabel(ref: string | undefined, options: readonly BindingOption[], te
   return options.find((option) => option.ref === ref)?.label ?? ref;
 }
 
+/** "AI decides: <categories>" (or "Any") when the music stage picks the song; null for a chosen song. */
+function autoMusicLabel(recipe: Pick<Recipe, 'graph'>, texts: WebMessages['catalog']['musicChoice']): string | null {
+  const music = musicChoiceOfRecipe(recipe);
+  if (music.mode === 'track') return null;
+  const categories = music.categories.length === 0 ? texts.any : music.categories.map((category) => texts.categories[category]).join(', ');
+  return texts.autoSummary(categories);
+}
+
 /**
  * Step 4 "Revisão": everything the run will use, the brief problems and composition conflicts
  * with a way back to the step that fixes each, and "Iniciar", disabled while any is left.
@@ -67,6 +75,9 @@ export function WizardReviewStep(props: WizardReviewStepProps): ReactElement {
   const ideaItems: DescriptionItem[] = [
     { term: texts.topic, description: values.topic.trim() },
     ...(values.sourceUrl.trim() === '' ? [] : [{ term: texts.sourceUrl, description: values.sourceUrl.trim(), mono: true }]),
+    ...(values.sourceUrl.trim() === '' || values.siteCapture === ''
+      ? []
+      : [{ term: t.runs.brief.siteCapture, description: values.siteCapture === 'use' ? t.runs.brief.siteCaptureUse : t.runs.brief.siteCaptureSkip }]),
     ...(values.keyMessages.trim() === '' ? [] : [{ term: texts.keyMessages, description: values.keyMessages.trim() }]),
     { term: texts.duration, description: texts.durationValue(values.targetDurationSec.trim()) },
     { term: texts.language, description: languageLabels[composed.recipe.format.language] },
@@ -76,7 +87,9 @@ export function WizardReviewStep(props: WizardReviewStepProps): ReactElement {
     { term: texts.recipe, description: t.wizard.recipe.option(base.recipe.name, base.recipe.version, ui.status.asset[base.recipe.status]) },
     ...wizardSlotsOf(base.recipe).map((spec) => ({
       term: slotTerm(spec.slot, texts),
-      description: pinLabel(basePinOf(composed.recipe, spec.slot)?.ref, options, texts),
+      description:
+        (spec.slot === 'music' ? autoMusicLabel(composed.recipe, t.catalog.musicChoice) : null) ??
+        pinLabel(basePinOf(composed.recipe, spec.slot)?.ref, options, texts),
     })),
   ];
 

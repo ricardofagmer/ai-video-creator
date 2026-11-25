@@ -19,6 +19,15 @@ import { SaveAssetVersionCommand } from './save-asset-version.command';
 
 const VersionNumberSchema = z.number().int().min(1);
 
+/** The purpose a new version starts with (ADR 0012 decision 6, AP-08). */
+type InheritedPurpose = Pick<AssetVersion, 'purpose' | 'purposeSource'>;
+
+interface PreparedVersionContent {
+  content: PreparedContent;
+  /** Set only on the from-previous paths; `null` keeps the schema defaults for new bytes. */
+  inheritedPurpose: InheritedPurpose | null;
+}
+
 @CommandHandler(SaveAssetVersionCommand)
 export class SaveAssetVersionHandler implements ICommandHandler<SaveAssetVersionCommand, AssetVersion> {
   private readonly logger = new Logger(SaveAssetVersionHandler.name);
@@ -42,7 +51,7 @@ export class SaveAssetVersionHandler implements ICommandHandler<SaveAssetVersion
       throw new BiometricDowngradeError(assetId);
     }
 
-    const prepared = await this.prepareContent(assetId, kind, metadata, input.content, input.signal);
+    const { content: prepared, inheritedPurpose } = await this.prepareContent(assetId, kind, metadata, input.content, input.signal);
 
     // N+1 is allocated inside the transaction; the (asset_id, version) unique key turns a race
     // into a conflict instead of a second row with the same number. Version N is only read.
@@ -51,7 +60,10 @@ export class SaveAssetVersionHandler implements ICommandHandler<SaveAssetVersion
         const latest = await this.versions.findLatestVersion(assetId, transaction);
         const next = (latest?.version ?? 0) + 1;
         const draft = buildDraftVersion({ assetId, kind, version: next, metadata, content: prepared, now: new Date() });
-        return this.versions.insertVersion(toCreateData(draft), transaction);
+        // A from-previous version keeps its source's purpose and who wrote it, so no job is needed
+        // and an owner text stays an owner text (AP-08); the controller skips the enqueue for it.
+        const withPurpose = inheritedPurpose === null ? draft : { ...draft, ...inheritedPurpose };
+        return this.versions.insertVersion(toCreateData(withPurpose), transaction);
       })
       .catch((error: unknown) => {
         if (isUniqueConstraintError(error)) throw new AssetVersionConflictError(assetId);
@@ -75,28 +87,33 @@ export class SaveAssetVersionHandler implements ICommandHandler<SaveAssetVersion
     metadata: AssetVersionMetadata,
     content: AssetContentInput,
     signal: AbortSignal | undefined,
-  ): Promise<PreparedContent> {
+  ): Promise<PreparedVersionContent> {
     if (content.source !== 'previous-version' && content.source !== 'previous-version-entry-file') {
       await this.hyperframes.assertNewContent(kind, metadata.details, content);
-      return this.content.prepare({ kind, sensitivity: metadata.sensitivity, content, signal });
+      return { content: await this.content.prepare({ kind, sensitivity: metadata.sensitivity, content, signal }), inheritedPurpose: null };
     }
     const version = parseInput(VersionNumberSchema, content.version, 'content.version');
     const row = await this.versions.findVersion(assetId, version);
     if (row === null) throw new AssetVersionNotFoundError(formatAssetRef({ assetId, version }));
     const previous = toAssetVersion(row);
+    const inheritedPurpose: InheritedPurpose = { purpose: previous.purpose, purposeSource: previous.purposeSource };
     if (content.source === 'previous-version-entry-file') {
       // The new folder is written to the store, so biometric material is refused before any write.
       assertBiometricStorage(metadata.sensitivity, 'store');
-      return this.entryFiles.replaceText(previous, content.text, signal);
+      // New entry-file bytes get a fresh purpose job (owner, 2026-11-25), so nothing is inherited.
+      return { content: await this.entryFiles.replaceText(previous, content.text, signal), inheritedPurpose: null };
     }
     assertBiometricStorage(metadata.sensitivity, previous.storage.mode);
     await this.hyperframes.assertReusedContent(kind, metadata.details, previous);
     return {
-      contentHash: previous.contentHash,
-      sizeBytes: previous.sizeBytes,
-      mimeType: previous.mimeType,
-      layout: previous.layout,
-      storage: previous.storage,
+      content: {
+        contentHash: previous.contentHash,
+        sizeBytes: previous.sizeBytes,
+        mimeType: previous.mimeType,
+        layout: previous.layout,
+        storage: previous.storage,
+      },
+      inheritedPurpose,
     };
   }
 }

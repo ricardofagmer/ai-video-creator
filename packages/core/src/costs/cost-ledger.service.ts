@@ -18,7 +18,7 @@ import { priceUsage } from './pricing';
 
 function usageProvider(usage: UsageQuantity): ProviderName {
   if (usage.kind === 'model') return 'claude';
-  if (usage.kind === 'tts') return usage.provider;
+  if (usage.kind === 'tts' || usage.kind === 'music') return usage.provider;
   return 'render';
 }
 

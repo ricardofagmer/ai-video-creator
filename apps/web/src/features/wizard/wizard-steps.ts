@@ -37,11 +37,20 @@ export function runStepOf(state: RunState): Extract<WizardStep, 'production' | '
   return hasReview(state) ? 'result' : 'production';
 }
 
-/** Where the owner fixes a conflict: the duration is typed in the idea, every pin is chosen in voice and style. */
+/**
+ * Where the owner fixes a conflict: the duration is typed in the idea, every pin and the music
+ * choice ("Choose the song" or "AI decides") are made in voice and style.
+ */
 export function stepOfConflict(conflict: CompositionConflict): DraftStep {
-  if (conflict.rule === 'duration-outside-template' && conflict.subject === 'run-target') return 'idea';
-  if (conflict.rule === 'duration-outside-template') return 'recipe';
-  return 'style';
+  switch (conflict.rule) {
+    case 'duration-outside-template':
+      return conflict.subject === 'run-target' ? 'idea' : 'recipe';
+    case 'duplicate-kind':
+    case 'stage-needs-binding':
+    case 'template-format-mismatch':
+    case 'music-mode-conflict':
+      return 'style';
+  }
 }
 
 /** The steps that fix the listed conflicts, once each, in step order. */

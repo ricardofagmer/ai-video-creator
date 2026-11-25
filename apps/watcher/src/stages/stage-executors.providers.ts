@@ -2,7 +2,7 @@ import { type Provider } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { FolderReader } from '@studio/core/asset-store';
 import { DataHome } from '@studio/core/paths';
-import { ProviderModeService } from '@studio/core/providers';
+import { ProviderModeService, providerSettingsEnvironment } from '@studio/core/providers';
 import { RUNTIME_DIR_ENV_VAR, nodeRuntimeFileSystem, resolveStudioRuntime, type StudioRuntime } from '@studio/core/runtime';
 import type { AgentsPort } from '@studio/shared/agents';
 import type { AssetResolverPort, CostLedgerPort, ReferenceAnalysisReaderPort, StageExecutorPort } from '@studio/shared/ports';
@@ -29,7 +29,10 @@ function processStudioRuntime(): StudioRuntime {
 export const stageExecutorProviders: Provider[] = [
   {
     provide: STAGE_SETTINGS,
-    useFactory: (): StageSettings => readStageSettings(process.env, processStudioRuntime()),
+    inject: [DataHome],
+    // Over `<data home>/providers.json`: the installed watcher starts from launchd with no shell
+    // variables, so the local voice program can only be named there.
+    useFactory: (dataHome: DataHome): StageSettings => readStageSettings(providerSettingsEnvironment(dataHome, process.env), processStudioRuntime()),
   },
   RunManifestBuilder,
   {

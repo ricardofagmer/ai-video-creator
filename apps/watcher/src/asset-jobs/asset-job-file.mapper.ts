@@ -3,9 +3,12 @@ import {
   type ReferenceStyleAnalysis,
 } from '@studio/shared/agents';
 import {
+  ASSET_PURPOSE_PROMPT_VERSION,
   type AssetJobErrorCode,
   type AssetJobFile,
+  type AssetPurposeJobFile,
   type ReferenceAnalysisJobFile,
+  type TemplatePreviewJobFile,
   type VoiceSampleAudio,
   type VoiceSampleEngine,
   type VoiceSampleJobFile,
@@ -30,13 +33,25 @@ export interface ReferenceAnalysisResult {
   analysis: ReferenceStyleAnalysis;
 }
 
+export interface TemplatePreviewResult {
+  kind: 'template-preview';
+  /** Length of the clip kept in the job folder. */
+  durationS: number;
+}
+
+export interface AssetPurposeResult {
+  kind: 'asset-purpose';
+  /** The validated 1..280 character purpose (AP-04). */
+  purpose: string;
+}
+
 /**
  * How a claimed job ends. `usd` is what the job billed (0 in mock mode or when nothing was
  * called); a `refused` job spent nothing by definition. The analysis text goes into `job.json`
  * only, never into a log line.
  */
 export type AssetJobEnding =
-  | { status: 'done'; mode: 'live' | 'mock'; usd: number; result: VoiceSampleResult | ReferenceAnalysisResult }
+  | { status: 'done'; mode: 'live' | 'mock'; usd: number; result: VoiceSampleResult | ReferenceAnalysisResult | TemplatePreviewResult | AssetPurposeResult }
   | { status: 'failed'; code: AssetJobFailedCode; usd: number }
   | { status: 'refused'; code: AssetJobRefusedCode };
 
@@ -79,8 +94,41 @@ function analysisRequestFields(file: ReferenceAnalysisJobFile): ReferenceAnalysi
   };
 }
 
+function previewRequestFields(file: TemplatePreviewJobFile): TemplatePreviewJobFile {
+  return {
+    format: file.format,
+    ref: file.ref,
+    kind: file.kind,
+    status: file.status,
+    requestedAt: file.requestedAt,
+    updatedAt: file.updatedAt,
+    ...(file.claim === undefined ? {} : { claim: file.claim }),
+  };
+}
+
+function purposeRequestFields(file: AssetPurposeJobFile): AssetPurposeJobFile {
+  return {
+    format: file.format,
+    ref: file.ref,
+    kind: file.kind,
+    status: file.status,
+    requestedAt: file.requestedAt,
+    updatedAt: file.updatedAt,
+    ...(file.claim === undefined ? {} : { claim: file.claim }),
+  };
+}
+
 function requestFields(file: AssetJobFile): AssetJobFile {
-  return file.kind === 'voice-sample' ? voiceRequestFields(file) : analysisRequestFields(file);
+  switch (file.kind) {
+    case 'voice-sample':
+      return voiceRequestFields(file);
+    case 'reference-analysis':
+      return analysisRequestFields(file);
+    case 'template-preview':
+      return previewRequestFields(file);
+    case 'asset-purpose':
+      return purposeRequestFields(file);
+  }
 }
 
 /** The claim write: `requested` -> `running` with this process's `claim`. */
@@ -115,6 +163,12 @@ export function endedFileOf(file: AssetJobFile, ending: AssetJobEnding, at: stri
       frames: result.frames,
       analysis: result.analysis,
     };
+  }
+  if (base.kind === 'template-preview' && result.kind === 'template-preview') {
+    return { ...base, status: 'done', mode: ending.mode, usd: ending.usd, clip: 'mp4', durationS: result.durationS };
+  }
+  if (base.kind === 'asset-purpose' && result.kind === 'asset-purpose') {
+    return { ...base, status: 'done', mode: ending.mode, usd: ending.usd, promptVersion: ASSET_PURPOSE_PROMPT_VERSION, purpose: result.purpose };
   }
   throw new AssetJobResultKindMismatchError(base.kind);
 }

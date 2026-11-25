@@ -46,7 +46,9 @@ export type StepFailureDecision =
   | { kind: 'fail-run'; reason: string; recovery: RecoveryNote | null }
   | { kind: 'wait'; cause: WaitingCause; reason: string; whatToDo: string; recovery: RecoveryNote | null }
   | { kind: 'retry'; restartAt: StepName; paramsPatch: JsonObject | null; detail: string; recovery: RecoveryNote | null }
-  | { kind: 'rerun-stage'; fromStageNumber: number; detail: string; recovery: RecoveryNote };
+  | { kind: 'rerun-stage'; fromStageNumber: number; detail: string; recovery: RecoveryNote }
+  /** Failed checks no repair fixed: the step ends `warning` and the stage goes on (owner decision 2026-11-25). */
+  | { kind: 'accept'; detail: string; recovery: RecoveryNote | null };
 
 /**
  * Failure handling seam (token `STEP_FAILURE_POLICY`). The engine module binds the R1-08
@@ -57,7 +59,8 @@ export interface StepFailurePolicy {
   decide(context: StepFailureContext): Promise<StepFailureDecision>;
 }
 
-export type PreflightVerdict = { status: 'passed'; detail: string } | { status: 'failed'; failure: StepFailure };
+/** `caveat`: the check found something the owner must see, and the run goes on (a cost ceiling reached). */
+export type PreflightVerdict = { status: 'passed'; detail: string; caveat?: boolean } | { status: 'failed'; failure: StepFailure };
 
 /**
  * Extra `preflight` checks (token `PREFLIGHT_CHECKS`), run after the built-in licence guard and

@@ -1,11 +1,14 @@
-import { Alert, Card, PageHeader, formatUsd, type Locale } from '@studio/ui';
+import { Alert, Card, formatUsd, type Locale } from '@studio/ui';
 import { INSIGHTS_MAX_RUNS, insightsTargets, type InsightsView } from '@studio/shared/api';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
+import { type StudioTone } from '@/features/common/studio-artwork';
 import { CatalogShareTable, RatingTrendTable, ReviewTimeTable, VerdictBadge } from '@/features/insights/InsightsTables';
 import { serverInsightsApi } from '@/features/insights/insights-api.server';
 import { formatShare } from '@/features/insights/insights-labels';
+import styles from '@/features/insights/insights.module.css';
 import { formatDateTime } from '@/features/runs/run-labels';
 import { getI18n } from '@/lib/i18n/server';
 import { type WebMessages } from '@/messages';
@@ -22,16 +25,30 @@ interface SummaryCardProps {
   title: string;
   value: string;
   isMet: boolean | null;
+  tone: StudioTone;
   t: InsightTexts;
   children: ReactNode;
 }
 
-function SummaryCard({ title, value, isMet, t, children }: SummaryCardProps) {
+const toneClasses: Record<StudioTone, string | undefined> = {
+  sunset: styles.toneSunset,
+  flame: styles.toneFlame,
+  magenta: styles.toneMagenta,
+  violet: styles.toneViolet,
+  dusk: styles.toneDusk,
+};
+
+function SummaryCard({ title, value, isMet, tone, t, children }: SummaryCardProps) {
   return (
     <li>
-      <Card title={title} as="h3" actions={<VerdictBadge isMet={isMet} t={t} />}>
-        <p className="mono">{value}</p>
-        {children}
+      <Card
+        title={title}
+        as="h3"
+        actions={<VerdictBadge isMet={isMet} t={t} />}
+        className={`${styles.tile} ${toneClasses[tone] ?? ''}`}
+      >
+        <p className={styles.figure}>{value}</p>
+        <div className={styles.body}>{children}</div>
       </Card>
     </li>
   );
@@ -54,6 +71,7 @@ function SummaryCards({ insights, t, locale }: { insights: InsightsView; t: Insi
         title={t.reviewReach.title}
         value={share(reviewReach.share)}
         isMet={reviewReach.share === null ? null : reviewReach.share >= insightsTargets.reviewWithoutRepairShare}
+        tone="dusk"
         t={t}
       >
         <p>{t.reviewReach.body(reviewReach.withoutRepair, reviewReach.reachedReview, share(insightsTargets.reviewWithoutRepairShare))}</p>
@@ -63,6 +81,7 @@ function SummaryCards({ insights, t, locale }: { insights: InsightsView; t: Insi
         title={t.catalogShare.title}
         value={t.catalogShare.value(catalogShare.meetingTarget, catalogShare.fromTargetRun)}
         isMet={catalogShare.fromTargetRun === 0 ? null : catalogShare.meetingTarget === catalogShare.fromTargetRun}
+        tone="magenta"
         t={t}
       >
         <p>{t.catalogShare.body(insightsTargets.catalogShareFromRun, share(insightsTargets.catalogShare))}</p>
@@ -72,6 +91,7 @@ function SummaryCards({ insights, t, locale }: { insights: InsightsView; t: Insi
         title={t.cost.title}
         value={cost.costPerApprovedUsd === null ? t.noData : usd(cost.costPerApprovedUsd)}
         isMet={costIsMet(cost)}
+        tone="flame"
         t={t}
       >
         <p>{t.cost.body(cost.approvedRuns, usd(cost.approvedCostUsd), usd(cost.runLimitUsd), cost.runsOverRunLimit)}</p>
@@ -81,6 +101,7 @@ function SummaryCards({ insights, t, locale }: { insights: InsightsView; t: Insi
         title={t.unapproved.title}
         value={String(insights.unapprovedPublications)}
         isMet={insights.unapprovedPublications === insightsTargets.unapprovedPublications}
+        tone="violet"
         t={t}
       >
         <p>{t.unapproved.body}</p>
@@ -97,7 +118,13 @@ export default async function InsightsPage() {
 
   return (
     <div className={layout.page}>
-      <PageHeader title={t.title} description={t.description} meta={t.computedAt(formatDateTime(insights.computedAt, locale))} />
+      <StudioHero
+        eyebrow={messages.common.heroEyebrows.insights}
+        glyph="chart"
+        title={t.title}
+        description={t.description}
+        facts={[t.computedAt(formatDateTime(insights.computedAt, locale))]}
+      />
       {insights.truncated && <Alert variant="info">{t.truncated(INSIGHTS_MAX_RUNS)}</Alert>}
       <SummaryCards insights={insights} t={t} locale={locale} />
       <Card title={t.reviewTime.title} as="h2" description={t.reviewTime.description}>

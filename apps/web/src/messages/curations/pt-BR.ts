@@ -25,8 +25,8 @@ export const curationsPtBR = {
     compareTitle: 'Comparar',
     compareSuggested: 'O curador sugere comparar a versão nova com a atual antes de ativá-la.',
     compareOptional: 'Opcional: compare a versão nova com a atual numa execução lado a lado.',
-    compareLoadFailed: (detail: string): string => `Não foi possível carregar as receitas para comparar. ${detail}`,
-    noCompareOptions: 'Nenhuma receita em rascunho ou ativa usa este ativo, então não há com o que comparar.',
+    compareLoadFailed: (detail: string): string => `Não foi possível carregar os presets para comparar. ${detail}`,
+    noCompareOptions: 'Nenhum preset em rascunho ou ativa usa este ativo, então não há com o que comparar.',
   },
   /** SPEC 0005 section 5.9: the status of a curation, as the list and the page show it. */
   statuses: {
@@ -41,7 +41,7 @@ export const curationsPtBR = {
   kinds: {
     prompt: 'Prompt',
     skill: 'Skill',
-    recipe: 'Receita',
+    recipe: 'Preset',
   } satisfies Record<CuratableKind, string>,
   /** Which ground check failed, as the `<qual verificação falhou>` of topology 0004 section 9. */
   checks: {
@@ -50,8 +50,8 @@ export const curationsPtBR = {
     'evidence-owner-reviewed': 'a proposta citou uma execução sem uma decisão sua',
     'body-changed': 'o texto proposto é igual ao texto atual',
     'body-within-cap': 'o texto proposto passa de 16.000 caracteres',
-    'recipe-json-valid': 'a receita proposta não é uma receita válida',
-    'bindings-resolvable': 'a receita proposta vincula uma versão que não existe ou é biométrica',
+    'recipe-json-valid': 'o preset proposto não é um preset válido',
+    'bindings-resolvable': 'o preset proposto vincula uma versão que não existe ou é biométrica',
     'redactor-clean': 'a proposta parecia conter uma senha ou chave',
   } satisfies Record<CurationCheckId, string>,
   /** Every other reason id of `curation.json` (refused or failed), as a phrase. */
@@ -97,12 +97,12 @@ export const curationsPtBR = {
   compareForm: {
     slotRequired: 'Escolha o vínculo em que a versão B entra.',
     titleTooLong: (max: number): string => `Use até ${max} caracteres.`,
-    recipeRequired: 'Escolha uma receita.',
+    recipeRequired: 'Escolha um preset.',
     armA: 'Versão A',
-    armADescription: 'A receita como está salva. As duas execuções usam o mesmo briefing e as mesmas referências.',
-    recipe: 'Receita',
+    armADescription: 'O preset como está salva. As duas execuções usam o mesmo briefing e as mesmas referências.',
+    recipe: 'Preset',
     slot: 'Vínculo',
-    slotHelp: 'O vínculo desta receita que usa a versão atual.',
+    slotHelp: 'O vínculo deste preset que usa a versão atual.',
     slotPlaceholder: 'Selecione o vínculo…',
     armB: 'Versão B',
     armBDescription: 'A versão salva da proposta do curador. Só ela muda em relação à versão A.',
@@ -172,13 +172,11 @@ export const curationsPtBR = {
       description: 'Duas execuções do mesmo briefing, uma com cada versão, lado a lado.',
       newComparison: 'Nova comparação',
       emptyTitle: 'Nenhuma comparação ainda',
-      emptyDescription: 'Compare uma versão nova de um ativo ou de uma receita com a atual antes de ativá-la.',
+      emptyDescription: 'Compare uma versão nova de um ativo ou de um preset com a atual antes de ativá-la.',
       tableEmpty: 'Nenhuma comparação ainda.',
       older: 'Ver comparações mais antigas',
       columns: {
-        title: 'Comparação',
         subject: 'O que muda',
-        status: 'Status',
         cost: 'Custo do par',
         created: 'Criada em',
       },
@@ -186,9 +184,9 @@ export const curationsPtBR = {
     new: {
       title: 'Nova comparação',
       back: '← Comparações',
-      noRecipesTitle: 'Nenhuma receita ainda',
-      noRecipesDescription: 'Crie uma receita antes de comparar versões.',
-      newRecipe: 'Nova receita',
+      noRecipesTitle: 'Nenhum preset ainda',
+      noRecipesDescription: 'Crie um preset antes de comparar versões.',
+      newRecipe: 'Novo preset',
     },
     detail: {
       titleOf: (title: string): string => `${title} · Comparações`,
@@ -211,7 +209,7 @@ export const curationsPtBR = {
     arms: { a: 'Versão A', b: 'Versão B' },
     subject: {
       binding: (slot: string, a: string, b: string): string => `${slot}: ${a} contra ${b}`,
-      recipe: (a: string, b: string): string => `Receita: ${a} contra ${b}`,
+      recipe: (a: string, b: string): string => `Preset: ${a} contra ${b}`,
     },
     qa: {
       none: 'Sem resultado de QA ainda',
@@ -228,7 +226,7 @@ export const curationsPtBR = {
     warnings: {
       sameBrief: 'Os briefings das duas execuções não são iguais.',
       sameReferences: 'As referências das duas execuções não são iguais.',
-      onlyComparedDiffers: 'As receitas das duas execuções diferem em mais do que a versão comparada.',
+      onlyComparedDiffers: 'Os presets das duas execuções diferem em mais do que a versão comparada.',
     },
     arm: {
       status: 'Status',
@@ -236,7 +234,7 @@ export const curationsPtBR = {
       review: 'Revisão',
       openReview: 'Abrir a revisão',
       notAvailable: 'Ainda não disponível',
-      recipe: 'Receita executada',
+      recipe: 'Preset executado',
       score: 'Nota da versão comparada',
       qa: 'QA',
       reviewerScores: 'Notas do revisor',
@@ -281,7 +279,7 @@ export const curationsPtBR = {
       accept: (amount: string): string => `Aceitar ${amount} e iniciar`,
     },
     form: {
-      recipeRequired: 'Escolha uma receita.',
+      recipeRequired: 'Escolha um preset.',
       armBDescription: 'Muda uma única coisa em relação à versão A.',
       cancel: 'Cancelar',
       create: 'Criar comparação',
@@ -289,17 +287,17 @@ export const curationsPtBR = {
     subjectFields: {
       legend: 'O que muda',
       assetBinding: 'Outra versão de um ativo',
-      assetBindingDescription: 'A versão B troca só a versão do ativo de um vínculo da receita.',
-      recipeVersion: 'Outra versão da receita',
-      recipeVersionDescription: 'A versão B roda outra versão da mesma receita.',
+      assetBindingDescription: 'A versão B troca só a versão do ativo de um vínculo do preset.',
+      recipeVersion: 'Outra versão do preset',
+      recipeVersionDescription: 'A versão B roda outra versão do mesmo preset.',
       slot: 'Vínculo',
       slotPlaceholder: 'Selecione o vínculo…',
       assetVersion: 'Versão B do ativo',
       versionPlaceholder: 'Selecione a versão…',
       loadingVersions: 'Carregando as versões…',
       noCandidates: 'Nenhuma outra versão comparável: só versões em rascunho ou ativas, sem material biométrico.',
-      recipeVersionField: 'Versão B da receita',
-      noRecipeVersions: 'Esta receita não tem outra versão em rascunho ou ativa.',
+      recipeVersionField: 'Versão B do preset',
+      noRecipeVersions: 'Este preset não tem outra versão em rascunho ou ativa.',
       title: 'Título',
       titleHelp: 'Sem título, o serviço local escolhe um.',
     },
@@ -307,7 +305,7 @@ export const curationsPtBR = {
       titleTooLong: (max: number): string => `Use até ${max} caracteres.`,
       slot: 'Escolha o vínculo que muda na versão B.',
       assetRef: 'Escolha a outra versão do ativo.',
-      recipeRef: 'Escolha a outra versão da receita.',
+      recipeRef: 'Escolha a outra versão do preset.',
     },
   },
 } as const;

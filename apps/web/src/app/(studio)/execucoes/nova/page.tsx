@@ -1,9 +1,10 @@
-import { EmptyState, PageHeader, buttonClassName, textLinkClassName, type Locale } from '@studio/ui';
+import { EmptyState, buttonClassName, textLinkClassName, type Locale } from '@studio/ui';
 import { type RecipeVersionView } from '@studio/shared/api';
 import { AssetRefSchema, parseAssetRef, type TemplateDetails } from '@studio/shared/catalog';
 import { RecipeRefSchema } from '@studio/shared/recipes';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { NewRunForm } from '@/features/runs/components/NewRunForm';
 import { templateRefOf, type TemplateDetailsByRef } from '@/features/runs/run-composition';
@@ -64,13 +65,17 @@ export default async function NewRunPage({ searchParams }: NewRunPageProps) {
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.runs}
+        glyph="reel"
         back={
           <Link href="/execucoes" className={textLinkClassName()}>
             {t.runs.newRun.back}
           </Link>
         }
         title={t.runs.newRun.title}
+        facts={recipes.length === 0 ? [] : [t.wizard.recipeCount(recipes.length)]}
       />
       {recipes.length === 0 ? (
         <EmptyState

@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { isReadableSourceUrl } from '@ace/toolbox/dist/providers/media/capture-url';
 import { buildAnalystPacket, mockSiteAnalysis } from '@studio/core/agents';
 import { EgressLog } from '@studio/core/providers';
 import { ANALYST_ROLE, SiteAnalysisArtifactSchema, SiteAnalysisSchema } from '@studio/shared/agents';
@@ -30,7 +31,7 @@ export function siteAnalysisPlanOf(context: StagePlanningContext): SiteAnalysisP
   const sourceUrl = context.brief.sourceUrl;
   if (sourceUrl === undefined) return 'no-source';
   if (!researchStageParams(context.params).siteAnalysis) return 'switched-off';
-  return sourceUrl.startsWith('https://') ? 'analyze' : 'not-https';
+  return isReadableSourceUrl(sourceUrl) ? 'analyze' : 'not-https';
 }
 
 /** Optional: a failed screenshot or analyst call leaves them absent and the stage still delivers. */

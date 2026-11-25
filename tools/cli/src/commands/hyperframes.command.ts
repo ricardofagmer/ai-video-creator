@@ -27,7 +27,7 @@ export async function recordHyperframesEvent(ports: HyperframesCommandPorts, pri
 
 /** Read-only: pin, Node, sandbox, Chrome, config, trace, engine state and the next owner step. */
 export async function hyperframesStatusCommand(ports: HyperframesCommandPorts, dependencies: CommandDependencies): Promise<number> {
-  const status = await readHyperframesStatus(dependencies.settings, { now: ports.now(), sandboxAvailable: ports.system.sandboxExecExists() });
+  const status = await readHyperframesStatus(dependencies.settings, { sandboxAvailable: ports.system.sandboxExecExists() });
   dependencies.printer.line(cliText().hyperframes.status.heading);
   for (const check of hyperframesChecks(status)) dependencies.printer.line(checkLine(check));
   return ExitCode.ok;
@@ -41,7 +41,7 @@ export async function hyperframesEnableCommand(ports: HyperframesCommandPorts, d
   return withHyperframesErrors(async () => {
     const { settings, printer } = dependencies;
     const now = ports.now();
-    const status = await readHyperframesStatus(settings, { now, sandboxAvailable: ports.system.sandboxExecExists() });
+    const status = await readHyperframesStatus(settings, { sandboxAvailable: ports.system.sandboxExecExists() });
     const refusal = enableRefusal(status);
     if (refusal !== null) throw new HyperframesStepRefusedError(`${refusal} ${cliText().hyperframes.nothingWritten}`);
     await writeEngineFile(settings.dataHome.root, {

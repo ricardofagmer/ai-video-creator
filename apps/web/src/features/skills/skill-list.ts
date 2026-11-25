@@ -2,7 +2,16 @@ import { formatNumber, type Locale } from '@studio/ui';
 import { type AssetVersionView } from '@studio/shared/api';
 import { type WebMessages } from '@/messages';
 import { type CatalogKindTab } from '@/features/catalog/components/CatalogKindTabs';
-import { countSkillCategories, skillCategories, skillCategoryOf, skillCategoryTabId, type SkillCategory } from './skill-categories';
+import {
+  countSkillCategories,
+  ownSkillTags,
+  skillCategories,
+  skillCategoryOf,
+  skillCategoryTabId,
+  type SkillCategory,
+} from './skill-categories';
+
+const SKILLS_SECTION_SLUG = 'ia-e-escrita';
 
 /**
  * One card per skill: its newest version, so an edit (a new draft) shows at once instead of waiting
@@ -17,12 +26,12 @@ export function newestSkillVersions(versions: readonly AssetVersionView[]): Asse
   return [...newest.values()].sort((left, right) => left.name.localeCompare(right.name));
 }
 
+/** Skills live in the catalog: AI & writing, Skills tab, with the category tab in `?categoria=`. */
 export function skillsHref(category: SkillCategory | null, savedAssetId?: string): string {
-  const query = new URLSearchParams();
+  const query = new URLSearchParams({ secao: SKILLS_SECTION_SLUG, tipo: 'skill' });
   if (category !== null) query.set('categoria', category);
   if (savedAssetId !== undefined) query.set('salvo', savedAssetId);
-  const text = query.toString();
-  return text === '' ? '/skills' : `/skills?${text}`;
+  return `/catalogo?${query.toString()}`;
 }
 
 interface SkillTabsInput {
@@ -54,6 +63,33 @@ export function skillCategoryTabsOf({ skills, selected, t, locale }: SkillTabsIn
       }),
     );
   return [all, ...categories];
+}
+
+/** Skills that share the same set of own tags; `tags` is empty for the untagged group. */
+export interface SkillTagGroup {
+  key: string;
+  tags: string[];
+  skills: AssetVersionView[];
+}
+
+/**
+ * Sections inside a category tab: one per distinct set of own tags, so every skill appears exactly
+ * once. Groups are ordered by their tags; the untagged group comes last.
+ */
+export function groupSkillsByTags(skills: readonly AssetVersionView[]): SkillTagGroup[] {
+  const groups = new Map<string, SkillTagGroup>();
+  for (const skill of skills) {
+    const tags = [...new Set(ownSkillTags(skill.tags))].sort((left, right) => left.localeCompare(right));
+    const key = tags.join(' ');
+    const group = groups.get(key);
+    if (group === undefined) groups.set(key, { key, tags, skills: [skill] });
+    else group.skills.push(skill);
+  }
+  return [...groups.values()].sort((left, right) => {
+    if (left.tags.length === 0) return 1;
+    if (right.tags.length === 0) return -1;
+    return left.key.localeCompare(right.key);
+  });
 }
 
 export function skillsOfCategory(skills: readonly AssetVersionView[], category: SkillCategory | null): AssetVersionView[] {

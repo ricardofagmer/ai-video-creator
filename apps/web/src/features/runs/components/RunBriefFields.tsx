@@ -1,11 +1,11 @@
 'use client';
 
-import { FormField, Input, TagInput } from '@studio/ui';
+import { FormField, Input, Select, TagInput } from '@studio/ui';
 import { type Recipe } from '@studio/shared/recipes';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { useWebMessages } from '@/lib/i18n/client';
-import { asksKeyMessages, asksSourceUrl, durationBounds, newRunFieldIds, type NewRunErrors, type NewRunField, type NewRunFormValues } from '../new-run-model';
+import { asksKeyMessages, durationBounds, newRunFieldIds, type NewRunErrors, type NewRunField, type NewRunFormValues } from '../new-run-model';
 
 interface RunBriefFieldsProps {
   values: NewRunFormValues;
@@ -24,7 +24,6 @@ export function RunBriefFields({ values, errors, recipe, disabled, onChange }: R
   const t = useWebMessages();
   const texts = t.runs.brief;
   const bounds = recipe === undefined ? null : durationBounds(recipe);
-  const keyMessageRange = recipe?.inputs.keyMessages;
   return (
     <div className={layout.stack}>
       <FormField id={newRunFieldIds.topic} label={texts.topic} error={errors.topic} disabled={disabled}>
@@ -35,7 +34,7 @@ export function RunBriefFields({ values, errors, recipe, disabled, onChange }: R
       <FormField
         id={newRunFieldIds.sourceUrl}
         label={texts.sourceUrl}
-        optional={recipe === undefined || !asksSourceUrl(recipe)}
+        optional
         error={errors.sourceUrl}
         disabled={disabled}
       >
@@ -51,11 +50,28 @@ export function RunBriefFields({ values, errors, recipe, disabled, onChange }: R
           />
         )}
       </FormField>
+      {values.sourceUrl.trim() !== '' && (
+        <FormField id={newRunFieldIds.siteCapture} label={texts.siteCapture} help={texts.siteCaptureHelp} error={errors.siteCapture} disabled={disabled}>
+          {({ invalid, ...control }) => (
+            <Select
+              {...control}
+              invalid={invalid}
+              options={[
+                { value: '', label: texts.siteCaptureChoose },
+                { value: 'use', label: texts.siteCaptureUse },
+                { value: 'skip', label: texts.siteCaptureSkip },
+              ]}
+              value={values.siteCapture}
+              onChange={(event) => onChange('siteCapture', event.currentTarget.value)}
+            />
+          )}
+        </FormField>
+      )}
       {recipe !== undefined && asksKeyMessages(recipe) && (
         <FormField
           id={newRunFieldIds.keyMessages}
           label={texts.keyMessages}
-          optional={keyMessageRange?.min === 0}
+          optional
           help={texts.keyMessagesHelp}
           error={errors.keyMessages}
           disabled={disabled}

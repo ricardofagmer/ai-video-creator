@@ -1,4 +1,4 @@
-import { type AssetJobFile, type ReferenceAnalysisJobFile, type VoiceSampleJobFile } from '@studio/shared/asset-jobs';
+import { type AssetJobFile, type AssetPurposeJobFile, type ReferenceAnalysisJobFile, type TemplatePreviewJobFile, type VoiceSampleJobFile } from '@studio/shared/asset-jobs';
 import { type AssetJobLocation } from '@studio/shared/asset-jobs/files';
 import { type AssetJobEnding } from './asset-job-file.mapper';
 import { type AssetJobSignals } from './asset-job-signals';
@@ -20,3 +20,5 @@ export interface AssetJobHandler<File extends AssetJobFile> {
 
 export type VoiceSampleHandlerPort = AssetJobHandler<VoiceSampleJobFile>;
 export type ReferenceAnalysisHandlerPort = AssetJobHandler<ReferenceAnalysisJobFile>;
+export type TemplatePreviewHandlerPort = AssetJobHandler<TemplatePreviewJobFile>;
+export type AssetPurposeHandlerPort = AssetJobHandler<AssetPurposeJobFile>;

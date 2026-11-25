@@ -1,7 +1,8 @@
-import { EmptyState, PageHeader, buttonClassName, textLinkClassName, type Locale } from '@studio/ui';
+import { EmptyState, buttonClassName, textLinkClassName, type Locale } from '@studio/ui';
 import { type RecipeVersionView } from '@studio/shared/api';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { ComparisonForm } from '@/features/comparisons/components/ComparisonForm';
 import { serverStudioClient } from '@/lib/api/server';
@@ -29,7 +30,10 @@ export default async function NewComparisonPage() {
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.comparisons}
+        glyph="compare"
         back={
           <Link href="/comparacoes" className={textLinkClassName()}>
             {texts.back}

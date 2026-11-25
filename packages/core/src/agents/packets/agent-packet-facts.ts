@@ -1,4 +1,4 @@
-import { DIRECT_SCENES_TASK, WRITE_SCRIPT_TASK, type AgentPacket, type ModelRoleName } from '@studio/shared/agents';
+import { DIRECT_SCENES_TASK, REVIEW_TASK, WRITE_SCRIPT_TASK, type AgentPacket, type ModelRoleName, type RunArtifactId } from '@studio/shared/agents';
 import { type AssetRef, type LearningNoteId } from '@studio/shared/catalog';
 
 /** The asset refs a director packet offers; other packets offer none. */
@@ -10,4 +10,9 @@ export function packetRefsOf(packet: AgentPacket<ModelRoleName>): AssetRef[] {
 export function packetNoteIdsOf(packet: AgentPacket<ModelRoleName>): LearningNoteId[] | undefined {
   if (packet.task !== WRITE_SCRIPT_TASK && packet.task !== DIRECT_SCENES_TASK) return undefined;
   return packet.inputs.learnings.map((note) => note.noteId);
+}
+
+/** The run artifacts a review packet tells the Reviewer to read; other packets name none. */
+export function packetArtifactIdsOf(packet: AgentPacket<ModelRoleName>): RunArtifactId[] {
+  return packet.task === REVIEW_TASK ? [...packet.inputs.artifactIds] : [];
 }

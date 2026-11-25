@@ -9,7 +9,8 @@ import {
   sectionOfKind,
   type CatalogSection,
 } from './catalog-sections';
-import { templateCategoryFrom, type CatalogCategory } from './template-categories';
+import { sectionCategoryFrom } from './section-categories';
+import { type CatalogCategory } from './template-categories';
 
 /** Rev 3 (SPEC 0003 section 4.3): `?ordem=nota` sorts by `qualityScore`, absent keeps the recent order. */
 export type CatalogSort = 'recent' | 'quality';
@@ -22,7 +23,7 @@ export type CatalogMode = 'words' | 'meaning';
  * Rev 3 adds `?ordem=`, `?nota-min=` (1..5) and `?execucoes-min=` (>= 1) for the lexical list, and
  * `?modo=` for the search mode. `?secao=` picks one of the four sections; `?tipo=` picks a kind inside
  * a section with several kinds (null = all of the section's kinds). `?categoria=` picks a content
- * category tab and lives only in the sections that have them (Video templates and References).
+ * category tab and lives only in the sections that have them (Video templates, References and Images).
  */
 export interface CatalogFilters {
   mode: CatalogMode;
@@ -75,7 +76,7 @@ export function catalogFiltersFrom(searchParams: SearchParams): CatalogFilters {
     text: single(searchParams.q).trim().slice(0, 200),
     section,
     kind,
-    templateCategory: sectionHasCategories(section) ? templateCategoryFrom(single(searchParams.categoria)) : null,
+    templateCategory: sectionHasCategories(section) ? sectionCategoryFrom(section, single(searchParams.categoria)) : null,
     status: status.success ? status.data : null,
     sort: single(searchParams.ordem) === 'nota' ? 'quality' : 'recent',
     minQuality: choiceFrom(single(searchParams['nota-min']), minQualityChoices),

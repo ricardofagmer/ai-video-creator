@@ -6,7 +6,6 @@ import {
   Card,
   CostMeter,
   EventLog,
-  PageHeader,
   StatusBadge,
   StepTimeline,
   WatcherIndicator,
@@ -17,6 +16,7 @@ import {
 import { type RunStateResponse } from '@studio/shared/api';
 import Link from 'next/link';
 import { useState, type ReactElement, type ReactNode } from 'react';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { useWebMessages } from '@/lib/i18n/client';
 import { useRunLive } from '../hooks/useRunLive';
@@ -109,10 +109,16 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
   const reachable = live.connection === 'live';
   const watcherState = runWatcherState(live.state.watcher, reachable);
   const state = run.state;
+  // The waiting notice sits under the step the run stopped at; with no position it stays on top.
+  const position = currentPosition(run, live.state.now);
+  const waitingNotice = state.status === 'waiting' ? <RunWaitingNotice run={run} state={state} onChanged={live.refresh} /> : null;
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.runs}
+        glyph="reel"
         back={
           <Link href="/execucoes" className={textLinkClassName()}>
             {texts.back}
@@ -141,7 +147,7 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
             <Alert variant="error">{texts.startFailed}</Alert>
           )}
           {displayedStatus === 'draft' && <DraftNotice runId={runId} onStarted={live.refresh} />}
-          {state.status === 'waiting' && <RunWaitingNotice run={run} state={state} onChanged={live.refresh} />}
+          {position === undefined && waitingNotice}
           {state.status === 'failed' && (
             <Alert variant="error" title={texts.failedTitle}>
               <span lang={locale === 'pt-BR' ? undefined : 'pt-BR'}>{state.reason}</span>
@@ -175,7 +181,11 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
         </div>
         <div className={styles.timeline}>
           <Card title={texts.timelineCard}>
-            <StepTimeline phases={buildTimeline(run, displayedStatus, { runs: t.runs, locale })} current={currentPosition(run, live.state.now)} />
+            <StepTimeline
+              phases={buildTimeline(run, displayedStatus, { runs: t.runs, locale })}
+              current={position}
+              currentStepContent={position === undefined ? undefined : waitingNotice}
+            />
           </Card>
         </div>
         <div className={styles.plan}>

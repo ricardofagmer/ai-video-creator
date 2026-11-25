@@ -140,13 +140,32 @@ export function recipeContentHashInput(recipe: Recipe): string {
   return canonicalJson(recipeDefinitionOf(recipe));
 }
 
-/** Brief fields the recipe requires but the brief lacks; empty when the brief satisfies `inputs`. */
+/**
+ * Brief fields that stop a run. Nothing beyond the topic is required (owner decision 2026-11-24):
+ * a missing `sourceUrl` or no key messages never stops a run, whatever `inputs.required` and
+ * `inputs.keyMessages.min` of an older preset say. Only more key messages than the preset allows do.
+ */
 export function missingBriefInputs(brief: Brief, inputs: RecipeInputs): BriefField[] {
-  const missing: BriefField[] = [];
-  if (inputs.required.includes('sourceUrl') && brief.sourceUrl === undefined) missing.push('sourceUrl');
-  const messageCount = brief.keyMessages.length;
-  const absent = inputs.required.includes('keyMessages') && messageCount === 0;
-  const outOfRange = messageCount < inputs.keyMessages.min || messageCount > inputs.keyMessages.max;
-  if (absent || outOfRange) missing.push('keyMessages');
-  return missing;
+  return brief.keyMessages.length > inputs.keyMessages.max ? ['keyMessages'] : [];
+}
+
+/** Stages that read the brief's Source URL: the page text and site analysis, then the fact check. */
+const sourceUrlStages: readonly string[] = ['research', 'verify'];
+
+/**
+ * The preset as a run with this brief uses it. A Source URL is a source the owner chose, so the
+ * stages that read it run even when the preset has them switched off, with the site analysis on:
+ * without them the writer gets no page text, no analysis and no checked facts, and the video says
+ * nothing about the site. A brief with no Source URL leaves the preset as saved. When the owner
+ * answered that the site's screenshots go in the video, the `capture` stage runs too.
+ */
+export function recipeForBrief(recipe: Recipe, brief: Pick<Brief, 'sourceUrl' | 'siteCapture'>): Recipe {
+  if ((brief.sourceUrl ?? '') === '') return recipe;
+  const stages = recipe.graph.stages.map((stage) => {
+    if (stage.stageId === 'capture' && brief.siteCapture === 'use') return { ...stage, enabled: true };
+    if (!sourceUrlStages.includes(stage.stageId)) return stage;
+    const params = stage.stageId === 'research' ? { ...stage.params, siteAnalysis: true } : stage.params;
+    return { ...stage, enabled: true, params };
+  });
+  return { ...recipe, graph: { ...recipe.graph, stages } };
 }

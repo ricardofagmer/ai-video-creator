@@ -4,7 +4,9 @@ import { Badge, classNames } from '@studio/ui';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, type KeyboardEvent, type ReactElement, type ReactNode } from 'react';
+import { StudioGlyph } from '@/features/common/components/StudioGlyph';
 import layout from '@/features/common/layout.module.css';
+import { type StudioGlyphName } from '@/features/common/studio-artwork';
 import { CATALOG_PANEL_ID } from '../catalog-groups';
 import styles from '../catalog.module.css';
 
@@ -15,6 +17,8 @@ export interface CatalogKindTab {
   count: string | null;
   href: string;
   selected: boolean;
+  /** Optional decorative glyph drawn before the label; the label still names the tab. */
+  glyph?: StudioGlyphName;
 }
 
 interface CatalogKindTabsProps {
@@ -22,7 +26,7 @@ interface CatalogKindTabsProps {
   tabs: readonly CatalogKindTab[];
   /** Id of the tab panel; the template category tabs nest their own panel inside the kind panel. */
   panelId?: string;
-  /** `underline` for the top level; `segmented` for a nested row, so it never reads as a second top row. */
+  /** `underline` for the top level, drawn as a capsule floating at the bottom of the window; `segmented` for a nested row, so it never reads as a second top row. */
   appearance?: 'underline' | 'segmented';
   children: ReactNode;
 }
@@ -98,12 +102,22 @@ export function CatalogKindTabs({
               focusAfterNavigation = tab.id;
             }}
           >
+            {tab.glyph !== undefined && (
+              <span className={styles.tabIcon} aria-hidden="true">
+                <StudioGlyph name={tab.glyph} className={styles.tabGlyph} />
+              </span>
+            )}
             <span className="label">{tab.label}</span>
             {tab.count !== null && <Badge tone="neutral">{tab.count}</Badge>}
           </Link>
         ))}
       </div>
-      <div role="tabpanel" id={panelId} aria-labelledby={selectedId} className={layout.stack}>
+      <div
+        role="tabpanel"
+        id={panelId}
+        aria-labelledby={selectedId}
+        className={classNames(layout.stack, appearance === 'underline' && styles.floatingTabsPanel)}
+      >
         {children}
       </div>
     </>

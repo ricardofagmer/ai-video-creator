@@ -1,17 +1,28 @@
 import type { ReactElement, ReactNode } from 'react';
-import styles from '../skills-hero.module.css';
-import { SkillGlyph } from './SkillGlyph';
+import { type StudioGlyphName } from '../studio-artwork';
+import styles from '../studio-hero.module.css';
+import { StudioGlyph } from './StudioGlyph';
 
-interface SkillsHeroProps {
-  eyebrow: string;
-  title: string;
-  description: string;
+export interface StudioHeroProps {
+  title: ReactNode;
+  /** Small line above the title, such as "Your video studio". */
+  eyebrow?: ReactNode;
+  /** Glyph before the eyebrow; the clapperboard by default. */
+  glyph?: StudioGlyphName;
+  description?: ReactNode;
   /** Short facts under the description, such as "14 skills". */
-  facts: readonly string[];
-  actions: ReactNode;
+  facts?: readonly string[];
+  /** Back link above the banner text (for example "← Recipes"). */
+  back?: ReactNode;
+  /** Badges next to the title (status, version). */
+  meta?: ReactNode;
+  /** Page actions; at most one primary button. */
+  actions?: ReactNode;
+  /** `banner` draws the film reel art (list pages); `compact` is a slimmer banner for detail and form pages. */
+  variant?: 'banner' | 'compact';
 }
 
-const GRADIENT_ID = 'skills-hero-gradient';
+const GRADIENT_ID = 'studio-hero-gradient';
 const reelHoles = [0, 72, 144, 216, 288] as const;
 const stripFrames = [0, 1, 2, 3] as const;
 const stripHoles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
@@ -57,28 +68,47 @@ function HeroArt(): ReactElement {
   );
 }
 
-/** Title block of the Skills page: the page's single `<h1>`, the facts and the actions over a cinema banner. */
-export function SkillsHero({ eyebrow, title, description, facts, actions }: SkillsHeroProps): ReactElement {
+/** Title block of a studio page: the page's single `<h1>`, its facts and actions over a cinema banner. */
+export function StudioHero({
+  title,
+  eyebrow,
+  glyph = 'clapperboard',
+  description,
+  facts = [],
+  back,
+  meta,
+  actions,
+  variant = 'banner',
+}: StudioHeroProps): ReactElement {
+  const banner = variant === 'banner';
   return (
-    <header className={styles.hero}>
+    <header className={banner ? styles.hero : `${styles.hero} ${styles.compact}`}>
       <div className={styles.text}>
-        <p className={`overline ${styles.eyebrow}`}>
-          <SkillGlyph name="clapperboard" className={styles.eyebrowGlyph} />
-          {eyebrow}
-        </p>
-        <h1 className="heading-1">{title}</h1>
-        <p className={`body-sm ${styles.description}`}>{description}</p>
-        <ul className={styles.facts}>
-          {facts.map((fact, index) => (
-            <li key={fact} className={styles.fact}>
-              <SkillGlyph name={index === 0 ? 'reel' : 'film'} className={styles.factGlyph} />
-              {fact}
-            </li>
-          ))}
-        </ul>
-        <div className={styles.actions}>{actions}</div>
+        {back && <div className={styles.back}>{back}</div>}
+        {eyebrow && (
+          <p className={`overline ${styles.eyebrow}`}>
+            <StudioGlyph name={glyph} className={styles.eyebrowGlyph} />
+            {eyebrow}
+          </p>
+        )}
+        <div className={styles.titleLine}>
+          <h1 className="heading-1">{title}</h1>
+          {meta && <div className={styles.meta}>{meta}</div>}
+        </div>
+        {description && <p className={`body-sm ${styles.description}`}>{description}</p>}
+        {facts.length > 0 && (
+          <ul className={styles.facts}>
+            {facts.map((fact, index) => (
+              <li key={`${index}-${fact}`} className={styles.fact}>
+                <StudioGlyph name={index === 0 ? 'reel' : 'film'} className={styles.factGlyph} />
+                {fact}
+              </li>
+            ))}
+          </ul>
+        )}
+        {actions && <div className={styles.actions}>{actions}</div>}
       </div>
-      <HeroArt />
+      {banner && <HeroArt />}
     </header>
   );
 }

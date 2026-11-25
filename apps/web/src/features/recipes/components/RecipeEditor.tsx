@@ -22,6 +22,7 @@ import {
   recipeFieldOfPath,
   recipeFormFrom,
   recipeIdFromName,
+  withFormMusicChoice,
   type BindingOption,
   type RecipeFormValues,
 } from '../recipe-form-model';
@@ -163,7 +164,9 @@ export function RecipeEditor({ base, options, wizard = false }: RecipeEditorProp
     const items = cartActions.snapshot();
     if (items.length === 0) return;
     const fill = fillSlotsFromCart(slots, items, options, values.bindings, values.writerSkills, enabled.has('script'));
-    update({ bindings: fill.bindings, writerSkills: fill.writerSkills });
+    // A song brought from the cart is a song chosen by the owner: the Music row switches to "Choose the song".
+    const cartSong = values.musicChoice.mode === 'auto' && (fill.bindings.music ?? '') !== '';
+    update({ bindings: fill.bindings, writerSkills: fill.writerSkills, musicChoice: cartSong ? { mode: 'track' } : values.musicChoice });
     setCartNotice({
       used: fill.used.length,
       skipped: fill.skipped.map((item) => item.name),
@@ -282,6 +285,8 @@ export function RecipeEditor({ base, options, wizard = false }: RecipeEditorProp
             errors={errors}
             onChange={(slot, ref) => update({ bindings: { ...values.bindings, [slot]: ref } })}
             language={values.language}
+            musicChoice={values.musicChoice}
+            onMusicChoiceChange={(musicChoice) => update(withFormMusicChoice(values, musicChoice))}
           />
         )}
         {shows('bindings') && enabled.has('script') && (
@@ -290,7 +295,7 @@ export function RecipeEditor({ base, options, wizard = false }: RecipeEditorProp
         {shows('rules') && (
           <RecipeGatesSection scriptApproval={values.scriptApproval} scriptEnabled={enabled.has('script')} onChange={(scriptApproval) => update({ scriptApproval })} />
         )}
-        {shows('rules') && <RecipeInputsSection values={values} onChange={update} />}
+        {shows('rules') && <RecipeInputsSection />}
         {shows('review') && <RecipeChecklistSection items={values.checklist} onChange={(checklist) => update({ checklist })} />}
       </fieldset>
       {(shows('bindings') || isLastStep) && <CompositionConflictList conflicts={conflicts} id={CONFLICT_LIST_ID} />}

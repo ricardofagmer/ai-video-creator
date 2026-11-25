@@ -23,4 +23,5 @@ export {
   ProvidersError,
   type ProvidersErrorCategory,
 } from './providers.errors';
+export { providerSettingsEnvironment } from './provider-settings-file';
 export { ProvidersModule } from './providers.module';

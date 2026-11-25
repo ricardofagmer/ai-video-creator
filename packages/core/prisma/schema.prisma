@@ -12,6 +12,8 @@
 // SPEC 0007 (R4-01, migration `20261120120000_r4_connected_platforms`) adds `publication_attempts`
 // and the columns `run_publications.origin`, `attempt_id`, `platform_media_id` and
 // `metric_imports.origin`, again by `CREATE TABLE`, `CREATE INDEX` and `ADD COLUMN` only (K8).
+// docs/specs/2026-11-25-music-spend-kind-design.md (migration `20261125120000_music_cost_kind`)
+// adds `cost_entries.music_seconds` and the `music` kind by redefining `cost_entries`.
 //
 // Conventions: TypeScript model names, snake_case plural tables (@@map) and snake_case columns
 // (@map). Enumerations are TEXT columns validated by the zod contracts of `@studio/shared` and by
@@ -97,6 +99,11 @@ model AssetVersion {
   /// `qualitySampleSize`, written together with it by the quality service only (R3).
   qualityPlatformSampleSize Int            @default(0) @map("quality_platform_sample_size")
   notes                String              @default("")
+  /// ADR 0012 (C-P1): what the asset is for, at most 280 characters; empty until written. Not listed
+  /// in the immutability trigger: the purpose copy and the owner edit change it on a saved version.
+  purpose              String              @default("")
+  /// ADR 0012 (C-P1): `none` | `ai` | `owner`. An `owner` purpose is never overwritten by a job.
+  purposeSource        String              @default("none") @map("purpose_source")
   /// JSON array of numbers from the local model (D10, ADR 0004). Never in the default read
   /// projection of the catalog: only the search scan of R2-03 selects it.
   embeddingJson        String?             @map("embedding_json")
@@ -526,9 +533,9 @@ model CostEntry {
   runId             String   @map("run_id")
   /// C3 `SessionId` (ULID).
   sessionId         String   @map("session_id")
-  /// C3 `callIndex` for `model` entries; 1 for `tts` and `render`.
+  /// C3 `callIndex` for `model` entries; 1 for `tts`, `render` and `music`.
   callIndex         Int      @default(1) @map("call_index")
-  /// `model` | `tts` | `render`.
+  /// `model` | `tts` | `render` | `music`.
   kind              String
   /// C3 `StepKey`.
   stepKey           String   @map("step_key")
@@ -544,6 +551,8 @@ model CostEntry {
   cacheWriteTokens  Int?     @map("cache_write_tokens")
   ttsCharacters     Int?     @map("tts_characters")
   renderSeconds     Float?   @map("render_seconds")
+  /// Requested length of a generated track; null unless `kind` is `music`.
+  musicSeconds      Float?   @map("music_seconds")
   usd               Float
   priceTableVersion String   @map("price_table_version")
   occurredAt        DateTime @map("occurred_at")

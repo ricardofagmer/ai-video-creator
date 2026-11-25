@@ -1,3 +1,4 @@
+import { isReadableSourceUrl } from '@ace/toolbox/dist/providers/media/capture-url';
 import { EgressLog } from '@studio/core/providers';
 import { ANALYST_ROLE } from '@studio/shared/agents';
 import type { StageExecutionContext, StageExecutionResult, StagePlanningContext } from '@studio/shared/ports';
@@ -55,7 +56,7 @@ export class ResearchExecutor extends BaseStageExecutor {
       const note = analyze ? await writeMockSiteAnalysis(context, outputs, sourceUrl) : skippedNote;
       return reportedSuccess(withNote('Pesquisa simulada: texto montado a partir do brief, sem acessar a página.', note));
     }
-    if (!sourceUrl.startsWith('https://')) {
+    if (!isReadableSourceUrl(sourceUrl)) {
       return stageFailed(needsPerson({ kind: 'needs-person', stepKey: context.stepKey }, stageTexts.captureBlocked, stageTexts.captureBlockedWhatToDo));
     }
 

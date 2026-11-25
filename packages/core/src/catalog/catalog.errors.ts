@@ -226,3 +226,21 @@ export class ImageContentUnavailableError extends CatalogError {
     this.name = 'ImageContentUnavailableError';
   }
 }
+
+export type AudioContentUnavailableReason = 'not-music' | 'not-a-file' | 'not-stored' | 'biometric' | 'not-playable' | 'missing';
+
+/**
+ * A version has no stored audio the web may play: only stored single-file music qualifies. The
+ * message names the reason only, never the path.
+ */
+export class AudioContentUnavailableError extends CatalogError {
+  override readonly category = 'not_found';
+
+  constructor(
+    readonly ref: AssetRef,
+    readonly reason: AudioContentUnavailableReason,
+  ) {
+    super(`The audio of ${ref} is unavailable: ${reason}`);
+    this.name = 'AudioContentUnavailableError';
+  }
+}

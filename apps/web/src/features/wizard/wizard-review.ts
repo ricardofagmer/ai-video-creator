@@ -40,7 +40,7 @@ export function reviewOf(
 ): WizardReview {
   const base = recipes.find((view) => view.ref === draft.values.recipeRef);
   if (base === undefined) return { kind: 'no-recipe' };
-  const composed = composeRecipe(base.recipe, draft.choices, options);
+  const composed = composeRecipe(base.recipe, { choices: draft.choices, musicChoice: draft.musicChoice }, options);
   return {
     kind: 'ready',
     base,

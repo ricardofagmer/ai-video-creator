@@ -55,9 +55,9 @@ function failedOutcome(result: AttemptResult): { failure: StepFailure; detail: s
 /**
  * Runs the seven steps of one stage in order (RUN-FORMAT section 6), starting from the first step
  * not yet settled, so a resumed run continues from the exact step. A step ends `ok` or `warning`
- * only when its handler's postcondition check passed (`passed` / `passed-with-caveat`); every other
- * outcome goes to the failure handler or holds the run. Each attempt runs under a `StepGuard`
- * (timeout, `stop`, run cost ceiling) whose signal reaches the executor and every agent call.
+ * when its handler's postcondition check passed (`passed` / `passed-with-caveat`), or `warning`
+ * when the failure handler accepted failed checks; every other outcome holds the run. Each attempt runs under a `StepGuard`
+ * (timeout, `stop`) whose signal reaches the executor and every agent call.
  */
 @Injectable()
 export class StageRunner {
@@ -99,7 +99,8 @@ export class StageRunner {
     const record = active.stepRecord(stageNumber, step);
     const limit = active.snapshot.limits.attemptsPerStep;
     // Also bounds a step that keeps killing the watcher: a crash resume takes no budget baseline.
-    if (active.budget.attemptsUsed(stageNumber, record) >= limit) {
+    // `verify` is exempt: it runs the checks once more and the failure policy accepts them with a warning.
+    if (step !== 'verify' && active.budget.attemptsUsed(stageNumber, record) >= limit) {
       const stepKey = formatStepKey({ stageId, step, attempt: Math.max(1, record.attempts) });
       const reason = ownerTexts.stepFailed(stageNumber, stageId, step, ownerTexts.attemptsExhausted(limit));
       await active.setState({ status: 'failed', since: this.now(), reason: clip(reason, textLimits.ownerText), stepKey }, stepKey);
@@ -120,8 +121,8 @@ export class StageRunner {
     guard.close();
 
     if (result.kind === 'returned' && result.outcome.kind !== 'failed') {
-      // The only path to `ok` / `warning`: the handler's own postcondition check passed. A stop or
-      // the cost ceiling that arrived meanwhile is applied by the next between-steps check.
+      // The usual path to `ok` / `warning`: the handler's own postcondition check passed. A stop
+      // that arrived meanwhile is applied by the next between-steps check.
       const caveat = result.outcome.kind === 'passed-with-caveat' || active.stepRecord(stageNumber, step).recoveries.length > 0;
       await active.endStep(position, caveat ? 'warning' : 'ok', result.outcome.detail);
       return { kind: 'done', detail: result.outcome.detail };
@@ -129,7 +130,7 @@ export class StageRunner {
     return this.afterUnpassedAttempt({ workspace, position, stepKey, interruption: guard.interruption, result });
   }
 
-  /** A failed or thrown attempt: a stop or the cost ceiling holds the run, anything else is a failure. */
+  /** A failed or thrown attempt: a stop holds the run, anything else is a failure. */
   private async afterUnpassedAttempt(finished: FinishedAttempt): Promise<StepRunResult> {
     const { workspace, position, stepKey, interruption, result } = finished;
     const active = workspace.active;
@@ -146,11 +147,6 @@ export class StageRunner {
         // The stopped step stays `pending`; resume starts it again (PRD 7.3, criterion 14).
         await active.endStep(position, 'pending', `${detail} ${ownerTexts.stopRequested}`.trim());
         return this.runControl.interrupt(active, interruption.reason);
-      case 'cost-ceiling': {
-        const spend = { spentUsd: interruption.spentUsd, limitUsd: interruption.limitUsd };
-        await active.endStep(position, 'pending', ownerTexts.costSpentReason(spend.spentUsd, spend.limitUsd));
-        return this.runControl.waitForCost(active, { ...spend, stepKey });
-      }
       case 'shutdown':
         // No `endStep`: the step stays `running`, and the next start settles it back to `pending` (criterion 13).
         return this.runControl.releaseForShutdown(active);

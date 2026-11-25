@@ -122,6 +122,11 @@ const idlePublish = {
   claimNext: async (): Promise<boolean> => false,
 };
 
+const idleAssetJobs = {
+  sweepStale: async (): Promise<void> => undefined,
+  claimNext: async (): Promise<boolean> => false,
+};
+
 const idleMetricsPoll = {
   run: async (): Promise<boolean> => false,
 };
@@ -182,6 +187,7 @@ export async function startDaemonWorld(options: { asDaemonPid?: number; engine?:
       shutdown.signal,
       idlePublish,
       idleMetricsPoll,
+      idleAssetJobs,
     );
     await loop.run();
     return round;

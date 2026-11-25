@@ -155,6 +155,10 @@ export const agentToolAllowlists: Readonly<Record<ModelRoleName, readonly AgentT
 export const CAPTURES_INDEX_ARTIFACT = 'captures-index';
 export const CHECKS_ARTIFACT = 'checks';
 export const QA_METRICS_ARTIFACT = 'qa-metrics';
+/** Research's analysis of the owner's source site; present only when the brief has a readable `sourceUrl`. */
+export const SITE_ANALYSIS_ARTIFACT = 'site-analysis';
+/** The kept style analyses of the run's references, recorded by `script`; present only when there are any. */
+export const REFERENCE_ANALYSES_ARTIFACT = 'reference-analyses';
 export const RunArtifactIdSchema = z.enum([
   'brief',
   'plan',
@@ -169,6 +173,8 @@ export const RunArtifactIdSchema = z.enum([
   'failed-check',
   'events-tail',
   'now',
+  SITE_ANALYSIS_ARTIFACT,
+  REFERENCE_ANALYSES_ARTIFACT,
 ]);
 export type RunArtifactId = z.infer<typeof RunArtifactIdSchema>;
 
@@ -185,6 +191,8 @@ export const runArtifactAllowlists: Readonly<Record<ModelRoleName, readonly RunA
     'narration-index',
     QA_METRICS_ARTIFACT,
     CHECKS_ARTIFACT,
+    SITE_ANALYSIS_ARTIFACT,
+    REFERENCE_ANALYSES_ARTIFACT,
   ],
   [RECOVERY_ROLE]: ['plan', 'now', 'failed-check', CHECKS_ARTIFACT, 'events-tail'],
   // The analyst holds no RunArtifactReadTool: page text arrives in its packet, the screenshot by its own tool.

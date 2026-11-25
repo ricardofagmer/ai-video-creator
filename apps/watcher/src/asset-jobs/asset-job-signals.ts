@@ -1,4 +1,4 @@
-import { referenceAnalysisBounds, referenceDownloadBounds, voiceSampleBounds, type AssetJobKind } from '@studio/shared/asset-jobs';
+import { assetPurposeBounds, referenceAnalysisBounds, referenceDownloadBounds, templatePreviewBounds, voiceSampleBounds, type AssetJobKind } from '@studio/shared/asset-jobs';
 
 /**
  * Whole-job bound of a reference analysis: the download of a link reference's video (bounded by
@@ -14,6 +14,8 @@ const REFERENCE_ANALYSIS_JOB_TIMEOUT_MS =
 const JOB_TIMEOUT_MS: Readonly<Record<AssetJobKind, number>> = {
   'voice-sample': voiceSampleBounds.jobTimeoutMs,
   'reference-analysis': REFERENCE_ANALYSIS_JOB_TIMEOUT_MS,
+  'template-preview': templatePreviewBounds.jobTimeoutMs,
+  'asset-purpose': assetPurposeBounds.jobTimeoutMs,
 };
 
 export type AssetJobAbortReason = 'watcher-stopped' | 'job-timeout';

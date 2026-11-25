@@ -27,12 +27,23 @@ const DASH = '—';
 
 type CostTexts = WebMessages['runs']['review']['cost'];
 
+/** What a session without tokens was billed for: characters of speech, or seconds of render or music. */
+function billedUnits(session: Exclude<CostSession, { kind: 'model' }>, t: CostTexts, formatInt: (value: number) => string): string {
+  switch (session.kind) {
+    case 'tts':
+      return t.characters(formatInt(session.characters));
+    case 'render':
+      return t.seconds(formatInt(Math.round(session.renderSeconds)));
+    case 'music':
+      return t.seconds(formatInt(Math.round(session.musicSeconds)));
+  }
+}
+
 function costRow(session: CostSession, index: number, t: CostTexts, locale: Locale): CostRow {
   const formatInt = (value: number): string => formatInteger(value, locale);
   const base = { key: `${index}-${session.sessionId}`, session: session.sessionId, actor: costSessionActor(session, t), usd: session.usd };
   if (session.kind !== 'model') {
-    const units = session.kind === 'tts' ? t.characters(formatInt(session.characters)) : t.seconds(formatInt(Math.round(session.renderSeconds)));
-    return { ...base, inputTokens: units, outputTokens: DASH, cache: DASH };
+    return { ...base, inputTokens: billedUnits(session, t, formatInt), outputTokens: DASH, cache: DASH };
   }
   const cacheTokens = (session.cacheReadTokens ?? 0) + (session.cacheWriteTokens ?? 0);
   return {

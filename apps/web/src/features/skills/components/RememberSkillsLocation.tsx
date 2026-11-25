@@ -9,7 +9,8 @@ export function RememberSkillsLocation(): null {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   useEffect(() => {
-    if (pathname !== '/skills') return;
+    // Rendered only inside the catalog's Skills tab, so any catalog address here is the Skills list.
+    if (pathname !== '/catalogo') return;
     // `salvo` is a one-time notice; going back to the list after a later close should not repeat it.
     const query = new URLSearchParams(searchParams.toString());
     query.delete('salvo');

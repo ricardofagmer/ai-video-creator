@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
-import { agentToolAllowlists, type AgentToolName } from '@studio/shared/agents';
+import { ENVELOPE_PAGINATION_KEY, ENVELOPE_RESULT_KEY, agentToolAllowlists, type AgentToolName, type RunArtifactId } from '@studio/shared/agents';
 import { type AssetVersion, type Tag } from '@studio/shared/catalog';
 import { readRunFile } from '@studio/shared/run-files';
 import { type RunFile } from '@studio/shared/run-format';
@@ -18,6 +18,7 @@ import { frameSampleTool } from './frame-sample.tool';
 import { toMastraTool, type ToolResultForm } from './mastra-tool.adapter';
 import { runArtifactReadTool } from './run-artifact-read.tool';
 import { siteScreenshotTool } from './site-screenshot.tool';
+import { nextOffsetOf } from './text-page';
 import { BoundedCache, StepStateRegistry, type StepToolState } from './tool-state';
 import { invokeGuardedTool, type GuardedTool } from './tool-wrapper';
 
@@ -64,6 +65,29 @@ export class ReadOnlyAgentToolSetProvider implements AgentToolSetProvider {
     const tools: AgentToolSet = {};
     for (const name of names) tools[name] = await this.build(name, { scope, state, run });
     return tools;
+  }
+
+  /**
+   * First page of every artifact, then the following pages in turn, so a long artifact cannot use
+   * up the calls the others need. A read the tool refuses (an artifact the run did not produce)
+   * is kept as its typed answer: the Reviewer's instructions tell it what that means.
+   */
+  async readArtifacts(scope: AgentToolScope, artifactIds: readonly RunArtifactId[], maxCalls: number): Promise<string[]> {
+    await this.readBoundRun(scope);
+    const binding = { scope, state: this.steps.stateFor(scope.runId, scope.stepKey) };
+    const tool = runArtifactReadTool({ redactor: this.redactor, memo: this.artifactMemo }, scope);
+    const pending: { artifact: RunArtifactId; offset: number }[] = artifactIds.map((artifact) => ({ artifact, offset: 0 }));
+    const blocks: string[] = [];
+    for (let calls = 0; calls < maxCalls; calls += 1) {
+      const next = pending.shift();
+      if (next === undefined) break;
+      const output = await invokeGuardedTool(tool, binding, next.offset === 0 ? { artifact: next.artifact } : next);
+      const result = output[ENVELOPE_RESULT_KEY];
+      blocks.push(typeof result === 'string' ? result : `${next.artifact}: ${JSON.stringify(result)}`);
+      const offset = nextOffsetOf(output[ENVELOPE_PAGINATION_KEY]);
+      if (offset !== null) pending.push({ artifact: next.artifact, offset });
+    }
+    return blocks;
   }
 
   private async build(name: AgentToolName, context: { scope: AgentToolScope; state: StepToolState; run: RunFile }): Promise<MastraTool> {

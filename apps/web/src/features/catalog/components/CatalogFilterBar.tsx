@@ -3,13 +3,14 @@
 import { Label, SearchField, Select, useI18n, type Locale, type SelectOption } from '@studio/ui';
 import { AssetStatusSchema } from '@studio/shared/catalog';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement, type ReactNode } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { formatScoreValue } from '@/features/quality/quality-labels';
 import { type WebMessages } from '@/messages';
 import { useWebMessages } from '@/lib/i18n/client';
 import { catalogHref, minQualityChoices, minSampleSizeChoices, type CatalogFilters } from '../catalog-query';
 import { DEFAULT_CATALOG_SECTION, catalogSectionSlug } from '../catalog-sections';
+import styles from '../catalog.module.css';
 
 interface FilterOptions {
   status: SelectOption[];
@@ -50,7 +51,15 @@ function choiceOf(value: string, choices: readonly number[]): number | null {
  * live in the URL, not in client state shared elsewhere; the form also works as a plain GET form
  * before hydration.
  */
-export function CatalogFilterBar({ filters }: { filters: CatalogFilters }): ReactElement {
+interface CatalogFilterBarProps {
+  filters: CatalogFilters;
+  /** Drawn at the end of the same row (the Only favourites toggle); it must not submit the form. */
+  trailing?: ReactNode;
+  /** Given by a screen that keeps the filters in its own state (a dialog): the bar then never touches the URL. */
+  onFiltersChange?: (filters: CatalogFilters) => void;
+}
+
+export function CatalogFilterBar({ filters, trailing, onFiltersChange }: CatalogFilterBarProps): ReactElement {
   const router = useRouter();
   const t = useWebMessages();
   const { ui, locale } = useI18n();
@@ -59,7 +68,9 @@ export function CatalogFilterBar({ filters }: { filters: CatalogFilters }): Reac
   const [text, setText] = useState(filters.text);
 
   function navigate(next: Partial<CatalogFilters>): void {
-    router.replace(catalogHref({ ...filters, ...next, mode: 'words', cursor: null }));
+    const changed: CatalogFilters = { ...filters, ...next, mode: 'words', cursor: null };
+    if (onFiltersChange !== undefined) onFiltersChange(changed);
+    else router.replace(catalogHref(changed));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
@@ -68,7 +79,7 @@ export function CatalogFilterBar({ filters }: { filters: CatalogFilters }): Reac
   }
 
   return (
-    <form method="get" action="/catalogo" className={layout.row} onSubmit={handleSubmit}>
+    <form method="get" action="/catalogo" className={`${layout.row} ${styles.filterBar}`} onSubmit={handleSubmit}>
       <SearchField
         id="busca-catalogo"
         name="q"
@@ -126,6 +137,7 @@ export function CatalogFilterBar({ filters }: { filters: CatalogFilters }): Reac
           onChange={(event) => navigate({ minSampleSize: choiceOf(event.currentTarget.value, minSampleSizeChoices) })}
         />
       </div>
+      {trailing}
     </form>
   );
 }

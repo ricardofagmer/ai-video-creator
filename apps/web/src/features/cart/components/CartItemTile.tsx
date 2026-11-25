@@ -4,7 +4,7 @@ import { Badge, Button, Icon, textLinkClassName, type BadgeTone } from '@studio/
 import Link from 'next/link';
 import { type ReactElement } from 'react';
 import { useWebMessages } from '@/lib/i18n/client';
-import { SkillGlyph } from '@/features/skills/components/SkillGlyph';
+import { StudioGlyph } from '@/features/common/components/StudioGlyph';
 import { type CartDestination } from '../cart-bindings';
 import { cartKindArtwork } from '../cart-kind-artwork';
 import { catalogHrefOf } from '../cart-item';
@@ -62,7 +62,7 @@ export function CartItemTile({ item, destination, onNavigate }: CartItemTileProp
     <li className={`${styles.tile} ${toneClasses[artwork.tone]}`}>
       <div className={styles.head}>
         <span className={styles.lens} aria-hidden="true">
-          <SkillGlyph name={artwork.glyph} className={styles.lensGlyph} />
+          <StudioGlyph name={artwork.glyph} className={styles.lensGlyph} />
         </span>
         <span className={`overline ${styles.kind}`}>{t.catalog.kinds[item.kind]}</span>
       </div>

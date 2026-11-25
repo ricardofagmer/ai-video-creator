@@ -1,3 +1,4 @@
+import type { AssetJobErrorCode } from '@studio/shared/asset-jobs';
 import type { Messages } from '@studio/ui';
 import type { catalogPtBR } from './pt-BR';
 
@@ -37,8 +38,11 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
 
   list: {
     title: 'Catalog',
-    description: 'Templates, models, prompts, media and brand kits used in recipes.',
+    description: 'Templates, models, prompts, media and brand kits used in presets.',
     uploadAsset: 'Upload asset',
+    edit: 'Edit',
+    editHidden: (name: string): string => `Edit ${name}`,
+    addKind: (kind: string): string => `Add ${kind}`,
     versionCount: (count: number): string => (count === 1 ? '1 version' : `${count} versions`),
     assetCount: (count: number): string => (count === 1 ? '1 asset' : `${count} assets`),
     emptyTitle: 'The catalog is empty',
@@ -77,6 +81,7 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     label: 'Asset kinds',
     templateCategoriesLabel: 'Template categories',
     referenceCategoriesLabel: 'Reference categories',
+    imageCategoriesLabel: 'Image categories',
     all: 'All',
     kinds: {
       template: 'Templates',
@@ -143,6 +148,15 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     saving: 'Saving…',
     saved: 'Website saved as a draft.',
     openSaved: 'Open item',
+    embedTitle: (hostname: string): string => `Website ${hostname}`,
+    embedCardTitle: 'Website',
+    embedBlocked: 'Some sites refuse to be shown inside another page; if it stays blank, open it in a new tab.',
+    frameRefused: 'This site does not allow previews.',
+    openSite: (hostname: string): string => `Open ${hostname}`,
+    tags: 'Tags',
+    tagsHelp: 'Separate with commas. The tag site is always kept.',
+    tagsInvalid: (tag: string): string => `"${tag}" is not a valid tag: use lowercase letters, numbers, - or .`,
+    tooManyTags: (max: number): string => `Use at most ${max} tags.`,
   },
   promptForm: {
     title: 'New prompt',
@@ -154,6 +168,12 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     textRequired: 'Write the prompt text.',
     ownerRequired: 'Enter the owner.',
     submit: 'Save prompt',
+    open: 'New prompt',
+    cancel: 'Cancel',
+    editTitle: (name: string): string => `Edit prompt: ${name}`,
+    editHelp: 'Saving keeps the current version and stores your changes as the next version.',
+    editSubmit: 'Save new version',
+    editUnavailable: 'This prompt could not be loaded for editing. It may have been removed.',
     saving: 'Saving…',
     saved: 'Prompt saved as a draft.',
     openSaved: 'Open item',
@@ -229,6 +249,14 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
       cover: 'Covers',
       other: 'Other',
     },
+    imageCategories: {
+      people: 'People',
+      products: 'Products',
+      scenes: 'Scenes',
+      icons: 'Icons',
+      logos: 'Logos',
+      other: 'No category',
+    },
   },
 
   asset: {
@@ -283,6 +311,16 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     updatedAt: 'Updated',
     tags: 'Tags',
     usage: 'Usage',
+    tagEditor: {
+      edit: 'Edit tags',
+      save: 'Save tags',
+      saving: 'Saving…',
+      cancel: 'Cancel',
+      help: 'Lowercase letters, numbers, hyphens and dots. Saving creates a new draft version.',
+      none: 'No tags yet.',
+      invalid: (tag: string): string => `"${tag}" is not a valid tag: use lowercase letters, numbers, hyphens and dots.`,
+      tooMany: (max: number): string => `Use at most ${max} tags.`,
+    },
     sensitivity: 'Sensitivity',
     storedByReference: 'Stored by reference',
     hiddenPath: 'Path hidden (biometric material)',
@@ -292,6 +330,7 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     durationRangeValue: (minSeconds: number, maxSeconds: number): string => `${minSeconds}–${maxSeconds} s`,
     provider: 'Provider',
     modelReference: 'Model reference',
+    speechModel: 'Speech model',
     localPath: 'Local path',
     modelReferenceEnv: (name: string): string => `environment variable ${name}`,
     modelReferenceKeychain: (name: string): string => `Keychain item ${name}`,
@@ -346,7 +385,7 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     deprecate: 'Deprecate',
     deprecating: 'Deprecating…',
     confirmTitle: (version: number): string => `Deprecate version v${version}?`,
-    confirmDescription: 'Existing recipes and runs keep using this version. New recipes will not be able to choose it.',
+    confirmDescription: 'Existing presets and runs keep using this version. New presets will not be able to choose it.',
     cancel: 'Cancel',
   },
 
@@ -469,7 +508,9 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
         literal: 'Public id',
       },
       modelIdRefValue: 'Model reference',
-      modelIdRefHelp: 'Never paste a key here.',
+      modelIdRefHelp: 'Never paste a key here. For an ElevenLabs voice, choose Public id and paste the voice id.',
+      voiceModelId: 'Speech model id',
+      voiceModelIdHelp: 'ElevenLabs model for this voice, such as eleven_multilingual_v2. Empty uses the default.',
       subKind: 'Reference type',
       subKinds: {
         video: 'Video',
@@ -495,6 +536,8 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
       durationSec: 'Duration (s)',
       bpm: 'BPM',
       integratedLufs: 'Integrated loudness (LUFS)',
+      musicCategories: 'Categories',
+      musicCategoriesHelp: (max) => `Up to ${max}: the mood and instruments of the track. The AI uses them to pick the music of a video.`,
       brandKit: 'Brand kit',
       brandKitHelp: 'Colors, fonts, logos, captions and safe zones in JSON.',
     },
@@ -599,7 +642,7 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     platforms: (w) =>
       `When a run's video was published and has metrics, the platforms come in as a fourth signal (weight ${w.platform}): views, engagement rate and, when the platform reports it, the percentage watched, always compared with the median of your own videos on that platform, never with an absolute number. Only videos with at least ${w.minViews} views count. No effect on the score until there are ${w.baselineMinVideos} videos with metrics on the same platform. With all four signals together, a run's adjustment stays between ${w.cut} and ${w.raise}; your rating still decides.`,
     prior: (w) =>
-      `With few runs, the score is pulled toward a reference average that counts as ${w.priorWeight} runs: the recipe's average if it has at least ${w.priorMinRuns} reviewed runs; otherwise the asset type's; otherwise the whole studio's; otherwise ${w.neutral}. That is why a single 5-star run does not become a score of 5.`,
+      `With few runs, the score is pulled toward a reference average that counts as ${w.priorWeight} runs: the preset's average if it has at least ${w.priorMinRuns} reviewed runs; otherwise the asset type's; otherwise the whole studio's; otherwise ${w.neutral}. That is why a single 5-star run does not become a score of 5.`,
     limits: (formulaVersion) =>
       `Known limits: the score credits the whole run's result to every version it used; runs that failed before review do not count; and, since every reviewed run has already passed the media checks, the checks only separate "passed" from "passed with warnings". The score is recalculated at every recorded review and every metrics import, and never activates anything on its own. Formula version: ${formulaVersion}.`,
   },
@@ -631,6 +674,58 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     waitedTooLong: 'The sample is taking more than 2 minutes. Try again later.',
     audioUnreadable: 'The browser could not play the sample.',
   },
+  templatePreview: {
+    rendering: 'Rendering preview…',
+    clipLabel: (name) => `Preview of the template ${name}`,
+    descriptions: {
+      hook: 'A short opening that grabs attention in the first seconds of the video.',
+      title: 'A title card with animated text to open the video or separate its parts.',
+      'tool-demo': 'Shows a tool solving a task step by step, with the text on screen.',
+      'ai-battle': 'Puts two AIs side by side on the same task and shows which did better.',
+      automation: 'Walks through an automation step by step, from trigger to result.',
+      'product-tour': 'A guided tour of a product’s screens and features.',
+      other: 'A video template ready to use in presets.',
+    },
+  },
+  musicPreview: {
+    play: 'Listen',
+    pause: 'Pause',
+    retry: 'Try again',
+    namedLabel: (action, trackName) => `${action}: music ${trackName}`,
+    audioUnreadable: 'The browser could not play the music.',
+  },
+  musicChoice: {
+    modeLegend: 'How the music is chosen',
+    track: 'Choose the song',
+    trackDescription: 'The same track in every video of this preset.',
+    auto: 'AI decides',
+    autoDescription: 'For each video, the AI picks a catalog track in these categories, or makes one.',
+    categoriesLegend: 'Categories',
+    autoHelp: (max) => `Tick up to ${max}. None ticked: any category will do.`,
+    limitReached: (max) => `${max} categories already. Untick one to choose another.`,
+    any: 'Any',
+    noCategories: 'No category',
+    autoSummary: (categories) => `AI decides: ${categories}`,
+    categories: {
+      animated: 'Animated',
+      excited: 'Excited',
+      sad: 'Sad',
+      upset: 'Upset',
+      boring: 'Boring',
+      classic: 'Classic',
+      electronic: 'Electronic',
+      thoughtful: 'Thoughtful',
+      guitar: 'Guitar',
+      'acoustic-guitar': 'Acoustic guitar',
+      piano: 'Piano',
+      voices: 'Voices',
+      calm: 'Calm',
+      happy: 'Happy',
+      epic: 'Epic',
+      cinematic: 'Cinematic',
+      'lo-fi': 'Lo-fi',
+    },
+  },
   referenceAnalysis: {
     title: 'AI analysis',
     byAi: 'Written by the AI from the video. Your own notes stay separate and unchanged.',
@@ -658,5 +753,31 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
       promptNotes: 'Notes for the creations',
       cautions: 'Cautions',
     },
+  },
+  purpose: {
+    heading: 'What it is for',
+    pending: 'The AI is writing what this item is for…',
+    failed: (code: AssetJobErrorCode | null): string =>
+      code === null ? 'The AI could not write what this item is for.' : `The AI could not write what this item is for. ${catalogEn.assetJobErrors[code]}`,
+    refused: (code: AssetJobErrorCode | null): string =>
+      code === null ? 'The request to write what this item is for was refused.' : `The request to write what this item is for was refused. ${catalogEn.assetJobErrors[code]}`,
+    retry: 'Try again',
+    regenerate: 'Generate again with AI',
+    edit: 'Edit',
+    save: 'Save',
+    cancel: 'Cancel',
+    empty: 'There is no description of what this item is for yet.',
+    ownerEdited: 'Written by you',
+    backfillButton: (count: number): string => (count === 1 ? 'Describe 1 item without a purpose' : `Describe ${count} items without a purpose`),
+    backfillConfirmTitle: 'Describe the items with AI?',
+    backfillConfirmBody: (count: number): string =>
+      count === 1
+        ? 'The AI will write what 1 catalog item is for. This may cost money and stays within the month spend limit.'
+        : `The AI will write what ${count} catalog items are for. This may cost money and stays within the month spend limit.`,
+    backfillDone: (count: number): string => (count === 1 ? '1 item was sent to the AI to describe.' : `${count} items were sent to the AI to describe.`),
+    backfillQueueFull: (count: number): string =>
+      count === 1
+        ? '1 item did not fit in the queue. Try again once the queue clears.'
+        : `${count} items did not fit in the queue. Try again once the queue clears.`,
   },
 };

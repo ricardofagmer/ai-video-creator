@@ -1,8 +1,9 @@
-import { EmptyState, PageHeader, buttonClassName } from '@studio/ui';
+import { EmptyState, buttonClassName } from '@studio/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
-import { RecipesTable } from '@/features/recipes/components/RecipesTable';
+import { RecipeList } from '@/features/recipes/components/RecipeList';
 import { representativeRecipes } from '@/features/recipes/recipe-labels';
 import { serverStudioClient } from '@/lib/api/server';
 import { getI18n } from '@/lib/i18n/server';
@@ -12,12 +13,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.recipes.list.title };
 }
 
-/** design/telas/05: `/receitas`, one row per recipe (its active version, else the newest). */
+/** design/telas/05: `/receitas`, one card per recipe (its active version, else the newest). */
 export default async function RecipesPage() {
   const page = await serverStudioClient().listRecipes({ limit: 100 });
   const { t, locale } = await getI18n();
   const texts = t.recipes.list;
   const recipes = representativeRecipes(page.items, locale);
+  const activeCount = recipes.filter((view) => view.recipe.status === 'active').length;
   const newRecipeLink = (
     <Link href="/receitas/nova" className={buttonClassName({ variant: 'primary' })}>
       {texts.newRecipe}
@@ -26,7 +28,14 @@ export default async function RecipesPage() {
 
   return (
     <div className={layout.page}>
-      <PageHeader title={texts.title} description={texts.description} actions={newRecipeLink} />
+      <StudioHero
+        eyebrow={t.common.heroEyebrows.recipes}
+        glyph="script"
+        title={texts.title}
+        description={texts.description}
+        facts={[texts.count(recipes.length), texts.activeCount(activeCount)]}
+        actions={newRecipeLink}
+      />
       {recipes.length === 0 ? (
         <EmptyState
           title={texts.emptyTitle}
@@ -40,7 +49,7 @@ export default async function RecipesPage() {
           action={newRecipeLink}
         />
       ) : (
-        <RecipesTable recipes={recipes} />
+        <RecipeList recipes={recipes} />
       )}
     </div>
   );

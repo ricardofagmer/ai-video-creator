@@ -1,5 +1,5 @@
-import { AssetRefSchema } from '@studio/shared/catalog';
-import { BRIEF_INSTRUCTIONS_MAX, RecipeRefSchema } from '@studio/shared/recipes';
+import { AssetRefSchema, MusicCategoryListSchema } from '@studio/shared/catalog';
+import { BRIEF_INSTRUCTIONS_MAX, RecipeRefSchema, type MusicChoice } from '@studio/shared/recipes';
 import { z } from 'zod';
 import { type NewRunFormValues } from '@/features/runs/new-run-model';
 import { draftSteps, type DraftStep } from './wizard-steps';
@@ -24,10 +24,17 @@ export interface WizardDraft {
   instructions: string;
   references: readonly string[];
   choices: WizardChoices;
+  /** "Choose the song" or "AI decides" with its categories; null keeps the base preset's choice. */
+  musicChoice: MusicChoice | null;
   saved: SavedComposition | null;
 }
 
 const refOrEmpty = z.union([z.literal(''), AssetRefSchema]);
+
+const MusicChoiceDraftSchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('track') }).strict(),
+  z.object({ mode: z.literal('auto'), categories: MusicCategoryListSchema }).strict(),
+]);
 
 // Loose upper bounds: they only keep a tampered or stale entry from growing the page; the
 // brief's own rules are checked by `buildBrief` and by the api.
@@ -39,6 +46,8 @@ const WizardDraftSchema = z
         recipeRef: z.union([z.literal(''), RecipeRefSchema]),
         topic: z.string().max(1000),
         sourceUrl: z.string().max(4096),
+        // Drafts saved before the question existed have no key: the owner answers it on the way.
+        siteCapture: z.enum(['', 'use', 'skip']).default(''),
         keyMessages: z.string().max(8000),
         targetDurationSec: z.string().max(10),
       })
@@ -48,6 +57,8 @@ const WizardDraftSchema = z
     choices: z
       .object({ voice: refOrEmpty.optional(), template: refOrEmpty.optional(), 'brand-kit': refOrEmpty.optional(), music: refOrEmpty.optional() })
       .strict(),
+    // Drafts saved before the music choice existed have no key: they keep the preset's choice.
+    musicChoice: MusicChoiceDraftSchema.nullable().default(null),
     saved: z.object({ key: z.string().max(2000), ref: RecipeRefSchema }).strict().nullable(),
   })
   .strict();
@@ -55,10 +66,11 @@ const WizardDraftSchema = z
 export function emptyDraft(recipeRef: string): WizardDraft {
   return {
     step: 'idea',
-    values: { recipeRef, topic: '', sourceUrl: '', keyMessages: '', targetDurationSec: '' },
+    values: { recipeRef, topic: '', sourceUrl: '', siteCapture: '', keyMessages: '', targetDurationSec: '' },
     instructions: '',
     references: [],
     choices: {},
+    musicChoice: null,
     saved: null,
   };
 }
@@ -79,5 +91,5 @@ export function parseDraft(text: string | null): WizardDraft | null {
 /** The draft with a base recipe that no longer runs dropped, so the owner chooses again. */
 export function draftForRecipes(draft: WizardDraft, runnableRefs: readonly string[]): WizardDraft {
   if (draft.values.recipeRef === '' || runnableRefs.includes(draft.values.recipeRef)) return draft;
-  return { ...draft, values: { ...draft.values, recipeRef: '' }, choices: {}, saved: null };
+  return { ...draft, values: { ...draft.values, recipeRef: '' }, choices: {}, musicChoice: null, saved: null };
 }

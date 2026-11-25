@@ -1,13 +1,10 @@
-import { revisionsExhaustedText } from '@studio/core/agents';
-import { type ReviewVerdict } from '@studio/shared/agents';
-import type { StageExecutionContext, StageFailure } from '@studio/shared/ports';
-import { type StageId } from '@studio/shared/run-format';
+import type { StageExecutionContext } from '@studio/shared/ports';
 import { clip } from '../../engine/text';
 import { type ReviewOutcome } from '../shared/stage-artifacts';
-import { needsPerson, type CheckEvidence } from '../shared/stage-results';
+import { type CheckEvidence } from '../shared/stage-results';
 import { stageTexts } from '../shared/stage-texts';
 
-/** C3 `revisions-exhausted.issues`: at most 20 issues of at most 300 characters. */
+/** At most 20 reported issues of at most 300 characters each. */
 const MAX_ISSUES = 20;
 const ISSUE_MAX_CHARS = 300;
 
@@ -18,9 +15,9 @@ function minOverallOf(context: StageExecutionContext): number {
 }
 
 /**
- * `reviewer-score` as evidence only (topology section 5: the pass decision is the engine's and the
+ * `reviewer-score` as evidence (topology section 5: the pass decision is the engine's and the
  * owner's). A score at or above the recipe threshold passes; a lower score or a missing review is
- * `skipped` with the reason, which the engine records as a caveat for the owner gate.
+ * `skipped` with the reason, which the engine records as a caveat; a low score never stops the run.
  */
 export function reviewerScoreEvidence(context: StageExecutionContext, outcome: ReviewOutcome | null): CheckEvidence {
   const minOverall = minOverallOf(context);
@@ -38,10 +35,20 @@ export function reviewerScoreEvidence(context: StageExecutionContext, outcome: R
   };
 }
 
-/** Spent revision budget with the Reviewer still asking: the owner decides (topology section 7). */
-export function revisionsExhaustedFailure(stageId: StageId, verdict: ReviewVerdict): StageFailure {
+/**
+ * Owner decision 2026-11-24: a review never stops the run. A spent revision budget or a score under
+ * the recipe threshold lets the last draft go on, and this caveat tells the owner what the Reviewer
+ * still saw; the `reviewer-score` check records the same low score as `skipped`. Null when the
+ * review raises nothing to report.
+ */
+export function reviewCaveat(context: StageExecutionContext, outcome: ReviewOutcome, exhausted: boolean): string | null {
+  if (outcome.status !== 'recorded') return null;
+  const { verdict } = outcome;
+  const lowScore = verdict.overall < minOverallOf(context);
+  if (!exhausted && !lowScore) return null;
   const issues = (verdict.blockingIssues.length > 0 ? verdict.blockingIssues : [verdict.retryInstruction])
+    .filter((issue) => issue.trim() !== '')
     .slice(0, MAX_ISSUES)
     .map((issue) => clip(issue, ISSUE_MAX_CHARS));
-  return needsPerson({ kind: 'revisions-exhausted', stageId, issues }, revisionsExhaustedText(issues), stageTexts.revisionsExhaustedWhatToDo);
+  return stageTexts.reviewerContinued(verdict.overall, issues);
 }

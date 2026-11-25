@@ -1,6 +1,5 @@
 import { RunFileError } from '@studio/shared/run-files';
 import { type ActiveRun } from '../active-run';
-import { liveRunSpendUsd } from '../cost/run-spend';
 import { StepInterruptedError, StepWatchError } from '../engine.errors';
 import { ownerTexts } from '../owner-texts';
 import { type RunControlChannel } from '../seams';
@@ -12,7 +11,6 @@ export const STEP_WATCH_INTERVAL_MS = 500;
 export type StepInterruption =
   | { kind: 'stop'; reason: string }
   | { kind: 'timeout'; timeoutMs: number }
-  | { kind: 'cost-ceiling'; spentUsd: number; limitUsd: number }
   | { kind: 'run-aborted' }
   /** R1-09: the watcher process is shutting down; the run is left for crash-resume, not `interrupted`. */
   | { kind: 'shutdown' };
@@ -27,8 +25,9 @@ export interface StepGuardOptions {
 
 /**
  * The `AbortSignal` of one step attempt or Recovery call (topology section 7, RUN-FORMAT 12). It
- * aborts on the step timeout, on a `stop` in control.json, when the live cost.json total crosses
- * `limits.costPerRunUsd`, when the watcher shuts down (R1-09), or when the whole execution aborts.
+ * aborts on the step timeout, on a `stop` in control.json, when the watcher shuts down (R1-09), or
+ * when the whole execution aborts. Spend past `limits.costPerRunUsd` no longer aborts a step: the
+ * between-steps check warns about it (owner decision 2026-11-25).
  * The signal reaches the executor, every tool and `AgentsPort.run(..., { signal })`.
  */
 export class StepGuard {
@@ -90,7 +89,7 @@ export class StepGuard {
     try {
       await this.inspect();
     } catch (error) {
-      // An unreadable control.json or cost.json is raised by the between-steps read that follows.
+      // An unreadable control.json is raised by the between-steps read that follows.
       if (!(error instanceof RunFileError)) this.unexpected ??= error;
     } finally {
       this.inspecting = false;
@@ -108,10 +107,6 @@ export class StepGuard {
     }
     this.showPauseNotice(state.directive.kind === 'pause');
     if (state.directive.kind === 'pause') await active.acknowledgeControl('pause');
-
-    const spentUsd = await liveRunSpendUsd(active.runDir);
-    const limitUsd = active.snapshot.limits.costPerRunUsd;
-    if (!this.closed && spentUsd > limitUsd) this.interrupt({ kind: 'cost-ceiling', spentUsd, limitUsd });
   }
 
   /** The step keeps running on `pause`; the owner sees the request is taken (criterion 14). */

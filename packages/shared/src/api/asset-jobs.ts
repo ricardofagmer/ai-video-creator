@@ -16,6 +16,9 @@ import { LanguageSchema } from '../recipes/brief';
  * | GET | /catalog/assets/:assetId/versions/:version/voice-sample/audio | - | 200 audio bytes, `Cache-Control: no-store` |
  * | POST | /catalog/assets/:assetId/versions/:version/reference-analysis | - | 202 ReferenceAnalysisView |
  * | GET | /catalog/assets/:assetId/versions/:version/reference-analysis | - | 200 ReferenceAnalysisView |
+ * | GET | /catalog/assets/:assetId/versions/:version/template-preview | - | 200 TemplatePreviewView |
+ * | GET | /catalog/assets/:assetId/versions/:version/template-preview/clip | - | 200 video/mp4 bytes |
+ * | GET | /catalog/assets/:assetId/versions/:version/template-preview/poster | - | 200 image/png bytes |
  *
  * No view carries a file path, a provider's text or the sample sentence's source; a refusal
  * writes nothing.
@@ -68,6 +71,21 @@ export const ReferenceAnalysisViewSchema = z
   .strict();
 export type ReferenceAnalysisView = z.infer<typeof ReferenceAnalysisViewSchema>;
 
+/** Why a template version has no preview job: its engine or composition has no sample input yet. */
+export const TemplatePreviewUnavailableSchema = z.enum(['not-a-template', 'not-supported']);
+export type TemplatePreviewUnavailable = z.infer<typeof TemplatePreviewUnavailableSchema>;
+
+/** A template version's preview clip (template preview, 2026-11-25). Rendered on register, $0. */
+export const TemplatePreviewViewSchema = z
+  .object({
+    ...jobViewShape,
+    /** Null when the version can have a preview. */
+    unavailable: TemplatePreviewUnavailableSchema.nullable(),
+    durationS: z.number().positive().nullable(),
+  })
+  .strict();
+export type TemplatePreviewView = z.infer<typeof TemplatePreviewViewSchema>;
+
 /**
  * The `ApiError.reason` values the guided-creation spec adds, with their status codes.
  * `composition-conflict` carries `details.conflicts`. `month-spend-unavailable` (503) is reused.
@@ -82,3 +100,20 @@ export const apiGuidedCreationErrorReasons = Object.freeze({
   'asset-job-sample-not-ready': 404,
 });
 export type ApiGuidedCreationErrorReason = keyof typeof apiGuidedCreationErrorReasons;
+
+/**
+ * `GET /catalog/assets/purposes/backfill` (ADR 0012 decision 9, C-P4, AP-12): how many versions
+ * still wait for a purpose, counting each asset's latest and active version once, with
+ * `purposeSource: none` and no open `asset-purpose` job.
+ */
+export const PurposeBackfillCountViewSchema = z.object({ missing: z.number().int().nonnegative() }).strict();
+export type PurposeBackfillCountView = z.infer<typeof PurposeBackfillCountViewSchema>;
+
+/**
+ * `POST /catalog/assets/purposes/backfill` (C-P4, AP-12): jobs written for the counted versions and
+ * versions whose request failed (a full queue among them). A failure never fails the batch.
+ */
+export const PurposeBackfillResultViewSchema = z
+  .object({ requested: z.number().int().nonnegative(), failed: z.number().int().nonnegative() })
+  .strict();
+export type PurposeBackfillResultView = z.infer<typeof PurposeBackfillResultViewSchema>;

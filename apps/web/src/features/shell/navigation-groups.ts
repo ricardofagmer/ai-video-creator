@@ -23,7 +23,6 @@ export const studioNavigationGroups: readonly StudioNavGroup[] = [
     key: 'content',
     links: [
       { href: '/catalogo', key: 'catalog', icon: 'folder' },
-      { href: '/skills', key: 'skills', icon: 'sparkles' },
       { href: '/receitas', key: 'recipes', icon: 'clipboard' },
     ],
   },

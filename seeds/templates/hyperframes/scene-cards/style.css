@@ -1,0 +1,185 @@
+/*
+ * Cartoes de cena 9:16 (HyperFrames). CSS animation only (data-no-timeline on the composition
+ * root). Each scene line runs one animation that starts at its sceneNStartS and lasts until the
+ * next scene starts, so it is hidden before and after its own narration.
+ */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background: #0b0b0f;
+}
+
+.card {
+  position: relative;
+  width: 1080px;
+  height: 1920px;
+  padding: 0 96px;
+  color: #f5f5f7;
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  background: radial-gradient(120% 80% at 50% 30%, #1c1c24 0%, #0b0b0f 70%);
+  /* The closing fade starts 0.8 s before durationS; the render sets the composition to the narration length. */
+  animation: card-out 0.8s ease-in forwards;
+  animation-delay: calc(var(--durations, 600) * 1s - 0.8s);
+}
+
+/* The run's picture fills the card; the scrim keeps the text readable over any page or image. */
+.background {
+  position: absolute;
+  inset: 0;
+  width: 1080px;
+  height: 1920px;
+  object-fit: cover;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 11, 15, 0.86) 0%, rgba(11, 11, 15, 0.38) 26%, rgba(11, 11, 15, 0.38) 52%, rgba(11, 11, 15, 0.82) 100%);
+}
+
+.accent-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 24px;
+  background: var(--accent, #f97316);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: bar-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+}
+
+/* Header at the top: the `captions` stage burns its lines over the lower part of the frame. */
+.header {
+  position: absolute;
+  top: 88px;
+  left: 96px;
+  right: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  opacity: 0;
+  animation: fade-in 0.6s ease-out 0.3s forwards;
+}
+
+.disclosure {
+  font-size: 30px;
+  line-height: 1.3;
+  color: rgba(245, 245, 247, 0.72);
+}
+
+.disclosure:empty {
+  display: none;
+}
+
+.title {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: rgba(245, 245, 247, 0.82);
+  overflow-wrap: break-word;
+}
+
+/* Scene lines share one box above the captions band; only the narrated one is visible. */
+.stage {
+  position: absolute;
+  top: 560px;
+  left: 96px;
+  right: 96px;
+  height: 720px;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  font-size: 112px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  overflow-wrap: break-word;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.75);
+  opacity: 0;
+  animation-name: scene-show;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.scene:empty {
+  display: none;
+}
+
+.scene-1 {
+  animation-delay: calc(var(--scene1starts, 0) * 1s);
+  animation-duration: calc((var(--scene2starts, 600) - var(--scene1starts, 0)) * 1s);
+}
+
+.scene-2 {
+  animation-delay: calc(var(--scene2starts, 600) * 1s);
+  animation-duration: calc((var(--scene3starts, 600) - var(--scene2starts, 600)) * 1s);
+}
+
+.scene-3 {
+  animation-delay: calc(var(--scene3starts, 600) * 1s);
+  animation-duration: calc((var(--scene4starts, 600) - var(--scene3starts, 600)) * 1s);
+}
+
+.scene-4 {
+  animation-delay: calc(var(--scene4starts, 600) * 1s);
+  animation-duration: calc((var(--scene5starts, 600) - var(--scene4starts, 600)) * 1s);
+}
+
+.scene-5 {
+  animation-delay: calc(var(--scene5starts, 600) * 1s);
+  animation-duration: calc((var(--scene6starts, 600) - var(--scene5starts, 600)) * 1s);
+}
+
+.scene-6 {
+  animation-delay: calc(var(--scene6starts, 600) * 1s);
+  animation-duration: calc((var(--durations, 600) - var(--scene6starts, 600)) * 1s);
+}
+
+@keyframes bar-in {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scene-show {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  8%,
+  94% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+}
+
+@keyframes card-out {
+  to {
+    opacity: 0;
+  }
+}

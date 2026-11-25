@@ -1,6 +1,6 @@
 'use client';
 
-import { Alert, FormField, Input, Label, buttonClassName, textLinkClassName } from '@studio/ui';
+import { Alert, FormField, Input, Label, TagInput, buttonClassName, textLinkClassName } from '@studio/ui';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent, type ReactElement } from 'react';
@@ -9,16 +9,18 @@ import layout from '@/features/common/layout.module.css';
 import { browserStudioClient } from '@/lib/api';
 import { useWebMessages } from '@/lib/i18n/client';
 import styles from '../catalog.module.css';
+import { assetTagsProblemOf, tagsOfText } from '../asset-tags';
 import { catalogHref } from '../catalog-query';
-import { SITE_LINK_URL_MAX, SITE_NAME_MAX, SITE_OWNER_MAX, siteLinkDraftOf, siteLinkUrlFrom } from '../site-link-draft';
+import { SITE_LINK_URL_MAX, SITE_NAME_MAX, SITE_OWNER_MAX, siteLinkDraftOf, siteLinkUrlFrom, siteTagsOf } from '../site-link-draft';
 
 const FIELD_IDS = {
   link: 'site-link',
   name: 'site-nome',
   owner: 'site-responsavel',
+  tags: 'site-tags',
 } as const;
 
-type FieldErrors = Partial<Record<'name' | 'owner', string>>;
+type FieldErrors = Partial<Record<'name' | 'owner' | 'tags', string>>;
 
 interface SiteLinkBoxProps {
   /** The id from `?salvo=` after a save, already checked against the asset id rule; null otherwise. */
@@ -39,6 +41,7 @@ export function SiteLinkBox({ savedAssetId }: SiteLinkBoxProps): ReactElement {
   const [url, setUrl] = useState<URL | null>(null);
   const [name, setName] = useState('');
   const [owner, setOwner] = useState('');
+  const [tagsText, setTagsText] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -60,6 +63,7 @@ export function SiteLinkBox({ savedAssetId }: SiteLinkBoxProps): ReactElement {
     setLinkText('');
     setLinkError(undefined);
     setUrl(null);
+    setTagsText('');
     setFormError(null);
   }
 
@@ -69,12 +73,15 @@ export function SiteLinkBox({ savedAssetId }: SiteLinkBoxProps): ReactElement {
     const errors: FieldErrors = {};
     if (name.trim() === '') errors.name = texts.nameRequired;
     if (owner.trim() === '') errors.owner = texts.ownerRequired;
+    const tags = tagsOfText(tagsText);
+    const tagsProblem = assetTagsProblemOf(siteTagsOf(tags));
+    if (tagsProblem !== null) errors.tags = tagsProblem.type === 'invalid' ? texts.tagsInvalid(tagsProblem.tag) : texts.tooManyTags(tagsProblem.max);
     setFieldErrors(errors);
     setFormError(null);
     if (Object.keys(errors).length > 0) return;
 
     setSaving(true);
-    const draft = siteLinkDraftOf({ url, name, owner });
+    const draft = siteLinkDraftOf({ url, name, owner, tags });
     try {
       await browserStudioClient.createAsset({
         fields: { assetId: draft.assetId, kind: draft.kind, metadata: draft.metadata },
@@ -142,6 +149,21 @@ export function SiteLinkBox({ savedAssetId }: SiteLinkBoxProps): ReactElement {
             </FormField>
             <FormField id={FIELD_IDS.owner} label={texts.owner} error={fieldErrors.owner}>
               {(control) => <Input {...control} value={owner} maxLength={SITE_OWNER_MAX} onChange={(event) => setOwner(event.target.value)} />}
+            </FormField>
+            <FormField id={FIELD_IDS.tags} label={texts.tags} help={texts.tagsHelp} error={fieldErrors.tags} optional disabled={saving}>
+              {(control) => (
+                <TagInput
+                  {...control}
+                  separator="comma"
+                  removeLabel={t.common.tagInput.remove}
+                  value={tagsText}
+                  disabled={saving}
+                  onChange={(next) => {
+                    setTagsText(next);
+                    setFieldErrors((current) => ({ ...current, tags: undefined }));
+                  }}
+                />
+              )}
             </FormField>
             {formError !== null && <Alert variant="error">{formError}</Alert>}
             <button type="submit" className={buttonClassName({ variant: 'primary' })} disabled={saving} aria-busy={saving}>

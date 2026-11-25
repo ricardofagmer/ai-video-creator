@@ -211,7 +211,7 @@
       "type": "template",
       "assetId": "title-card-hf-template",
       "name": "Cartão de título 9:16 (HyperFrames)",
-      "summary": "Cartão de título vertical com chamada, título e aviso, animado só com CSS.",
+      "summary": "Vídeo vertical com o site e as imagens do run ao fundo, chamada, título, texto por cena e aviso.",
       "tags": [
         "template",
         "hyperframes",
@@ -219,7 +219,7 @@
         "title"
       ],
       "origin": "studio",
-      "notes": "Studio-authored HyperFrames composition TitleCard (SPEC 0008 OD7 a). Self-contained: CSS animation only, data-no-timeline, system fonts, no script and no remote reference. The composition is 30 s long; durationS times the closing fade and the render is cut to the narration.",
+      "notes": "Studio-authored HyperFrames composition TitleCard (SPEC 0008 OD7 a). Self-contained: CSS animation only, data-no-timeline, system fonts, no script and no remote reference. The files declare the 600 s ceiling; the render sets the staged copy to the narration length and durationS times the closing fade. It plays media/background.mp4 behind the text: the composition stage cuts that clip from the run's site capture and bound images, one stretch per scene, and writes it into the staged copy before the render.",
       "sourceFolder": "video-studio/seeds/templates/hyperframes/title-card",
       "details": {
         "engine": "hyperframes",
@@ -232,12 +232,45 @@
         "fps": 30,
         "duration": {
           "minSec": 3,
-          "maxSec": 30
+          "maxSec": 600
         },
         "cameraMoves": [],
         "transitions": []
       },
       "inputSchemaFile": "video-studio/seeds/templates/hyperframes/title-card.input.schema.json",
+      "sceneSchemaFile": null
+    },
+    {
+      "type": "template",
+      "assetId": "scene-cards-hf-template",
+      "name": "Cartões de cena 9:16 (HyperFrames)",
+      "summary": "Vertical com o título no topo e o texto de cada cena no centro enquanto ela é narrada, animado só com CSS.",
+      "tags": [
+        "template",
+        "hyperframes",
+        "vertical",
+        "scenes"
+      ],
+      "origin": "studio",
+      "notes": "Studio-authored HyperFrames composition SceneCards. Self-contained: CSS animation only, data-no-timeline, system fonts, no script and no remote reference. Shows up to 6 scene texts, each from its sceneNStartS to the next scene's start. The files declare the 600 s ceiling; the render sets the staged copy to the narration length and durationS times the closing fade.",
+      "sourceFolder": "video-studio/seeds/templates/hyperframes/scene-cards",
+      "details": {
+        "engine": "hyperframes",
+        "compositionId": "SceneCards",
+        "canvas": {
+          "width": 1080,
+          "height": 1920
+        },
+        "aspect": "9:16",
+        "fps": 30,
+        "duration": {
+          "minSec": 3,
+          "maxSec": 600
+        },
+        "cameraMoves": [],
+        "transitions": []
+      },
+      "inputSchemaFile": "video-studio/seeds/templates/hyperframes/scene-cards.input.schema.json",
       "sceneSchemaFile": null
     },
     {

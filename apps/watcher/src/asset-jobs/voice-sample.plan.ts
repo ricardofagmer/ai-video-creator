@@ -1,9 +1,7 @@
 import { type VoiceVersion } from '@studio/core/asset-jobs';
 import { type ProviderName } from '@studio/shared/run-format';
+import { selectElevenLabsVoice } from '../stages/voice/elevenlabs-voice-selection';
 import { type AssetJobRefusedCode } from './asset-job-file.mapper';
-
-/** Catalog variable name the seed's `elevenlabs-voice` row gives as its `modelIdRef` (as in `planVoice`). */
-const ELEVENLABS_VOICE_VARIABLE = 'ELEVENLABS_VOICE_ID';
 
 export type VoiceSamplePlan =
   | { status: 'ready'; engine: 'mock'; provider: 'elevenlabs' | 'local-voice' }
@@ -23,8 +21,9 @@ export interface VoiceSamplePlanInput {
  * with that voice:
  * - a biometric version is the owner's clone and is spoken by the C11 local voice when it is live,
  *   otherwise by the in-process mock voice; it is checked first and never reaches ElevenLabs;
- * - an ElevenLabs version is spoken by ElevenLabs when it is live and its voice id is configured,
- *   by the mock voice when ElevenLabs is not live; a live one without the configured id is refused;
+ * - an ElevenLabs version is spoken by ElevenLabs when it is live and its voice id resolves (its
+ *   own public id, or the configured `ELEVENLABS_VOICE_ID`), by the mock voice when ElevenLabs is
+ *   not live; a live one without a voice id is refused;
  * - any other voice is refused while a voice provider is live (it has no engine bound), and spoken
  *   by the mock voice otherwise.
  * `planVoice` itself takes a run's execution context, hence this run-less twin of its rule.
@@ -36,11 +35,9 @@ export function planVoiceSample(input: VoiceSamplePlanInput): VoiceSamplePlan {
   }
   if (version.details.provider === 'elevenlabs') {
     if (!isLive('elevenlabs')) return { status: 'ready', engine: 'mock', provider: 'elevenlabs' };
-    const reference = version.details.modelIdRef;
-    if (elevenLabs.voiceId === null || reference.type !== 'env' || reference.name !== ELEVENLABS_VOICE_VARIABLE) {
-      return { status: 'refused', code: 'not-supported' };
-    }
-    return { status: 'ready', engine: 'elevenlabs', voiceId: elevenLabs.voiceId, modelId: elevenLabs.modelId };
+    const selection = selectElevenLabsVoice(version.details, elevenLabs);
+    if (selection === null) return { status: 'refused', code: 'not-supported' };
+    return { status: 'ready', engine: 'elevenlabs', ...selection };
   }
   const anyLive = isLive('elevenlabs') || isLive('local-voice');
   return anyLive ? { status: 'refused', code: 'not-supported' } : { status: 'ready', engine: 'mock', provider: 'local-voice' };

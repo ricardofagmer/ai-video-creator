@@ -12,6 +12,10 @@ import { MockClaudeAdapter } from './adapters/mock-claude.adapter';
 import { AgentsService } from './agents.service';
 import { AgentCallContextResolver } from './call/agent-call-context';
 import { AgentModelSelector } from './call/agent-model-selector';
+import { ASSET_PURPOSE_WRITER_PORT } from './asset-purpose-writer/asset-purpose-writer.definition';
+import { AssetPurposeWriterClaudeCodeClient } from './asset-purpose-writer/asset-purpose-writer-claude-code.client';
+import { AssetPurposeWriterModelClient } from './asset-purpose-writer/asset-purpose-writer-model.client';
+import { AssetPurposeWriterService } from './asset-purpose-writer/asset-purpose-writer.service';
 import { REFERENCE_ANALYST_PORT } from './reference-analyst/reference-analyst.definition';
 import { ReferenceAnalystClaudeCodeClient } from './reference-analyst/reference-analyst-claude-code.client';
 import { ReferenceAnalystModelClient } from './reference-analyst/reference-analyst-model.client';
@@ -63,8 +67,12 @@ export class AgentsModule {
         ReferenceAnalystClaudeCodeClient,
         ReferenceAnalystService,
         { provide: REFERENCE_ANALYST_PORT, useExisting: ReferenceAnalystService },
+        AssetPurposeWriterModelClient,
+        AssetPurposeWriterClaudeCodeClient,
+        AssetPurposeWriterService,
+        { provide: ASSET_PURPOSE_WRITER_PORT, useExisting: AssetPurposeWriterService },
       ],
-      exports: [AgentsService, ReferenceAnalystService, REFERENCE_ANALYST_PORT],
+      exports: [AgentsService, ReferenceAnalystService, REFERENCE_ANALYST_PORT, AssetPurposeWriterService, ASSET_PURPOSE_WRITER_PORT],
     };
   }
 }

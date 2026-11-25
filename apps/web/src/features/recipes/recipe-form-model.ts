@@ -1,6 +1,18 @@
 import { RecipeDefinitionInputSchema, type RecipeDefinitionInput } from '@studio/shared/api';
 import { type AspectRatio, type AssetKind, type TemplateDetails } from '@studio/shared/catalog';
-import { RecipeIdSchema, researchStageParams, type Binding, type BriefField, type ChecklistItem, type Language, type RecipeCheck, type RecipeStage } from '@studio/shared/recipes';
+import {
+  RecipeIdSchema,
+  musicChoiceOf,
+  researchStageParams,
+  withMusicChoice,
+  type Binding,
+  type BriefField,
+  type ChecklistItem,
+  type Language,
+  type MusicChoice,
+  type RecipeCheck,
+  type RecipeStage,
+} from '@studio/shared/recipes';
 import { mandatoryStages, stageOrder, type StageId } from '@studio/shared/run-format';
 import { type WebMessages } from '@/messages';
 import {
@@ -52,6 +64,8 @@ export interface RecipeFormValues {
   scriptApproval: boolean;
   /** `params.siteAnalysis` of the research stage (docs/specs/2026-11-23-site-analysis-design.md). */
   siteAnalysis: boolean;
+  /** Who picks the song, kept in the music stage's params (docs/specs/2026-11-25-ai-music-choice-design.md). */
+  musicChoice: MusicChoice;
   requireSourceUrl: boolean;
   requireKeyMessages: boolean;
   checklist: readonly ChecklistItem[];
@@ -113,8 +127,9 @@ export function emptyRecipeForm(defaults: RecipeTexts['defaults']): RecipeFormVa
     writerSkills: [],
     scriptApproval: false,
     siteAnalysis: true,
-    requireSourceUrl: true,
-    requireKeyMessages: true,
+    musicChoice: { mode: 'track' },
+    requireSourceUrl: false,
+    requireKeyMessages: false,
     checklist: defaultChecklistOf(defaults),
     base: null,
   };
@@ -142,6 +157,7 @@ export function recipeFormFrom(id: string, definition: RecipeDefinitionInput): R
     writerSkills: definition.bindings.filter((binding) => binding.slot === WRITER_SKILL_SLOT).map((binding) => binding.ref).slice(0, WRITER_SKILLS_MAX),
     scriptApproval: definition.gates.some((gate) => gate.id === SCRIPT_APPROVAL_GATE_ID),
     siteAnalysis: researchStageParams(definition.graph.stages.find((stage) => stage.stageId === 'research')?.params ?? {}).siteAnalysis,
+    musicChoice: musicChoiceOf(definition.graph.stages.find((stage) => stage.stageId === 'music')?.params ?? {}),
     requireSourceUrl: definition.inputs.required.includes('sourceUrl'),
     requireKeyMessages: definition.inputs.required.includes('keyMessages'),
     checklist: definition.checklist.map((item) => ({ ...item })),
@@ -159,15 +175,29 @@ export function aspectOf(width: number, height: number): AspectRatio | null {
   return aspects.find((candidate) => Math.abs(width / height - candidate.ratio) <= 0.01)?.aspect ?? null;
 }
 
-/** Every stage in canonical order: the base entry when there is one (checks, params kept), else a default; research takes the switch. */
+/** The stage's params with the form's switches: research takes the site analysis, music the song choice. */
+function paramsOf(stage: RecipeStage, values: RecipeFormValues): RecipeStage['params'] {
+  if (stage.stageId === 'research') return { ...stage.params, siteAnalysis: values.siteAnalysis };
+  // `track` removes the keys, so a preset saved before the choice existed keeps the same params.
+  if (stage.stageId === 'music') return withMusicChoice(stage.params, values.musicChoice);
+  return stage.params;
+}
+
+/** Every stage in canonical order: the base entry when there is one (checks, params kept), else a default. */
 export function stagesOf(values: RecipeFormValues): RecipeStage[] {
   const enabled = new Set<StageId>([...values.enabledStages, ...mandatoryStages]);
   return stageOrder.map((stageId) => {
     const existing = values.base?.graph.stages.find((stage) => stage.stageId === stageId);
     const stage = existing ?? { stageId, enabled: false, checks: [...defaultStageChecks[stageId]], timeoutMs: null, params: {} };
-    const params = stageId === 'research' ? { ...stage.params, siteAnalysis: values.siteAnalysis } : stage.params;
-    return { ...stage, enabled: enabled.has(stageId), params };
+    return { ...stage, enabled: enabled.has(stageId), params: paramsOf(stage, values) };
   });
+}
+
+/** The form after a music choice: "AI decides" carries no `music` binding (the stage picks the song per video). */
+export function withFormMusicChoice(values: RecipeFormValues, musicChoice: MusicChoice): Pick<RecipeFormValues, 'musicChoice' | 'bindings'> {
+  if (musicChoice.mode === 'track') return { musicChoice, bindings: values.bindings };
+  const bindings = Object.fromEntries(Object.entries(values.bindings).filter(([slot]) => slot !== 'music'));
+  return { musicChoice, bindings };
 }
 
 /** The base checks plus any default definition a newly added stage refers to (C2: checks are defined once). */
@@ -184,6 +214,8 @@ function checksFor(stages: readonly RecipeStage[], base: readonly RecipeCheck[])
 /** Known slots of enabled stages with a chosen version, the writer's skills, plus the base's own extra slots. */
 export function bindingsOf(values: RecipeFormValues, options: readonly BindingOption[], enabled: ReadonlySet<StageId>): Binding[] {
   const known = slotsForStages(enabled).flatMap((spec) => {
+    // In "AI decides" the music stage picks its own song; a binding there would be a music-mode-conflict.
+    if (spec.slot === 'music' && values.musicChoice.mode === 'auto') return [];
     const ref = values.bindings[spec.slot] ?? '';
     const option = options.find((candidate) => candidate.ref === ref && candidate.kind === spec.kind);
     return option === undefined ? [] : [{ slot: spec.slot, ref: option.ref, contentHash: option.contentHash }];
@@ -233,18 +265,16 @@ function draftDefinition(values: RecipeFormValues, options: readonly BindingOpti
   const format = base?.format ?? defaultFormat;
   const stages = stagesOf(values);
   const enabled = new Set(stages.filter((stage) => stage.enabled).map((stage) => stage.stageId));
-  const inputs = base?.inputs ?? { required: [], keyMessages: { min: 1, max: 5 } };
-  const keyMessages = values.requireKeyMessages
-    ? { min: Math.max(inputs.keyMessages.min, 1), max: Math.max(inputs.keyMessages.max, 1) }
-    : { min: 0, max: inputs.keyMessages.max };
+  // Nothing beyond the topic is required (owner decision 2026-11-24): a saved preset asks for no brief field.
+  const inputs = base?.inputs ?? { required: [], keyMessages: { min: 0, max: 5 } };
+  const keyMessages = { min: 0, max: Math.max(inputs.keyMessages.max, 1) };
   const otherGates = (base?.gates ?? []).filter((gate) => gate.id !== SCRIPT_APPROVAL_GATE_ID && enabled.has(gate.afterStage));
   const gates = values.scriptApproval && enabled.has('script') ? [...otherGates, scriptApprovalGateOf(t.defaults)] : otherGates;
   const bindings = bindingsOf(values, options, enabled);
   const boundKinds = options.filter((option) => bindings.some((binding) => binding.ref === option.ref)).map((option) => option.kind);
-  const allowedKinds = [...new Set<AssetKind>([...(base?.allowedKinds ?? editorKinds), ...boundKinds])];
+  // Images and references are never pinned in a slot, but a run may carry them and the director may search for them.
+  const allowedKinds = [...new Set<AssetKind>([...(base?.allowedKinds ?? editorKinds), ...boundKinds, 'image', 'reference'])];
   const required: BriefField[] = [];
-  if (values.requireSourceUrl) required.push('sourceUrl');
-  if (values.requireKeyMessages) required.push('keyMessages');
 
   const definition = {
     name: values.name.trim(),

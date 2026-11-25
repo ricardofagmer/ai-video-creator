@@ -9,6 +9,7 @@ import { PromoteFromRunHandler } from './commands/promote-from-run.handler';
 import { RecordGateDecisionHandler } from './commands/record-gate-decision.handler';
 import { RecordReviewDecisionHandler } from './commands/record-review-decision.handler';
 import { RequestRunControlHandler } from './commands/request-run-control.handler';
+import { SaveRunVideoHandler } from './commands/save-run-video.handler';
 import { ReviewRunAccess } from './review-run-access';
 import { RunLocks } from './run-locks';
 
@@ -29,6 +30,7 @@ import { RunLocks } from './run-locks';
     RecordGateDecisionHandler,
     RequestRunControlHandler,
     PromoteFromRunHandler,
+    SaveRunVideoHandler,
   ],
 })
 export class ReviewModule {}

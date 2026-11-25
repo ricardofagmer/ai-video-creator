@@ -32,6 +32,19 @@ export type AssetLayout = z.infer<typeof AssetLayoutSchema>;
 /** MIME type recorded for folder assets: the blob is the canonical folder manifest JSON. */
 export const folderManifestMimeType = 'application/vnd.studio.folder+json';
 
+/** Longest purpose text (ADR 0012, C-P1): one or two short sentences. */
+export const ASSET_PURPOSE_MAX_CHARS = 280;
+
+/** A version's purpose text (ADR 0012, C-P1); empty until the writer or the owner fills it. */
+export const AssetPurposeSchema = z.string().max(ASSET_PURPOSE_MAX_CHARS);
+
+/**
+ * Who wrote `purpose` (ADR 0012, C-P1): `none` (empty or waiting for a job), `ai` (copied from a
+ * done `asset-purpose` job) or `owner` (an owner edit, which no job ever overwrites).
+ */
+export const AssetPurposeSourceSchema = z.enum(['none', 'ai', 'owner']);
+export type AssetPurposeSource = z.infer<typeof AssetPurposeSourceSchema>;
+
 /** Every required field of PRD 5.2 except the kind-specific ones; `summary` feeds the agent tools. */
 export const assetVersionBaseShape = {
   id: AssetIdSchema,
@@ -73,6 +86,13 @@ export const assetVersionBaseShape = {
    * from runs are rows beside the version (`LearningNoteSchema`), not this string.
    */
   notes: z.string().max(10000),
+  /**
+   * ADR 0012 (C-P1): what the asset is for, in plain pt-BR. Not part of the upload metadata: only
+   * the copy of a done `asset-purpose` job or an owner edit sets it, and only these two columns
+   * change on a saved version.
+   */
+  purpose: AssetPurposeSchema.default(''),
+  purposeSource: AssetPurposeSourceSchema.default('none'),
   /**
    * Filled by core from a local model (D10, ADR 0004). Present only in core's search-scan
    * projection: no api view and no agent-facing read carries it (SPEC 0003 L8, R2-AC-10).

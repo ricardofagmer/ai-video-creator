@@ -46,7 +46,7 @@ screenshot of the "Modelos de vídeo" tab reading "Só favoritos (3)".
 - [x] The number on "Só favoritos (N)" counts the favorites among the items of the open list (the
       open tab and sub-tab in Catálogo, the listed recipes in Receitas): `OnlyFavoritesButton` takes
       the list's ids. Versions of one asset count once.
-- [ ] Seen on the real pages (blocked: the owner's session at 4320 expired during the check)
+- [x] Seen on the real pages (see Verification)
 
 ## What was made
 Written by the `frontend-coordinator` worker (4m21s), read file by file by the supervisor. The dev
@@ -81,8 +81,7 @@ server compiled both pages; no typecheck, lint or test was run.
 - [ ] Approve typecheck and lint for `@studio/web` and `@studio/ui` (4 commands, listed under
       Verification)
 - [ ] Favorite something, quit and reopen the browser, and confirm it is still marked
-- [ ] Look at the yellow star and the per-tab number on the real pages the next time the dev api runs,
-      or after the desktop app is repackaged with this change
+- [x] Dev api running and signed in at 127.0.0.1:4320 (owner, 2026-11-24: "Done, check")
 
 ## Human decisions
 | Date | Who | Reason ids | Decision | Note |
@@ -153,6 +152,16 @@ No HITL reason fired: risk low, no external effect.
   web origin (`apps/api/src/platform/api-config.ts`: default `http://127.0.0.1:4310`), so a sign-in
   from `127.0.0.1:4320` is refused, and the page at 4310 is the packaged build without this change.
   Owner: "Leave it for now (Recommended)". Unavailable evidence, not a pass.
+
+- Corrections on the real pages, looked at, not a check run (owner's Chrome, http://127.0.0.1:4320,
+  pt-BR, 2026-11-24, after the owner said "Done, check"), with the owner's own three catalog
+  favorites, which were not changed:
+  - `/catalogo` (Referências): "Só favoritos (0)". `?secao=modelos`: "Só favoritos (3)", the three
+    saved stars' computed colour `rgb(224, 161, 0)`, the four others `rgb(24, 24, 27)`. Sub-tab
+    "Chamadas": "Só favoritos (0)". Sub-tab "Batalhas de IA": "Só favoritos (1)", the yellow filled
+    star seen on the "AI Battle 9:16" card. `?secao=imagens`: "Só favoritos (0)".
+  - `/receitas`: three stars, none marked, "Só favoritos (0)"; the recipes set is still empty.
+  - Right after a page load the button reads "(0)" for an instant, before the browser's set is read.
 
 ## Changes registered
 Not a git repository; files listed by hand.

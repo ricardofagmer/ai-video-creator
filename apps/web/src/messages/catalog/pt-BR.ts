@@ -1,7 +1,8 @@
 import type { AssetVersionView, SearchIndexStatusResponse } from '@studio/shared/api';
 import type { AssetJobErrorCode } from '@studio/shared/asset-jobs';
-import type { AiModelDetails, AspectRatio, AssetKind, ImageDetails, LicenseUse, ReferenceDetails } from '@studio/shared/catalog';
+import type { AiModelDetails, AspectRatio, AssetKind, ImageDetails, LicenseUse, MusicCategory, ReferenceDetails } from '@studio/shared/catalog';
 import type { CatalogSection } from '@/features/catalog/catalog-sections';
+import type { ImageCategoryName } from '@/features/catalog/image-categories';
 import type { TemplateCategory } from '@/features/catalog/template-categories';
 import type { VideoPlatform } from '@/features/catalog/video-link';
 
@@ -47,8 +48,11 @@ export const catalogPtBR = {
   /** design/telas/02, `/catalogo`. */
   list: {
     title: 'Catálogo',
-    description: 'Templates, modelos, prompts, mídias e kits de marca usados nas receitas.',
+    description: 'Templates, modelos, prompts, mídias e kits de marca usados nos presets.',
     uploadAsset: 'Enviar ativo',
+    edit: 'Editar',
+    editHidden: (name: string): string => `Editar ${name}`,
+    addKind: (kind: string): string => `Adicionar ${kind}`,
     versionCount: (count: number): string => (count === 1 ? '1 versão' : `${count} versões`),
     assetCount: (count: number): string => (count === 1 ? '1 ativo' : `${count} ativos`),
     emptyTitle: 'O catálogo está vazio',
@@ -89,6 +93,7 @@ export const catalogPtBR = {
     label: 'Tipos de ativo',
     templateCategoriesLabel: 'Categorias de template',
     referenceCategoriesLabel: 'Categorias de referência',
+    imageCategoriesLabel: 'Categorias de imagem',
     all: 'Todos',
     kinds: {
       template: 'Templates',
@@ -158,6 +163,15 @@ export const catalogPtBR = {
     saving: 'Salvando…',
     saved: 'Site salvo como rascunho.',
     openSaved: 'Abrir item',
+    embedTitle: (hostname: string): string => `Site ${hostname}`,
+    embedCardTitle: 'Site',
+    embedBlocked: 'Alguns sites não aceitam aparecer dentro de outra página; se ficar em branco, abra em uma nova aba.',
+    frameRefused: 'Este site não permite pré-visualização.',
+    openSite: (hostname: string): string => `Abrir ${hostname}`,
+    tags: 'Tags',
+    tagsHelp: 'Separe por vírgulas. A tag site é sempre mantida.',
+    tagsInvalid: (tag: string): string => `"${tag}" não é uma tag válida: use letras minúsculas, números, - ou .`,
+    tooManyTags: (max: number): string => `Use no máximo ${max} tags.`,
   },
   /** Prompts section: a named prompt text saved as a draft prompt item. */
   promptForm: {
@@ -170,6 +184,12 @@ export const catalogPtBR = {
     textRequired: 'Escreva o texto do prompt.',
     ownerRequired: 'Informe o responsável.',
     submit: 'Salvar prompt',
+    open: 'Novo prompt',
+    cancel: 'Cancelar',
+    editTitle: (name: string): string => `Editar prompt: ${name}`,
+    editHelp: 'Ao salvar, a versão atual fica guardada e suas mudanças viram a próxima versão.',
+    editSubmit: 'Salvar nova versão',
+    editUnavailable: 'Não foi possível abrir este prompt para edição. Ele pode ter sido removido.',
     saving: 'Salvando…',
     saved: 'Prompt salvo como rascunho.',
     openSaved: 'Abrir item',
@@ -247,6 +267,14 @@ export const catalogPtBR = {
       cover: 'Capas',
       other: 'Outras',
     } satisfies Record<ImageDetails['purpose'], string>,
+    imageCategories: {
+      people: 'Pessoas',
+      products: 'Produtos',
+      scenes: 'Cenários',
+      icons: 'Ícones',
+      logos: 'Logos',
+      other: 'Sem categoria',
+    } satisfies Record<ImageCategoryName | 'other', string>,
   },
 
   /** design/telas/03, `/catalogo/[assetId]`. */
@@ -304,6 +332,16 @@ export const catalogPtBR = {
     updatedAt: 'Atualizado em',
     tags: 'Etiquetas',
     usage: 'Uso',
+    tagEditor: {
+      edit: 'Editar etiquetas',
+      save: 'Salvar etiquetas',
+      saving: 'Salvando…',
+      cancel: 'Cancelar',
+      help: 'Letras minúsculas, números, hífens e pontos. Salvar cria uma nova versão em rascunho.',
+      none: 'Nenhuma etiqueta ainda.',
+      invalid: (tag: string): string => `"${tag}" não é uma etiqueta válida: use letras minúsculas, números, hífens e pontos.`,
+      tooMany: (max: number): string => `Use no máximo ${max} etiquetas.`,
+    },
     sensitivity: 'Sensibilidade',
     storedByReference: 'Armazenado por referência',
     hiddenPath: 'Caminho oculto (material biométrico)',
@@ -313,6 +351,7 @@ export const catalogPtBR = {
     durationRangeValue: (minSeconds: number, maxSeconds: number): string => `${minSeconds}–${maxSeconds} s`,
     provider: 'Provedor',
     modelReference: 'Referência do modelo',
+    speechModel: 'Modelo de fala',
     localPath: 'Caminho local',
     modelReferenceEnv: (name: string): string => `variável de ambiente ${name}`,
     modelReferenceKeychain: (name: string): string => `item do Keychain ${name}`,
@@ -370,7 +409,7 @@ export const catalogPtBR = {
     deprecate: 'Descontinuar',
     deprecating: 'Descontinuando…',
     confirmTitle: (version: number): string => `Descontinuar a versão v${version}?`,
-    confirmDescription: 'Receitas e execuções antigas continuam usando esta versão. Novas receitas não poderão escolhê-la.',
+    confirmDescription: 'Presets e execuções antigas continuam usando esta versão. Novos presets não poderão escolhê-la.',
     cancel: 'Cancelar',
   },
 
@@ -498,7 +537,9 @@ export const catalogPtBR = {
         literal: 'Id público',
       },
       modelIdRefValue: 'Referência do modelo',
-      modelIdRefHelp: 'Nunca cole uma chave aqui.',
+      modelIdRefHelp: 'Nunca cole uma chave aqui. Para uma voz ElevenLabs, escolha Id público e cole o id da voz.',
+      voiceModelId: 'Id do modelo de fala',
+      voiceModelIdHelp: 'Modelo ElevenLabs desta voz, como eleven_multilingual_v2. Vazio usa o padrão.',
       subKind: 'Tipo de referência',
       subKinds: {
         video: 'Vídeo',
@@ -524,6 +565,8 @@ export const catalogPtBR = {
       durationSec: 'Duração (s)',
       bpm: 'BPM',
       integratedLufs: 'Loudness integrado (LUFS)',
+      musicCategories: 'Categorias',
+      musicCategoriesHelp: (max: number): string => `Até ${max}: o clima e os instrumentos da trilha. A IA usa para escolher a música de um vídeo.`,
       brandKit: 'Kit de marca',
       brandKitHelp: 'Cores, fontes, logos, legenda e zonas seguras em JSON.',
     },
@@ -635,7 +678,7 @@ export const catalogPtBR = {
     platforms: (w: { platform: string; minViews: number; baselineMinVideos: number; cut: string; raise: string }): string =>
       `Quando o vídeo de uma execução foi publicado e tem métricas, as plataformas entram como um quarto sinal (peso ${w.platform}): visualizações, taxa de engajamento e, quando a plataforma informa, a porcentagem assistida, sempre comparadas com a mediana dos seus próprios vídeos naquela plataforma, nunca com um número absoluto. Só contam vídeos com pelo menos ${w.minViews} visualizações. Sem efeito na nota até haver ${w.baselineMinVideos} vídeos com métricas na mesma plataforma. Com os quatro sinais juntos, o ajuste de uma execução fica entre ${w.cut} e ${w.raise}; a sua avaliação continua mandando.`,
     prior: (w: { priorWeight: number; priorMinRuns: number; neutral: string }): string =>
-      `Com poucas execuções, a nota é puxada para uma média de referência, que conta como ${w.priorWeight} execuções: a média da receita, se ela tiver ao menos ${w.priorMinRuns} execuções revisadas; senão a do tipo de ativo; senão a de todo o estúdio; senão ${w.neutral}. Por isso uma única execução com 5 estrelas não vira uma nota 5.`,
+      `Com poucas execuções, a nota é puxada para uma média de referência, que conta como ${w.priorWeight} execuções: a média do preset, se ele tiver ao menos ${w.priorMinRuns} execuções revisadas; senão a do tipo de ativo; senão a de todo o estúdio; senão ${w.neutral}. Por isso uma única execução com 5 estrelas não vira uma nota 5.`,
     limits: (formulaVersion: number): string =>
       `Limites conhecidos: a nota atribui o resultado da execução inteira a cada versão que ela usou; execuções que falharam antes da revisão não entram na conta; e, como toda execução revisada já passou nas checagens de mídia, as checagens só separam "aprovada" de "aprovada com avisos". A nota é recalculada a cada revisão registrada e a cada importação de métricas, e nunca ativa nada sozinha. Versão da fórmula: ${formulaVersion}.`,
   },
@@ -669,6 +712,62 @@ export const catalogPtBR = {
     waitedTooLong: 'A amostra está demorando mais de 2 minutos. Tente de novo mais tarde.',
     audioUnreadable: 'O navegador não conseguiu tocar a amostra.',
   },
+  /** Template preview (2026-11-25): the card's sample clip, rendered when the template is registered. */
+  templatePreview: {
+    rendering: 'Gerando prévia…',
+    clipLabel: (name: string): string => `Prévia do template ${name}`,
+    /** What a template of each category makes; shown under the clip in the hover popover. */
+    descriptions: {
+      hook: 'Abertura curta que prende a atenção nos primeiros segundos do vídeo.',
+      title: 'Cartela de título com texto animado para abrir ou separar partes do vídeo.',
+      'tool-demo': 'Mostra uma ferramenta resolvendo uma tarefa, passo a passo, com o texto na tela.',
+      'ai-battle': 'Coloca duas IAs lado a lado na mesma tarefa e mostra qual se saiu melhor.',
+      automation: 'Explica uma automação etapa por etapa, do gatilho ao resultado.',
+      'product-tour': 'Tour guiado pelas telas e recursos de um produto.',
+      other: 'Template de vídeo pronto para usar nos presets.',
+    },
+  },
+  /** Music preview (docs/specs/2026-11-25-music-preview.md): hear a track before choosing it. */
+  musicPreview: {
+    play: 'Ouvir',
+    pause: 'Pausar',
+    retry: 'Tentar de novo',
+    namedLabel: (action: string, trackName: string): string => `${action}: música ${trackName}`,
+    audioUnreadable: 'O navegador não conseguiu tocar a música.',
+  },
+  /** docs/specs/2026-11-25-ai-music-choice-design.md: what a track sounds like, and who picks the song of a video. */
+  musicChoice: {
+    modeLegend: 'Como escolher a música',
+    track: 'Escolher a música',
+    trackDescription: 'A mesma trilha em todo vídeo deste preset.',
+    auto: 'A IA decide',
+    autoDescription: 'A cada vídeo, a IA escolhe no catálogo uma trilha destas categorias, ou gera uma.',
+    categoriesLegend: 'Categorias',
+    autoHelp: (max: number): string => `Marque até ${max}. Nenhuma marcada: qualquer categoria serve.`,
+    limitReached: (max: number): string => `Já são ${max} categorias. Desmarque uma para escolher outra.`,
+    any: 'Qualquer',
+    noCategories: 'Sem categoria',
+    autoSummary: (categories: string): string => `A IA decide: ${categories}`,
+    categories: {
+      animated: 'Animada',
+      excited: 'Empolgante',
+      sad: 'Triste',
+      upset: 'Chateada',
+      boring: 'Monótona',
+      classic: 'Clássica',
+      electronic: 'Eletrônica',
+      thoughtful: 'Reflexiva',
+      guitar: 'Guitarra',
+      'acoustic-guitar': 'Violão',
+      piano: 'Piano',
+      voices: 'Vozes',
+      calm: 'Calma',
+      happy: 'Alegre',
+      epic: 'Épica',
+      cinematic: 'Cinematográfica',
+      'lo-fi': 'Lo-fi',
+    } satisfies Record<MusicCategory, string>,
+  },
   /** Guided-creation spec section 4: the AI's notes on a saved video reference. */
   referenceAnalysis: {
     title: 'Análise da IA',
@@ -697,5 +796,32 @@ export const catalogPtBR = {
       promptNotes: 'Notas para as criações',
       cautions: 'Cuidados',
     },
+  },
+  /** ADR 0012: what an asset is for, written by the AI or by the owner (C-P5). */
+  purpose: {
+    heading: 'Para que serve',
+    pending: 'A IA está escrevendo para que este item serve…',
+    failed: (code: AssetJobErrorCode | null): string =>
+      code === null ? 'A IA não conseguiu escrever para que este item serve.' : `A IA não conseguiu escrever para que este item serve. ${catalogPtBR.assetJobErrors[code]}`,
+    refused: (code: AssetJobErrorCode | null): string =>
+      code === null ? 'O pedido para escrever para que este item serve foi recusado.' : `O pedido para escrever para que este item serve foi recusado. ${catalogPtBR.assetJobErrors[code]}`,
+    retry: 'Tentar de novo',
+    regenerate: 'Gerar de novo com IA',
+    edit: 'Editar',
+    save: 'Salvar',
+    cancel: 'Cancelar',
+    empty: 'Ainda não há uma descrição de para que este item serve.',
+    ownerEdited: 'Escrito por você',
+    backfillButton: (count: number): string => (count === 1 ? 'Descrever 1 item sem finalidade' : `Descrever ${count} itens sem finalidade`),
+    backfillConfirmTitle: 'Descrever os itens com IA?',
+    backfillConfirmBody: (count: number): string =>
+      count === 1
+        ? 'A IA vai escrever para que serve 1 item do catálogo. Isso pode gerar custo e respeita o limite de gastos do mês.'
+        : `A IA vai escrever para que servem ${count} itens do catálogo. Isso pode gerar custo e respeita o limite de gastos do mês.`,
+    backfillDone: (count: number): string => (count === 1 ? '1 item foi enviado para a IA descrever.' : `${count} itens foram enviados para a IA descrever.`),
+    backfillQueueFull: (count: number): string =>
+      count === 1
+        ? '1 item não coube na fila. Tente de novo quando a fila esvaziar.'
+        : `${count} itens não couberam na fila. Tente de novo quando a fila esvaziar.`,
   },
 } as const;

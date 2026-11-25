@@ -66,6 +66,8 @@ export const ownerTexts = {
   checksPassed: (count: number): string => `${count} verificação(ões) passaram.`,
   checksSkipped: (checkIds: readonly string[]): string => `Verificações sem resultado aplicável: ${checkIds.join(', ')}.`,
   checksFailed: (checkIds: readonly string[]): string => `Verificações reprovadas: ${checkIds.join(', ')}.`,
+  checksAccepted: (checkIds: readonly string[]): string =>
+    `Verificações reprovadas: ${checkIds.join(', ')}. As correções automáticas não resolveram; a etapa segue com aviso.`,
   archived: (fileCount: number): string => `${fileCount} arquivo(s) copiado(s) para o arquivo da etapa.`,
   recorded: (outputCount: number): string => `${outputCount} saída(s) registrada(s) com hash.`,
   stepFailed: (stageNumber: number, stageId: StageId, step: StepName, cause: string): string =>
@@ -74,18 +76,18 @@ export const ownerTexts = {
   authenticationReason: (provider: ProviderName): string => `O provedor ${provider} recusou a autenticação.`,
   authenticationWhatToDo: (provider: ProviderName): string =>
     `Confira a chave do provedor ${provider} com "studio secrets set" e retome a execução.`,
-  gateWaitingReason: (label: string): string => `Aguardando sua decisão: ${label}.`,
-  gateWhatToDo: (label: string): string => `Aprove ou rejeite "${label}" pela web ou pelo CLI; a execução continua daqui.`,
+  gateSkipped: (label: string): string => `Sem resposta para "${label}"; a execução segue sem aprovação.`,
   gateAnswered: (gate: string, outcome: string): string => `Portão ${gate} respondido: ${outcome}.`,
   planGateLabel: 'aprovação do plano',
   planMissing: 'A etapa plan não registrou a saída "plan"; o plano não pôde ser lido.',
-  plannerQuestionsReason: 'O planejador tem perguntas antes de seguir.',
-  plannerQuestionsWhatToDo: 'Responda às perguntas do plano e aprove o plano para continuar.',
+  plannerQuestionsSkipped: (count: number): string =>
+    `O planejador deixou ${count} pergunta(s) sem resposta; a execução segue com o plano como está. Veja plan.md.`,
   reviewNotReady: (missing: readonly string[]): string =>
     `A execução não pode ir para revisão; faltam as saídas finais: ${missing.join(', ')}.`,
   internalError: 'Erro interno do watcher; a execução parou. Veja os logs do watcher.',
   // SPEC 0002 R1-08: recovery, limits, never-retried classes, control.json and crash resume (PRD 7.3).
   controlRequest: (request: ControlRequestKind): string => `Pedido de ${controlRequestLabel[request]} lido em control.json.`,
+  briefCorrected: 'Brief corrigido pelo dono antes da retomada; os próximos passos usam os novos valores.',
   stopRequested: 'Parada pedida pelo dono; o passo em execução foi interrompido e volta a pendente.',
   pauseRequested: 'Pausa pedida: a execução para ao fim do passo atual.',
   watcherDied: (pid: number | null): string =>
@@ -106,9 +108,6 @@ export const ownerTexts = {
   stepReopened: 'Reaberto pela recuperação para rodar de novo.',
   stagesRerun: (fromStage: number, toStage: number): string =>
     `Recuperação: etapas ${fromStage} a ${toStage} voltam a pendentes e rodam de novo.`,
-  claimsWithoutEvidenceReason: 'Há afirmações sem evidência no texto capturado; isso nunca é repetido automaticamente.',
-  claimsWithoutEvidenceWhatToDo:
-    'Revise as mensagens-chave: remova as que não têm evidência na fonte ou troque a URL de origem, e retome a execução.',
   biometricReason: (ref: string, cause: string): string =>
     `A etapa usa o ativo biométrico ${ref} e falhou (${cause}); nada com voz clonada é repetido automaticamente.`,
   biometricWhatToDo: 'Confira a narração e o ativo de voz; quando quiser tentar de novo, retome a execução você mesmo.',
@@ -116,17 +115,13 @@ export const ownerTexts = {
   licenseDoubtWhatToDo: (ref: string): string =>
     `Registre a licença e a procedência de ${ref} no catálogo, ou troque o ativo na receita, e retome a execução.`,
   costRunReason: (estimateUsd: number, limitUsd: number): string =>
-    `O custo previsto da execução (${usd(estimateUsd)}) passa do teto por execução (${usd(limitUsd)}).`,
+    `O custo previsto da execução (${usd(estimateUsd)}) passa do teto por execução (${usd(limitUsd)}); a execução segue mesmo assim.`,
   costMonthReason: (totalUsd: number, limitUsd: number): string =>
-    `O gasto do mês mais a estimativa desta execução (${usd(totalUsd)}) passa do teto mensal (${usd(limitUsd)}).`,
+    `O gasto do mês mais a estimativa desta execução (${usd(totalUsd)}) passa do teto mensal (${usd(limitUsd)}); a execução segue mesmo assim.`,
   costEstimateInvalidReason:
-    'A estimativa de custo desta etapa não é um valor válido; sem ela o teto não pode ser conferido, então a execução espera.',
+    'A estimativa de custo desta etapa não é um valor válido; o teto não pôde ser conferido e a execução segue mesmo assim.',
   costSpentReason: (spentUsd: number, limitUsd: number): string =>
-    `O gasto desta execução (${usd(spentUsd)}) passou do teto por execução (${usd(limitUsd)}); o passo foi parado.`,
-  costRunWhatToDo:
-    'O teto de custo nunca é liberado automaticamente. Reduza o escopo ou aumente limits.costPerRunUsd na receita e inicie uma nova execução.',
-  costMonthWhatToDo:
-    'O teto mensal nunca é liberado automaticamente. Aguarde o próximo mês ou aumente limits.costPerMonthUsd na receita e inicie uma nova execução.',
+    `O gasto desta execução (${usd(spentUsd)}) passou do teto por execução (${usd(limitUsd)}); a execução segue mesmo assim.`,
   costChecked: (runUsd: number, runLimitUsd: number, monthUsd: number, monthLimitUsd: number): string =>
     `Custo conferido: execução ${usd(runUsd)} de ${usd(runLimitUsd)}; mês ${usd(monthUsd)} de ${usd(monthLimitUsd)}.`,
   nextBriefDrafting: (stageNumber: number, stageId: StageId): string => `brief da etapa ${stageNumber} (${stageId}) em preparo`,

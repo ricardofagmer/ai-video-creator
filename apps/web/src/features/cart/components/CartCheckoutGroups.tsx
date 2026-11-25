@@ -2,18 +2,27 @@
 
 import { AssetRefSchema, parseAssetRef } from '@studio/shared/catalog';
 import { type CompositionConflict } from '@studio/shared/recipes';
-import { type ReactElement } from 'react';
+import { Icon, type IconName } from '@studio/ui';
+import { type ReactElement, type ReactNode } from 'react';
 import { CompositionConflictList } from '@/features/common/components/CompositionConflictList';
 import { RunInstructionsField } from '@/features/runs/components/RunInstructionsField';
 import { VoiceSampleButton } from '@/features/voices/components/VoiceSampleButton';
 import { useWebMessages } from '@/lib/i18n/client';
-import { cartDestinations, type CartDestination } from '../cart-bindings';
+import { cartDestinationOrder, cartDestinations, type CartDestination } from '../cart-bindings';
 import { cartInstructionsActions, useCartInstructions } from '../cart-instructions-store';
 import { type CartItem } from '../cart-store';
 import styles from './CartButton.module.css';
 import { CartSourceUrlField } from './CartSourceUrlField';
+import { CartVideoPrompt } from './CartVideoPrompt';
 
-const destinationOrder: readonly CartDestination[] = ['slot', 'writer-skill', 'reference', 'unused'];
+type SectionTone = 'slot' | 'skill' | 'reference' | 'unused' | 'site' | 'instructions' | 'prompt';
+
+const destinationLook: Record<CartDestination, { icon: IconName; tone: SectionTone }> = {
+  slot: { icon: 'columns', tone: 'slot' },
+  'writer-skill': { icon: 'sparkles', tone: 'skill' },
+  reference: { icon: 'folder', tone: 'reference' },
+  unused: { icon: 'help-circle', tone: 'unused' },
+};
 
 interface CartCheckoutGroupsProps {
   cart: readonly CartItem[];
@@ -23,7 +32,7 @@ interface CartCheckoutGroupsProps {
   conflictListId: string;
 }
 
-/** Checkout body of the cart dialog: conflicts first, then where each item goes, the site and the instructions. */
+/** Checkout body of the cart dialog: conflicts first, then where each item goes, the site, the instructions and the video prompt. */
 export function CartCheckoutGroups({ cart, conflicts, conflictListId }: CartCheckoutGroupsProps): ReactElement {
   const t = useWebMessages();
   const texts = t.cart;
@@ -31,15 +40,20 @@ export function CartCheckoutGroups({ cart, conflicts, conflictListId }: CartChec
   const destinations = cartDestinations(cart);
   return (
     <div className={styles.groups}>
+      <header className={styles.checkoutHeader}>
+        <span className={styles.sectionBadge} aria-hidden="true">
+          <Icon name="cart" />
+        </span>
+        <h3 className={`overline ${styles.sectionTitle}`}>{texts.title}</h3>
+        <span className={styles.sectionCount}>{texts.itemCount(cart.length)}</span>
+      </header>
       <CompositionConflictList conflicts={conflicts} id={conflictListId} />
-      {destinationOrder.map((destination) => {
+      {cartDestinationOrder.map((destination) => {
         const items = cart.filter((item) => destinations.get(item.ref) === destination);
         if (items.length === 0) return null;
+        const look = destinationLook[destination];
         return (
-          <section key={destination} className={styles.group}>
-            <h3 className="overline">
-              {texts.destinations[destination]} · {items.length}
-            </h3>
+          <CheckoutSection key={destination} icon={look.icon} tone={look.tone} title={texts.destinations[destination]} count={items.length} defaultOpen>
             <p className="caption">{texts.destinationHints[destination]}</p>
             <ul className={styles.compactList}>
               {items.map((item) => (
@@ -52,18 +66,47 @@ export function CartCheckoutGroups({ cart, conflicts, conflictListId }: CartChec
                 </li>
               ))}
             </ul>
-          </section>
+          </CheckoutSection>
         );
       })}
-      <section className={styles.group}>
-        <h3 className="overline">{texts.site.card}</h3>
+      <CheckoutSection icon="globe" tone="site" title={texts.site.card}>
         <CartSourceUrlField cart={cart} />
-      </section>
-      <section className={styles.group}>
-        <h3 className="overline">{t.runs.instructions.card}</h3>
+      </CheckoutSection>
+      <CheckoutSection icon="clipboard" tone="instructions" title={t.runs.instructions.card}>
         <RunInstructionsField id="carrinho-instrucoes" value={instructions} onChange={(text) => cartInstructionsActions.set(text)} />
-      </section>
+      </CheckoutSection>
+      <CheckoutSection icon="sparkles" tone="prompt" title={texts.prompt.card} defaultOpen>
+        <CartVideoPrompt cart={cart} />
+      </CheckoutSection>
     </div>
+  );
+}
+
+interface CheckoutSectionProps {
+  icon: IconName;
+  tone: SectionTone;
+  title: string;
+  count?: number;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}
+
+/** One collapsible checkout section; the tone gives each section its own accent colour. */
+function CheckoutSection({ icon, tone, title, count, defaultOpen = false, children }: CheckoutSectionProps): ReactElement {
+  return (
+    <details className={styles.section} data-tone={tone} open={defaultOpen}>
+      <summary className={styles.sectionSummary}>
+        <span className={styles.sectionBadge} aria-hidden="true">
+          <Icon name={icon} />
+        </span>
+        <span className={`overline ${styles.sectionTitle}`}>{title}</span>
+        {count !== undefined && <span className={styles.sectionCount}>{count}</span>}
+        <span className={styles.sectionChevron} aria-hidden="true">
+          <Icon name="chevron-down" />
+        </span>
+      </summary>
+      <div className={styles.sectionBody}>{children}</div>
+    </details>
   );
 }
 

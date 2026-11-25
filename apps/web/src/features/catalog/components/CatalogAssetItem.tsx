@@ -1,19 +1,28 @@
-import { AssetCard, type Locale } from '@studio/ui';
+import { Badge, StatusBadge, buttonClassName, uiMessages, type Locale } from '@studio/ui';
 import { type AssetVersionView } from '@studio/shared/api';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
+import { cartKindArtwork } from '@/features/cart/cart-kind-artwork';
 import { cartItemOf } from '@/features/cart/cart-item';
 import { CartToggleButton } from '@/features/cart/components/CartToggleButton';
-import layout from '@/features/common/layout.module.css';
+import { PosterCard } from '@/features/common/components/PosterCard';
+import poster from '@/features/common/poster-card.module.css';
 import { FavoriteToggleButton } from '@/features/favorites/components/FavoriteToggleButton';
+import { MusicPreviewButton } from '@/features/music/components/MusicPreviewButton';
 import { QualityScore } from '@/features/quality/components/QualityScore';
 import { VoiceSampleButton } from '@/features/voices/components/VoiceSampleButton';
 import { isVoiceVersion } from '@/features/voices/voice-asset';
 import { type WebMessages } from '@/messages';
+import styles from '../catalog.module.css';
 import { formatDate } from '../catalog-labels';
+import { editHrefOf } from '../catalog-edit-href';
 import { imageLinkOf } from '../image-link-draft';
 import { referencePostOf, videoThumbnailHref } from '../reference-post';
 import { siteLinkOf } from '../site-link-draft';
+import { CatalogPreviewHover } from './CatalogPreviewHover';
+import { SiteEmbed } from './SiteEmbed';
+import { TemplatePreviewHover } from './TemplatePreviewHover';
+import { templateCategoryOf } from '../template-categories';
 import { storedImageHref } from '../stored-image';
 
 interface CatalogAssetItemProps {
@@ -39,12 +48,15 @@ export function CatalogAssetItem({ version, linkToVersion, detail, t, locale, he
   const imageLink = imageLinkOf(version);
   const siteLink = siteLinkOf(version);
   const storedImage = storedImageHref(version);
+  // AP-11: the purpose names the picture for screen readers; an empty one keeps the old texts. The hover popover shows it to sighted users.
+  const purpose = version.purpose.trim();
+  const altOf = (fallback: string): string => (purpose === '' ? fallback : purpose);
   const media =
     post !== null ? (
       <Link href={href} tabIndex={-1} aria-hidden="true">
         <img
           src={videoThumbnailHref(post)}
-          alt={t.asset.thumbnailAlt(t.linkBox.platforms[post.platform])}
+          alt={altOf(t.asset.thumbnailAlt(t.linkBox.platforms[post.platform]))}
           width={320}
           height={180}
           loading="lazy"
@@ -54,53 +66,91 @@ export function CatalogAssetItem({ version, linkToVersion, detail, t, locale, he
     ) : imageLink !== null ? (
       // Straight from the owner's link (CSP `img-src https:`); the server never fetches it.
       <Link href={href} tabIndex={-1} aria-hidden="true">
-        <img src={imageLink.href} alt={t.imageLink.previewAlt} width={320} height={180} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+        <img src={imageLink.href} alt={altOf(t.imageLink.previewAlt)} width={320} height={180} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
       </Link>
     ) : storedImage !== null ? (
       <Link href={href} tabIndex={-1} aria-hidden="true">
-        <img src={storedImage} alt={t.imageLink.previewAlt} width={320} height={180} loading="lazy" decoding="async" />
+        <img src={storedImage} alt={altOf(t.imageLink.previewAlt)} width={320} height={180} loading="lazy" decoding="async" />
+      </Link>
+    ) : siteLink !== null ? (
+      // The viewer's browser loads the page straight from the owner's link; the server never fetches it.
+      <Link href={href} tabIndex={-1} aria-hidden="true">
+        <SiteEmbed href={siteLink.href} title={t.siteLink.embedTitle(siteLink.hostname)} mode="preview" />
       </Link>
     ) : undefined;
+  const ui = uiMessages[locale].catalog;
+  const Heading = headingLevel;
   return (
-    <div className={layout.stack}>
-      <AssetCard
-        title={<Link href={href}>{version.name}</Link>}
-        kindLabel={t.kinds[version.kind]}
-        assetRef={`${version.id}@${version.version}`}
-        status={version.status}
-        sensitivity={version.sensitivity}
-        tags={version.tags}
-        usageCount={version.usageCount}
-        updatedAtLabel={formatDate(version.updatedAt, locale)}
-        headingLevel={headingLevel}
-        media={media}
-      />
-      {siteLink !== null && (
-        // The host only, as text: the server never fetched the page, so there is no preview to show.
-        <p className="caption" title={siteLink.href}>
-          {t.siteLink.host(siteLink.hostname)}
+    <PosterCard artwork={cartKindArtwork[version.kind]} media={media} coverShape={siteLink !== null ? 'screen' : 'band'} density="compact">
+        <p className={poster.meta}>
+          <span className="overline">{t.kinds[version.kind]}</span>
+          <StatusBadge kind="asset" status={version.status} />
+          {version.sensitivity !== 'normal' && <StatusBadge kind="sensitivity" status={version.sensitivity} />}
         </p>
-      )}
-      <div className={layout.row}>
-        <CartToggleButton item={cartItemOf(version)} />
-        {/* Marked per asset, so every version of one asset shares the star. */}
-        <FavoriteToggleButton scope="catalog" id={version.id} name={version.name} />
-        {isVoiceVersion(version) && <VoiceSampleButton assetId={version.id} version={version.version} name={version.name} />}
-      </div>
-      <p className="caption">
-        <QualityScore
-          qualityScore={version.qualityScore}
-          qualitySampleSize={version.qualitySampleSize}
-          qualityPlatformSampleSize={version.qualityPlatformSampleSize}
-          label={t.quality.score}
-        />
-        {detail !== undefined && (
-          <>
-            <span aria-hidden="true"> · </span>
-            <span>{detail}</span>
-          </>
+        <Heading className={`heading-3 ${poster.name}`}>
+          <Link href={href} className={poster.cardLink}>
+            {version.name}
+          </Link>
+        </Heading>
+        <p className="caption mono">{`${version.id}@${version.version}`}</p>
+        {/* The hover preview shows a visual of the item and what it is for (purpose), per kind. */}
+        {version.kind === 'template' ? (
+          <TemplatePreviewHover version={version} category={templateCategoryOf(version)} />
+        ) : (
+          <CatalogPreviewHover version={version} />
         )}
-      </p>
-    </div>
+        {version.tags.length > 0 && (
+          <ul className={styles.posterTags} aria-label={ui.tags}>
+            {version.tags.map((tag) => (
+              <li key={tag}>
+                <Badge tone="neutral">{tag}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+        {version.kind === 'music' && version.details.categories.length > 0 && (
+          <ul className={styles.posterTags} aria-label={t.musicChoice.categoriesLegend}>
+            {version.details.categories.map((category) => (
+              <li key={category}>
+                <Badge tone="neutral">{t.musicChoice.categories[category]}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+        {siteLink !== null && (
+          <p className="caption" title={siteLink.href}>
+            {t.siteLink.host(siteLink.hostname)}
+          </p>
+        )}
+        <p className="caption">
+          {ui.usedIn(version.usageCount)}
+          <span aria-hidden="true"> · </span>
+          {ui.updatedAt(formatDate(version.updatedAt, locale))}
+        </p>
+        <p className="caption">
+          <QualityScore
+            qualityScore={version.qualityScore}
+            qualitySampleSize={version.qualitySampleSize}
+            qualityPlatformSampleSize={version.qualityPlatformSampleSize}
+            label={t.quality.score}
+          />
+          {detail !== undefined && (
+            <>
+              <span aria-hidden="true"> · </span>
+              <span>{detail}</span>
+            </>
+          )}
+        </p>
+        <div className={poster.links}>
+          <CartToggleButton item={cartItemOf(version)} />
+          {/* Marked per asset, so every version of one asset shares the star. */}
+          <FavoriteToggleButton scope="catalog" id={version.id} name={version.name} />
+          {version.kind === 'music' && <MusicPreviewButton assetId={version.id} version={version.version} name={version.name} />}
+          {isVoiceVersion(version) && <VoiceSampleButton assetId={version.id} version={version.version} name={version.name} />}
+          <Link href={editHrefOf(version)} className={buttonClassName({ variant: 'secondary', size: 'sm' })} aria-label={t.list.editHidden(version.name)}>
+            {t.list.edit}
+          </Link>
+        </div>
+    </PosterCard>
   );
 }

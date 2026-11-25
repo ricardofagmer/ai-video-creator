@@ -6,11 +6,12 @@ import Link from 'next/link';
 import { useState, type ReactElement } from 'react';
 import { useWebMessages } from '@/lib/i18n/client';
 import { cartDestinations } from '../cart-bindings';
-import { CART_QUERY, cartActions, useCart } from '../cart-store';
+import { cartActions, useCart } from '../cart-store';
 import styles from './CartButton.module.css';
 import { CartCheckoutGroups } from './CartCheckoutGroups';
 import { CartItemTile } from './CartItemTile';
 import { CartKitBanner } from './CartKitBanner';
+import { CART_PRESET_FORM_ID, CART_PRESET_INTENT, CartPresetForm, type CartPresetFormState } from './CartPresetForm';
 import tileStyles from './CartItemTile.module.css';
 
 type CartView = 'items' | 'checkout';
@@ -28,6 +29,8 @@ export function CartButton(): ReactElement {
   const destinations = cartDestinations(cart);
   // Two active voices (or templates, brand kits, songs) cannot make one video: no recipe from this cart.
   const conflicts = cartConflicts(cart);
+  const [formState, setFormState] = useState<CartPresetFormState>('loading');
+  const canSave = conflicts.length === 0 && formState === 'idle';
 
   function close(): void {
     setOpen(false);
@@ -58,27 +61,36 @@ export function CartButton(): ReactElement {
         {texts.back}
       </Button>
       {conflicts.length > 0 ? (
-        // Same look as the links, disabled, pointing at the conflict list that says why.
-        <>
-          <Button variant="secondary" disabled aria-describedby={CONFLICT_LIST_ID}>
-            {texts.existingRecipe}
-          </Button>
-          <Button variant="primary" disabled aria-describedby={CONFLICT_LIST_ID}>
-            <Icon name="plus" size="sm" />
-            <span>{texts.newRecipe}</span>
-          </Button>
-        </>
+        // Same look as the link, disabled, pointing at the conflict list that says why.
+        <Button variant="ghost" disabled aria-describedby={CONFLICT_LIST_ID}>
+          {texts.existingRecipe}
+        </Button>
       ) : (
-        <>
-          <Link href="/receitas" onClick={close} className={buttonClassName({ variant: 'secondary' })}>
-            {texts.existingRecipe}
-          </Link>
-          <Link href={`/receitas/nova?${CART_QUERY}=1`} onClick={close} className={buttonClassName({ variant: 'primary' })}>
-            <Icon name="plus" size="sm" />
-            <span>{texts.newRecipe}</span>
-          </Link>
-        </>
+        <Link href="/receitas" onClick={close} className={buttonClassName({ variant: 'ghost' })}>
+          {texts.existingRecipe}
+        </Link>
       )}
+      <Button
+        type="submit"
+        form={CART_PRESET_FORM_ID}
+        data-intent={CART_PRESET_INTENT.save}
+        variant="secondary"
+        disabled={!canSave}
+        aria-describedby={conflicts.length > 0 ? CONFLICT_LIST_ID : undefined}
+      >
+        {formState === 'saving' ? texts.preset.saving : texts.preset.save}
+      </Button>
+      <Button
+        type="submit"
+        form={CART_PRESET_FORM_ID}
+        data-intent={CART_PRESET_INTENT.run}
+        variant="primary"
+        disabled={!canSave}
+        aria-describedby={conflicts.length > 0 ? CONFLICT_LIST_ID : undefined}
+      >
+        <Icon name="plus" size="sm" />
+        <span>{texts.preset.saveAndRun}</span>
+      </Button>
     </>
   );
 
@@ -112,6 +124,8 @@ export function CartButton(): ReactElement {
           </Button>
         }
         footer={checkout ? checkoutFooter : itemsFooter}
+        headerClassName={styles.dialogHeader}
+        className={styles.dialog}
       >
         {!checkout && (
           <CartKitBanner
@@ -128,7 +142,10 @@ export function CartButton(): ReactElement {
             </Link>
           </p>
         ) : checkout ? (
-          <CartCheckoutGroups cart={cart} conflicts={conflicts} conflictListId={CONFLICT_LIST_ID} />
+          <>
+            <CartCheckoutGroups cart={cart} conflicts={conflicts} conflictListId={CONFLICT_LIST_ID} />
+            <CartPresetForm cart={cart} onStateChange={setFormState} onDone={close} />
+          </>
         ) : (
           <ul className={tileStyles.grid}>
             {cart.map((item) => (

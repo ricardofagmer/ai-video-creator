@@ -11,8 +11,8 @@ import { needsPerson } from '../shared/stage-results';
 
 /** Artifact ids the Reviewer may read per subject (C7 RunArtifactReadTool, topology section 5). */
 export const reviewArtifacts: Readonly<Record<ReviewSubject, readonly RunArtifactId[]>> = {
-  script: ['brief', 'script'],
-  scenes: ['brief', 'script', 'scenes', 'captures-index'],
+  script: ['brief', 'script', 'site-analysis', 'reference-analyses'],
+  scenes: ['brief', 'script', 'scenes', 'captures-index', 'site-analysis', 'reference-analyses'],
   render: ['brief', 'scenes', 'qa-metrics', 'checks'],
 };
 

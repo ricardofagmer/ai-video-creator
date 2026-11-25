@@ -5,11 +5,13 @@ import { SensitivitySchema, type Sensitivity } from '@studio/shared/catalog';
 import { type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { useWebMessages } from '@/lib/i18n/client';
-import { fieldIds, type AssetFormValues } from './asset-form-model';
+import { ImageCategoryPicker } from '../components/ImageCategoryPicker';
+import { imageCategoryOfTags, tagsWithImageCategory } from '../image-categories';
+import { fieldIds, tagsOf, type AssetFormValues } from './asset-form-model';
 import { type AssetFormTarget } from './asset-form-submit';
 import { type FieldErrors } from './form-messages';
 
-type IdentityValues = Pick<AssetFormValues, 'name' | 'assetId' | 'tags' | 'owner' | 'sensitivity' | 'notes'>;
+type IdentityValues = Pick<AssetFormValues, 'kind' | 'name' | 'assetId' | 'tags' | 'owner' | 'sensitivity' | 'notes'>;
 
 export interface IdentitySectionProps {
   target: AssetFormTarget;
@@ -58,6 +60,15 @@ export function IdentitySection({ target, values, sensitivityLocked, errors, dis
               <TagInput {...control} separator="comma" removeLabel={messages.common.tagInput.remove} value={values.tags} onChange={(tags) => onChange({ tags })} />
             )}
           </FormField>
+          {values.kind === 'image' && (
+            // The category lives in the tags as `cat.<slug>` (docs/specs/2026-11-24-catalog-image-categories.md).
+            <ImageCategoryPicker
+              idPrefix="imagem-envio"
+              value={imageCategoryOfTags(tagsOf(values.tags))}
+              onChange={(category) => onChange({ tags: tagsWithImageCategory(tagsOf(values.tags), category).join(', ') })}
+              disabled={disabled}
+            />
+          )}
           <FormField id={fieldIds.owner} label={texts.owner} error={errors[fieldIds.owner]}>
             {(control) => (
               <Input {...control} autoComplete="name" value={values.owner} onChange={(event) => onChange({ owner: event.currentTarget.value })} />

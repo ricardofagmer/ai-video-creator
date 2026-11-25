@@ -15,7 +15,9 @@ import {
   type AssetJobProcess,
 } from './asset-jobs.tokens';
 import { type ClaimedAssetJob } from './claimed-asset-job';
+import { AssetPurposeHandler } from './asset-purpose.handler';
 import { ReferenceAnalysisHandler } from './reference-analysis.handler';
+import { TemplatePreviewHandler } from './template-preview.handler';
 import { VoiceSampleHandler } from './voice-sample.handler';
 
 /**
@@ -23,7 +25,8 @@ import { VoiceSampleHandler } from './voice-sample.handler';
  * like the curation step. The daemon loop calls `claimNext` only when no run is startable, after
  * the curation step, and awaits it to the job's final write, so a run, a curation and a job never
  * overlap and one job runs at a time across both kinds. The queue is the `requested` jobs of both
- * kinds, oldest request first; the api bounds it at 10 per kind.
+ * kinds, oldest request first; the api bounds it at 10 per kind. Template previews (2026-11-25)
+ * join the same queue.
  *
  * - Sweep: before this process claims anything, and again on every scan, a `running` job whose
  *   claimant is gone ends `failed` / `claimant-gone`; it is never resumed. Gone means no claim, a
@@ -58,6 +61,8 @@ export class AssetJobStep {
     @Inject(AssetJobScanner) private readonly scanner: AssetJobScanner,
     @Inject(VoiceSampleHandler) private readonly voiceSamples: VoiceSampleHandler,
     @Inject(ReferenceAnalysisHandler) private readonly referenceAnalyses: ReferenceAnalysisHandler,
+    @Inject(TemplatePreviewHandler) private readonly templatePreviews: TemplatePreviewHandler,
+    @Inject(AssetPurposeHandler) private readonly assetPurposes: AssetPurposeHandler,
     @Inject(ASSET_JOBS_CLOCK) private readonly clock: Clock,
     @Inject(ASSET_JOBS_PROCESS) private readonly daemonProcess: AssetJobProcess,
     @Inject(ASSET_JOBS_STOP) private readonly stop: AbortSignal,
@@ -173,9 +178,16 @@ export class AssetJobStep {
   /** The handler of the job's kind; the file's own discriminant picks it, so the types follow. */
   private run(claimed: ClaimedAssetJob, signals: AssetJobSignals): Promise<AssetJobEnding> {
     const { location, file } = claimed;
-    return file.kind === 'voice-sample'
-      ? this.voiceSamples.handle({ location, file }, signals)
-      : this.referenceAnalyses.handle({ location, file }, signals);
+    switch (file.kind) {
+      case 'voice-sample':
+        return this.voiceSamples.handle({ location, file }, signals);
+      case 'reference-analysis':
+        return this.referenceAnalyses.handle({ location, file }, signals);
+      case 'template-preview':
+        return this.templatePreviews.handle({ location, file }, signals);
+      case 'asset-purpose':
+        return this.assetPurposes.handle({ location, file }, signals);
+    }
   }
 
   /** The final write; a failure is kept and written again on the next idle tick (`retryUnwrittenEndings`). */

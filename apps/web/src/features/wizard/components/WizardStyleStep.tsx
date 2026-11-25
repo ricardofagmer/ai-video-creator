@@ -1,24 +1,28 @@
 'use client';
 
 import { AssetRefSchema, parseAssetRef } from '@studio/shared/catalog';
-import { type Recipe } from '@studio/shared/recipes';
+import { type MusicChoice, type Recipe } from '@studio/shared/recipes';
 import { Alert, Card, FormField, RadioGroup, Select } from '@studio/ui';
 import { type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { MusicChoiceFields } from '@/features/music/components/MusicChoiceFields';
 import { type BindingOption } from '@/features/recipes/recipe-form-model';
 import { VoiceSampleButton } from '@/features/voices/components/VoiceSampleButton';
 import { useWebMessages } from '@/lib/i18n/client';
 import { type WebMessages } from '@/messages';
-import { basePinOf, chosenRefOf, wizardSlotsOf, type WizardChoices, type WizardSlot, type WizardSlotSpec } from '../wizard-recipe';
+import { basePinOf, chosenRefOf, musicChoiceOfRecipe, wizardSlotsOf, type WizardChoices, type WizardSlot, type WizardSlotSpec } from '../wizard-recipe';
 import styles from '../wizard.module.css';
 
 interface WizardStyleStepProps {
   base: Recipe;
   choices: WizardChoices;
+  /** The owner's music choice; null shows the base recipe's. */
+  musicChoice: MusicChoice | null;
   options: readonly BindingOption[];
   /** True when a pin differs from the base recipe's: "Iniciar" will save a new draft version. */
   changed: boolean;
   onChoose: (slot: WizardSlot, ref: string) => void;
+  onMusicChoiceChange: (choice: MusicChoice) => void;
 }
 
 type StyleTexts = WebMessages['wizard']['style'];
@@ -39,9 +43,11 @@ function slotLabel(slot: Exclude<WizardSlot, 'voice'>, texts: StyleTexts): strin
 /**
  * Step 3 "Voz e estilo": one voice, heard with "Ouvir" before choosing, one template and the
  * optional brand kit and music, among the active catalog versions. The base recipe's pins are
- * the defaults; slots of stages the recipe does not run are not offered.
+ * the defaults; slots of stages the recipe does not run are not offered. The music is either a
+ * chosen song or "AI decides" with categories (docs/specs/2026-11-25-ai-music-choice-design.md).
  */
-export function WizardStyleStep({ base, choices, options, changed, onChoose }: WizardStyleStepProps): ReactElement {
+export function WizardStyleStep(props: WizardStyleStepProps): ReactElement {
+  const { base, choices, musicChoice, options, changed, onChoose, onMusicChoiceChange } = props;
   const t = useWebMessages();
   const texts = t.wizard.style;
   const slots = wizardSlotsOf(base);
@@ -59,7 +65,7 @@ export function WizardStyleStep({ base, choices, options, changed, onChoose }: W
         {otherSpecs.map((spec) => {
           const slotChoices = slotOptions(spec, base, options, texts);
           const id = `criar-${spec.slot}`;
-          return (
+          const field = (
             <FormField key={spec.slot} id={id} label={slotLabel(spec.slot, texts)} optional={spec.optional} help={slotChoices.length === 0 ? texts.noOptions : undefined}>
               {(control) => (
                 <Select
@@ -71,6 +77,17 @@ export function WizardStyleStep({ base, choices, options, changed, onChoose }: W
                 />
               )}
             </FormField>
+          );
+          if (spec.slot !== 'music') return field;
+          return (
+            <MusicChoiceFields
+              key={spec.slot}
+              name="criar-musica-modo"
+              categoriesId="criar-musica-categorias"
+              choice={musicChoice ?? musicChoiceOfRecipe(base)}
+              onChange={onMusicChoiceChange}
+              trackControl={field}
+            />
           );
         })}
         {changed && <Alert variant="info">{texts.willSaveVersion(base.name)}</Alert>}

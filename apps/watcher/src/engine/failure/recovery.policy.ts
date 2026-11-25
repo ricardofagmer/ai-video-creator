@@ -54,15 +54,31 @@ function wait(cause: WaitingCause, texts: { reason: string; whatToDo: string }, 
   };
 }
 
+/** Waits that mean "the automatic repair gave up", as opposed to a hold the owner must lift (biometric asset). */
+const repairGaveUpCauses: ReadonlySet<WaitingCause['kind']> = new Set<WaitingCause['kind']>(['needs-person', 'agent-failed']);
+
+/**
+ * Owner decision 2026-11-25: failed checks never stop a run. When the repair attempts are spent
+ * (`fail-run`) or the repair asks for a person, the step is accepted with a warning that names the
+ * failed checks. Every other failure origin keeps the decision it was given.
+ */
+function acceptedWhenChecksFailed(context: StepFailureContext, decision: StepFailureDecision): StepFailureDecision {
+  if (context.failure.origin !== 'checks') return decision;
+  const gaveUp = decision.kind === 'fail-run' || (decision.kind === 'wait' && repairGaveUpCauses.has(decision.cause.kind));
+  if (!gaveUp) return decision;
+  return { kind: 'accept', detail: ownerTexts.checksAccepted(context.failure.failedChecks), recovery: decision.recovery };
+}
+
 /**
  * Default `STEP_FAILURE_POLICY` (PRD 7.3, topology sections 7 and 9, SPEC 0002 K3, A7). In order:
- * 1. never retried: guard failures (cost ceiling, licence doubt), authentication errors, executor
- *    `needs-person` causes, failed `claims-evidence`, any failure of a stage that reads a bound
- *    biometric asset -> `waiting`, no Recovery call;
+ * 1. never retried: guard failures (licence doubt), authentication errors, executor
+ *    `needs-person` causes, any failure of a stage that reads a bound biometric asset ->
+ *    `waiting`, no Recovery call;
  * 2. `limits.attemptsPerStep` spent, or the same error after a recovery -> run `failed`;
  * 3. the first `verify` failure repeats the checks once, without Recovery;
  * 4. otherwise one Recovery call for this failed attempt, bounded per stage by
  *    `limits.recoveriesPerStage`; its action is applied only when the step allowlist permits it.
+ * Failed checks that would end in `failed` or in a wait for a person are accepted with a warning.
  */
 @Injectable()
 export class RecoveryPolicy implements StepFailurePolicy {
@@ -74,6 +90,10 @@ export class RecoveryPolicy implements StepFailurePolicy {
   ) {}
 
   async decide(context: StepFailureContext): Promise<StepFailureDecision> {
+    return acceptedWhenChecksFailed(context, await this.decideStop(context));
+  }
+
+  private async decideStop(context: StepFailureContext): Promise<StepFailureDecision> {
     const neverRetried = await this.neverRetried(context);
     if (neverRetried !== null) return neverRetried;
     const exhausted = this.exhausted(context);
@@ -96,14 +116,6 @@ export class RecoveryPolicy implements StepFailurePolicy {
     }
     if (failure.origin === 'executor' && failure.failure.class === 'needs-person') {
       return wait(failure.failure.cause, { reason: failure.failure.message, whatToDo: failure.failure.whatToDo });
-    }
-    if (failure.origin === 'checks' && failure.failedChecks.includes('claims-evidence')) {
-      // The claim ids live in the verify stage's own artifact; the stage executor reports them as a
-      // `claim-without-evidence` cause when it knows them. Here only the step is known.
-      return wait(
-        { kind: 'needs-person', stepKey: context.stepKey },
-        { reason: ownerTexts.claimsWithoutEvidenceReason, whatToDo: ownerTexts.claimsWithoutEvidenceWhatToDo },
-      );
     }
     return this.biometricHold(context);
   }

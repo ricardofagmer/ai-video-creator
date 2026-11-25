@@ -1,12 +1,13 @@
 import { type ScenesOutput } from '@studio/shared/agents';
 import type { AssetResolverPort, StageExecutionContext } from '@studio/shared/ports';
+import { readRunFile } from '@studio/shared/run-files';
 import { type CapturesIndex } from '../shared/stage-artifacts';
 import { type CheckEvidence } from '../shared/stage-results';
 
 /**
  * `refs-resolve` for the Scene director's output (SPEC 0002 C7: the engine re-resolves `citedRefs`
- * at `verify`). Every cited or visual asset ref must be a bound, non-biometric asset that still
- * resolves to its pinned hash; every capture visual must name a capture in `captures-index` with
+ * at `verify`). Every cited or visual asset ref must be a bound asset or a run reference, non-biometric,
+ * that still resolves to its pinned hash; every capture visual must name a capture in `captures-index` with
  * in/out points inside its duration.
  */
 export async function sceneRefsEvidence(
@@ -37,10 +38,15 @@ function countReferences(scenes: ScenesOutput): number {
 
 async function assetProblems(context: StageExecutionContext, resolver: AssetResolverPort, scenes: ScenesOutput): Promise<string[]> {
   const problems: string[] = [];
-  for (const ref of assetRefsOf(scenes)) {
+  const refs = assetRefsOf(scenes);
+  if (refs.length === 0) return problems;
+  const runReferences = new Set<string>((await readRunFile(context.runDir)).references);
+  for (const ref of refs) {
     const binding = context.recipe.bindings.find((candidate) => candidate.ref === ref);
     const offered = context.assets.find((asset) => asset.ref === ref);
-    if (binding === undefined || offered === undefined) {
+    // The recipe pins no run reference, yet the director is offered the owner's pictures and clips
+    // (`readReferenceMedia`): such a ref is valid, pinned to the hash `preflight` resolved.
+    if (offered === undefined || (binding === undefined && !runReferences.has(ref))) {
       problems.push(`${ref}: não oferecido à etapa`);
       continue;
     }
@@ -48,7 +54,7 @@ async function assetProblems(context: StageExecutionContext, resolver: AssetReso
       problems.push(`${ref}: ativo biométrico não pode ser citado`);
       continue;
     }
-    const resolution = await resolver.resolve({ ref, expectedContentHash: binding.contentHash, signal: context.signal });
+    const resolution = await resolver.resolve({ ref, expectedContentHash: binding?.contentHash ?? offered.contentHash, signal: context.signal });
     if (resolution.status !== 'resolved') problems.push(`${ref}: ${resolution.status}`);
   }
   return problems;

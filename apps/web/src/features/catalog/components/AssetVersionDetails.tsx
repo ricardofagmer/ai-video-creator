@@ -6,8 +6,10 @@ import layout from '@/features/common/layout.module.css';
 import { getI18n } from '@/lib/i18n/server';
 import { type WebMessages } from '@/messages';
 import { formatDate, formatDateTime } from '../catalog-labels';
+import { AssetTagEditor } from './AssetTagEditor';
 
 type DetailTexts = WebMessages['catalog']['details'];
+type MusicChoiceTexts = WebMessages['catalog']['musicChoice'];
 
 function modelReferenceText(reference: ModelIdReference, t: DetailTexts): string {
   if (reference.type === 'literal') return reference.value;
@@ -37,7 +39,7 @@ function variableDefaultText(variable: PromptVariable): string {
 }
 
 /** Kind-specific fields (PRD 5.2) for the kinds design/telas/03 lists. */
-function kindItems(version: AssetVersionView, t: DetailTexts): DescriptionItem[] {
+function kindItems(version: AssetVersionView, t: DetailTexts, music: MusicChoiceTexts): DescriptionItem[] {
   switch (version.kind) {
     case 'template': {
       const { canvas, aspect, fps, duration } = version.details;
@@ -52,8 +54,14 @@ function kindItems(version: AssetVersionView, t: DetailTexts): DescriptionItem[]
       return [
         { term: t.provider, description: version.details.provider },
         { term: t.modelReference, description: modelReferenceText(version.details.modelIdRef, t), mono: true },
+        ...(version.details.voiceModelId === undefined ? [] : [{ term: t.speechModel, description: version.details.voiceModelId, mono: true }]),
         { term: t.localPath, description: localPath ?? '—', mono: localPath !== null },
       ];
+    }
+    case 'music': {
+      const { categories } = version.details;
+      const description = categories.length === 0 ? music.noCategories : categories.map((category) => music.categories[category]).join(', ');
+      return [{ term: music.categoriesLegend, description }];
     }
     default:
       return [];
@@ -95,11 +103,11 @@ export async function AssetVersionDetails({ version }: { version: AssetVersionVi
     { term: d.owner, description: version.owner },
     { term: d.createdAt, description: formatDateTime(version.createdAt, locale) },
     { term: d.updatedAt, description: formatDateTime(version.updatedAt, locale) },
-    { term: d.tags, description: version.tags.length > 0 ? version.tags.join(', ') : '—' },
+    { term: d.tags, description: <AssetTagEditor version={version} /> },
     { term: d.usage, description: t.catalog.usage(version.usageCount) },
     { term: d.sensitivity, description: ui.status.sensitivity[version.sensitivity] },
     ...storageItems(version, d),
-    ...kindItems(version, d),
+    ...kindItems(version, d, t.catalog.musicChoice),
   ];
   const { license, provenance } = version;
   const licenseItems: DescriptionItem[] = [

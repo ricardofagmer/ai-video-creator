@@ -40,8 +40,31 @@ export const studioTemplateVariables = {
   disclosure: 'string',
   durationS: 'number',
   accent: 'color',
+  // Per-scene on-screen text. Variables are flat (no arrays), so each scene slot has its own pair.
+  scene1Text: 'string',
+  scene1StartS: 'number',
+  scene2Text: 'string',
+  scene2StartS: 'number',
+  scene3Text: 'string',
+  scene3StartS: 'number',
+  scene4Text: 'string',
+  scene4StartS: 'number',
+  scene5Text: 'string',
+  scene5StartS: 'number',
+  scene6Text: 'string',
+  scene6StartS: 'number',
 } as const satisfies Record<string, HyperframesVariableType>;
 export type StudioTemplateVariable = keyof typeof studioTemplateVariables;
+
+/** Scene slots of the vocabulary above (`scene1…` to `scene6…`). */
+export const HYPERFRAMES_SCENE_SLOTS = 6;
+
+/**
+ * The clip a template may play behind its text. The file is not part of the template folder: the
+ * render writes it into the staged copy from the run's scene media (site capture, bound images),
+ * and only for a template whose `index.html` references this path.
+ */
+export const HYPERFRAMES_BACKGROUND_FILE = 'media/background.mp4';
 
 export const hyperframesBounds = {
   maxVariables: 32,

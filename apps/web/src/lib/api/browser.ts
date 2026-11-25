@@ -39,5 +39,22 @@ export function voiceSampleAudioUrl(assetId: string, version: number, cacheKey: 
   return cacheKey === '' ? path : `${path}?amostra=${encodeURIComponent(cacheKey)}`;
 }
 
+/** Same-origin URL of a stored music track for `<audio src>`, through the BFF like every other call. */
+export function storedAudioUrl(assetId: string, version: number): string {
+  return `${BFF_PREFIX}${apiPaths.assetAudio(assetId, version)}`;
+}
+
+/**
+ * Same-origin URLs of a template preview's clip and poster frame (template preview, 2026-11-25). The
+ * `previa` value only makes the browser fetch again after a new render (`updatedAt`); the BFF drops it.
+ */
+export function templatePreviewMediaUrls(assetId: string, version: number, cacheKey: string): { clip: string; poster: string } {
+  const query = cacheKey === '' ? '' : `?previa=${encodeURIComponent(cacheKey)}`;
+  return {
+    clip: `${BFF_PREFIX}${apiPaths.assetTemplatePreviewClip(assetId, version)}${query}`,
+    poster: `${BFF_PREFIX}${apiPaths.assetTemplatePreviewPoster(assetId, version)}${query}`,
+  };
+}
+
 /** The C10 client for client components. */
 export const browserStudioClient: StudioClient = createStudioClient(browserTransport);

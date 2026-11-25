@@ -1,10 +1,17 @@
 import { type QueryBus } from '@nestjs/cqrs';
-import { GetAssetVersionQuery, GetEntryFileTextQuery } from '@studio/core/catalog';
+import { GetAssetVersionQuery, GetEntryFileTextQuery, MAX_PAGE_LIMIT, SearchAssetsQuery } from '@studio/core/catalog';
 import { type BoundAssetSummary } from '@studio/core/agents';
 import { type AssetKind, type AssetVersion } from '@studio/shared/catalog';
 import type { ResolvedAsset, StageExecutionContext } from '@studio/shared/ports';
 
 type VersionOfKind<Kind extends AssetKind> = Extract<AssetVersion, { kind: Kind }>;
+export type MusicVersion = VersionOfKind<'music'>;
+
+/**
+ * Pages read when listing the catalog's music: 10 pages of 100 rows bound the scan, so a huge
+ * catalog costs a bounded number of queries instead of an unbounded loop.
+ */
+const MUSIC_SCAN_MAX_PAGES = 10;
 
 export interface BoundAsset {
   slot: string;
@@ -41,6 +48,30 @@ export class CatalogLookup {
       summaries.push({ slot: bound.slot, ref: bound.asset.ref, kind: bound.asset.kind, title, sensitivity: bound.asset.sensitivity });
     }
     return summaries;
+  }
+
+  /**
+   * Active, non-biometric music versions of the catalog (the search excludes biometric rows), newest
+   * first as the search orders them. Layout and storage are filtered by the caller.
+   */
+  async activeMusicVersions(): Promise<MusicVersion[]> {
+    const versions: MusicVersion[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < MUSIC_SCAN_MAX_PAGES; page += 1) {
+      const result = await this.queries.execute(
+        new SearchAssetsQuery({
+          kinds: ['music'],
+          statuses: ['active'],
+          sensitivity: 'exclude-biometric',
+          limit: MAX_PAGE_LIMIT,
+          ...(cursor === undefined ? {} : { cursor }),
+        }),
+      );
+      for (const version of result.items) if (isKind(version, 'music')) versions.push(version);
+      if (result.nextCursor === null) break;
+      cursor = result.nextCursor;
+    }
+    return versions;
   }
 }
 

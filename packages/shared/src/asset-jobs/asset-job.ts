@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { REFERENCE_ANALYST_PROMPT_VERSION, ReferenceStyleAnalysisSchema } from '../agents/reference-analysis';
 import { AssetRefSchema } from '../catalog/asset-kind';
+import { AssetPurposeSchema } from '../catalog/asset-version';
 import { IsoDateTimeSchema } from '../common/ids';
 import { LanguageSchema } from '../recipes/brief';
 
-export const AssetJobKindSchema = z.enum(['voice-sample', 'reference-analysis']);
+export const AssetJobKindSchema = z.enum(['voice-sample', 'reference-analysis', 'template-preview', 'asset-purpose']);
 export type AssetJobKind = z.infer<typeof AssetJobKindSchema>;
 
 /**
@@ -88,9 +89,49 @@ export const ReferenceAnalysisJobFileSchema = z
   .strict();
 export type ReferenceAnalysisJobFile = z.infer<typeof ReferenceAnalysisJobFileSchema>;
 
+/**
+ * A short muted clip of a template rendered from its sample input, so the catalog card shows what the
+ * template does. Requested when the template version is registered; rendered on this machine, $0.
+ */
+export const TemplatePreviewJobFileSchema = z
+  .object({
+    ...jobBaseShape,
+    kind: z.literal('template-preview'),
+    /** Set when the clip and its poster are in the job folder. */
+    clip: z.literal('mp4').optional(),
+    durationS: z.number().positive().max(60).optional(),
+  })
+  .strict();
+export type TemplatePreviewJobFile = z.infer<typeof TemplatePreviewJobFileSchema>;
+
+/**
+ * Version of the asset purpose writer's prompt (ADR 0012); the watcher records it in every `done`
+ * job. Bump it on any change to `asset-purpose.prompt.ts`.
+ */
+export const ASSET_PURPOSE_PROMPT_VERSION = 'asset-purpose@2';
+
+/** Every version a stored `done` job may carry, so job files written by an older prompt still parse. */
+const ASSET_PURPOSE_PROMPT_VERSIONS = ['asset-purpose@1', ASSET_PURPOSE_PROMPT_VERSION] as const;
+
+/**
+ * ADR 0012 (C-P3): the purpose text of one catalog version, written by the tool-less purpose writer
+ * from the version's metadata (name, kind and tags only for a biometric row). The api copies a
+ * `done` text into the row on its next read unless the owner wrote the purpose.
+ */
+export const AssetPurposeJobFileSchema = z
+  .object({
+    ...jobBaseShape,
+    kind: z.literal('asset-purpose'),
+    promptVersion: z.enum(ASSET_PURPOSE_PROMPT_VERSIONS).optional(),
+    /** C-P1 `purpose`, never empty once the job is `done`. */
+    purpose: AssetPurposeSchema.min(1).optional(),
+  })
+  .strict();
+export type AssetPurposeJobFile = z.infer<typeof AssetPurposeJobFileSchema>;
+
 /** `job.json`. A `done` job always carries its result; a `failed` or `refused` one its error. */
 export const AssetJobFileSchema = z
-  .discriminatedUnion('kind', [VoiceSampleJobFileSchema, ReferenceAnalysisJobFileSchema])
+  .discriminatedUnion('kind', [VoiceSampleJobFileSchema, ReferenceAnalysisJobFileSchema, TemplatePreviewJobFileSchema, AssetPurposeJobFileSchema])
   .superRefine((job, context) => {
     const issue = (path: string, message: string): void => context.addIssue({ code: 'custom', path: [path], message });
     if ((job.status === 'failed' || job.status === 'refused') && job.error === undefined) issue('error', 'an ended job without a result needs its error');
@@ -98,6 +139,8 @@ export const AssetJobFileSchema = z
     if (job.mode === undefined) issue('mode', 'a done job records its mode');
     if (job.kind === 'voice-sample' && (job.engine === undefined || job.audio === undefined)) issue('audio', 'a done voice sample records its engine and audio');
     if (job.kind === 'reference-analysis' && job.analysis === undefined) issue('analysis', 'a done analysis carries its result');
+    if (job.kind === 'template-preview' && (job.clip === undefined || job.durationS === undefined)) issue('clip', 'a done template preview records its clip');
+    if (job.kind === 'asset-purpose' && (job.purpose === undefined || job.promptVersion === undefined)) issue('purpose', 'a done purpose job carries its text and prompt version');
   });
 export type AssetJobFile = z.infer<typeof AssetJobFileSchema>;
 
@@ -107,7 +150,8 @@ export const AssetJobEgressLineSchema = z
     at: IsoDateTimeSchema,
     /** A platform name means one request for that platform's own post (a link reference's video). */
     provider: z.enum(['claude', 'elevenlabs', 'instagram', 'youtube', 'tiktok']),
-    what: z.enum(['reference-frames', 'tts-text', 'video-download']),
+    /** `purpose-text`: the purpose writer's message (ADR 0012), counted in characters. */
+    what: z.enum(['reference-frames', 'tts-text', 'video-download', 'purpose-text']),
     /** Frames or characters sent; 1 for a video download. */
     amount: z.number().int().nonnegative(),
     bytes: z.number().int().nonnegative().optional(),

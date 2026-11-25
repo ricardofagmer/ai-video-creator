@@ -80,6 +80,11 @@ export const WriterPacketSchema = z
          * spec): AI notes about third-party videos, so data only; the owner's brief and instructions win.
          */
         referenceAnalyses: UntrustedTextSchema.optional(),
+        /**
+         * Every reference the owner put on the run (any sub-kind) as JSON, delimited: name, sub-kind,
+         * the owner's notes and the content of a text reference. Data only, and it must be used.
+         */
+        ownerReferences: UntrustedTextSchema.optional(),
         targetDurationSec: z.number().int().positive(),
         language: LanguageSchema,
         /** Attempt > 1 only, from ReviewVerdict. */

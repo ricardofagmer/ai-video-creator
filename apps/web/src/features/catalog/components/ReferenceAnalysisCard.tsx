@@ -15,8 +15,8 @@ import { analysisCanBeRequested, referenceAnalysisDisplayOf, type ReferenceAnaly
 export interface ReferenceAnalysisCardProps {
   assetId: string;
   version: number;
-  /** The existing new-version form, where the owner attaches the video file to a link-only reference. */
-  newVersionHref: string;
+  /** The existing new-version form, where the owner attaches the video file to a link-only reference; null on a screen that must not navigate (the wizard). */
+  newVersionHref: string | null;
   initialView: ReferenceAnalysisView | null;
   /** Why the server could not read the analysis; shown while there is no view. */
   initialError: string | null;
@@ -72,7 +72,7 @@ export function ReferenceAnalysisCard({ assetId, version, newVersionHref, initia
 
 interface AnalysisBodyProps {
   display: ReferenceAnalysisDisplay;
-  newVersionHref: string;
+  newVersionHref: string | null;
   waitedTooLong: boolean;
   t: WebMessages;
 }
@@ -85,11 +85,13 @@ function AnalysisBody({ display, newVersionHref, waitedTooLong, t }: AnalysisBod
         return (
           <div className={layout.stack}>
             <p>{texts.linkOnly}</p>
-            <div>
-              <Link href={newVersionHref} className={buttonClassName({ variant: 'secondary', size: 'sm' })}>
-                {texts.attachFile}
-              </Link>
-            </div>
+            {newVersionHref !== null && (
+              <div>
+                <Link href={newVersionHref} className={buttonClassName({ variant: 'secondary', size: 'sm' })}>
+                  {texts.attachFile}
+                </Link>
+              </div>
+            )}
           </div>
         );
       }

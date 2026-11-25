@@ -1,8 +1,9 @@
-import { Body, Controller, Get, HttpCode, Logger, Param, Post, Put, Query, Req, Res, StreamableFile } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Logger, Param, Post, Put, Query, Req, Res, StreamableFile } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ReferenceAnalysisEnqueuer } from '@studio/core/asset-jobs';
+import { AssetPurposeEnqueuer, ReferenceAnalysisEnqueuer, TemplatePreviewEnqueuer } from '@studio/core/asset-jobs';
 import {
   GetAssetVersionQuery,
+  GetAudioContentQuery,
   GetEntryFileTextQuery,
   GetImageContentQuery,
   ListAssetVersionsQuery,
@@ -36,6 +37,7 @@ import { abortOnDisconnect } from '../platform/abort-on-disconnect';
 import { ZodValidationPipe } from '../platform/zod-validation.pipe';
 import { SearchIndexScheduler } from '../search/search-index.scheduler';
 import { AssetVersionViewAssembler } from './asset-version-view.assembler';
+import { AudioContentStreamer } from './audio-content.streamer';
 import { CatalogReferenceService } from './catalog-reference.service';
 import { CatalogUploadService } from './catalog-upload.service';
 import { ImageContentStreamer } from './image-content.streamer';
@@ -44,11 +46,19 @@ type AssetParams = z.output<typeof AssetParamsSchema>;
 type AssetVersionParams = z.output<typeof AssetVersionParamsSchema>;
 
 /**
+ * ADR 0012: whether a save asks for the new version's purpose. `from-previous` copies the purpose
+ * of its source version instead (AP-08), so it skips the job.
+ */
+type PurposeOnSave = 'enqueue' | 'skip';
+
+/**
  * Catalog (PRD 5): validate with C10, dispatch to the core catalog's CQRS handlers, map to views.
  * Rev 3 (SPEC 0003 section 4.3): views carry `searchIndex`, `learnings` and `activation`; every new
  * version is queued for the semantic index after its response is sent (B9).
  * Guided-creation design section 4: every save path ends in `saved`, which also asks for the
  * analysis of an eligible video reference without waiting for it; the response never changes.
+ * ADR 0012 (AP-01): `create`, `saveVersion` and both by-reference saves also ask for the version's
+ * purpose the same way; `from-previous` does not.
  */
 @Controller(apiRouteSegments.catalogAssets)
 export class CatalogController {
@@ -62,7 +72,10 @@ export class CatalogController {
     private readonly views: AssetVersionViewAssembler,
     private readonly searchIndex: SearchIndexScheduler,
     private readonly referenceAnalysis: ReferenceAnalysisEnqueuer,
+    private readonly templatePreview: TemplatePreviewEnqueuer,
+    private readonly purposes: AssetPurposeEnqueuer,
     private readonly images: ImageContentStreamer,
+    private readonly audio: AudioContentStreamer,
   ) {}
 
   @Get()
@@ -131,7 +144,8 @@ export class CatalogController {
         signal: abortOnDisconnect(response),
       }),
     );
-    return this.saved(response, version);
+    // A plain copy keeps the source purpose; a new entry file writes new bytes and gets a job (owner, 2026-11-25).
+    return this.saved(response, version, body.entryFile === undefined ? 'skip' : 'enqueue');
   }
 
   /** Rev 4 (section 13.4): version N+1 stored by reference, as `draft`. */
@@ -172,6 +186,18 @@ export class CatalogController {
     return this.images.stream({ ref, image, response });
   }
 
+  /** Stored bytes of a music version for the "Listen" button, `Range` honoured; 404 otherwise. */
+  @Get(`:assetId/versions/:version/${apiRouteSegments.audio}`)
+  async getAudio(
+    @Param(new ZodValidationPipe(AssetVersionParamsSchema)) params: AssetVersionParams,
+    @Headers('range') rangeHeader: string | undefined,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const ref = formatAssetRef({ assetId: params.assetId, version: params.version });
+    const audio = await this.queryBus.execute(new GetAudioContentQuery(ref));
+    return this.audio.stream({ ref, audio, rangeHeader, response });
+  }
+
   /**
    * Rev 3 (**breaking**, SPEC 0003 L6, R2-AC-18): core refuses `status: 'active'` with
    * `PromotionApprovalRequiredError`, answered 422 `promotion-approval-required`; activation is
@@ -189,10 +215,12 @@ export class CatalogController {
     };
   }
 
-  private async saved(response: Response, version: AssetVersion): Promise<AssetVersionView> {
+  private async saved(response: Response, version: AssetVersion, purpose: PurposeOnSave = 'enqueue'): Promise<AssetVersionView> {
     const ref = formatAssetRef({ assetId: version.id, version: version.version });
     this.searchIndex.afterResponse(response, [ref]);
     this.enqueueAnalysis(ref, version);
+    this.enqueuePreview(ref, version);
+    if (purpose === 'enqueue') this.enqueuePurpose(ref, version);
     return this.views.one(version);
   }
 
@@ -204,6 +232,20 @@ export class CatalogController {
   private enqueueAnalysis(ref: string, version: AssetVersion): void {
     this.referenceAnalysis.enqueueIfEligible(version).catch((error: unknown) => {
       this.logger.warn({ event: 'asset-job.enqueue-failed', kind: 'reference-analysis', ref, errorCode: error instanceof Error ? error.name : 'unknown' });
+    });
+  }
+
+  /** Template preview (2026-11-25): same contract as the analysis enqueue; the backfill retries a miss. */
+  private enqueuePreview(ref: string, version: AssetVersion): void {
+    this.templatePreview.enqueueIfEligible(version).catch((error: unknown) => {
+      this.logger.warn({ event: 'asset-job.enqueue-failed', kind: 'template-preview', ref, errorCode: error instanceof Error ? error.name : 'unknown' });
+    });
+  }
+
+  /** Asset purpose (ADR 0012, AP-01): same contract; a failed enqueue never fails the save. */
+  private enqueuePurpose(ref: string, version: AssetVersion): void {
+    this.purposes.enqueue(version).catch((error: unknown) => {
+      this.logger.warn({ event: 'asset-job.enqueue-failed', kind: 'asset-purpose', ref, errorCode: error instanceof Error ? error.name : 'unknown' });
     });
   }
 }

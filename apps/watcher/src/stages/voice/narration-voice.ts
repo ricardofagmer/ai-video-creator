@@ -11,9 +11,7 @@ import { type StageDependencies } from '../shared/stage-dependencies';
 import { commandTimeoutMs, needsPerson } from '../shared/stage-results';
 import { stageTexts } from '../shared/stage-texts';
 import { speakWithElevenLabs } from './elevenlabs-tts.client';
-
-/** Catalog variable name the seed's `elevenlabs-voice` row gives as its `modelIdRef`. */
-const ELEVENLABS_VOICE_VARIABLE = 'ELEVENLABS_VOICE_ID';
+import { selectElevenLabsVoice } from './elevenlabs-voice-selection';
 
 export type TtsProvider = 'elevenlabs' | 'local-voice';
 
@@ -53,12 +51,9 @@ export async function planVoice(context: StageExecutionContext, dependencies: St
     const version = await dependencies.catalog.versionOfKind(bound.asset, 'ai-model');
     if (version === null || version.details.provider !== 'elevenlabs') continue;
     if (!dependencies.providerModes.isLive('elevenlabs')) return { status: 'ready', engine: 'mock', provider: 'elevenlabs' };
-    const reference = version.details.modelIdRef;
-    const { voiceId, modelId } = dependencies.settings.elevenLabs;
-    if (voiceId === null || reference.type !== 'env' || reference.name !== ELEVENLABS_VOICE_VARIABLE) {
-      return refused(context, stageTexts.elevenLabsVoiceMissing, stageTexts.elevenLabsVoiceMissingWhatToDo);
-    }
-    return { status: 'ready', engine: 'elevenlabs', provider: 'elevenlabs', voiceId, modelId };
+    const selection = selectElevenLabsVoice(version.details, dependencies.settings.elevenLabs);
+    if (selection === null) return refused(context, stageTexts.elevenLabsVoiceMissing, stageTexts.elevenLabsVoiceMissingWhatToDo);
+    return { status: 'ready', engine: 'elevenlabs', provider: 'elevenlabs', ...selection };
   }
   const anyLive = dependencies.providerModes.isLive('elevenlabs') || dependencies.providerModes.isLive('local-voice');
   return anyLive ? refused(context, stageTexts.voiceNotBound, stageTexts.voiceNotBoundWhatToDo) : { status: 'ready', engine: 'mock', provider: 'local-voice' };

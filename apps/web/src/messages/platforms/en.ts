@@ -7,6 +7,8 @@ export const platformsEn: Messages<typeof platformsPtBR> = {
     description:
       'Your YouTube, Instagram and TikTok accounts. You enable each platform separately, after it approves the app; the studio only publishes when you click Publish on an approved run.',
     loadFailed: (detail) => `Could not load the accounts. ${detail}`,
+    platformCount: (count) => (count === 1 ? '1 platform' : `${count} platforms`),
+    connectedCount: (count) => (count === 1 ? '1 connected account' : `${count} connected accounts`),
   },
   capabilityStatus: {
     unsupported: 'Publish in the app and paste the link',

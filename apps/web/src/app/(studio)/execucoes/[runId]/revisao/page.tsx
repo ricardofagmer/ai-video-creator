@@ -1,7 +1,8 @@
-import { Alert, Card, EmptyState, PageHeader, StatusBadge, buttonClassName, textLinkClassName } from '@studio/ui';
+import { Alert, Card, EmptyState, StatusBadge, buttonClassName, textLinkClassName } from '@studio/ui';
 import { RunIdSchema, latestDecision, type GateDecision } from '@studio/shared/run-format';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { RunLearningsCard } from '@/features/learnings/components/RunLearningsCard';
 import { loadRunLearnings } from '@/features/learnings/run-learnings.server';
@@ -12,6 +13,7 @@ import { ReviewForm } from '@/features/review/components/ReviewForm';
 import { ReviewManifestCard } from '@/features/review/components/ReviewManifestCard';
 import { ReviewQaCard } from '@/features/review/components/ReviewQaCard';
 import { ReviewVideoCard } from '@/features/review/components/ReviewVideoCard';
+import { SaveRunVideoCard } from '@/features/review/components/SaveRunVideoCard';
 import { allowsArtifactLinks } from '@/features/review/media-safety';
 import { loadReviewData } from '@/features/review/review-data.server';
 import styles from '@/features/review/review.module.css';
@@ -61,7 +63,10 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
   );
   const { run, displayedStatus, approval, artifactAccess } = data.state;
   const header = (
-    <PageHeader
+    <StudioHero
+      variant="compact"
+      eyebrow={t.common.heroEyebrows.review}
+      glyph="play"
       back={back}
       title={t.runs.review.title}
       meta={<StatusBadge kind="run" status={displayedStatus} />}
@@ -124,7 +129,10 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
         <div className={styles.learnings}>
           <RunLearningsCard runId={runId} data={learnings} />
         </div>
-        <div className={styles.promote}>{artifactLinks && outputs.length > 0 && <PromoteFromRunCard runId={runId} outputs={outputs} />}</div>
+        <div className={styles.promote}>
+          {artifactLinks && data.video.kind === 'playable' && <SaveRunVideoCard runId={runId} />}
+          {artifactLinks && outputs.length > 0 && <PromoteFromRunCard runId={runId} outputs={outputs} />}
+        </div>
       </div>
     </div>
   );

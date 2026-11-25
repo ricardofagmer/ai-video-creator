@@ -11,6 +11,7 @@ export {
   type RunControlRequest,
   type RunControlResult,
 } from './commands/request-run-control.command';
+export { SaveRunVideoCommand, type SaveRunVideoInput, type SaveRunVideoResult } from './commands/save-run-video.command';
 export {
   ApprovalFileFullError,
   ArtifactChangedError,

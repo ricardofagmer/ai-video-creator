@@ -1,9 +1,10 @@
-import { EmptyState, PageHeader, buttonClassName, textLinkClassName } from '@studio/ui';
+import { EmptyState, buttonClassName, textLinkClassName } from '@studio/ui';
 import { type AssetVersionView } from '@studio/shared/api';
 import { AssetIdSchema, AssetKindSchema, type AssetKind } from '@studio/shared/catalog';
 import type { ReactElement } from 'react';
 import Link from 'next/link';
 import { AssetForm } from '@/features/catalog/asset-form/AssetForm';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { isNotFound } from '@/lib/api';
 import { serverStudioClient } from '@/lib/api/server';
@@ -56,7 +57,14 @@ export async function NewAssetView({ query, presentation }: NewAssetViewProps): 
     const initialKind: AssetKind | undefined = parsedKind.success ? parsedKind.data : undefined;
     return (
       <div className={layout.page}>
-        <PageHeader back={backToCatalog} title={t.catalog.newAsset.title} description={t.catalog.newAsset.description} />
+        <StudioHero
+          variant="compact"
+          eyebrow={t.common.heroEyebrows.catalog}
+          glyph="upload"
+          back={backToCatalog}
+          title={t.catalog.newAsset.title}
+          description={t.catalog.newAsset.description}
+        />
         <AssetForm target={{ type: 'new' }} base={null} nextVersion={1} cancelHref="/catalogo" initialKind={initialKind} />
       </div>
     );
@@ -81,7 +89,10 @@ export async function NewAssetView({ query, presentation }: NewAssetViewProps): 
   const assetHref = `/catalogo/${base.id}?versao=${base.version}`;
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.catalog}
+        glyph="upload"
         back={
           inPage ? (
             <Link href={assetHref} className={textLinkClassName()}>

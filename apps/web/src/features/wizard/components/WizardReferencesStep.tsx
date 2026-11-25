@@ -1,12 +1,12 @@
 'use client';
 
 import { AssetRefSchema, parseAssetRef } from '@studio/shared/catalog';
-import { Alert, Card, buttonClassName } from '@studio/ui';
-import Link from 'next/link';
+import { Alert, Card } from '@studio/ui';
 import { type ReactElement } from 'react';
 import { RunReferencesPicker } from '@/features/runs/components/RunReferencesPicker';
 import { useWebMessages } from '@/lib/i18n/client';
 import styles from '../wizard.module.css';
+import { WizardNewReferenceDialog } from './WizardNewReferenceDialog';
 import { WizardReferenceItem } from './WizardReferenceItem';
 
 interface WizardReferencesStepProps {
@@ -27,9 +27,7 @@ export function WizardReferencesStep({ references, onChange, cartReferencesAdded
         title={texts.card}
         description={texts.description}
         actions={
-          <Link href="/catalogo/novo" className={buttonClassName({ variant: 'secondary', size: 'sm' })}>
-            {texts.addNew}
-          </Link>
+          <WizardNewReferenceDialog selected={references} onChange={onChange} />
         }
       >
         {cartReferencesAdded > 0 && <Alert variant="info">{t.cart.run.referencesAdded(cartReferencesAdded)}</Alert>}

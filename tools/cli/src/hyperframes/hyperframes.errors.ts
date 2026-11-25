@@ -3,8 +3,10 @@ import {
   HyperframesPinMismatchError,
   HyperframesProcessFailedError,
   HyperframesRuntimeError,
+  pinnedBinPath,
+  type PinMismatchDetail,
 } from '@studio/hyperframes';
-import { type HyperframesEngineState } from '@studio/shared/hyperframes';
+import { type HyperframesEngineState, type HyperframesRefusalReason } from '@studio/shared/hyperframes';
 import { CliError } from '../errors/cli.errors.js';
 import { type ErrorCategory } from '../errors/exit-codes.js';
 import { cliText } from '../i18n/messages.js';
@@ -62,6 +64,38 @@ export function toHyperframesCliError(error: unknown): unknown {
   }
   const exitSuffix = error instanceof HyperframesProcessFailedError ? cliText().hyperframes.exitCodeSuffix(error.exitCode) : '';
   return new HyperframesCommandError('dependency', `${runtimeFailureText(reason)}${exitSuffix}`);
+}
+
+/** The pin's detail, read again only to word a `pin-mismatch` refusal; null when the pin now holds. */
+function pinMismatchDetail(): PinMismatchDetail | null {
+  try {
+    pinnedBinPath();
+    return null;
+  } catch (error) {
+    if (error instanceof HyperframesPinMismatchError) return error.detail;
+    throw error;
+  }
+}
+
+/** A refusal of the render runtime gate as the CLI error the command throws; nothing was started. */
+export function renderRuntimeRefusalError(reason: HyperframesRefusalReason): CliError {
+  switch (reason) {
+    case 'engine-disabled':
+    case 'trace-missing':
+    case 'trace-stale':
+    case 'chrome-missing':
+    case 'runtime-not-prepared':
+      return HyperframesStepRefusedError.forState(reason);
+    case 'pin-mismatch': {
+      const detail = pinMismatchDetail();
+      return new HyperframesCommandError(detail === null ? 'internal' : 'dependency', detail === null ? cliText().hyperframes.internalFailure : pinMismatchText(detail));
+    }
+    case 'sandbox-unavailable':
+      return new HyperframesCommandError('dependency', runtimeFailureText('sandbox-unavailable'));
+    default:
+      // The template and variable reasons belong to a render's own checks; the gate never answers them.
+      return new HyperframesCommandError('internal', cliText().hyperframes.internalFailure);
+  }
 }
 
 /** Runs a command body and converts runtime errors on the way out. */

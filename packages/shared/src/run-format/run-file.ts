@@ -55,6 +55,8 @@ export const TotalsSchema = z
         claude: z.number().nonnegative(),
         tts: z.number().nonnegative(),
         render: z.number().nonnegative(),
+        // Absent in run.json files written before the music spend kind; those runs billed none.
+        music: z.number().nonnegative().default(0),
       })
       .strict(),
     executions: z.number().int().nonnegative(),
@@ -71,7 +73,7 @@ export type Totals = z.infer<typeof TotalsSchema>;
 export const emptyTotals: Readonly<Totals> = {
   durationMs: 0,
   costUsd: 0,
-  costByProvider: { claude: 0, tts: 0, render: 0 },
+  costByProvider: { claude: 0, tts: 0, render: 0, music: 0 },
   executions: 0,
   stagesDelivered: 0,
   sessions: 0,

@@ -12,6 +12,8 @@ import {
   type HyperframesRuntime,
   type RecordedChromeBinary,
   type RenderPictureRequest,
+  checkPicture,
+  type PictureExpectation,
 } from '@studio/hyperframes';
 import { HYPERFRAMES_FORMAT_VERSION, HYPERFRAMES_PIN, hyperframesBounds, type HyperframesTraceFile } from '@studio/shared/hyperframes';
 import { HYPERFRAMES_CLI_ACTOR } from './cli-runtime.js';
@@ -26,7 +28,7 @@ import {
   traceInformationalDenialText,
   traceProbeFileRemovedText,
 } from './hyperframes-texts.js';
-import { pictureMismatches, type PictureExpectation } from './picture-probe.js';
+import { pictureFindings } from './picture-findings.js';
 import { describeDenial, isFileDenial, isNetworkDenial } from './sandbox-log.js';
 import {
   NETWORK_CONTROL_TARGET,
@@ -218,12 +220,14 @@ export async function runNetworkTrace(inputs: NetworkTraceInputs, ports: Network
   if (renderExitCode !== 0 && renderExitCode !== RENDER_NOT_STARTED) findings.push(text.renderExit(renderExitCode));
   let outputOk = false;
   if (renderExitCode === 0) {
-    const probe = await ports.system.probePicture(output, runtime.path, runtime.ffprobeBin);
-    if (probe.status === 'read') {
-      const mismatches = pictureMismatches(probe.probe, TRACE_EXPECTATION);
-      outputOk = mismatches.length === 0;
-      for (const mismatch of mismatches) findings.push(text.video(mismatch));
-    } else findings.push(text.videoUnreadable);
+    // An ffprobe that did not answer reads as no output, which the check reports as unreadable.
+    const runProbe = async (program: string, args: readonly string[]): Promise<string> => {
+      const read = await ports.system.readProbe(program, args, runtime.path);
+      return read.status === 'read' ? read.stdout : '';
+    };
+    const check = await checkPicture({ ffprobeBin: runtime.ffprobeBin, file: output, expected: TRACE_EXPECTATION }, runProbe);
+    outputOk = check.mismatches.length === 0;
+    findings.push(...pictureFindings(check, TRACE_EXPECTATION));
   }
   if (chromeAfter.status === 'changed') findings.push(traceChromeChangedAfterText());
   // Only after a render that ran: with no render, the "before" finding already says why (section 18.2).

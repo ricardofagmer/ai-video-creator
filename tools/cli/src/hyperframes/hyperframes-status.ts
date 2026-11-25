@@ -1,7 +1,6 @@
-import { HyperframesPinMismatchError, pinnedBinPath, sandboxProfile, type PinMismatchDetail } from '@studio/hyperframes';
+import { HyperframesPinMismatchError, enableReadiness, pinnedBinPath, sandboxProfile, type PinMismatchDetail } from '@studio/hyperframes';
 import {
   HYPERFRAMES_CHROME_VERSION,
-  HYPERFRAMES_FORMAT_VERSION,
   HYPERFRAMES_PIN,
   engineState,
   type HyperframesEngineFiles,
@@ -12,7 +11,6 @@ import { type DoctorCheck } from '../doctor/doctor-check.js';
 import { cliText } from '../i18n/messages.js';
 import { formatBytes } from '../output/format.js';
 import { type CliSettings } from '../settings/cli-settings.js';
-import { HYPERFRAMES_CLI_ACTOR } from './cli-runtime.js';
 import { engineStateNextStep, engineStateReason, pinMismatchText } from './hyperframes-texts.js';
 
 /*
@@ -59,14 +57,7 @@ function readProfile(): ProfileState {
   }
 }
 
-function assumingEnabled(files: HyperframesEngineFiles, at: Date): HyperframesEngineFiles {
-  return {
-    ...files,
-    engine: { status: 'present', value: { format: HYPERFRAMES_FORMAT_VERSION, state: 'enabled', updatedAt: at.toISOString(), updatedBy: HYPERFRAMES_CLI_ACTOR } },
-  };
-}
-
-export async function readHyperframesStatus(settings: CliSettings, options: { now: Date; sandboxAvailable: boolean }): Promise<HyperframesStatus> {
+export async function readHyperframesStatus(settings: CliSettings, options: { sandboxAvailable: boolean }): Promise<HyperframesStatus> {
   const files = await readHyperframesEngineFiles(settings.dataHome.root);
   const profile = readProfile();
   const nodeVersion = process.versions.node;
@@ -80,7 +71,7 @@ export async function readHyperframesStatus(settings: CliSettings, options: { no
     profile,
     files,
     state: current === null ? null : engineState(files, current),
-    readiness: current === null ? null : engineState(assumingEnabled(files, options.now), current),
+    readiness: current === null ? null : enableReadiness(files, current),
   };
 }
 
