@@ -1,68 +1,37 @@
-import { formatBytes } from '@studio/ui';
-import { RelativePathSchema, type AssetKind } from '@studio/shared/catalog';
+import { formatBytes, type Locale } from '@studio/ui';
+import {
+  ALLOWED_FILE_MIME_TYPES_BY_KIND,
+  FOLDER_KINDS,
+  IMAGE_FILE_MIME_TYPES,
+  MAX_STORED_BYTES_BY_KIND,
+  RelativePathSchema,
+  type AssetKind,
+} from '@studio/shared/catalog';
+import { type WebMessages } from '@/messages';
 
 /**
- * Web-side mirror of the R1-05 upload rules (`packages/core/src/catalog/catalog.limits.ts`), so the
- * owner hears about a wrong type or size before sending gigabytes. The api applies the same rules
- * and stays authoritative (PRD 5.3); the web cannot import `@studio/core` (a Nest backend module).
+ * The R1-05 upload rules on the web side, read from the same constants the core applies, so the
+ * owner hears about a wrong type or size before sending gigabytes. The api stays authoritative (PRD 5.3).
  */
-const MIB = 1024 ** 2;
-const GIB = 1024 ** 3;
-
-export const maxUploadBytesByKind: Readonly<Record<AssetKind, number>> = {
-  template: 512 * MIB,
-  'ai-model': 2 * GIB,
-  reference: 2 * GIB,
-  prompt: 1 * MIB,
-  skill: 50 * MIB,
-  image: 50 * MIB,
-  music: 200 * MIB,
-  sfx: 50 * MIB,
-  'brand-kit': 50 * MIB,
-};
-
-const audioTypes = ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/aac', 'audio/flac'];
-const imageTypes = ['image/png', 'image/jpeg', 'image/webp'];
-const videoTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+export const maxUploadBytesByKind: Readonly<Record<AssetKind, number>> = MAX_STORED_BYTES_BY_KIND;
 
 export const allowedMimeTypesByKind: Readonly<Record<AssetKind, readonly string[]>> = {
-  template: ['application/json'],
-  'ai-model': ['application/json', 'application/octet-stream', 'audio/wav', 'audio/x-wav', 'audio/mpeg'],
-  reference: [...videoTypes, ...imageTypes, ...audioTypes, 'text/plain', 'text/markdown', 'application/pdf'],
-  prompt: ['text/plain', 'text/markdown'],
-  skill: [],
-  image: imageTypes,
-  music: audioTypes,
-  sfx: audioTypes,
-  'brand-kit': ['application/json'],
+  ...ALLOWED_FILE_MIME_TYPES_BY_KIND,
+  // The upload picker stays image-only; a `text/plain` image is made only by the link box.
+  image: IMAGE_FILE_MIME_TYPES,
 };
 
-/** Kinds whose content may be a folder; a skill must be one. */
-const folderKinds: readonly AssetKind[] = ['template', 'ai-model', 'reference', 'skill', 'brand-kit'];
-
 export function allowsFolder(kind: AssetKind): boolean {
-  return folderKinds.includes(kind);
+  return FOLDER_KINDS.includes(kind);
 }
 
 export function allowsSingleFile(kind: AssetKind): boolean {
   return kind !== 'skill';
 }
 
-/** Short type names for the dropzone hint ("MP3, WAV ou M4A, até 200 MB"). */
-const hintTypes: Readonly<Record<AssetKind, string>> = {
-  template: 'JSON ou pasta',
-  'ai-model': 'JSON, WAV, MP3, binário ou pasta',
-  reference: 'Vídeo, imagem, áudio, texto, PDF ou pasta',
-  prompt: 'TXT ou Markdown',
-  skill: 'Pasta com SKILL.md',
-  image: 'PNG, JPEG ou WebP',
-  music: 'MP3, WAV, M4A, AAC ou FLAC',
-  sfx: 'MP3, WAV, M4A, AAC ou FLAC',
-  'brand-kit': 'JSON ou pasta',
-};
-
-export function uploadHint(kind: AssetKind): string {
-  return `${hintTypes[kind]}, até ${formatBytes(maxUploadBytesByKind[kind])}`;
+/** "MP3, WAV ou M4A, até 200 MB" for the dropzone hint, in the active locale. */
+export function uploadHint(kind: AssetKind, t: WebMessages['catalog'], locale: Locale): string {
+  return t.uploadHint(t.uploadHintTypes[kind], formatBytes(maxUploadBytesByKind[kind], locale));
 }
 
 export function acceptAttribute(kind: AssetKind): string | undefined {

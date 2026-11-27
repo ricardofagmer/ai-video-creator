@@ -2,6 +2,7 @@ import 'server-only';
 import { type RunPublicationsView } from '@studio/shared/api';
 import { ApiRequestError, ApiResponseContractError, ApiUnreachableError } from '@/lib/api';
 import { describeApiError } from '@/features/common/api-error-text';
+import { getI18n } from '@/lib/i18n/server';
 import { serverMetricsApi } from './metrics-api.server';
 
 export type RunPublicationsData = { status: 'ready'; view: RunPublicationsView } | { status: 'failed'; message: string };
@@ -18,7 +19,10 @@ export async function loadRunPublications(runId: string): Promise<RunPublication
   try {
     return { status: 'ready', view: await serverMetricsApi().listRunPublications(runId) };
   } catch (error) {
-    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error) };
+    if (isApiFailure(error)) {
+      const { t } = await getI18n();
+      return { status: 'failed', message: describeApiError(error, t) };
+    }
     throw error;
   }
 }

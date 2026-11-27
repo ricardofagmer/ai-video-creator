@@ -3,6 +3,7 @@ import { type AssetRef } from '@studio/shared/catalog';
 import { missingBriefInputs, type Brief, type RecipeRef } from '@studio/shared/recipes';
 import { RUNNABLE_RECIPE_STATUSES } from '../recipes/recipe-policy';
 import { type RecipeVersionView } from '../recipes/recipe-version.mapper';
+import { scheduleCompositionConflicts } from './schedule-composition';
 import { ScheduleRecipeReader } from './schedule-recipe.reader';
 import { ScheduleRecipeNotRunnableError } from './schedules.errors';
 
@@ -15,7 +16,8 @@ export interface GatedBrief {
 /**
  * SPEC 0006 section 5.5 step 3, for the api and CLI writes: the pinned version resolves, its status
  * is runnable, its bindings verify, and every brief has the recipe's required inputs and resolvable
- * references: the checks of `RunDraftService.create`, applied to every brief at once.
+ * references, and the composition rules hold for the recipe and every brief's target duration:
+ * the checks of `RunDraftService.create`, applied to every brief at once.
  */
 @Injectable()
 export class ScheduleRecipeGate {
@@ -32,6 +34,12 @@ export class ScheduleRecipeGate {
     const unresolved = await this.recipes.unresolved({ bindings: recipe.bindings, references: briefs.flatMap((brief) => brief.references) });
     if (unresolved.bindings.length > 0) throw new ScheduleRecipeNotRunnableError(ref, 'bindings-unresolvable');
     if (unresolved.references.length > 0) throw new ScheduleRecipeNotRunnableError(ref, 'references-unresolvable');
+    const conflicts = scheduleCompositionConflicts(
+      recipe,
+      await this.recipes.templateDetails(recipe),
+      briefs.map((brief) => brief.brief.targetDurationSec),
+    );
+    if (conflicts.length > 0) throw new ScheduleRecipeNotRunnableError(ref, 'composition-conflict', conflicts);
     return version;
   }
 }

@@ -1,5 +1,6 @@
 import { type BadgeTone } from '@studio/ui';
 import { type CurationView } from '@studio/shared/api';
+import { type WebMessages } from '@/messages';
 import {
   type CuratableKind,
   type CurationCheckId,
@@ -8,16 +9,7 @@ import {
   type CurationSubject,
 } from '@studio/shared/curation';
 
-/** SPEC 0005 section 5.9: the status of a curation, as the list and the page show it. */
-const curationStatusLabels: Readonly<Record<CurationStatus, string>> = {
-  requested: 'Na fila',
-  collecting: 'Em andamento',
-  proposed: 'Proposta pronta',
-  'no-change': 'Sem mudança',
-  'no-proposal': 'Sem proposta',
-  failed: 'Falhou',
-  refused: 'Recusada antes de começar',
-};
+type CurationTexts = WebMessages['curations'];
 
 export const curationStatusTones: Readonly<Record<CurationStatus, BadgeTone>> = {
   requested: 'neutral',
@@ -29,54 +21,20 @@ export const curationStatusTones: Readonly<Record<CurationStatus, BadgeTone>> = 
   refused: 'warning',
 };
 
-export const curatableKindLabels: Readonly<Record<CuratableKind, string>> = {
-  prompt: 'Prompt',
-  skill: 'Skill',
-  recipe: 'Receita',
-};
+function isCheckId(reasonId: CurationReasonId, t: CurationTexts): reasonId is CurationCheckId {
+  return reasonId in t.checks;
+}
 
-/** Which ground check failed, as the `<qual verificação falhou>` of topology 0004 section 9. */
-const checkTexts: Readonly<Record<CurationCheckId, string>> = {
-  'evidence-in-packet': 'a proposta citou uma execução que não estava entre as evidências',
-  'evidence-used-subject': 'a proposta citou uma execução que não usou esta versão',
-  'evidence-owner-reviewed': 'a proposta citou uma execução sem uma decisão sua',
-  'body-changed': 'o texto proposto é igual ao texto atual',
-  'body-within-cap': 'o texto proposto passa de 16.000 caracteres',
-  'recipe-json-valid': 'a receita proposta não é uma receita válida',
-  'bindings-resolvable': 'a receita proposta vincula uma versão que não existe ou é biométrica',
-  'redactor-clean': 'a proposta parecia conter uma senha ou chave',
-};
-
-/** Every reason id of `curation.json` (refused, failed or a check id) as a pt-BR phrase. */
-const reasonTexts: Readonly<Record<CurationReasonId, string>> = {
-  'month-spend-unavailable': 'o gasto do mês não pôde ser lido',
-  'over-month-ceiling': 'o pedido passaria do teto de gasto do mês',
-  'over-curation-ceiling': 'a chamada ao modelo não caberia no custo máximo de US$ 1,00',
-  'packet-secret-found': 'o material que iria para o curador parecia conter uma senha ou chave',
-  'redactor-unavailable': 'a verificação contra senhas e chaves não estava disponível',
-  'subject-refused': 'a versão não pode mais receber propostas (descontinuada, biométrica ou sem texto)',
-  'evidence-unavailable': 'as evidências das execuções revisadas não puderam ser lidas',
-  'call-timeout': 'a chamada ao modelo passou de 2 minutos',
-  'curation-timeout': 'a curadoria passou de 5 minutos',
-  'provider-error': 'o provedor do modelo respondeu com erro',
-  'rate-limited': 'o provedor do modelo limitou as chamadas',
-  'output-invalid': 'a resposta do modelo veio num formato inválido',
-  'watcher-stopped': 'o serviço de execuções foi parado durante a curadoria',
-  'watcher-restarted': 'o serviço de execuções reiniciou durante a curadoria',
-  'internal-error': 'ocorreu um erro interno',
-  ...checkTexts,
-};
-
-const UNKNOWN_REASON = 'motivo não informado';
-
-function reasonText(reasonId: CurationReasonId | null): string {
-  return reasonId === null ? UNKNOWN_REASON : reasonTexts[reasonId];
+/** Every reason id of `curation.json` (refused, failed or a check id) as a phrase. */
+function reasonText(reasonId: CurationReasonId | null, t: CurationTexts): string {
+  if (reasonId === null) return t.unknownReason;
+  return isCheckId(reasonId, t) ? t.checks[reasonId] : t.reasons[reasonId];
 }
 
 /** The failed checks of a `no-proposal`, else its reason id. */
-function failedChecksText(curation: CurationView): string {
-  if (curation.failedChecks.length > 0) return curation.failedChecks.map((check) => checkTexts[check]).join('; ');
-  return reasonText(curation.reasonId);
+function failedChecksText(curation: CurationView, t: CurationTexts): string {
+  if (curation.failedChecks.length > 0) return curation.failedChecks.map((check) => t.checks[check]).join('; ');
+  return reasonText(curation.reasonId, t);
 }
 
 /** The template adds its own final period; a model-written reason often ends with one. */
@@ -86,38 +44,38 @@ function withoutFinalPeriod(text: string): string {
 
 /**
  * The owner texts of topology 0004 section 9 for the four outcomes without a proposal, with the
- * reason id mapped to a pt-BR phrase. `noChangeReason` is model-written and stays plain text.
+ * reason id mapped to a phrase. `noChangeReason` is model-written and stays plain text.
  * Null for every other status.
  */
-export function curationOutcomeText(curation: CurationView): string | null {
+export function curationOutcomeText(curation: CurationView, t: CurationTexts): string | null {
   switch (curation.status) {
     case 'failed':
-      return `O curador não conseguiu propor: ${reasonText(curation.reasonId)}. Nenhuma versão foi criada; você pode pedir de novo.`;
+      return t.outcomes.failed(reasonText(curation.reasonId, t));
     case 'no-proposal':
-      return `O curador não fez uma proposta válida: ${failedChecksText(curation)}. Nenhuma versão foi criada.`;
+      return t.outcomes.noProposal(failedChecksText(curation, t));
     case 'no-change':
-      return `O curador não vê motivo para uma nova versão: ${withoutFinalPeriod(curation.noChangeReason ?? UNKNOWN_REASON)}.`;
+      return t.outcomes.noChange(withoutFinalPeriod(curation.noChangeReason ?? t.unknownReason));
     case 'refused':
-      return `Pedido recusado antes de chamar o curador: ${reasonText(curation.reasonId)}. Nada foi gasto.`;
+      return t.outcomes.refused(reasonText(curation.reasonId, t));
     default:
       return null;
   }
 }
 
 /** "Na fila (posição N)" while requested; the status label otherwise. */
-export function curationProgressText(curation: CurationView): string {
+export function curationProgressText(curation: CurationView, t: CurationTexts): string {
   if (curation.status === 'requested') {
-    return curation.queuePosition === null ? 'Na fila' : `Na fila (posição ${curation.queuePosition})`;
+    return curation.queuePosition === null ? t.progress.queued : t.progress.queuedAt(curation.queuePosition);
   }
-  if (curation.status === 'collecting') return 'O curador está trabalhando';
-  return curationStatusLabels[curation.status];
+  if (curation.status === 'collecting') return t.progress.working;
+  return t.statuses[curation.status];
 }
 
 /** One short line for the owner's decision on a proposal, or null before any. */
-export function curationDecisionText(decision: CurationView['decision']): string | null {
+export function curationDecisionText(decision: CurationView['decision'], t: CurationTexts): string | null {
   if (decision === null) return null;
-  if (decision.action === 'declined') return 'Recusada por você';
-  return decision.comparisonId === null ? 'Salva como rascunho' : 'Salva como rascunho e comparada';
+  if (decision.action === 'declined') return t.decisionShort.declined;
+  return decision.comparisonId === null ? t.decisionShort.saved : t.decisionShort.savedCompared;
 }
 
 /** `<id>@<version>` split; asset and recipe refs share the shape (SPEC 0005 L7). Null when malformed. */

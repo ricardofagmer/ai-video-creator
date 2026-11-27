@@ -3,6 +3,7 @@ import { countCurationQueue, failedBeforeAnyCall, scanCurations } from '../curat
 import { curationFailureWindowStart } from '../doctor/curation-checks.js';
 import { ExitCode } from '../errors/exit-codes.js';
 import { toErrorReport } from '../errors/error-report.js';
+import { cliText } from '../i18n/messages.js';
 import { withCliContext } from '../nest/cli-context.js';
 import { runDetailLines, runListLines } from '../output/run-text.js';
 import { nestPlatformGateway } from '../platforms/nest-platform-gateway.js';
@@ -25,11 +26,9 @@ async function settleShown(snapshots: readonly RunSnapshot[], dependencies: Comm
   if (settled.length === 0) return;
   try {
     const report = await withCliContext((context) => settleRuns(context, settled));
-    if (report.failures.length > 0) {
-      dependencies.printer.error(`Aviso: ${report.failures.length} execução(ões) não puderam ser indexadas; veja "studio doctor".`);
-    }
+    if (report.failures.length > 0) dependencies.printer.error(cliText().runs.status.notIndexed(report.failures.length));
   } catch (error) {
-    dependencies.printer.error(`Aviso: custos e índice não atualizados. ${toErrorReport(error).message}`);
+    dependencies.printer.error(cliText().runs.status.costsNotUpdated(toErrorReport(error).message));
   }
 }
 
@@ -38,19 +37,16 @@ async function settleShown(snapshots: readonly RunSnapshot[], dependencies: Comm
  * counts only: no curation text is printed and nothing is written or indexed here. A folder that cannot be read is a warning; status never fails on it.
  */
 async function printCurationQueue(dependencies: CommandDependencies): Promise<void> {
+  const text = cliText().runs.status;
   try {
     const scan = await scanCurations(dependencies.settings.dataHome.curations);
     const counts = countCurationQueue(scan);
-    dependencies.printer.line(`Curadorias: ${counts.queued} na fila, ${counts.inProgress} em andamento`);
+    dependencies.printer.line(text.curationQueue(counts.queued, counts.inProgress));
     const failed = failedBeforeAnyCall(scan, curationFailureWindowStart(new Date())).length;
-    if (failed > 0) {
-      dependencies.printer.error(`Aviso: ${failed} curadoria(s) falhou(aram) antes de chamar o modelo; veja "studio doctor".`);
-    }
-    if (scan.unreadable.length > 0) {
-      dependencies.printer.error(`Aviso: ${scan.unreadable.length} curadoria(s) ilegível(is); veja "studio doctor".`);
-    }
+    if (failed > 0) dependencies.printer.error(text.curationsFailed(failed));
+    if (scan.unreadable.length > 0) dependencies.printer.error(text.curationsUnreadable(scan.unreadable.length));
   } catch (error) {
-    dependencies.printer.error(`Aviso: curadorias não lidas. ${toErrorReport(error).message}`);
+    dependencies.printer.error(text.curationsNotRead(toErrorReport(error).message));
   }
 }
 

@@ -161,11 +161,14 @@ export const runArtifactFolders: readonly string[] = ['qa', 'stages', 'archive',
 export const RunArtifactQuerySchema = z.object({ path: RelativePathSchema }).strict();
 export type RunArtifactQuery = z.infer<typeof RunArtifactQuerySchema>;
 
-/** `POST /runs/:runId/control`: a `control.json` request (ADR 0003, A6). */
+/**
+ * `POST /runs/:runId/control`: a `control.json` request (ADR 0003, A6). `resume` may carry the
+ * owner's corrected `brief`; the run keeps its own `format` and `language` whatever the body says.
+ */
 export const RunControlRequestSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('pause') }).strict(),
   z.object({ kind: z.literal('stop') }).strict(),
-  z.object({ kind: z.literal('resume') }).strict(),
+  z.object({ kind: z.literal('resume'), brief: BriefSchema.optional() }).strict(),
 ]);
 export type RunControlRequest = z.infer<typeof RunControlRequestSchema>;
 
@@ -173,6 +176,10 @@ export const RunControlResponseSchema = z
   .object({ runId: RunIdSchema, requested: z.enum(['pause', 'stop', 'resume']) })
   .strict();
 export type RunControlResponse = z.infer<typeof RunControlResponseSchema>;
+
+/** `DELETE /runs/:runId`: the run folder and its index row are gone. */
+export const RunDeleteResponseSchema = z.object({ runId: RunIdSchema, deleted: z.literal(true) }).strict();
+export type RunDeleteResponse = z.infer<typeof RunDeleteResponseSchema>;
 
 /**
  * Fields the api sets from the session and the server clock, never from the request body:
@@ -222,3 +229,14 @@ export const PromoteFromRunResponseSchema = z
   .object({ assetId: AssetIdSchema, version: z.number().int().min(1) })
   .strict();
 export type PromoteFromRunResponse = z.infer<typeof PromoteFromRunResponseSchema>;
+
+/** Catalog tag of a run's finished video saved for its preset (`POST /runs/:runId/save-video`). */
+export const PRESET_VIDEO_TAG = 'preset-video';
+/** The run-relative path the `package` stage writes the finished video to. */
+export const RUN_FINAL_VIDEO_PATH = 'final.mp4';
+
+/** `POST /runs/:runId/save-video` (no body): the run's `final.mp4` becomes a `reference` video asset. */
+export const SaveRunVideoResponseSchema = z
+  .object({ assetId: AssetIdSchema, version: z.number().int().min(1), recipeRef: RecipeRefSchema })
+  .strict();
+export type SaveRunVideoResponse = z.infer<typeof SaveRunVideoResponseSchema>;

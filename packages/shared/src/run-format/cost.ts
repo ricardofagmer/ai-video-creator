@@ -53,6 +53,18 @@ export const CostSessionSchema = z.discriminatedUnion('kind', [
       at: IsoDateTimeSchema,
     })
     .strict(),
+  z
+    .object({
+      kind: z.literal('music'),
+      sessionId: SessionIdSchema,
+      stepKey: StepKeySchema,
+      provider: z.literal('elevenlabs'),
+      /** Requested track length: the quantity the request asks the provider to bill. */
+      musicSeconds: z.number().nonnegative(),
+      usd,
+      at: IsoDateTimeSchema,
+    })
+    .strict(),
 ]);
 export type CostSession = z.infer<typeof CostSessionSchema>;
 

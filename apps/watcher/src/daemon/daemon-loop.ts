@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { type RunId } from '@studio/shared/run-format';
+import { AssetJobStep } from '../asset-jobs/asset-job-step';
 import { CurationStep } from '../curation/curation-step';
 import { EngineError } from '../engine/engine.errors';
 import { errorName } from '../platform/error-name';
@@ -9,7 +10,7 @@ import { RunEngine } from '../engine/run-engine';
 import { BusyIntervalTracker } from '../schedules/busy-interval.tracker';
 import { ScheduleStep } from '../schedules/schedule-step';
 import { DaemonLoopAlreadyRunningError } from './daemon.errors';
-import { DAEMON_SHUTDOWN, MAX_CONSECUTIVE_RUN_FAILURES, RUN_SCAN_INTERVAL_MS } from './daemon.settings';
+import { DAEMON_SHUTDOWN, MAX_ASSET_JOBS_BEFORE_RUN, MAX_CONSECUTIVE_RUN_FAILURES, RUN_SCAN_INTERVAL_MS } from './daemon.settings';
 import { interruptibleDelay } from './interruptible-delay';
 import { type RunCandidate, type RunTrigger } from './run-classification';
 import { RunScanner } from './run-scanner';
@@ -49,6 +50,13 @@ type MetricsPollIdleStep = Pick<MetricsPollStep, 'run'>;
  * `curations.claimNext()`. The publish step and the poll run under `busy.track`, so a run, an upload
  * and a curation never overlap; an upload that ran or a poll that called a platform sends the loop
  * back to scanning `runs/` at once.
+ *
+ * Asset jobs (guided-creation design section 1): stale `running` voice-sample and
+ * reference-analysis jobs are swept at start, after the publish sweep; on `none` the asset-job step
+ * runs last, after the curation step, under `busy.track`, so a run, a curation and a job never
+ * overlap. A job that ran sends the loop back to scanning `runs/`. Before a run executes, up to
+ * `MAX_ASSET_JOBS_BEFORE_RUN` open jobs end first, so a reference's analysis exists when the run's
+ * `script` stage reads it.
  */
 @Injectable()
 export class DaemonLoop {
@@ -68,6 +76,7 @@ export class DaemonLoop {
     // running a daemon that silently never publishes or polls.
     @Inject(PublishStep) private readonly publish: PublishIdleStep,
     @Inject(MetricsPollStep) private readonly metricsPoll: MetricsPollIdleStep,
+    @Inject(AssetJobStep) private readonly assetJobs: Pick<AssetJobStep, 'sweepStale' | 'claimNext'>,
   ) {}
 
   async run(): Promise<void> {
@@ -78,11 +87,15 @@ export class DaemonLoop {
       await this.curations.sweepStale();
       // Section 5.5 crash safety: an upload whose claimant died is closed before anything new is claimed.
       await this.publish.sweep();
+      await this.assetJobs.sweepStale();
       while (!this.shutdown.aborted) {
         const next = await this.nextRun();
         if (next.kind === 'candidate') {
           // A8: awaited to the end before the next scan; further startable runs wait in runs/ as the queue.
           const { candidate } = next;
+          // A reference the owner just saved may still wait for its analysis: open asset jobs end
+          // first, so the run's writer and director get the analysis instead of starting without it.
+          await this.assetJobsBeforeRun();
           await this.busy.track(() => this.execute(candidate));
           continue;
         }
@@ -98,14 +111,22 @@ export class DaemonLoop {
   }
 
   /**
-   * Publish, schedules, metrics poll, curations (SPEC 0007 section 5.5, B5). A step that found
+   * Publish, schedules, metrics poll, curations (SPEC 0007 section 5.5, B5), then asset jobs. A step that found
    * nothing to do was not busy; one that worked sends the loop back to scanning `runs/`.
    */
   private async idleWork(): Promise<boolean> {
     if (await this.busy.track(() => this.publish.claimNext(), (claimed) => claimed)) return true;
     if (await this.schedules.evaluate()) return true;
     if (await this.busy.track(() => this.metricsPoll.run(), (called) => called)) return true;
-    return this.busy.track(() => this.curations.claimNext(), (ran) => ran);
+    if (await this.busy.track(() => this.curations.claimNext(), (ran) => ran)) return true;
+    return this.busy.track(() => this.assetJobs.claimNext(), (ran) => ran);
+  }
+
+  /** Bounded so a long queue of jobs cannot hold a run back without limit. */
+  private async assetJobsBeforeRun(): Promise<void> {
+    for (let ran = 0; ran < MAX_ASSET_JOBS_BEFORE_RUN && !this.shutdown.aborted; ran += 1) {
+      if (!(await this.busy.track(() => this.assetJobs.claimNext(), (worked) => worked))) return;
+    }
   }
 
   private async nextRun(): Promise<NextRun> {

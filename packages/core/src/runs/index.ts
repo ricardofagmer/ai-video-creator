@@ -23,7 +23,10 @@ export {
   RunOwnedByWatcherError,
   RunReferenceNotFoundError,
   RunStatusConflictError,
+  RunWithoutPicturesError,
   RunsError,
+  SiteCaptureDisabledError,
+  SiteCaptureUnansweredError,
   type RunsErrorCategory,
 } from './runs.errors';
 export { RunsModule } from './runs.module';

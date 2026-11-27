@@ -1,12 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { type AssetRef } from '@studio/shared/catalog';
-import { missingBriefInputs } from '@studio/shared/recipes';
+import {
+  isPicture,
+  missingBriefInputs,
+  recipeForBrief,
+  recipeWithPromptSlotsCorrected,
+  visualMediaProblem,
+  type Brief,
+  type Recipe,
+  type RecipeRef,
+} from '@studio/shared/recipes';
 import { RunFileError, RunFileNotFoundError, newRunId, readRunFile, readWatcherState, runDirectory, writeRunFile } from '@studio/shared/run-files';
 import { ComparisonIdSchema, RunIdSchema, type RunFile, type RunId } from '@studio/shared/run-format';
 import { AssetVersionNotFoundError, GetAssetVersionQuery } from '../catalog';
 import { DataHome } from '../paths/data-home';
-import { GetRecipeVersionQuery, RUNNABLE_RECIPE_STATUSES, RecipeBindingVerifier } from '../recipes';
+import { GetRecipeVersionQuery, RUNNABLE_RECIPE_STATUSES, RecipeBindingVerifier, RecipeCompositionCheck } from '../recipes';
 import {
   ComparisonArmDraftSchema,
   ComparisonStartConsentSchema,
@@ -27,6 +36,9 @@ import {
   RunOwnedByWatcherError,
   RunReferenceNotFoundError,
   RunStatusConflictError,
+  RunWithoutPicturesError,
+  SiteCaptureDisabledError,
+  SiteCaptureUnansweredError,
 } from './runs.errors';
 
 /** `stale`: run.json was written but its index row was not; the next index rebuild repairs it. */
@@ -50,6 +62,7 @@ export class RunDraftService {
   constructor(
     private readonly queryBus: QueryBus,
     private readonly bindings: RecipeBindingVerifier,
+    private readonly composition: RecipeCompositionCheck,
     private readonly dataHome: DataHome,
     private readonly index: RunIndexService,
   ) {}
@@ -59,12 +72,18 @@ export class RunDraftService {
     const fields = parseRunInput(CreateRunDraftInputSchema, input, '');
     const arm = armInput === undefined ? null : parseRunInput(ComparisonArmDraftSchema, armInput, 'comparison');
     const resolved = await this.queryBus.execute(new GetRecipeVersionQuery(fields.recipeRef));
-    const recipe = resolved.recipe;
+    // A preset saved with prompts in the wrong agents' slots runs with them put right.
+    const recipe = recipeWithPromptSlotsCorrected(resolved.recipe);
     if (!RUNNABLE_RECIPE_STATUSES.includes(recipe.status)) throw new RecipeNotRunnableError(resolved.ref, recipe.status);
     const missing = missingBriefInputs(fields.brief, recipe.inputs);
     if (missing.length > 0) throw new BriefInputsMissingError(resolved.ref, missing);
     await this.bindings.verify(recipe);
+    // Section 3: a saved version that breaks a rule (saved before the rules existed) cannot start.
+    await this.composition.assertRun(recipe, fields.brief.targetDurationSec);
     await this.verifyReferences(fields.references);
+    // The preset as this brief runs it: the stages a Source URL switches on are part of the pin.
+    const definition = recipeForBrief(recipe, fields.brief);
+    await this.assertPictures(resolved.ref, definition, fields.brief, fields.references);
 
     const runId = arm?.runId ?? newRunId();
     const runDir = runDirectory(this.dataHome.runs, runId);
@@ -74,7 +93,8 @@ export class RunDraftService {
       title: fields.title ?? fields.brief.topic.slice(0, 200),
       createdBy: fields.createdBy,
       correlationId: fields.correlationId,
-      recipe: { ref: resolved.ref, contentHash: resolved.contentHash, definition: recipe },
+      // The pin stays the saved version; the definition is that version as this brief runs it.
+      recipe: { ref: resolved.ref, contentHash: resolved.contentHash, definition },
       brief: fields.brief,
       references: fields.references,
       comparison: arm?.comparison ?? null,
@@ -188,6 +208,23 @@ export class RunDraftService {
       }
     }
     if (missing.length > 0) throw new RunReferenceNotFoundError(missing);
+  }
+
+  /**
+   * No video without pictures: a site address needs the owner's answer, and a run with no site
+   * capture needs at least one image or clip among its references and the preset's bound assets.
+   */
+  private async assertPictures(ref: RecipeRef, recipe: Recipe, brief: Brief, references: readonly AssetRef[]): Promise<void> {
+    let pictureCount = 0;
+    for (const assetRef of new Set([...references, ...recipe.bindings.map((binding) => binding.ref)])) {
+      const version = await this.queryBus.execute(new GetAssetVersionQuery(assetRef));
+      const subKind = version.kind === 'reference' ? version.details.subKind : undefined;
+      if (isPicture({ kind: version.kind, subKind, biometric: version.sensitivity === 'biometric' })) pictureCount += 1;
+    }
+    const problem = visualMediaProblem({ brief, recipe, pictureCount });
+    if (problem === 'site-capture-unanswered') throw new SiteCaptureUnansweredError();
+    if (problem === 'site-capture-disabled') throw new SiteCaptureDisabledError(ref);
+    if (problem === 'no-visual-media') throw new RunWithoutPicturesError();
   }
 
   /**

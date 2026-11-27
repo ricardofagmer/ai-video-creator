@@ -8,7 +8,7 @@ function hasErrorCode(error: unknown, code: string): boolean {
 }
 
 export interface BoundedInputFile {
-  /** Option name for messages (`métricas`); the path itself is never echoed. */
+  /** Option name for messages (`metrics` in en); the path itself is never echoed. */
   option: string;
   path: string;
   maxBytes: number;

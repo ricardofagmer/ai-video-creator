@@ -1,4 +1,4 @@
-import { type AssetStorageView, type AssetVersionView, type LearningNoteView, type PromotionApprovalView } from '@studio/shared/api';
+import { type AssetPurposeJobView, type AssetStorageView, type AssetVersionView, type LearningNoteView, type PromotionApprovalView } from '@studio/shared/api';
 import { type AssetVersion } from '@studio/shared/catalog';
 
 /** `AssetVersionView.searchIndex` (C10 rev 3). */
@@ -9,6 +9,8 @@ export interface AssetVersionFacts {
   searchIndex: SearchIndexView;
   learnings: LearningNoteView[];
   activation: PromotionApprovalView | null;
+  /** C-P2 (ADR 0012): the open or failed `asset-purpose` job, `null` when none. */
+  purposeJob: AssetPurposeJobView | null;
 }
 
 /** Biometric paths never leave the api (PRD 12, criterion 22); other reference paths are the owner's own. */
@@ -30,5 +32,6 @@ export function toAssetVersionView(version: AssetVersion, facts: AssetVersionFac
     searchIndex: facts.searchIndex,
     learnings: facts.learnings,
     activation: facts.activation,
+    purposeJob: facts.purposeJob,
   };
 }

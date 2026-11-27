@@ -13,7 +13,8 @@ export type UsageQuantity =
       cacheWriteTokens: number;
     }
   | { kind: 'tts'; provider: 'elevenlabs' | 'local-voice'; characters: number }
-  | { kind: 'render'; renderSeconds: number };
+  | { kind: 'render'; renderSeconds: number }
+  | { kind: 'music'; provider: 'elevenlabs'; musicSeconds: number };
 
 export interface CostRecordRequest {
   runId: RunId;

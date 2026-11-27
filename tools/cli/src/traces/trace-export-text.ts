@@ -1,16 +1,13 @@
-import type { TraceExportSummary, TraceKind } from '@studio/shared/telemetry';
+import type { TraceExportSummary } from '@studio/shared/telemetry';
+import { cliText } from '../i18n/messages.js';
 
-const kindLabels: Readonly<Record<TraceKind, string>> = {
-  run: 'execução',
-  curation: 'curadoria',
-};
-
-/** pt-BR report of one export (D16): ids and counts only, never the `--out` name (SPEC 0006 K7). */
+/** Report of one export in the active language: ids and counts only, never the `--out` name (SPEC 0006 K7). */
 export function traceExportReportLines(summary: TraceExportSummary): string[] {
+  const text = cliText().traces;
   return [
-    `Rastro exportado: ${kindLabels[summary.kind]} ${summary.targetId}, trace ${summary.traceId}.`,
-    `  ${summary.spans} spans e ${summary.spanEvents} eventos de span.`,
-    `  Linhas: ${summary.mappedLines} mapeadas, ${summary.unmappedLines} não mapeadas; ${summary.sessionsWithoutEnd} sessões sem linha final.`,
-    `  Atributos fora da lista permitida descartados: ${summary.droppedAttributes}.`,
+    text.exported(text.kinds[summary.kind], summary.targetId, summary.traceId),
+    text.spans(summary.spans, summary.spanEvents),
+    text.lines(summary.mappedLines, summary.unmappedLines, summary.sessionsWithoutEnd),
+    text.dropped(summary.droppedAttributes),
   ];
 }

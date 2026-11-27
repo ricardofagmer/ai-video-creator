@@ -190,7 +190,7 @@ describe('telemetry mapper: OTLP JSON shape (R3-AC-26)', () => {
     assert.equal(summary.kind, 'run');
     assert.equal(summary.targetId, RUN_ID);
     assertOneTrace(document, summary.traceId);
-    assert.deepEqual(document.resourceSpans[0]?.resource.attributes, [{ key: 'service.name', value: { stringValue: 'video-studio-watcher' } }]);
+    assert.deepEqual(document.resourceSpans[0]?.resource.attributes, [{ key: 'service.name', value: { stringValue: 'engineos-video-creator-watcher' } }]);
 
     const spans = spansOf(document);
     const root = spans.find((span) => span.parentSpanId === undefined);

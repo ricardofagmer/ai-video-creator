@@ -1,5 +1,6 @@
 import { RunFileError, readRunManifest } from '@studio/shared/run-files';
 import { type EgressEntry, type RunId } from '@studio/shared/run-format';
+import { cliText } from '../i18n/messages.js';
 import { type Printer } from '../output/printer.js';
 import { attemptLines, leftTheMachineLines } from './left-the-machine-text.js';
 import { type PlatformGateway } from './platform-gateway.js';
@@ -8,7 +9,7 @@ import { platformStatusLines } from './platform-text.js';
 export interface PlatformStatusOptions {
   gateway: PlatformGateway;
   printer: Printer;
-  /** pt-BR text of a failure; the command boundary's error report in production. */
+  /** Text of a failure; the command boundary's error report in production. */
   describeError: (error: unknown) => string;
   now: () => Date;
 }
@@ -21,7 +22,7 @@ export async function printPlatformStatus(options: PlatformStatusOptions): Promi
   try {
     for (const line of platformStatusLines(await options.gateway.list(), options.now())) options.printer.line(line);
   } catch (error) {
-    options.printer.error(`Aviso: plataformas não lidas. ${options.describeError(error)}`);
+    options.printer.error(cliText().platforms.text.notRead(options.describeError(error)));
   }
 }
 
@@ -51,13 +52,13 @@ export interface LeftTheMachineOptions extends Omit<PlatformStatusOptions, 'now'
  */
 export async function printLeftTheMachine(options: LeftTheMachineOptions): Promise<void> {
   const egress = await readEgress(options.runDir, options.runId);
-  if (egress.status === 'unreadable') options.printer.error('Aviso: o manifest.json desta execução não pôde ser lido; os envios dos provedores não aparecem.');
+  if (egress.status === 'unreadable') options.printer.error(cliText().platforms.text.manifestUnreadable);
   try {
     const view = await options.gateway.runPublish(options.runId);
     const entries = egress.status === 'read' ? egress.entries : [];
     for (const line of leftTheMachineLines(entries, view.leftTheMachine)) options.printer.line(line);
     for (const line of attemptLines(view.attempts)) options.printer.line(line);
   } catch (error) {
-    options.printer.error(`Aviso: envios às plataformas não lidos. ${options.describeError(error)}`);
+    options.printer.error(cliText().platforms.text.uploadsNotRead(options.describeError(error)));
   }
 }

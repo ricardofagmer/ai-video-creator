@@ -1,11 +1,11 @@
 import { REVIEW_UNAVAILABLE_TEXT } from '@studio/core/agents';
 import type { StageExecutionContext, StageExecutionResult, StagePlanningContext } from '@studio/shared/ports';
 import { QaMetricsSchema, type CheckId, type DeclaredOutput, type ModelUse, type StageEstimate } from '@studio/shared/run-format';
-import { reviewerScoreEvidence } from '../agents/review-evidence';
+import { reviewCaveat, reviewerScoreEvidence } from '../agents/review-evidence';
 import { emitReviewVerdict } from '../agents/review-verdict.events';
 import { reviewSubject } from '../agents/reviewer';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
-import { ReviewOutcomeSchema } from '../shared/stage-artifacts';
+import { ReviewOutcomeSchema, type ReviewOutcome } from '../shared/stage-artifacts';
 import { agentCallsEstimate } from '../shared/stage-estimates';
 import { readOptionalStageInput, readOwnOutput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { reportedSuccess, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
@@ -13,8 +13,8 @@ import { stageTexts } from '../shared/stage-texts';
 
 /**
  * `agent-review`: one Reviewer pass over the render, with the QA metrics as evidence (topology
- * section 5). Evidence only: no retry loop here, the pass decision stays with the engine checks
- * and the owner gate, and a Reviewer failure degrades to a warning (section 9).
+ * section 5). No retry loop here; a score under the preset's threshold never stops the run (owner
+ * decision 2026-11-24) and becomes a caveat, and a Reviewer failure degrades to a warning (section 9).
  */
 export class AgentReviewExecutor extends BaseStageExecutor {
   readonly stageId = 'agent-review';
@@ -22,7 +22,7 @@ export class AgentReviewExecutor extends BaseStageExecutor {
   protected override readonly appliesCallFaults = false;
 
   async estimate(): Promise<StageEstimate> {
-    return agentCallsEstimate(['evaluator'], this.isLive('claude'));
+    return agentCallsEstimate(['evaluator'], this.agentCallsBilled());
   }
 
   declaredOutputs(context: StagePlanningContext): readonly DeclaredOutput[] {
@@ -46,7 +46,9 @@ export class AgentReviewExecutor extends BaseStageExecutor {
       return reportedSuccess(stageTexts.reviewerUnavailableWarning, models);
     }
     await emitReviewVerdict(context, 'render', review.verdict);
-    await outputs.writeJson('review-render-outcome', ReviewOutcomeSchema, { format: 1, status: 'recorded', revisions: 0, verdict: review.verdict });
-    return reportedSuccess(`Revisão do vídeo: nota geral ${review.verdict.overall}.`, models);
+    const outcome: ReviewOutcome = { format: 1, status: 'recorded', revisions: 0, verdict: review.verdict };
+    await outputs.writeJson('review-render-outcome', ReviewOutcomeSchema, outcome);
+    const caveat = reviewCaveat(context, outcome, false);
+    return reportedSuccess(`Revisão do vídeo: nota geral ${review.verdict.overall}.${caveat === null ? '' : ` ${caveat}`}`, models);
   }
 }

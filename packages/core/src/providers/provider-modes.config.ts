@@ -13,15 +13,15 @@ const ModeSchema = z.enum(['mock', 'live']);
 const FaultSchema = z.enum(['none', 'step-failure', 'authentication-error', 'missing-output']);
 
 function variableStem(provider: ProviderName): string {
-  return `VIDEO_STUDIO_${provider.toUpperCase().replace(/-/g, '_')}`;
+  return `ENGINEOS_VIDEO_CREATOR_${provider.toUpperCase().replace(/-/g, '_')}`;
 }
 
-/** `VIDEO_STUDIO_CLAUDE_MODE`, `VIDEO_STUDIO_LOCAL_VOICE_MODE`, ...: `mock` (default) or `live`. */
+/** `ENGINEOS_VIDEO_CREATOR_CLAUDE_MODE`, `ENGINEOS_VIDEO_CREATOR_LOCAL_VOICE_MODE`, ...: `mock` (default) or `live`. */
 export function modeVariable(provider: ProviderName): string {
   return `${variableStem(provider)}_MODE`;
 }
 
-/** `VIDEO_STUDIO_<PROVIDER>_MOCK_FAULT`: a SPEC 0002 A12 fault scenario; inert in live mode. */
+/** `ENGINEOS_VIDEO_CREATOR_<PROVIDER>_MOCK_FAULT`: a SPEC 0002 A12 fault scenario; inert in live mode. */
 export function mockFaultVariable(provider: ProviderName): string {
   return `${variableStem(provider)}_MOCK_FAULT`;
 }

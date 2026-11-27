@@ -1,5 +1,5 @@
 import type { AgentsPort } from '@studio/shared/agents';
-import type { AssetResolverPort, CostLedgerPort, ProviderModePort } from '@studio/shared/ports';
+import type { AssetResolverPort, CostLedgerPort, ProviderModePort, ReferenceAnalysisReaderPort } from '@studio/shared/ports';
 import { type ProviderName } from '@studio/shared/run-format';
 import { type Secret } from '@studio/core/secrets';
 import { type RunManifestBuilder } from '../../adapters/manifest/run-manifest.builder';
@@ -16,6 +16,8 @@ import { type StageSettings } from './stage-settings';
 export interface LiveProviderModes extends ProviderModePort {
   isLive(provider: ProviderName): boolean;
   credentialFor(provider: ProviderName): Secret;
+  /** ADR 0011: live `claude` on the Claude Code engine. Absent on a source that has no engines. */
+  usesClaudeCode?(): boolean;
 }
 
 /** Everything a stage executor uses besides its C6 execution context. */
@@ -31,4 +33,6 @@ export interface StageDependencies {
   manifestBuilder: RunManifestBuilder;
   /** SPEC 0008: the gate files, the pinned runtime and the template folder reader. */
   hyperframes: HyperframesStagePorts;
+  /** Guided-creation design section 4: the kept `done` analyses of the run's references, read-only. */
+  referenceAnalyses: ReferenceAnalysisReaderPort;
 }

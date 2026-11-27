@@ -26,12 +26,10 @@ export {
 } from './metrics.errors';
 export {
   ImportMetricsInputSchema,
-  ListMetricImportsCriteriaSchema,
   RecordPublicationInputSchema,
   RemovePublicationInputSchema,
   SaveMetricSnapshotInputSchema,
   type ImportMetricsInput,
-  type ListMetricImportsCriteria,
   type RecordPublicationInput,
   type RemovePublicationInput,
   type SaveMetricSnapshotInput,
@@ -39,4 +37,3 @@ export {
 export { MetricsModule } from './metrics.module';
 export { CountRunPublicationsQuery, type RunPublicationCounts } from './queries/count-run-publications.query';
 export { GetRunPublicationsQuery } from './queries/get-run-publications.query';
-export { ListMetricImportsQuery } from './queries/list-metric-imports.query';

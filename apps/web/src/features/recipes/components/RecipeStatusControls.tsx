@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, type ReactElement } from 'react';
 import { PromoteVersionButton } from '@/features/promotion/components/PromoteVersionButton';
 import { browserStudioClient } from '@/lib/api';
+import { useWebMessages } from '@/lib/i18n/client';
 
 interface RecipeStatusControlsProps {
   recipeId: string;
@@ -27,6 +28,7 @@ const noticeKinds: readonly RecipeStatusNoticeKind[] = ['receita-ativada', 'rece
  * "Descontinuar", behind a confirmation Dialog. Deprecated versions cannot start runs.
  */
 export function RecipeStatusControls({ recipeId, version, status, evidenceComparisonId }: RecipeStatusControlsProps): ReactElement {
+  const texts = useWebMessages().recipes.statusControls;
   const router = useRouter();
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
@@ -62,22 +64,22 @@ export function RecipeStatusControls({ recipeId, version, status, evidenceCompar
         />
       )}
       {status === 'active' && (
-        <Button variant="secondary" disabled={pending} loading={pending} loadingLabel="Descontinuando…" onClick={() => setConfirmOpen(true)}>
-          Descontinuar
+        <Button variant="secondary" disabled={pending} loading={pending} loadingLabel={texts.deprecating} onClick={() => setConfirmOpen(true)}>
+          {texts.deprecate}
         </Button>
       )}
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        title={`Descontinuar a versão v${version}?`}
-        description="Execuções que já usam esta versão continuam como estão. Novas execuções não poderão partir dela."
+        title={texts.confirmTitle(version)}
+        description={texts.confirmDescription}
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
-              Cancelar
+              {texts.cancel}
             </Button>
             <Button variant="primary" onClick={() => void deprecate()}>
-              Descontinuar
+              {texts.deprecate}
             </Button>
           </>
         }
@@ -94,9 +96,10 @@ interface RecipeStatusNoticeProps {
 
 /** The Alert for the outcome `RecipeStatusControls` reported in `?aviso=`. */
 export function RecipeStatusNotice({ notice, version }: RecipeStatusNoticeProps): ReactElement | null {
+  const texts = useWebMessages().recipes.statusControls;
   const kind = noticeKinds.find((candidate) => candidate === notice);
-  if (kind === 'receita-ativada') return <Alert variant="success">{`Versão ${version} ativada.`}</Alert>;
-  if (kind === 'receita-descontinuada') return <Alert variant="info">{`Versão ${version} descontinuada.`}</Alert>;
-  if (kind === 'receita-erro') return <Alert variant="error">Não foi possível mudar o status desta versão. Tente de novo.</Alert>;
+  if (kind === 'receita-ativada') return <Alert variant="success">{texts.activated(version)}</Alert>;
+  if (kind === 'receita-descontinuada') return <Alert variant="info">{texts.deprecated(version)}</Alert>;
+  if (kind === 'receita-erro') return <Alert variant="error">{texts.error}</Alert>;
   return null;
 }

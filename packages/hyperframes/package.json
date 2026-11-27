@@ -14,7 +14,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@studio/shared": "workspace:*",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@studio/tsconfig": "workspace:*",
     "@types/node": "^22.15.0",
+    "tsx": "^4.20.0",
     "typescript": "^5.8.3"
   }
 }

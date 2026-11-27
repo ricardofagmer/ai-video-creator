@@ -2,6 +2,7 @@ import { type PublishRequest } from '@studio/shared/api';
 import { type AssetRef } from '@studio/shared/catalog';
 import { type Platform } from '@studio/shared/metrics';
 import { publishBounds, type Visibility } from '@studio/shared/platforms';
+import { type WebMessages } from '@/messages';
 
 /** One tab of the publish dialog as the owner fills it. */
 export interface PublishDraft {
@@ -49,7 +50,7 @@ function parseTags(tagsText: string): string[] {
 export type PublishRequestBuild = { status: 'ready'; request: PublishRequest } | { status: 'invalid'; errors: PublishDraftErrors };
 
 /**
- * The `POST /runs/:runId/publish/:platform` body, or the pt-BR errors of the draft. The api checks
+ * The `POST /runs/:runId/publish/:platform` body, or the errors of the draft. The api checks
  * everything again; this only answers early. `biometricRefs` is the set the dialog showed.
  */
 export function buildPublishRequest(options: {
@@ -59,18 +60,19 @@ export function buildPublishRequest(options: {
   idempotencyKey: string;
   artifactSha256: string;
   biometricRefs: readonly AssetRef[];
+  t: WebMessages['publishing']['errors'];
 }): PublishRequestBuild {
-  const { draft, platform } = options;
+  const { draft, platform, t } = options;
   const errors: PublishDraftErrors = {};
   const title = draft.title.trim();
-  if (title === '') errors.title = 'Escreva um título.';
-  else if (title.length > publishBounds.titleChars) errors.title = `Use até ${publishBounds.titleChars} caracteres.`;
-  if (draft.caption.length > publishBounds.captionChars) errors.caption = 'Use até 2.200 caracteres.';
+  if (title === '') errors.title = t.titleRequired;
+  else if (title.length > publishBounds.titleChars) errors.title = t.tooLong(publishBounds.titleChars);
+  if (draft.caption.length > publishBounds.captionChars) errors.caption = t.captionTooLong;
   const tags = platformUsesTags(platform) ? parseTags(draft.tagsText) : [];
-  if (tags.length > publishBounds.maxTags) errors.tags = `Use até ${publishBounds.maxTags} tags.`;
-  else if (!tags.every((tag) => TAG_PATTERN.test(tag))) errors.tags = 'Cada tag usa só letras, números e _, com até 50 caracteres.';
+  if (tags.length > publishBounds.maxTags) errors.tags = t.tooManyTags(publishBounds.maxTags);
+  else if (!tags.every((tag) => TAG_PATTERN.test(tag))) errors.tags = t.tagFormat;
   const visibility = draft.visibility;
-  if (visibility === null || !options.allowedVisibilities.includes(visibility)) errors.visibility = 'Escolha a visibilidade.';
+  if (visibility === null || !options.allowedVisibilities.includes(visibility)) errors.visibility = t.visibility;
   if (visibility === null || Object.keys(errors).length > 0) return { status: 'invalid', errors };
   return {
     status: 'ready',

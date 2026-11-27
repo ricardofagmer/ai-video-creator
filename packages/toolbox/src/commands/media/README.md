@@ -8,7 +8,7 @@ ffprobe call goes through `media/exec-tool.ts` `runTool` (`execFile`, fixed argv
 
 ## Calling convention
 
-| Command | Function | Arguments schema | Result type |
+| Tool | Function | Arguments schema | Result type |
 |---|---|---|---|
 | `music-bed` | `runMusicBed(tools, args)` | `MusicBedArgsSchema` | `MusicBedResult` |
 | `fades` | `runFades(tools, args)` | `FadesArgsSchema` | `FadesResult` |
@@ -20,14 +20,11 @@ ffprobe call goes through `media/exec-tool.ts` `runTool` (`execFile`, fixed argv
 - Every input file is opened with `-protocol_whitelist file` and a demuxer allowlist
   (`media-tools.ts` `FILE_INPUT_GUARD_ARGS`); other protocols and formats are refused by ffmpeg.
 - `args` is `unknown`; each function validates it with its strict zod schema. Numbers may be
-  numbers or numeric strings (CLI). Unknown keys are rejected.
+  numbers or numeric strings. Unknown keys are rejected.
 - Paths are resolved to absolute paths. Inputs must be existing regular files. Outputs must be
   new `.mp4` paths that differ from every input; nothing is ever overwritten (`-n`).
 - Errors: `InputError` for bad arguments or files (nothing written), `ExternalToolError` when
   ffmpeg, ffprobe or Chromium is missing or fails.
-- CLI: `ace <command> ...` prints the result as one JSON line on stdout, then the usual
-  `{"ok","runId","state","next"}` status line. A failed `media-review` exits 1 after printing.
-  Flags are the argument names in kebab case (`--fade-in-s` is `fadeInS`).
 
 ## `music-bed`
 

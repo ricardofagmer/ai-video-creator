@@ -4,6 +4,7 @@ import { ScheduleIdSchema } from '@studio/shared/schedules';
 import { ApiRequestError, ApiResponseContractError, ApiUnreachableError, isNotFound } from '@/lib/api';
 import { serverStudioClient, serverTransport } from '@/lib/api/server';
 import { describeApiError } from '@/features/common/api-error-text';
+import { getI18n } from '@/lib/i18n/server';
 import { createSchedulesApi, type SchedulesApi } from './schedules-api';
 
 function serverSchedulesApi(): SchedulesApi {
@@ -21,7 +22,10 @@ export async function loadSchedules(): Promise<ScheduleList> {
   try {
     return { status: 'ready', schedules: await serverSchedulesApi().listSchedules() };
   } catch (error) {
-    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error) };
+    if (isApiFailure(error)) {
+      const { t } = await getI18n();
+      return { status: 'failed', message: describeApiError(error, t) };
+    }
     throw error;
   }
 }
@@ -59,13 +63,17 @@ export type RunnableRecipes = { status: 'ready'; recipes: readonly RecipeVersion
  */
 export async function loadRunnableRecipes(): Promise<RunnableRecipes> {
   try {
+    const { locale } = await getI18n();
     const page = await serverStudioClient().listRecipes({ statuses: ['active', 'draft'], limit: 100 });
     const recipes = [...page.items].sort(
-      (left, right) => left.recipe.name.localeCompare(right.recipe.name, 'pt-BR') || right.recipe.version - left.recipe.version,
+      (left, right) => left.recipe.name.localeCompare(right.recipe.name, locale) || right.recipe.version - left.recipe.version,
     );
     return { status: 'ready', recipes };
   } catch (error) {
-    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error) };
+    if (isApiFailure(error)) {
+      const { t } = await getI18n();
+      return { status: 'failed', message: describeApiError(error, t) };
+    }
     throw error;
   }
 }

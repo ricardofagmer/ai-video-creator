@@ -6,7 +6,7 @@ import { withCliContext } from '../nest/cli-context.js';
 import type { CommandDependencies } from './command-dependencies.js';
 
 export interface InsightsOptions {
-  /** Prints the C10 `InsightsView` as JSON instead of the pt-BR text. */
+  /** Prints the C10 `InsightsView` as JSON (never translated) instead of the text. */
   json: boolean;
 }
 

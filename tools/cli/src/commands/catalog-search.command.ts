@@ -1,6 +1,7 @@
 import { SemanticSearchQuery, type SemanticSearchHit } from '@studio/core/embeddings';
 import { formatAssetRef } from '@studio/shared/catalog';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { withSearchContext } from '../nest/cli-context.js';
 import { fitText } from '../output/format.js';
 import { type CommandDependencies } from './command-dependencies.js';
@@ -30,17 +31,18 @@ function hitLine(hit: SemanticSearchHit, position: number): string {
  * that is not ready throws `EmbeddingUnavailableError` (exit 5) at the command boundary.
  */
 export async function catalogSearchCommand(options: SemanticSearchOptions, dependencies: CommandDependencies): Promise<number> {
-  const result = await withSearchContext((context) =>
+  const result = await withSearchContext(dependencies.settings, (context) =>
     context.queryBus.execute(new SemanticSearchQuery({ query: options.query, limit: options.limit })),
   );
   const { printer } = dependencies;
+  const text = cliText().commands.search;
   if (result.items.length === 0) {
-    printer.line('Nenhuma versão indexada para comparar.');
+    printer.line(text.noIndexed);
   } else {
-    printer.line(`Busca por significado (${result.modelRef}), ${result.items.length} resultado(s), do mais parecido ao menos:`);
+    printer.line(text.heading(result.modelRef, result.items.length));
     result.items.forEach((hit, index) => printer.line(hitLine(hit, index + 1)));
   }
-  printer.line(`Comparadas: ${result.scanned}. Pendentes (sem vetor do modelo atual): ${result.pending}.`);
-  if (result.pending > 0) printer.line('Para incluir as pendentes, rode "studio catalog embed".');
+  printer.line(text.totals(result.scanned, result.pending));
+  if (result.pending > 0) printer.line(text.embedHint);
   return ExitCode.ok;
 }

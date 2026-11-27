@@ -100,6 +100,7 @@ export function qaSummaryOf(request: {
   }
   for (const check of request.checks) {
     if (check.outcome === 'skipped') warnings.push(`${check.checkId}: ${check.detail || check.measured}`);
+    if (check.outcome === 'failed' || check.outcome === 'error') warnings.push(stageTexts.checkNotPassedWarning(check.checkId, check.expected, check.measured));
   }
   const clipped = warnings.slice(0, MAX_WARNINGS).map((warning) => clip(warning, WARNING_MAX_CHARS));
   return {

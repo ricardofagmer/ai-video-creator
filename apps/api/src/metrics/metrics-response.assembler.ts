@@ -1,12 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  MetricImportPageViewSchema,
   MetricImportReportSchema,
   MetricSnapshotViewSchema,
   PublicationViewSchema,
   RemovePublicationResponseSchema,
   RunPublicationsViewSchema,
-  type MetricImportPageView,
   type MetricImportReport,
   type MetricSnapshotView,
   type PublicationView,
@@ -45,10 +43,6 @@ export class MetricsResponseAssembler {
 
   importReport(view: MetricImportReport): MetricImportReport {
     return this.conform(MetricImportReportSchema, view, 'MetricImportReport');
-  }
-
-  importPage(view: MetricImportPageView): MetricImportPageView {
-    return this.conform(MetricImportPageViewSchema, view, 'MetricImportPageView');
   }
 
   private conform<Schema extends z.ZodTypeAny>(schema: Schema, value: unknown, viewName: string): z.output<Schema> {

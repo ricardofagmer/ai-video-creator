@@ -6,6 +6,7 @@ import { loadPlatforms } from '@/features/platforms/platforms.server';
 import { serverRunsApi } from '@/features/runs/runs-api.server';
 import { ApiRequestError, ApiResponseContractError, ApiUnreachableError } from '@/lib/api';
 import { serverTransport } from '@/lib/api/server';
+import { getI18n } from '@/lib/i18n/server';
 import { createPublishingApi } from './publishing-api';
 import { type ManifestEgressRead, type RunPublishData, type RunPublishRead } from './run-publish-data';
 
@@ -19,7 +20,7 @@ async function loadPublishView(runId: string): Promise<RunPublishRead> {
   try {
     return { status: 'ready', view: await createPublishingApi(serverTransport('redirect-to-login')).getRunPublish(runId) };
   } catch (error) {
-    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error) };
+    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error, (await getI18n()).t) };
     throw error;
   }
 }

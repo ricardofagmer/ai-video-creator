@@ -1,0 +1,198 @@
+/* Catalog hover preview: a small popover beside the hovered card, with a visual, the name and what the item is for. */
+.popover {
+  position: fixed;
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-float);
+  pointer-events: none;
+  animation: popover-in 160ms ease-out;
+}
+
+/* The visual area; `portrait` is the 9:16 template clip, the default a 16:10 screen. */
+.screen {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted);
+}
+
+.portrait {
+  aspect-ratio: 9 / 16;
+}
+
+.clip,
+.cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.contain {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.description {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+/* Glyph on the kind's brand gradient, for items with no picture of their own. */
+.glyphScreen {
+  color: var(--color-white, #fff);
+  background: linear-gradient(135deg, var(--poster-tone-start, var(--color-primary-600)), var(--poster-tone-end, var(--color-purple-600)));
+}
+
+.glyph {
+  width: 40%;
+  height: 40%;
+}
+
+/* Each tone is two neighbouring stops of the brand gradient, as on the poster cards. */
+.toneSunset {
+  --poster-tone-start: var(--color-yellow-300);
+  --poster-tone-end: var(--color-orange-400);
+}
+
+.toneFlame {
+  --poster-tone-start: var(--color-orange-400);
+  --poster-tone-end: var(--color-primary-600);
+}
+
+.toneMagenta {
+  --poster-tone-start: var(--color-primary-600);
+  --poster-tone-end: var(--color-purple-600);
+}
+
+.toneViolet {
+  --poster-tone-start: var(--color-purple-600);
+  --poster-tone-end: var(--color-blue-violet-600);
+}
+
+.toneDusk {
+  --poster-tone-start: var(--color-blue-violet-600);
+  --poster-tone-end: var(--color-primary-600);
+}
+
+/* A site: its favicon over its domain. */
+.site {
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.favicon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+.domain {
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A prompt or skill: its first lines, clipped at the bottom. */
+.excerpt {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+
+.excerptText {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+
+/* Music and sound effects: a waveform-style badge with the duration. */
+.wave {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  height: 55%;
+}
+
+.waveBar {
+  width: 4px;
+  border-radius: 2px;
+  background-color: currentcolor;
+  opacity: 0.85;
+}
+
+.duration {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-white, #fff);
+  background-color: rgb(0 0 0 / 45%);
+}
+
+/* A brand kit: its colors as swatches. */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: var(--space-1);
+  align-content: center;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-3);
+}
+
+.swatch {
+  aspect-ratio: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover {
+    animation: none;
+  }
+}

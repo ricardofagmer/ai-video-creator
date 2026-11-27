@@ -1,15 +1,18 @@
 'use client';
 
-import { Alert, Button, buttonClassName } from '@studio/ui';
+import { Alert, Button, buttonClassName, useI18n } from '@studio/ui';
 import { type AssetVersionView } from '@studio/shared/api';
 import { type AssetKind, type Sensitivity } from '@studio/shared/catalog';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, type ReactElement, useEffect, useRef, useState } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { useModalFormBridge } from '@/features/common/modal-form-bridge';
+import { useWebMessages } from '@/lib/i18n/client';
 import { assetFormFrom, assetIdFromName, buildAssetMetadata, emptyAssetForm, fieldIds, type AssetFormValues } from './asset-form-model';
 import { fileError, saveAsset, type AssetFormTarget } from './asset-form-submit';
 import { FileSection } from './FileSection';
+import { type ImageSize } from './ImagePreview';
 import { type FieldErrors } from './form-messages';
 import { IdentitySection } from './IdentitySection';
 import { defaultDetailFields } from './kind-details-model';
@@ -23,6 +26,8 @@ export interface AssetFormProps {
   /** Number the saved version will get (N+1 of the newest version). */
   nextVersion: number;
   cancelHref: string;
+  /** Kind a new asset starts with (`/catalogo/novo?tipo=`); a new version keeps its base's kind. */
+  initialKind?: AssetKind;
 }
 
 /** Content modes that never send biometric bytes (criterion 22). */
@@ -47,17 +52,22 @@ function focusFirstInvalid(form: HTMLFormElement | null, fallback: HTMLElement |
  * design/telas/04: upload, register by reference, or version N+1 of an asset. Every mode saves
  * through the api; by reference posts the metadata and the typed path (SPEC 0002 rev 4, R1-27).
  */
-export function AssetForm({ target, base, nextVersion, cancelHref }: AssetFormProps): ReactElement {
+export function AssetForm({ target, base, nextVersion, cancelHref, initialKind }: AssetFormProps): ReactElement {
   const router = useRouter();
+  const messages = useWebMessages();
+  const { locale } = useI18n();
+  const formTexts = messages.catalog.form;
   const formRef = useRef<HTMLFormElement>(null);
   const formErrorRef = useRef<HTMLDivElement>(null);
-  const [values, setValues] = useState<AssetFormValues>(() => (base === null ? emptyAssetForm() : assetFormFrom(base)));
+  const [values, setValues] = useState<AssetFormValues>(() => (base === null ? emptyAssetForm(initialKind) : assetFormFrom(base)));
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitCount, setSubmitCount] = useState(0);
   const [dirty, setDirty] = useState(false);
   const sensitivityLocked = base?.sensitivity === 'biometric';
+  // Inside a list's modal: closing asks first while dirty, and a save closes it and refreshes the list.
+  const modal = useModalFormBridge(dirty);
 
   useEffect(() => {
     if (!dirty) return undefined;
@@ -82,6 +92,13 @@ export function AssetForm({ target, base, nextVersion, cancelHref }: AssetFormPr
     update({ kind, layout: kind === 'skill' ? 'folder' : 'file', files: [], details: defaultDetailFields(kind), variables: [] });
   }
 
+  /** The picked image is the truth for its own size; a functional update avoids racing other edits. */
+  function fillImageSize({ width, height }: ImageSize): void {
+    setValues((current) =>
+      current.kind === 'image' ? { ...current, details: { ...current.details, width: String(width), height: String(height) } } : current,
+    );
+  }
+
   function changeName(name: string): void {
     update(target.type === 'new' && !values.assetIdEdited ? { name, assetId: assetIdFromName(name) } : { name });
   }
@@ -95,8 +112,8 @@ export function AssetForm({ target, base, nextVersion, cancelHref }: AssetFormPr
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (submitting) return;
-    const built = buildAssetMetadata(values);
-    const selectionError = values.contentMode === 'upload' ? fileError(values) : null;
+    const built = buildAssetMetadata(values, formTexts.errors);
+    const selectionError = values.contentMode === 'upload' ? fileError(values, messages.catalog, locale) : null;
     const fieldErrors: FieldErrors = {
       ...(built.ok ? {} : built.errors),
       ...(selectionError === null ? {} : { [fieldIds.files]: selectionError }),
@@ -108,17 +125,21 @@ export function AssetForm({ target, base, nextVersion, cancelHref }: AssetFormPr
     setSubmitting(true);
     setErrors({});
     setFormError(null);
-    const outcome = await saveAsset(target, values, built.metadata);
+    const outcome = await saveAsset({ target, values, metadata: built.metadata, t: messages });
     if (!outcome.ok) {
       setSubmitting(false);
       fail(outcome.fieldErrors, outcome.formError);
       return;
     }
     setDirty(false);
+    if (modal !== null) {
+      modal.close({ saved: true });
+      return;
+    }
     router.push(`/catalogo/${outcome.saved.id}?versao=${outcome.saved.version}&aviso=salvo`);
   }
 
-  const submitLabel = target.type === 'new' ? 'Salvar rascunho' : `Salvar versão ${nextVersion}`;
+  const submitLabel = target.type === 'new' ? formTexts.saveDraft : formTexts.saveVersion(nextVersion);
 
   return (
     <form ref={formRef} className={layout.form} noValidate aria-busy={submitting} onSubmit={(event) => void submit(event)}>
@@ -134,6 +155,7 @@ export function AssetForm({ target, base, nextVersion, cancelHref }: AssetFormPr
         disabled={submitting}
         onKindChange={changeKind}
         onChange={update}
+        onImageMeasured={fillImageSize}
       />
       <IdentitySection
         target={target}
@@ -155,10 +177,16 @@ export function AssetForm({ target, base, nextVersion, cancelHref }: AssetFormPr
         onVariablesChange={(variables) => update({ variables })}
       />
       <div className={layout.formFooter}>
-        <Link href={cancelHref} className={buttonClassName({ variant: 'secondary' })}>
-          Cancelar
-        </Link>
-        <Button type="submit" loading={submitting} loadingLabel="Salvando…">
+        {modal === null ? (
+          <Link href={cancelHref} className={buttonClassName({ variant: 'secondary' })}>
+            {formTexts.cancel}
+          </Link>
+        ) : (
+          <Button type="button" variant="secondary" onClick={() => modal.close()}>
+            {formTexts.cancel}
+          </Button>
+        )}
+        <Button type="submit" loading={submitting} loadingLabel={formTexts.saving}>
           {submitLabel}
         </Button>
       </div>

@@ -1,16 +1,18 @@
-import { Alert, PageHeader } from '@studio/ui';
+import { Alert } from '@studio/ui';
 import { ConnectionResultQuerySchema, type ConnectionResultQuery } from '@studio/shared/api';
 import type { Metadata } from 'next';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { ConnectionResultNotice } from '@/features/platforms/components/ConnectionResultNotice';
 import { PlatformCard } from '@/features/platforms/components/PlatformCard';
 import { loadPlatforms } from '@/features/platforms/platforms.server';
+import { getI18n } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'Contas' };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t.platforms.page.title };
+}
 export const dynamic = 'force-dynamic';
-
-const DESCRIPTION =
-  'As suas contas no YouTube, Instagram e TikTok. Cada plataforma é liberada por você, separadamente, depois que ela aprovar o aplicativo; o estúdio só publica quando você clica em Publicar numa execução aprovada.';
 
 interface AccountsPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -32,13 +34,28 @@ function connectionResult(query: Record<string, string | string[] | undefined>):
 export default async function AccountsPage({ searchParams }: AccountsPageProps) {
   const [platforms, query] = await Promise.all([loadPlatforms(), searchParams]);
   const result = connectionResult(query);
+  const { t } = await getI18n();
+  const texts = t.platforms.page;
 
   return (
     <div className={layout.page}>
-      <PageHeader title="Contas" description={DESCRIPTION} />
+      <StudioHero
+        eyebrow={t.common.heroEyebrows.accounts}
+        glyph="user"
+        title={texts.title}
+        description={texts.description}
+        facts={
+          platforms.status === 'failed'
+            ? []
+            : [
+                texts.platformCount(platforms.platforms.length),
+                texts.connectedCount(platforms.platforms.filter((view) => view.connectedAt !== null).length),
+              ]
+        }
+      />
       {result !== null && <ConnectionResultNotice result={result} />}
       {platforms.status === 'failed' ? (
-        <Alert variant="warning">{`Não foi possível carregar as contas. ${platforms.message}`}</Alert>
+        <Alert variant="warning">{texts.loadFailed(platforms.message)}</Alert>
       ) : (
         <ul className={layout.cardGrid}>
           {platforms.platforms.map((view) => (

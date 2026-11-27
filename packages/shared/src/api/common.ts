@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CorrelationIdSchema } from '../common/ids';
+import { COMPOSITION_CONFLICTS_MAX, CompositionConflictSchema } from '../recipes/composition-rules';
 
 /**
  * Contract C10 (SPEC 0002, owner ticket R1-16): the api HTTP contract consumed by the web (R1-19,
@@ -16,8 +17,11 @@ import { CorrelationIdSchema } from '../common/ids';
  * Revision 7 (SPEC 0007 section 4.4, owner R4-01) adds the platform connection, gate and publish
  * routes, `apiRev7ErrorReasons`, and the optional fields `origin`, `attemptId` and `polling` on a
  * publication and `origin` on a snapshot; every addition is additive and a rev 6 body still parses.
+ * Revision 8 (business logic review Waves 1+2) is **breaking**: the recipe and catalog version
+ * `PUT .../status` bodies accept only `deprecated`, their responses drop the always-null
+ * `replaced` field, and `GET /metrics/imports` is removed.
  */
-export const API_CONTRACT_REVISION = 7;
+export const API_CONTRACT_REVISION = 8;
 
 /** Request header the api copies into `correlationId`; echoed on every response. */
 export const REQUEST_ID_HEADER = 'x-request-id';
@@ -57,6 +61,8 @@ export const ApiErrorSchema = z
         itemIds: z.array(z.string().max(64)).max(20).optional(),
         /** Seconds until the next login attempt is accepted (`login-rate-limited`). */
         retryAfterSeconds: z.number().int().positive().optional(),
+        /** The choices that cannot make one video together (`composition-conflict`, guided-creation spec). */
+        conflicts: z.array(CompositionConflictSchema).max(COMPOSITION_CONFLICTS_MAX).optional(),
       })
       .strict()
       .optional(),

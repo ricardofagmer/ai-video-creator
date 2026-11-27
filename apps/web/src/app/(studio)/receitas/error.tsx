@@ -1,6 +1,7 @@
 'use client';
 
 import { Button, ErrorState } from '@studio/ui';
+import { useWebMessages } from '@/lib/i18n/client';
 
 interface RecipesErrorProps {
   reset: () => void;
@@ -8,12 +9,13 @@ interface RecipesErrorProps {
 
 /** design/telas/05 and 06, "Erro": the failure is shown, never its stack or message. */
 export default function RecipesError({ reset }: RecipesErrorProps) {
+  const { common } = useWebMessages();
   return (
     <ErrorState
-      title="Não foi possível carregar as receitas"
+      title={common.boundaries.recipes.error}
       action={
         <Button variant="secondary" onClick={reset}>
-          Tentar de novo
+          {common.retry}
         </Button>
       }
     />

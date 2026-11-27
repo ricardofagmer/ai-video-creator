@@ -1,20 +1,15 @@
-import { verifyModelDirectory, type ModelIntegrityResult, type ModelRejectionReason } from '@studio/core/embeddings';
+import { verifyModelDirectory, type ModelIntegrityResult } from '@studio/core/embeddings';
 import { type EmbeddingModelManifest } from '@studio/shared/catalog';
 import { checkLine, type DoctorCheck } from '../doctor/doctor-check.js';
-import { MODEL_CHECK_LABEL, checkSearch } from '../doctor/search-checks.js';
+import { checkSearch, modelCheckLabel } from '../doctor/search-checks.js';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { runModelFetch, type ModelFetchOutcome } from '../models/model-fetch.js';
 import { manifestText, readManifestState } from '../models/model-manifest.js';
 import { withSearchContext } from '../nest/cli-context.js';
 import { type Printer } from '../output/printer.js';
 import { type CliSettings } from '../settings/cli-settings.js';
 import { type CommandDependencies } from './command-dependencies.js';
-
-const rejectionTexts: Readonly<Record<ModelRejectionReason, string>> = {
-  missing: 'falta o arquivo ou ele não é um arquivo comum dentro da pasta do modelo',
-  size: 'o tamanho não confere com o manifesto',
-  hash: 'o sha-256 não confere com o manifesto',
-};
 
 /**
  * `studio models status`: the manifest, then the model and index lines `studio doctor` prints
@@ -23,8 +18,8 @@ const rejectionTexts: Readonly<Record<ModelRejectionReason, string>> = {
  */
 export async function modelsStatusCommand(dependencies: CommandDependencies): Promise<number> {
   const { printer, settings } = dependencies;
-  printer.line(`Manifesto: ${manifestText(await readManifestState(settings))}.`);
-  const checks = await withSearchContext((context) => checkSearch(context, settings));
+  printer.line(cliText().doctor.models.manifest(manifestText(await readManifestState(settings))));
+  const checks = await withSearchContext(settings, (context) => checkSearch(context, settings));
   printer.line(checkLine(checks.model));
   printer.line(checkLine(checks.index));
   return ExitCode.ok;
@@ -36,23 +31,17 @@ async function verifyPinned(manifest: EmbeddingModelManifest, settings: CliSetti
 }
 
 function integrityCheck(result: ModelIntegrityResult, modelRef: string): DoctorCheck {
+  const text = cliText().doctor.models;
+  const label = modelCheckLabel();
   switch (result.status) {
     case 'verified':
-      return { label: MODEL_CHECK_LABEL, status: 'ok', detail: `${modelRef} confere com o manifesto (tamanho e sha-256 de cada arquivo).` };
+      return { label, status: 'ok', detail: text.verified(modelRef) };
     case 'absent':
-      return {
-        label: MODEL_CHECK_LABEL,
-        status: 'warning',
-        detail: `ausente (${modelRef}); rode "studio models fetch" ou coloque os arquivos à mão e verifique de novo.`,
-      };
+      return { label, status: 'warning', detail: text.absent(modelRef) };
     case 'rejected': {
       // The manifest-relative file name only, never a path (SPEC 0003 section 6).
-      const file = result.file === null ? 'a pasta do modelo' : result.file;
-      return {
-        label: MODEL_CHECK_LABEL,
-        status: 'failed',
-        detail: `recusado (${modelRef}): ${file}: ${rejectionTexts[result.reason]}. Nada é carregado nem baixado; "studio models fetch" substitui os arquivos que não conferem.`,
-      };
+      const file = result.file === null ? text.modelFolder : result.file;
+      return { label, status: 'failed', detail: text.rejected(modelRef, file, text.rejections[result.reason]) };
     }
   }
 }
@@ -76,23 +65,24 @@ function printIntegrity(result: ModelIntegrityResult, modelRef: string, printer:
 export async function modelsVerifyCommand(dependencies: CommandDependencies): Promise<number> {
   const { printer, settings } = dependencies;
   const state = await readManifestState(settings);
-  printer.line(`Manifesto: ${manifestText(state)}.`);
+  printer.line(cliText().doctor.models.manifest(manifestText(state)));
   if (state.status !== 'pinned') return ExitCode.dependency;
   return printIntegrity(await verifyPinned(state.manifest, settings), state.manifest.modelRef, printer);
 }
 
 function fetchWarning(outcome: Exclude<ModelFetchOutcome, { status: 'installed' }>): string {
+  const text = cliText().doctor.models;
   switch (outcome.status) {
     case 'unpinned':
-      return 'o manifesto do modelo de busca ainda tem valores provisórios; nada foi baixado e a busca por significado fica indisponível. O resto do studio funciona.';
+      return text.fetchUnpinned;
     case 'download-failed':
-      return 'o modelo de busca não foi instalado (download, pasta ou conferência falhou); a busca por significado fica indisponível. Tente "studio models fetch" de novo quando a rede estiver disponível.';
+      return text.fetchFailed;
     case 'invalid-source':
-      return 'o manifesto ou a fonte do modelo em scripts/models não puderam ser validados (ou o @studio/shared não foi construído); nada foi baixado.';
+      return text.fetchInvalidSource;
     case 'not-started':
-      return 'não foi possível executar /bin/bash para baixar o modelo; nada foi baixado.';
+      return text.fetchNotStarted;
     case 'other':
-      return `o script do modelo de busca saiu com código ${outcome.exitCode ?? 'desconhecido'}; nada foi confirmado.`;
+      return text.fetchOther(outcome.exitCode);
   }
 }
 
@@ -106,12 +96,12 @@ export async function modelsFetchCommand(dependencies: CommandDependencies): Pro
   const { printer, settings, signal } = dependencies;
   const outcome = await runModelFetch(settings, printer, signal);
   if (outcome.status !== 'installed') {
-    printer.line(`[aviso] ${fetchWarning(outcome)}`);
+    printer.line(`${cliText().doctor.warningPrefix} ${fetchWarning(outcome)}`);
     return outcome.status === 'unpinned' ? ExitCode.ok : ExitCode.dependency;
   }
   const state = await readManifestState(settings);
   if (state.status !== 'pinned') {
-    printer.line(`[aviso] o manifesto mudou durante o download: ${manifestText(state)}.`);
+    printer.line(cliText().doctor.models.manifestChanged(manifestText(state)));
     return ExitCode.dependency;
   }
   return printIntegrity(await verifyPinned(state.manifest, settings), state.manifest.modelRef, printer);

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Shared ESLint flat configs for Video Studio workspaces",
+  "description": "Shared ESLint flat configs for EngineOS Video Creator workspaces",
   "exports": {
     "./base": "./base.js",
     "./nest": "./nest.js",

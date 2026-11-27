@@ -10,13 +10,13 @@
 
 # A9: launchd label of the watcher user agent; doctor (tools/cli) reads the same label.
 readonly STUDIO_LAUNCHD_LABEL='com.videostudio.watcher'
-# A9: default web port; `studio` reads VIDEO_STUDIO_WEB_PORT to move it.
+# A9: default web port; `studio` reads ENGINEOS_VIDEO_CREATOR_WEB_PORT to move it.
 readonly STUDIO_DEFAULT_WEB_PORT='4310'
-# A9: default api port; `studio` reads VIDEO_STUDIO_API_PORT to move it (tools/cli cli-settings.ts).
+# A9: default api port; `studio` reads ENGINEOS_VIDEO_CREATOR_API_PORT to move it (tools/cli cli-settings.ts).
 readonly STUDIO_DEFAULT_API_PORT='4311'
 # Menu-bar app (SPEC 0006 R3-08, ADR 0005): the name and bundle id apps/shell/scripts/package-app.mjs
 # gives it. The uninstaller removes only a folder carrying this bundle id.
-readonly STUDIO_SHELL_APP_NAME='Video Studio'
+readonly STUDIO_SHELL_APP_NAME='EngineOS Video Creator'
 readonly STUDIO_SHELL_BUNDLE_ID='com.videostudio.shell'
 # vetting 0002 section 12: the one host of the Electron framework download and the pinned version.
 readonly STUDIO_ELECTRON_DOWNLOAD_HOST='https://github.com/electron/electron/releases/download/'
@@ -204,9 +204,31 @@ real_path() {
 resolve_repo_root() {
   REPO_ROOT="$(cd "$1/.." && pwd -P)"
   if [ ! -f "$REPO_ROOT/package.json" ] || [ ! -f "$REPO_ROOT/pnpm-workspace.yaml" ] || [ ! -d "$REPO_ROOT/apps/watcher" ]; then
-    die "não encontrei o monorepo do Video Studio em $REPO_ROOT (esperado package.json, pnpm-workspace.yaml e apps/watcher)."
+    die "não encontrei o monorepo do EngineOS Video Creator em $REPO_ROOT (esperado package.json, pnpm-workspace.yaml e apps/watcher)."
   fi
   define_studio_paths
+}
+
+# Set by resolve_packaged_resources_root.
+PACKAGED_RESOURCES_ROOT=''
+
+# $1 = a scripts/ folder. Packaged app only (plan C3 rev 3): the scripts the app runs are copied to
+# <runtime>/payload/resources/scripts, beside no package.json, pnpm-workspace.yaml or apps/watcher,
+# so resolve_repo_root would refuse them. Answers yes, and sets PACKAGED_RESOURCES_ROOT, only when
+# ENGINEOS_VIDEO_CREATOR_RUNTIME_DIR is absolute and $1 is exactly that runtime's
+# payload/resources/scripts folder. Answers no and changes nothing anywhere else, so a checkout
+# keeps going through resolve_repo_root as before.
+resolve_packaged_resources_root() {
+  local runtime_dir="${ENGINEOS_VIDEO_CREATOR_RUNTIME_DIR:-}" expected actual
+  case "$runtime_dir" in
+    /*) ;;
+    *) return 1 ;;
+  esac
+  [ -d "$runtime_dir/payload/resources/scripts" ] || return 1
+  expected="$(cd "$runtime_dir/payload/resources/scripts" && pwd -P)" || return 1
+  actual="$(cd "$1" && pwd -P)" || return 1
+  [ "$expected" = "$actual" ] || return 1
+  PACKAGED_RESOURCES_ROOT="$(cd "$expected/.." && pwd -P)" || return 1
 }
 
 define_studio_paths() {
@@ -262,12 +284,12 @@ link_points_into_repo() {
 # Data home (D5)
 # ---------------------------------------------------------------------------------------------
 
-# Bash mirror of @studio/core `resolveDataHome`: VIDEO_STUDIO_HOME (trimmed) when set, else
+# Bash mirror of @studio/core `resolveDataHome`: ENGINEOS_VIDEO_CREATOR_HOME (trimmed) when set, else
 # ~/Library/Application Support/VideoStudio. Used for --dry-run and when core is not built;
 # a real install takes the value from core itself (resolve_data_home_with_core).
 resolve_data_home_expected() {
   local override
-  override="$(trim "${VIDEO_STUDIO_HOME:-}")"
+  override="$(trim "${ENGINEOS_VIDEO_CREATOR_HOME:-}")"
   if [ -n "$override" ]; then
     DATA_HOME="$override"
   else
@@ -278,7 +300,7 @@ resolve_data_home_expected() {
 
 # Asks the built @studio/core for the data home and the SQLite URL, through its public subpaths
 # `@studio/core/paths` and `@studio/core/prisma`, resolved from tools/cli (which depends on core).
-# The script is a fixed literal; HOME and VIDEO_STUDIO_HOME reach it through the environment only.
+# The script is a fixed literal; HOME and ENGINEOS_VIDEO_CREATOR_HOME reach it through the environment only.
 readonly CORE_RESOLVE_JS='
 const { createRequire } = require("node:module");
 const { homedir } = require("node:os");
@@ -311,11 +333,11 @@ resolve_data_home_with_core() {
 assert_data_home_shape() {
   case "$1" in
     /*) ;;
-    *) die "pasta de dados inválida ($1): precisa ser um caminho absoluto (VIDEO_STUDIO_HOME)." ;;
+    *) die "pasta de dados inválida ($1): precisa ser um caminho absoluto (ENGINEOS_VIDEO_CREATOR_HOME)." ;;
   esac
   case "$1" in
     */ | *//* | */./* | */../* | */. | */.. | *"$NEWLINE"*)
-      die "pasta de dados inválida ($1): caminho não normalizado (VIDEO_STUDIO_HOME)." ;;
+      die "pasta de dados inválida ($1): caminho não normalizado (ENGINEOS_VIDEO_CREATOR_HOME)." ;;
   esac
 }
 

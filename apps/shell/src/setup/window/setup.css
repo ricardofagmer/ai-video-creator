@@ -1,0 +1,115 @@
+/*
+ * System-native look: the shell has no design system of its own (the web's lives in @studio/ui and
+ * is not bundled here), so the window uses the macOS system font, system colors and native controls,
+ * in light and dark.
+ */
+:root {
+  color-scheme: light dark;
+  font: -apple-system-body;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 20px 24px;
+  background: Canvas;
+  color: CanvasText;
+}
+
+h1 {
+  font-size: 1.3em;
+  margin: 0 0 4px;
+}
+
+h2 {
+  font-size: 1.05em;
+  margin: 0 0 6px;
+}
+
+.intro,
+footer {
+  color: GrayText;
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.step {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+}
+
+.step-status {
+  color: GrayText;
+}
+
+.step-done .step-status,
+.step-already-done .step-status {
+  color: color-mix(in srgb, CanvasText 70%, green);
+}
+
+.step-failed .step-status,
+.step-warning .step-status {
+  color: color-mix(in srgb, CanvasText 40%, #c4302b);
+  font-weight: 600;
+}
+
+.step-reason {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+}
+
+.prompt {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+  border-radius: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.problem {
+  min-height: 1.2em;
+  margin: 4px 0;
+  font-weight: 600;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+}
+
+dd {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid Highlight;
+  outline-offset: 2px;
+}
+
+footer {
+  margin-top: 16px;
+  font-size: 0.9em;
+}

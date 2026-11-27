@@ -1,17 +1,19 @@
 'use client';
 
-import { Alert, Button, FormField, Input } from '@studio/ui';
+import { Alert, Button, FormField, Input, useI18n } from '@studio/ui';
 import { type MetricName } from '@studio/shared/metrics';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent, type ReactElement } from 'react';
 import { describeApiError } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
+import { type WebMessages } from '@/messages';
 import layout from '@/features/common/layout.module.css';
-import { formatIsoDate, localTodayIso } from '../metric-labels';
+import { formatIsoDate } from '@/lib/i18n/format';
+import { localTodayIso } from '../metric-labels';
 import {
   buildMetricSnapshot,
   emptyMetricValues,
   metricFieldOrder,
-  metricFieldSpecs,
   type MetricFormErrors,
   type MetricFormValues,
 } from '../metric-form-model';
@@ -21,6 +23,18 @@ import styles from '../metrics.module.css';
 interface MetricSnapshotFormProps {
   runId: string;
   publicationId: string;
+}
+
+/** The help line of the three fields whose format needs one. */
+function fieldHelpOf(field: MetricName, help: WebMessages['metrics']['fieldHelp']): string | undefined {
+  switch (field) {
+    case 'watchTimeSeconds':
+    case 'averageViewDurationSeconds':
+    case 'averageViewPercent':
+      return help[field];
+    default:
+      return undefined;
+  }
 }
 
 const focusOrder: readonly (MetricName | 'asOfDate')[] = ['asOfDate', ...metricFieldOrder];
@@ -34,6 +48,9 @@ type SaveState = { status: 'idle' } | { status: 'saving' } | { status: 'saved'; 
  * publication id, since a run page can hold up to five of these forms.
  */
 export function MetricSnapshotForm({ runId, publicationId }: MetricSnapshotFormProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.metrics.snapshotForm;
+  const { locale } = useI18n();
   const router = useRouter();
   const [asOfDate, setAsOfDate] = useState(() => localTodayIso());
   const [values, setValues] = useState<MetricFormValues>(emptyMetricValues);
@@ -50,7 +67,7 @@ export function MetricSnapshotForm({ runId, publicationId }: MetricSnapshotFormP
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (pending) return;
-    const result = buildMetricSnapshot({ asOfDate, values, today: localTodayIso() });
+    const result = buildMetricSnapshot({ asOfDate, values, today: localTodayIso() }, texts.errors);
     if (result.kind === 'invalid') {
       setErrors(result.errors);
       const first = focusOrder.find((field) => result.errors[field] !== undefined);
@@ -65,24 +82,24 @@ export function MetricSnapshotForm({ runId, publicationId }: MetricSnapshotFormP
       setValues(emptyMetricValues());
       router.refresh();
     } catch (error) {
-      setSave({ status: 'failed', message: describeApiError(error) });
+      setSave({ status: 'failed', message: describeApiError(error, t) });
     }
   }
 
-  const heading = asOfDate === '' ? 'Métricas' : `Métricas em ${formatIsoDate(asOfDate)}`;
+  const heading = asOfDate === '' ? texts.heading : texts.headingOn(formatIsoDate(asOfDate, locale));
 
   return (
     <form className={layout.stack} onSubmit={(event) => void handleSubmit(event)} noValidate aria-label={heading}>
       <h4 className="label">{heading}</h4>
       {save.status === 'failed' && <Alert variant="error">{save.message}</Alert>}
       {save.status === 'saved' && (
-        <Alert variant="success">{`Métricas de ${formatIsoDate(save.asOfDate)} salvas. A nota é recalculada em seguida.`}</Alert>
+        <Alert variant="success">{texts.saved(formatIsoDate(save.asOfDate, locale))}</Alert>
       )}
       <div className={layout.fieldGrid}>
         <FormField
           id={idOf('asOfDate')}
-          label="Números referentes a"
-          help="O dia a que os totais se referem. Nunca no futuro."
+          label={texts.asOfDate}
+          help={texts.asOfDateHelp}
           error={errors.asOfDate}
           disabled={pending}
         >
@@ -98,14 +115,14 @@ export function MetricSnapshotForm({ runId, publicationId }: MetricSnapshotFormP
           )}
         </FormField>
         {metricFieldOrder.map((field) => {
-          const spec = metricFieldSpecs[field];
+          const help = fieldHelpOf(field, t.metrics.fieldHelp);
           return (
             <FormField
               key={field}
               id={idOf(field)}
-              label={spec.label}
+              label={t.metrics.fields[field]}
               optional={field !== 'views'}
-              help={spec.help}
+              help={help}
               error={errors[field]}
               disabled={pending}
             >
@@ -125,8 +142,8 @@ export function MetricSnapshotForm({ runId, publicationId }: MetricSnapshotFormP
         })}
       </div>
       <div className={styles.actions}>
-        <Button type="submit" variant="secondary" loading={pending} loadingLabel="Salvando…">
-          Salvar métricas
+        <Button type="submit" variant="secondary" loading={pending} loadingLabel={texts.saving}>
+          {texts.save}
         </Button>
       </div>
     </form>

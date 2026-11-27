@@ -2,6 +2,7 @@ import { Module, type DynamicModule } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { PathsModule } from '@studio/core/paths';
 import { RedactionModule } from '@studio/core/redaction';
+import { WatcherAssetJobsModule } from '../asset-jobs/watcher-asset-jobs.module';
 import { WatcherCurationModule } from '../curation/watcher-curation.module';
 import { noMockFault } from '../mocks/mock-fault';
 import { WatcherPlatformsModule } from '../platforms/watcher-platforms.module';
@@ -42,6 +43,10 @@ export interface WatcherDaemonModuleOptions {
  * `PlatformsReadModule` and two `findMany`/`findUnique` reads, and writes its own platform files,
  * `publications.jsonl` and, on refresh under `token.lock`, the Keychain item. It shares the same
  * `CLOCK`.
+ * `WatcherAssetJobsModule` (guided-creation design sections 1, 2 and 4) hosts the asset-job step the
+ * loop calls after curations; it reads SQLite only through core `AssetJobsReadModule` and the
+ * catalog query handlers, shares the catalog resolver, stage settings and reference analyst through
+ * the same `WatcherModule` registration object, and writes only inside `asset-jobs/<kind>/<ref>/`.
  */
 @Module({})
 export class WatcherDaemonModule {
@@ -58,6 +63,7 @@ export class WatcherDaemonModule {
         WatcherCurationModule.register({ stop: options.shutdown }),
         WatcherScheduleModule.register({ clock: watcher }),
         WatcherPlatformsModule.register({ clock: watcher }),
+        WatcherAssetJobsModule.register({ stop: options.shutdown, ports: watcher }),
       ],
       providers: [
         { provide: DAEMON_SHUTDOWN, useValue: options.shutdown },

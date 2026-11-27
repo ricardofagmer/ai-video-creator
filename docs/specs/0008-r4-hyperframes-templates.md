@@ -1231,12 +1231,18 @@ In the watcher preparation, after `engineState` answers `ready` and `chrome.json
 `config/`, `cache/` and `home/` real-path check (missing folder: `runtime-not-prepared`) runs
 before `verifyChromeBinary`. All other checks keep their order.
 
+Amended 2026-11-26 (owner decision, `docs/specs/2026-11-25-render-runtime-gate-design.md`): on a
+real file system a missing `cache/` also removes the Chrome binary inside it, so the gate files or
+the `chrome.json` check answer `chrome-missing` before this folder check runs. The folder check
+answers `runtime-not-prepared` for a missing or non-folder `config/` or `home/`. AC 100 reads
+with `home/` in place of `cache/`.
+
 ### 18.4 Acceptance criteria (continue section 17.13)
 
 | AC | Criterion | Source |
 |---|---|---|
 | 99 | Fake trace with a binary that passes the check before the render and is unreadable after it: `trace.json` is written with `result: 'fail'`, `chromeSha256` of 64 zeros and the G1 finding; the controls' findings are kept | G1, K18 |
-| 100 | Watcher preparation with a ready gate, a present `chrome.json` and a missing `cache/`: `runtime-not-prepared`, zero starts, and `verifyChromeBinary` is not called | G2, AC 89 |
+| 100 | Watcher preparation with a ready gate, a present `chrome.json` and a missing `home/` (amended 2026-11-26, was `cache/`; see 18.3): `runtime-not-prepared`, zero starts, and `verifyChromeBinary` is not called | G2, AC 89 |
 | 101 | `hyperframesRender` muxes with `runtime.ffmpegBin`; `tools.ffmpegPath` is not started by it. `HyperframesRenderRequestSchema` is byte-identical to rev 2 | G3, K18 |
 
 Rollback: revert the rev 3 commit; rev 2 behaviour returns. The engine stays off until a trace

@@ -6,17 +6,20 @@ import {
   Card,
   CostMeter,
   EventLog,
-  PageHeader,
   StatusBadge,
   StepTimeline,
   WatcherIndicator,
   buttonClassName,
   textLinkClassName,
+  useI18n,
 } from '@studio/ui';
 import { type RunStateResponse } from '@studio/shared/api';
 import Link from 'next/link';
-import { useState, type ReactElement, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
+import { useWebMessages } from '@/lib/i18n/client';
 import { useRunLive } from '../hooks/useRunLive';
 import { describeRunError } from '../run-error-text';
 import { formatDateTime, hasReview, runWatcherState } from '../run-labels';
@@ -49,16 +52,18 @@ export interface ScheduleOrigin {
 
 /** "Criada pelo agendamento {título}", linked to the schedule page. */
 function ScheduleOriginLine({ origin }: { origin: ScheduleOrigin }): ReactElement {
+  const texts = useWebMessages().runs.run;
   return (
     <p className="caption">
       <Link href={`/agendamentos/${encodeURIComponent(origin.scheduleId)}`} className={textLinkClassName()}>
-        {origin.title === null ? 'Criada por um agendamento' : `Criada pelo agendamento ${origin.title}`}
+        {origin.title === null ? texts.createdByUnknownSchedule : texts.createdBySchedule(origin.title)}
       </Link>
     </p>
   );
 }
 
 function DraftNotice({ runId, onStarted }: { runId: string; onStarted: () => void }): ReactElement {
+  const t = useWebMessages();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,7 +74,7 @@ function DraftNotice({ runId, onStarted }: { runId: string; onStarted: () => voi
       await browserRunsApi.startRun(runId);
       onStarted();
     } catch (caught) {
-      setError(describeRunError(caught));
+      setError(describeRunError(caught, t));
     } finally {
       setPending(false);
     }
@@ -78,14 +83,14 @@ function DraftNotice({ runId, onStarted }: { runId: string; onStarted: () => voi
   return (
     <Alert
       variant="info"
-      title="Esta execução ainda é um rascunho."
+      title={t.runs.run.draftTitle}
       actions={
-        <Button variant="primary" loading={pending} loadingLabel="Iniciando…" onClick={() => void start()}>
-          Iniciar execução
+        <Button variant="primary" loading={pending} loadingLabel={t.runs.run.starting} onClick={() => void start()}>
+          {t.runs.run.start}
         </Button>
       }
     >
-      {error ?? 'Nenhuma etapa roda antes de você iniciar a execução.'}
+      {error ?? t.runs.run.draftBody}
     </Alert>
   );
 }
@@ -98,17 +103,36 @@ function DraftNotice({ runId, onStarted }: { runId: string; onStarted: () => voi
  */
 export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, footer }: RunLiveViewProps): ReactElement {
   const live = useRunLive(runId, initialState);
+  const t = useWebMessages();
+  const texts = t.runs.run;
+  const { locale } = useI18n();
   const { run, displayedStatus } = live.state;
   const reachable = live.connection === 'live';
   const watcherState = runWatcherState(live.state.watcher, reachable);
   const state = run.state;
+  // The waiting notice sits under the step the run stopped at; with no position it stays on top.
+  const position = currentPosition(run, live.state.now);
+  const waitingNotice = state.status === 'waiting' ? <RunWaitingNotice run={run} state={state} onChanged={live.refresh} /> : null;
+  const router = useRouter();
+  // Only a run that finishes while this page watches it redirects; one opened already finished
+  // stays here, so its timeline and events remain reachable.
+  const watchedUnfinished = useRef(!hasReview(initialState.run.state));
+  const finished = hasReview(state);
+  useEffect(() => {
+    if (!finished || !watchedUnfinished.current) return;
+    watchedUnfinished.current = false;
+    router.push(`/execucoes/${runId}/revisao?reproduzir=1`);
+  }, [finished, router, runId]);
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.runs}
+        glyph="reel"
         back={
           <Link href="/execucoes" className={textLinkClassName()}>
-            ← Execuções
+            {texts.back}
           </Link>
         }
         title={<span className="mono">{runId}</span>}
@@ -118,11 +142,11 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
             {watcherState !== null && <WatcherIndicator state={watcherState} />}
           </>
         }
-        description={`${run.recipe.definition.name} · ${run.recipe.ref} · iniciada ${formatDateTime(run.createdAt)}`}
+        description={`${run.recipe.definition.name} · ${run.recipe.ref} · ${texts.startedAt(formatDateTime(run.createdAt, locale))}`}
         actions={
           hasReview(state) ? (
             <Link href={`/execucoes/${runId}/revisao`} className={buttonClassName({ variant: 'primary' })}>
-              Abrir revisão
+              {texts.openReview}
             </Link>
           ) : undefined
         }
@@ -131,18 +155,18 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
       <div className={styles.liveGrid}>
         <div className={styles.notice}>
           {startFailed && displayedStatus === 'draft' && (
-            <Alert variant="error">A execução foi criada, mas não foi iniciada. Tente iniciar de novo.</Alert>
+            <Alert variant="error">{texts.startFailed}</Alert>
           )}
           {displayedStatus === 'draft' && <DraftNotice runId={runId} onStarted={live.refresh} />}
-          {state.status === 'waiting' && <RunWaitingNotice run={run} state={state} onChanged={live.refresh} />}
+          {position === undefined && waitingNotice}
           {state.status === 'failed' && (
-            <Alert variant="error" title="A execução falhou">
-              {state.reason}
+            <Alert variant="error" title={texts.failedTitle}>
+              <span lang={locale === 'pt-BR' ? undefined : 'pt-BR'}>{state.reason}</span>
             </Alert>
           )}
           {displayedStatus === 'interrupted' && (
-            <Alert variant="warning" title="A execução foi interrompida">
-              O watcher parou no meio de um passo. Ele retoma deste passo quando voltar; você também pode retomar agora.
+            <Alert variant="warning" title={texts.interruptedTitle}>
+              {texts.interruptedBody}
             </Alert>
           )}
         </div>
@@ -151,13 +175,14 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
             state={live.state}
             freshness={live.polling ? { lastUpdatedAtMs: live.lastUpdatedAtMs, checkedAtMs: live.checkedAtMs } : null}
             onChanged={live.refresh}
+            deletedHref="/execucoes"
           />
         </div>
         <div className={styles.cost}>
-          <Card title="Custo">
+          <Card title={texts.costCard}>
             <div className={layout.stack}>
               <CostMeter
-                label="Custo da execução"
+                label={texts.runCost}
                 spentUsd={run.totals.costUsd}
                 limitUsd={run.limits.costPerRunUsd}
                 estimateUsd={run.plan?.totalEstimateUsd}
@@ -167,15 +192,19 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
           </Card>
         </div>
         <div className={styles.timeline}>
-          <Card title="Linha do tempo">
-            <StepTimeline phases={buildTimeline(run, displayedStatus)} current={currentPosition(run, live.state.now)} />
+          <Card title={texts.timelineCard}>
+            <StepTimeline
+              phases={buildTimeline(run, displayedStatus, { runs: t.runs, locale })}
+              current={position}
+              currentStepContent={position === undefined ? undefined : waitingNotice}
+            />
           </Card>
         </div>
         <div className={styles.plan}>
           <RunPlanCard run={run} />
         </div>
         <div className={styles.events}>
-          <Card title="Eventos">
+          <Card title={texts.eventsCard}>
             <EventLog items={live.events} />
           </Card>
         </div>

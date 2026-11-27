@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactElement, ReactNode } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { shortenHash } from '../../utils/format';
 import { StatusBadge } from '../status/StatusBadge';
@@ -31,9 +34,10 @@ export interface VersionListProps {
 }
 
 /** Immutable versions of one asset, newest first (PRD 5.4). */
-export function VersionList({ items, currentVersion, label = 'Versões', className }: VersionListProps): ReactElement {
+export function VersionList({ items, currentVersion, label, className }: VersionListProps): ReactElement {
+  const { ui } = useI18n();
   return (
-    <ol aria-label={label} className={classNames(styles.list, className)}>
+    <ol aria-label={label ?? ui.catalog.versions} className={classNames(styles.list, className)}>
       {items.map((item) => {
         const isCurrent = item.version === currentVersion;
         return (
@@ -42,7 +46,7 @@ export function VersionList({ items, currentVersion, label = 'Versões', classNa
               <div className={styles.titleLine}>
                 <span className={styles.version}>v{item.version}</span>
                 <StatusBadge kind="asset" status={item.status} />
-                {isCurrent && <span className="caption">(versão aberta)</span>}
+                {isCurrent && <span className="caption">{ui.catalog.openVersion}</span>}
               </div>
               <p className={classNames('caption', styles.meta)}>
                 <span>{item.createdAtLabel}</span>
@@ -50,7 +54,7 @@ export function VersionList({ items, currentVersion, label = 'Versões', classNa
                 <span>{item.sizeLabel}</span>
                 <span aria-hidden="true"> · </span>
                 <span className="mono" title={item.contentHash}>
-                  <span className="visually-hidden">Hash </span>
+                  <span className="visually-hidden">{ui.catalog.hash}</span>
                   {shortenHash(item.contentHash)}
                 </span>
               </p>

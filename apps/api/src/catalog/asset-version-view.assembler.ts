@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
+import { GetAssetPurposeStatesQuery } from '@studio/core/asset-jobs';
 import { type AssetVersionPage } from '@studio/core/catalog';
 import { EmbeddingIndexStatusService } from '@studio/core/embeddings';
 import { ListLearningNotesQuery } from '@studio/core/learnings';
 import { GetVersionActivationsQuery } from '@studio/core/promotion';
-import { type AssetVersionPageView, type AssetVersionView, type LearningNoteView, type PromotionApprovalView } from '@studio/shared/api';
+import { type AssetPurposeJobView, type AssetVersionPageView, type AssetVersionView, type LearningNoteView, type PromotionApprovalView } from '@studio/shared/api';
 import { formatAssetRef, type AssetRef, type AssetVersion } from '@studio/shared/catalog';
 import { toAssetVersionView, type SearchIndexView } from './asset-version.view';
 
@@ -34,26 +35,34 @@ export class AssetVersionViewAssembler {
   ) {}
 
   async one(version: AssetVersion): Promise<AssetVersionView> {
-    const facts = await this.factsFor([version]);
-    return this.toView(version, facts);
+    const [view] = await this.many([version]);
+    if (view === undefined) throw new Error('asset-version-view.assembler: no view for one version');
+    return view;
   }
 
+  /**
+   * The purpose states run first: a `done` job is copied into the row there (ADR 0012 decision 4),
+   * so every other fact and the view itself read the synced version.
+   */
   async many(versions: readonly AssetVersion[]): Promise<AssetVersionView[]> {
-    const facts = await this.factsFor(versions);
-    return versions.map((version) => this.toView(version, facts));
+    const states = await this.queryBus.execute(new GetAssetPurposeStatesQuery(versions));
+    const synced = states.map((state) => state.version);
+    const facts = await this.factsFor(synced);
+    return states.map((state) => this.toView(state.version, facts, state.purposeJob));
   }
 
   async page(page: AssetVersionPage): Promise<AssetVersionPageView> {
     return { items: await this.many(page.items), total: page.total, nextCursor: page.nextCursor };
   }
 
-  private toView(version: AssetVersion, facts: FactsByRef): AssetVersionView {
+  private toView(version: AssetVersion, facts: FactsByRef, purposeJob: AssetPurposeJobView | null): AssetVersionView {
     const ref = refOf(version);
     return toAssetVersionView(version, {
       // A row the index lookup did not return has no current vector.
       searchIndex: facts.searchIndex.get(ref) ?? 'pending',
       learnings: facts.learnings.get(ref) ?? [],
       activation: facts.activations.get(ref) ?? null,
+      purposeJob,
     });
   }
 

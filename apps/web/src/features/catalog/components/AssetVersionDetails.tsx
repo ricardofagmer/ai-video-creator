@@ -3,29 +3,33 @@ import { type AssetVersionView } from '@studio/shared/api';
 import { type ModelIdReference, type PromptVariable, type ProvenanceSource } from '@studio/shared/catalog';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
-import { formatDate, formatDateTime, licenseUseLabels, sensitivityLabels, usageLabel } from '../catalog-labels';
+import { getI18n } from '@/lib/i18n/server';
+import { type WebMessages } from '@/messages';
+import { formatDate, formatDateTime } from '../catalog-labels';
+import { AssetTagEditor } from './AssetTagEditor';
 
-const NOT_INFORMED = 'Não informada';
+type DetailTexts = WebMessages['catalog']['details'];
+type MusicChoiceTexts = WebMessages['catalog']['musicChoice'];
 
-function modelReferenceText(reference: ModelIdReference): string {
+function modelReferenceText(reference: ModelIdReference, t: DetailTexts): string {
   if (reference.type === 'literal') return reference.value;
-  return reference.type === 'env' ? `variável de ambiente ${reference.name}` : `item do Keychain ${reference.name}`;
+  return reference.type === 'env' ? t.modelReferenceEnv(reference.name) : t.modelReferenceKeychain(reference.name);
 }
 
-function provenanceSourceText(source: ProvenanceSource): string {
+function provenanceSourceText(source: ProvenanceSource, t: DetailTexts): string {
   switch (source.type) {
     case 'url':
       return source.url;
     case 'created-here':
-      return 'Criado aqui';
+      return t.provenance.createdHere;
     case 'seed':
-      return `Importado de ${source.origin}`;
+      return t.provenance.seed(source.origin);
     case 'run':
-      return `Execução ${source.runId}`;
+      return t.provenance.run(source.runId);
     case 'comparison':
-      return `Comparação ${source.comparisonId}`;
+      return t.provenance.comparison(source.comparisonId);
     case 'curator':
-      return `Proposta do curador ${source.curationId}`;
+      return t.provenance.curator(source.curationId);
   }
 }
 
@@ -35,97 +39,106 @@ function variableDefaultText(variable: PromptVariable): string {
 }
 
 /** Kind-specific fields (PRD 5.2) for the kinds design/telas/03 lists. */
-function kindItems(version: AssetVersionView): DescriptionItem[] {
+function kindItems(version: AssetVersionView, t: DetailTexts, music: MusicChoiceTexts): DescriptionItem[] {
   switch (version.kind) {
     case 'template': {
       const { canvas, aspect, fps, duration } = version.details;
       return [
-        { term: 'Formato', description: `${canvas.width}x${canvas.height} (${aspect})` },
-        { term: 'FPS', description: String(fps) },
-        { term: 'Faixa de duração', description: `${duration.minSec}–${duration.maxSec} s` },
+        { term: t.format, description: `${canvas.width}x${canvas.height} (${aspect})` },
+        { term: t.fps, description: String(fps) },
+        { term: t.durationRange, description: t.durationRangeValue(duration.minSec, duration.maxSec) },
       ];
     }
     case 'ai-model': {
       const localPath = version.storage.mode === 'reference' ? version.storage.absolutePath : null;
       return [
-        { term: 'Provedor', description: version.details.provider },
-        { term: 'Referência do modelo', description: modelReferenceText(version.details.modelIdRef), mono: true },
-        { term: 'Caminho local', description: localPath ?? '—', mono: localPath !== null },
+        { term: t.provider, description: version.details.provider },
+        { term: t.modelReference, description: modelReferenceText(version.details.modelIdRef, t), mono: true },
+        ...(version.details.voiceModelId === undefined ? [] : [{ term: t.speechModel, description: version.details.voiceModelId, mono: true }]),
+        { term: t.localPath, description: localPath ?? '—', mono: localPath !== null },
       ];
+    }
+    case 'music': {
+      const { categories } = version.details;
+      const description = categories.length === 0 ? music.noCategories : categories.map((category) => music.categories[category]).join(', ');
+      return [{ term: music.categoriesLegend, description }];
     }
     default:
       return [];
   }
 }
 
-function storageItems(version: AssetVersionView): DescriptionItem[] {
+function storageItems(version: AssetVersionView, t: DetailTexts): DescriptionItem[] {
   if (version.storage.mode !== 'reference') return [];
   // The path only: the web never reads, fetches or previews by-reference content (PRD 12).
   const path = version.storage.absolutePath;
-  return [{ term: 'Armazenado por referência', description: path ?? 'Caminho oculto (material biométrico)', mono: path !== null }];
+  return [{ term: t.storedByReference, description: path ?? t.hiddenPath, mono: path !== null }];
 }
 
-function PromptVariablesTable({ variables }: { variables: readonly PromptVariable[] }): ReactElement {
+function PromptVariablesTable({ variables, t, typeLabels }: { variables: readonly PromptVariable[]; t: DetailTexts; typeLabels: WebMessages['catalog']['form']['variables']['types'] }): ReactElement {
   return (
     <Table
-      caption="Variáveis"
+      caption={t.variablesCaption}
       columns={[
-        { key: 'name', header: 'Nome', rowHeader: true, render: (variable: PromptVariable) => <span className="mono">{variable.name}</span> },
-        { key: 'type', header: 'Tipo', render: (variable: PromptVariable) => variable.type },
-        { key: 'default', header: 'Padrão', render: (variable: PromptVariable) => variableDefaultText(variable) },
+        { key: 'name', header: t.variableName, rowHeader: true, render: (variable: PromptVariable) => <span className="mono">{variable.name}</span> },
+        { key: 'type', header: t.variableType, render: (variable: PromptVariable) => typeLabels[variable.type] },
+        { key: 'default', header: t.variableDefault, render: (variable: PromptVariable) => variableDefaultText(variable) },
       ]}
       rows={variables}
       rowKey={(variable) => variable.name}
-      emptyText="Sem variáveis."
+      emptyText={t.noVariables}
     />
   );
 }
 
 /** design/telas/03 main column: Metadados, Licença e procedência, Notas. */
-export function AssetVersionDetails({ version }: { version: AssetVersionView }): ReactElement {
+export async function AssetVersionDetails({ version }: { version: AssetVersionView }): Promise<ReactElement> {
+  const { t, locale, ui } = await getI18n();
+  const d = t.catalog.details;
+  const NOT_INFORMED = d.notInformed;
   const metadata: DescriptionItem[] = [
-    { term: 'Hash', description: version.contentHash, mono: true },
-    { term: 'Tamanho', description: formatBytes(version.sizeBytes) },
-    { term: 'Tipo MIME', description: version.mimeType, mono: true },
-    { term: 'Proprietário', description: version.owner },
-    { term: 'Criado em', description: formatDateTime(version.createdAt) },
-    { term: 'Atualizado em', description: formatDateTime(version.updatedAt) },
-    { term: 'Etiquetas', description: version.tags.length > 0 ? version.tags.join(', ') : '—' },
-    { term: 'Uso', description: usageLabel(version.usageCount) },
-    { term: 'Sensibilidade', description: sensitivityLabels[version.sensitivity] },
-    ...storageItems(version),
-    ...kindItems(version),
+    { term: d.hash, description: version.contentHash, mono: true },
+    { term: d.size, description: formatBytes(version.sizeBytes, locale) },
+    { term: d.mimeType, description: version.mimeType, mono: true },
+    { term: d.owner, description: version.owner },
+    { term: d.createdAt, description: formatDateTime(version.createdAt, locale) },
+    { term: d.updatedAt, description: formatDateTime(version.updatedAt, locale) },
+    { term: d.tags, description: <AssetTagEditor version={version} /> },
+    { term: d.usage, description: t.catalog.usage(version.usageCount) },
+    { term: d.sensitivity, description: ui.status.sensitivity[version.sensitivity] },
+    ...storageItems(version, d),
+    ...kindItems(version, d, t.catalog.musicChoice),
   ];
   const { license, provenance } = version;
   const licenseItems: DescriptionItem[] = [
-    { term: 'Licença', description: license?.name ?? NOT_INFORMED },
-    { term: 'URL da licença', description: license?.url ?? NOT_INFORMED },
-    { term: 'Lida em', description: license === null ? NOT_INFORMED : formatDate(license.readOn) },
+    { term: d.license, description: license?.name ?? NOT_INFORMED },
+    { term: d.licenseUrl, description: license?.url ?? NOT_INFORMED },
+    { term: d.readOn, description: license === null ? NOT_INFORMED : formatDate(license.readOn, locale) },
     {
-      term: 'Usos permitidos',
-      description: license === null ? NOT_INFORMED : license.allowedUses.map((use) => licenseUseLabels[use]).join(', '),
+      term: d.allowedUses,
+      description: license === null ? NOT_INFORMED : license.allowedUses.map((use) => t.catalog.licenseUses[use]).join(', '),
     },
-    { term: 'Origem', description: provenance === null ? NOT_INFORMED : provenanceSourceText(provenance.source) },
-    { term: 'Autor', description: provenance?.author ?? NOT_INFORMED },
+    { term: d.origin, description: provenance === null ? NOT_INFORMED : provenanceSourceText(provenance.source, d) },
+    { term: d.author, description: provenance?.author ?? NOT_INFORMED },
     {
-      term: 'Data de captura',
-      description: provenance === null || provenance.capturedAt === null ? NOT_INFORMED : formatDate(provenance.capturedAt),
+      term: d.capturedAt,
+      description: provenance === null || provenance.capturedAt === null ? NOT_INFORMED : formatDate(provenance.capturedAt, locale),
     },
   ];
 
   return (
     <div className={layout.stackLarge}>
-      <Card title="Metadados">
+      <Card title={d.metadataTitle}>
         <div className={layout.stack}>
           <DescriptionList items={metadata} columns={2} />
-          {version.kind === 'prompt' && <PromptVariablesTable variables={version.details.variables} />}
+          {version.kind === 'prompt' && <PromptVariablesTable variables={version.details.variables} t={d} typeLabels={t.catalog.form.variables.types} />}
         </div>
       </Card>
-      <Card title="Licença e procedência">
+      <Card title={d.licenseTitle}>
         <DescriptionList items={licenseItems} columns={2} />
       </Card>
-      <Card title="Notas">
-        {version.notes === '' ? <p className="caption">Sem notas nesta versão.</p> : <p className="body">{version.notes}</p>}
+      <Card title={d.notesTitle}>
+        {version.notes === '' ? <p className="caption">{d.noNotes}</p> : <p className="body">{version.notes}</p>}
       </Card>
     </div>
   );

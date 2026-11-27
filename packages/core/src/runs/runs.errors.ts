@@ -55,6 +55,39 @@ export class RunReferenceNotFoundError extends RunsError {
   }
 }
 
+/**
+ * docs/specs/2026-11-25-site-capture-and-visual-media-design.md: the brief has a site address and
+ * the owner did not answer whether its screenshots go in the video.
+ */
+export class SiteCaptureUnansweredError extends RunsError {
+  override readonly category = 'validation';
+
+  constructor() {
+    super('The brief has a sourceUrl and no siteCapture answer');
+    this.name = 'SiteCaptureUnansweredError';
+  }
+}
+
+/** The owner asked for the site's screenshots and the preset has no `capture` stage to record them. */
+export class SiteCaptureDisabledError extends RunsError {
+  override readonly category = 'validation';
+
+  constructor(readonly ref: RecipeRef) {
+    super(`Recipe ${ref} has no capture stage to record the site`);
+    this.name = 'SiteCaptureDisabledError';
+  }
+}
+
+/** No site capture, no image and no video clip: the video would have nothing but text on screen. */
+export class RunWithoutPicturesError extends RunsError {
+  override readonly category = 'validation';
+
+  constructor() {
+    super('The run has no site capture, no image and no video clip');
+    this.name = 'RunWithoutPicturesError';
+  }
+}
+
 export class RunNotFoundError extends RunsError {
   override readonly category = 'not_found';
 

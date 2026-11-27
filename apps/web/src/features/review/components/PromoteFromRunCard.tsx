@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useState, type FormEvent, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { describeRunError } from '@/features/runs/run-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import { browserReviewApi } from '../review-api';
 
 interface PromoteOutput {
@@ -29,6 +30,8 @@ const ASSET_ID = 'promover-ativo';
  * unconfirmed sensitivity (`promote-sensitivity-unknown`); those refusals are shown in pt-BR.
  */
 export function PromoteFromRunCard({ runId, outputs }: PromoteFromRunCardProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.runs.review.promote;
   const [artifactPath, setArtifactPath] = useState(outputs[0]?.path ?? '');
   const [assetId, setAssetId] = useState('');
   const [assetError, setAssetError] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export function PromoteFromRunCard({ runId, outputs }: PromoteFromRunCardProps):
     if (pending) return;
     const parsedId = AssetIdSchema.safeParse(assetId.trim());
     if (!parsedId.success) {
-      setAssetError('Use o id de um ativo do catálogo.');
+      setAssetError(texts.assetIdInvalid);
       document.getElementById(ASSET_ID)?.focus();
       return;
     }
@@ -52,14 +55,14 @@ export function PromoteFromRunCard({ runId, outputs }: PromoteFromRunCardProps):
     try {
       setPromoted(await browserReviewApi.promoteFromRun(runId, { artifactPath, assetId: parsedId.data }));
     } catch (error) {
-      setServerError(describeRunError(error));
+      setServerError(describeRunError(error, t));
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <Card title="Promover ao catálogo" description="Opcional. Um arquivo desta execução vira uma nova versão de um ativo do catálogo.">
+    <Card title={texts.title} description={texts.description}>
       <form className={layout.stack} onSubmit={(event) => void handleSubmit(event)} noValidate>
         {serverError !== null && <Alert variant="error">{serverError}</Alert>}
         {promoted !== null && (
@@ -67,14 +70,14 @@ export function PromoteFromRunCard({ runId, outputs }: PromoteFromRunCardProps):
             variant="success"
             actions={
               <Link href={`/catalogo/${encodeURIComponent(promoted.assetId)}`} className={textLinkClassName()}>
-                Abrir no catálogo
+                {texts.openInCatalog}
               </Link>
             }
           >
-            {`Nova versão criada: ${promoted.assetId}@${promoted.version}.`}
+            {texts.created(`${promoted.assetId}@${promoted.version}`)}
           </Alert>
         )}
-        <FormField id={ARTIFACT_ID} label="Arquivo da execução" disabled={pending}>
+        <FormField id={ARTIFACT_ID} label={texts.artifact} disabled={pending}>
           {({ invalid, ...control }) => (
             <Select
               {...control}
@@ -85,14 +88,14 @@ export function PromoteFromRunCard({ runId, outputs }: PromoteFromRunCardProps):
             />
           )}
         </FormField>
-        <FormField id={ASSET_ID} label="Ativo de destino" help="Id do ativo do catálogo que recebe a nova versão." error={assetError ?? undefined} disabled={pending}>
+        <FormField id={ASSET_ID} label={texts.targetAsset} help={texts.targetAssetHelp} error={assetError ?? undefined} disabled={pending}>
           {({ invalid, ...control }) => (
             <Input {...control} invalid={invalid} maxLength={120} value={assetId} onChange={(event) => setAssetId(event.currentTarget.value)} />
           )}
         </FormField>
         <div className={layout.formFooter}>
-          <Button type="submit" variant="secondary" loading={pending} loadingLabel="Promovendo…">
-            Promover
+          <Button type="submit" variant="secondary" loading={pending} loadingLabel={texts.promoting}>
+            {texts.promote}
           </Button>
         </div>
       </form>

@@ -56,6 +56,7 @@ function sameControlRequest(left: ControlRequest, right: ControlRequest): boolea
     left.stop === right.stop &&
     left.at === right.at &&
     (left.resume ?? false) === (right.resume ?? false) &&
+    JSON.stringify(left.brief ?? null) === JSON.stringify(right.brief ?? null) &&
     (left.correlationId ?? null) === (right.correlationId ?? null)
   );
 }

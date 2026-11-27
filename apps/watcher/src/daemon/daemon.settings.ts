@@ -35,6 +35,9 @@ export const SHUTDOWN_GRACE_MS = 20_000;
  */
 export const MAX_CONSECUTIVE_RUN_FAILURES = 3;
 
+/** Open asset jobs (reference analyses, voice samples) that end before a waiting run starts. */
+export const MAX_ASSET_JOBS_BEFORE_RUN = 4;
+
 /**
  * Least time between two heartbeat write-failure warnings (SPEC 0002 rev 4, section 13.3). One
  * warning per outage already; this bounds a write that fails and recovers on alternate beats.

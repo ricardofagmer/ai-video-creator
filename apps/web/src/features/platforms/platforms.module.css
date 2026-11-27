@@ -1,11 +1,5 @@
 /* `/contas` (SPEC 0007 section 5.9). Spacing and colours from @studio/ui tokens only. */
 
-.cardBody {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
 .capabilities {
   display: flex;
   flex-direction: column;
@@ -48,4 +42,18 @@
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
+}
+
+/* Import note and connect actions sit at the foot of the poster card, so cards in one row line up. */
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.importNote {
+  margin: 0;
 }

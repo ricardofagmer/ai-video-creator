@@ -1,5 +1,5 @@
 import { type AssetRef, type AssetStatus } from '@studio/shared/catalog';
-import { type BindingSlot, type RecipeRef } from '@studio/shared/recipes';
+import { COMPOSITION_CONFLICTS_MAX, type BindingSlot, type CompositionConflict, type RecipeRef } from '@studio/shared/recipes';
 import { type InputIssue } from '../catalog';
 
 /** Error taxonomy category (rules/observability.md); the api filter maps it to a status code. */
@@ -87,6 +87,26 @@ export class RecipeBindingInvalidError extends RecipesError {
   constructor(readonly problems: readonly BindingProblem[]) {
     super(`Recipe bindings do not match the catalog: ${problems.map((item) => `${item.slot}=${item.ref} (${item.problem})`).join('; ')}`);
     this.name = 'RecipeBindingInvalidError';
+  }
+}
+
+/**
+ * 422 `composition-conflict` (guided-creation design section 3): the recipe, or the run asked of
+ * it, breaks a composition rule of `@studio/shared/recipes` (a stage on without what it needs, a
+ * template whose format or duration range does not fit). `conflicts` carries ids and numbers only,
+ * capped at `COMPOSITION_CONFLICTS_MAX`; the web builds the owner's message from them. The api
+ * puts them in `ApiError.details.conflicts`.
+ */
+export class CompositionConflictError extends RecipesError {
+  override readonly category = 'validation';
+  readonly reason = 'composition-conflict';
+  readonly conflicts: readonly CompositionConflict[];
+
+  constructor(conflicts: readonly CompositionConflict[]) {
+    const kept = conflicts.slice(0, COMPOSITION_CONFLICTS_MAX);
+    super(`Composition conflicts: ${kept.map((conflict) => conflict.rule).join(', ')}`);
+    this.name = 'CompositionConflictError';
+    this.conflicts = kept;
   }
 }
 

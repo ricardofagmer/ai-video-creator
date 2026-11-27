@@ -79,7 +79,7 @@ R1 builds the studio foundation in a new Turborepo + pnpm monorepo at
 `ai-video-creator/video-studio/`: a catalog with immutable asset versions, recipes that pin them
 to a pipeline graph, a graph engine that runs in a launchd watcher with seven fixed steps per
 stage and tool-checked postconditions, five Mastra agents hosted in NestJS providers behind a
-mock-by-default Claude adapter, a local Next.js web in pt-BR, an Ink CLI `studio`, and an install
+mock-by-default Claude adapter, a local Next.js web in pt-BR (es and en added later, D16), an Ink CLI `studio`, and an install
 script. Every run ends at a human review gate with `final.mp4`, `manifest.json`, `cost.json` and
 `qa/`. `ai-creator-engine` is absorbed: its three packages are copied unchanged first (D13) and its
 assets become seed catalog items.
@@ -107,7 +107,7 @@ that path: real catalog and recipes, resilience, agents, real stage tools, api, 
 9. Toolbox ports of the Spesia Python tools to TypeScript commands (D15).
 10. The two R1 recipes: "Product tour 16:9" and "Tool Demo 9:16" (D12).
 11. Passphrase auth (D8), api bound to `127.0.0.1`.
-12. Next.js web in pt-BR (D16): catalog, recipes, runs, live timeline, review.
+12. Next.js web in pt-BR, later also es and en (D16): catalog, recipes, runs, live timeline, review.
 13. Ink CLI `studio` with the non-interactive commands of PRD section 11.
 14. `scripts/install.sh`, `scripts/uninstall.sh`, `studio doctor`.
 15. Improvement loop, R1 part only (PRD section 8 item 1): record outcomes and `usageCount`.
@@ -137,7 +137,7 @@ that path: real catalog and recipes, resilience, agents, real stage tools, api, 
 - No Python enters the monorepo (D15). The local voice stays an external process contract to the
   script under `ai-video-creator/ricardo-clone/`; no file there is read, copied or indexed.
 - Secrets come from the environment or the macOS Keychain only (D3, PRD section 12).
-- Interface text in pt-BR; code, identifiers and comments in English (D16).
+- Interface text in pt-BR (the source), es and en; code, identifiers and comments in English (D16).
 - Multi-agent code (tickets R1-12, R1-13, R1-14) is permitted because the topology approval is
   recorded (`topology-approval`, 2026-11-18, criterion 26). A change to the topology returns to its
   owning step before those tickets continue.
@@ -553,7 +553,7 @@ work). Ticket evidence is read-only: scoped diff plus contract inspection.
 ### R1-19 — Web: shell, login, catalog and recipes
 
 - Goal: the owner builds the catalog and saves recipes in the browser.
-- Delivers: `apps/web` (Next.js App Router) bound to `127.0.0.1`, pt-BR interface; login and
+- Delivers: `apps/web` (Next.js App Router) bound to `127.0.0.1`, pt-BR interface (es and en added later); login and
   session handling; catalog list and lexical search, upload of every kind in PRD 5.1 with the
   metadata form of PRD 5.2, register by reference, version history, new version on edit,
   activate / deprecate with the license rule surfaced; recipe list, create from catalog assets,

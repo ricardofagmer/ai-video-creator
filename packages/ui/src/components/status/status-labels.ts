@@ -2,43 +2,43 @@ import type { BadgeTone } from '../badge/Badge';
 import type { AssetSensitivity, AssetStatus, RunStatus, StepStatus } from './status-types';
 
 export interface StatusAppearance {
-  label: string;
   tone: BadgeTone;
   /** The dot pulses while the state is live. */
   live?: boolean;
 }
 
-// pt-BR texts and tones from design/componentes-estudio.md, section 1.
+// Tones from design/componentes-estudio.md, section 1. The texts live in the catalogue
+// (`UiMessages.status`), so a status without a text in any language fails the build.
 export const assetStatusAppearance: Readonly<Record<AssetStatus, StatusAppearance>> = {
-  draft: { label: 'Rascunho', tone: 'neutral' },
-  active: { label: 'Ativo', tone: 'success' },
-  deprecated: { label: 'Descontinuado', tone: 'neutral' },
+  draft: { tone: 'neutral' },
+  active: { tone: 'success' },
+  deprecated: { tone: 'neutral' },
 };
 
 export const sensitivityAppearance: Readonly<Record<AssetSensitivity, StatusAppearance>> = {
-  normal: { label: 'Normal', tone: 'neutral' },
-  biometric: { label: 'Biométrico', tone: 'warning' },
-  'third-party': { label: 'Terceiros', tone: 'info' },
+  normal: { tone: 'neutral' },
+  biometric: { tone: 'warning' },
+  'third-party': { tone: 'info' },
 };
 
 export const stepStatusAppearance: Readonly<Record<StepStatus, StatusAppearance>> = {
-  pending: { label: 'Pendente', tone: 'neutral' },
-  running: { label: 'Em execução', tone: 'active', live: true },
-  ok: { label: 'Concluído', tone: 'success' },
-  warning: { label: 'Concluído com recuperação', tone: 'warning' },
-  failed: { label: 'Falhou', tone: 'danger' },
-  skipped: { label: 'Pulado', tone: 'neutral' },
+  pending: { tone: 'neutral' },
+  running: { tone: 'active', live: true },
+  ok: { tone: 'success' },
+  warning: { tone: 'warning' },
+  failed: { tone: 'danger' },
+  skipped: { tone: 'neutral' },
 };
 
 export const runStatusAppearance: Readonly<Record<RunStatus, StatusAppearance>> = {
-  draft: { label: 'Rascunho', tone: 'neutral' },
-  pending: { label: 'Na fila', tone: 'neutral' },
-  running: { label: 'Em execução', tone: 'active', live: true },
-  waiting: { label: 'Aguardando você', tone: 'warning' },
-  paused: { label: 'Pausada', tone: 'neutral' },
-  failed: { label: 'Falhou', tone: 'danger' },
-  interrupted: { label: 'Interrompida', tone: 'warning' },
-  review: { label: 'Em revisão', tone: 'info' },
-  approved: { label: 'Aprovada', tone: 'success' },
-  rejected: { label: 'Rejeitada', tone: 'danger' },
+  draft: { tone: 'neutral' },
+  pending: { tone: 'neutral' },
+  running: { tone: 'active', live: true },
+  waiting: { tone: 'warning' },
+  paused: { tone: 'neutral' },
+  failed: { tone: 'danger' },
+  interrupted: { tone: 'warning' },
+  review: { tone: 'info' },
+  approved: { tone: 'success' },
+  rejected: { tone: 'danger' },
 };

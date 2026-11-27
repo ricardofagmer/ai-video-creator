@@ -44,13 +44,22 @@ export const AiModelDetailsSchema = z
     modelType: z.enum(['voice-clone', 'avatar', 'checkpoint', 'lora', 'provider-model']),
     provider: z.enum(['anthropic', 'elevenlabs', 'local-voice', 'other']),
     modelIdRef: ModelIdReferenceSchema,
+    /**
+     * Public id of the provider's speech model for this voice (ElevenLabs: `eleven_multilingual_v2`),
+     * where `modelIdRef` names the voice itself. Absent means the watcher's configured default.
+     */
+    voiceModelId: z
+      .string()
+      .regex(/^[A-Za-z0-9._:-]{1,128}$/)
+      .optional(),
   })
   .strict();
 export type AiModelDetails = z.infer<typeof AiModelDetailsSchema>;
 
 export const ReferenceDetailsSchema = z
   .object({
-    subKind: z.enum(['video', 'image', 'audio', 'style', 'screenshot-set', 'text']),
+    /** `website`: an https page URL saved for the site analysis step (site analysis spec, 2026-11-23). */
+    subKind: z.enum(['video', 'image', 'audio', 'style', 'screenshot-set', 'text', 'website']),
     referenceNotes: z.string().max(4000),
   })
   .strict();
@@ -103,11 +112,47 @@ export const ImageDetailsSchema = z
   .strict();
 export type ImageDetails = z.infer<typeof ImageDetailsSchema>;
 
+/**
+ * What a track sounds like: moods and instruments (docs/specs/2026-11-25-ai-music-choice-design.md).
+ * A closed list, so the categories a preset asks for can be matched against the catalog's tracks.
+ */
+export const musicCategories = [
+  'animated',
+  'excited',
+  'sad',
+  'upset',
+  'boring',
+  'classic',
+  'electronic',
+  'thoughtful',
+  'guitar',
+  'acoustic-guitar',
+  'piano',
+  'voices',
+  'calm',
+  'happy',
+  'epic',
+  'cinematic',
+  'lo-fi',
+] as const;
+export const MusicCategorySchema = z.enum(musicCategories);
+export type MusicCategory = z.infer<typeof MusicCategorySchema>;
+
+/** The most categories one track or one preset names. */
+export const MUSIC_CATEGORIES_MAX = 8;
+
+export const MusicCategoryListSchema = z
+  .array(MusicCategorySchema)
+  .max(MUSIC_CATEGORIES_MAX)
+  .refine((categories) => new Set(categories).size === categories.length, { message: 'a category appears at most once' });
+
 export const MusicDetailsSchema = z
   .object({
     durationMs: z.number().int().positive(),
     bpm: z.number().positive().max(400).nullable(),
     integratedLufs: z.number().min(-70).max(0).nullable(),
+    /** Defaults to none so versions stored before categories existed stay valid. */
+    categories: MusicCategoryListSchema.default([]),
   })
   .strict();
 export type MusicDetails = z.infer<typeof MusicDetailsSchema>;

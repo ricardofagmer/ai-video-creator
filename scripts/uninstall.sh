@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Video Studio uninstaller (SPEC 0002 R1-22, PRD 0001 section 11, criterion 25):
+# EngineOS Video Creator uninstaller (SPEC 0002 R1-22, PRD 0001 section 11, criterion 25):
 #
 #   scripts/uninstall.sh [--dry-run] [--purge] [--remove-keys]
 #
@@ -337,7 +337,7 @@ step_platform_tokens() {
     TOKENS_RESULT="$removed apagado(s), $absent ausente(s), $failed com falha"
   fi
   if [ "$removed" -gt 0 ]; then
-    info 'a autorização do Video Studio continua listada na sua conta de cada plataforma até você removê-la nas configurações de lá.'
+    info 'a autorização do EngineOS Video Creator continua listada na sua conta de cada plataforma até você removê-la nas configurações de lá.'
     info 'se a pasta de dados foi mantida e o studio for reinstalado, conecte as contas de novo pela página Contas.'
   fi
 }
@@ -379,7 +379,7 @@ print_summary() {
     say 'Simulação concluída: nada foi removido.'
     return 0
   fi
-  say 'Video Studio desinstalado.'
+  say 'EngineOS Video Creator desinstalado.'
   info "App do menu:     $SHELL_RESULT"
   info "Agente launchd:  removido ($STUDIO_LAUNCHD_LABEL)"
   info 'Comando studio:  link deste repositório removido'
@@ -397,7 +397,7 @@ main() {
   parse_arguments "$@"
   enable_error_trap
   resolve_repo_root "$SCRIPT_DIR"
-  say "Video Studio: desinstalação ($REPO_ROOT)"
+  say "EngineOS Video Creator: desinstalação ($REPO_ROOT)"
   if [ "$DRY_RUN" -eq 1 ]; then
     say 'Modo simulação (--dry-run): nada é removido.'
   fi

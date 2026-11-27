@@ -49,7 +49,8 @@ export interface StageExecutionContext extends StagePlanningContext {
  */
 export type StageFailure =
   | { class: 'retryable'; kind: 'tool' | 'timeout' | 'rate-limit' | 'invalid-output'; message: string }
-  | { class: 'authentication'; provider: ProviderName; message: string }
+  // `refusal` absent means a refused credential; 'quota-exceeded' means a valid key with no quota left.
+  | { class: 'authentication'; provider: ProviderName; message: string; refusal?: 'quota-exceeded' }
   | { class: 'needs-person'; cause: WaitingCause; message: string; whatToDo: string };
 
 /**

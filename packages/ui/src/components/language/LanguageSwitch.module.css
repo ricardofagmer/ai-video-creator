@@ -1,0 +1,49 @@
+/* Same pill as ThemeToggle: the chosen option glows with the brand gradient around its flag. */
+.switch {
+  display: inline-flex;
+  gap: var(--space-0-5);
+  padding: var(--space-0-5);
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+/* 32 x 28 px, the size the PT/ES/EN text options had; the 20 px flag leaves a gradient rim. */
+.option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--control-height-sm);
+  height: var(--control-height-xs);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: box-shadow var(--duration-normal) var(--ease-standard);
+}
+
+/* Hairline edge so the white stripes of the flags stay visible on light surfaces. */
+.flag {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 1px var(--color-border);
+  opacity: 0.6;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.option:hover .flag,
+.option:focus-visible .flag,
+.option[aria-checked='true'] .flag {
+  opacity: 1;
+}
+
+.option[aria-checked='true'] {
+  background-image: var(--gradient-control);
+  box-shadow: var(--shadow-glow);
+}
+
+.option[aria-checked='true'] .flag {
+  box-shadow: 0 0 0 1px var(--color-on-brand);
+}

@@ -5,6 +5,7 @@ import { scanCatalogVersions } from '../catalog/catalog-scan.js';
 import { assertImportSize, inspectImportSource, toContentInput } from '../catalog/import-source.js';
 import { BiometricImportRefusedError, CatalogScanLimitError, CliUsageError } from '../errors/cli.errors.js';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { withCliContext, type CliContext } from '../nest/cli-context.js';
 import { readJsonInputFile } from '../terminal/json-input-file.js';
 import { type CommandDependencies } from './command-dependencies.js';
@@ -24,7 +25,7 @@ export interface CatalogImportOptions {
 function parseSensitivityFlag(value: string | undefined): Sensitivity | undefined {
   if (value === undefined) return undefined;
   const parsed = SensitivitySchema.safeParse(value);
-  if (!parsed.success) throw new CliUsageError(`--sensitivity aceita: ${SensitivitySchema.options.join(', ')}.`);
+  if (!parsed.success) throw new CliUsageError(cliText().usage.acceptedValues('--sensitivity', SensitivitySchema.options.join(', ')));
   return parsed.data;
 }
 
@@ -59,7 +60,7 @@ async function biometricRegistry(context: CliContext, signal: AbortSignal): Prom
  */
 export async function catalogImportCommand(options: CatalogImportOptions, dependencies: CommandDependencies): Promise<number> {
   const kindResult = AssetKindSchema.safeParse(options.kind);
-  if (!kindResult.success) throw new CliUsageError(`--kind aceita: ${AssetKindSchema.options.join(', ')}.`);
+  if (!kindResult.success) throw new CliUsageError(cliText().usage.acceptedValues('--kind', AssetKindSchema.options.join(', ')));
   const kind = kindResult.data;
   const flag = parseSensitivityFlag(options.sensitivity);
   const rawMetadata = await readJsonInputFile('metadata', options.metadata);
@@ -78,8 +79,9 @@ export async function catalogImportCommand(options: CatalogImportOptions, depend
   });
 
   const ref = formatAssetRef({ assetId: created.id, version: created.version });
-  const mode = created.storage.mode === 'reference' ? 'por referência (nada foi copiado)' : 'copiado para o acervo';
-  dependencies.printer.line(`Asset ${ref} (${created.kind}) criado como rascunho, ${mode}.`);
-  dependencies.printer.line('Ative a versão pelo web quando os metadados estiverem completos.');
+  const text = cliText().commands.catalogImport;
+  const mode = created.storage.mode === 'reference' ? text.byReference : text.copied;
+  dependencies.printer.line(text.created(ref, created.kind, mode));
+  dependencies.printer.line(text.activateInWeb);
   return ExitCode.ok;
 }

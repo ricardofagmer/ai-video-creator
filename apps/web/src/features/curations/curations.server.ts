@@ -4,6 +4,7 @@ import { CurationIdSchema, type CurationSubject } from '@studio/shared/curation'
 import { ApiRequestError, ApiResponseContractError, ApiUnreachableError, isNotFound } from '@/lib/api';
 import { serverStudioClient } from '@/lib/api/server';
 import { describeApiError } from '@/features/common/api-error-text';
+import { getI18n } from '@/lib/i18n/server';
 import { recipeIdOf } from '@/features/comparisons/comparison-labels';
 import { assetSubjectArmOptions, type CompareArmOption } from './curation-compare-model';
 import { subjectAssetId } from './curation-labels';
@@ -29,7 +30,10 @@ export async function loadSubjectCurations(subject: CurationSubject): Promise<Su
     const page = await serverCurationsApi().listCurations({ subjectRef: subject.ref, limit: SUBJECT_LIST_LIMIT });
     return { status: 'ready', items: page.items.filter((curation) => curation.subject.kind === subject.kind) };
   } catch (error) {
-    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error) };
+    if (isApiFailure(error)) {
+      const { t } = await getI18n();
+      return { status: 'failed', message: describeApiError(error, t) };
+    }
     throw error;
   }
 }
@@ -47,9 +51,10 @@ export async function loadCuration(curationId: string): Promise<CurationView | n
 
 /** Draft and active versions both run; a deprecated version cannot start a run. */
 async function loadRunnableRecipes(): Promise<RecipeVersionView[]> {
+  const { locale } = await getI18n();
   const page = await serverStudioClient().listRecipes({ statuses: ['active', 'draft'], limit: 100 });
   return [...page.items].sort(
-    (left, right) => left.recipe.name.localeCompare(right.recipe.name, 'pt-BR') || right.recipe.version - left.recipe.version,
+    (left, right) => left.recipe.name.localeCompare(right.recipe.name, locale) || right.recipe.version - left.recipe.version,
   );
 }
 
@@ -67,9 +72,13 @@ export async function loadCompareOptions(subject: CurationSubject): Promise<Comp
     }
     const assetId = subjectAssetId(subject);
     if (assetId === null) return { status: 'ready', options: [] };
-    return { status: 'ready', options: assetSubjectArmOptions(await loadRunnableRecipes(), assetId) };
+    const { t } = await getI18n();
+    return { status: 'ready', options: assetSubjectArmOptions(await loadRunnableRecipes(), assetId, t.recipes.bindings.slots) };
   } catch (error) {
-    if (isApiFailure(error)) return { status: 'failed', message: describeApiError(error) };
+    if (isApiFailure(error)) {
+      const { t } = await getI18n();
+      return { status: 'failed', message: describeApiError(error, t) };
+    }
     throw error;
   }
 }

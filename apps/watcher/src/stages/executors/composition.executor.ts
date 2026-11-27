@@ -1,18 +1,20 @@
-import { copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PriceNotAvailableError } from '@studio/core/costs';
-import { ScenesOutputSchema, ScriptOutputSchema } from '@studio/shared/agents';
+import { ScenesOutputSchema, ScriptOutputSchema, type ScriptOutput } from '@studio/shared/agents';
 import { type TemplateDetails } from '@studio/shared/catalog';
 import type { StageExecutionContext, StageExecutionResult, StageFailure, StagePlanningContext } from '@studio/shared/ports';
 import { newSessionId, resolveInsideRun } from '@studio/shared/run-files';
 import { type DeclaredOutput, type StageEstimate, type WaitingCause } from '@studio/shared/run-format';
-import { type HyperframesRefusalReason } from '@studio/shared/hyperframes';
+import { HYPERFRAMES_BACKGROUND_FILE, type HyperframesRefusalReason } from '@studio/shared/hyperframes';
 import { boundTemplate, brandKitSummary } from '../agents/packet-sources';
+import { backgroundPlan } from '../composition/hyperframes-background';
+import { compositionLengthS, fitStagedCompositionLength } from '../composition/hyperframes-composition-length';
 import { recordRenderFinished, recordRenderRefused } from '../composition/hyperframes-events';
-import { engineRuntime, templateFitsRun, templateVariables } from '../composition/hyperframes-preparation';
+import { templateFitsRun, templateVariables, type SceneText } from '../composition/hyperframes-preparation';
 import { stageTemplateCopy } from '../composition/hyperframes-template-copy';
 import { renderPlan, rendersOnCanvas, templateIdOf, type StagedFile } from '../composition/render-plan.mapper';
-import { MediaWriteResultSchema, RenderResultSchema } from '../process/tool-runner.protocol';
+import { MediaWriteResultSchema, RenderResultSchema, type HyperframesRenderRequest } from '../process/tool-runner.protocol';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
 import { boundOfKind } from '../shared/catalog-lookup';
 import { withScratchDir } from '../shared/scratch-dir';
@@ -154,7 +156,7 @@ export class CompositionExecutor extends BaseStageExecutor {
       const text = hyperframesRefusalText(reason, template.ref);
       return { status: 'failed', failure: this.ownerFailure(context, text.message, text.whatToDo) };
     };
-    const runtime = await engineRuntime(hyperframes, settings);
+    const runtime = await hyperframes.renderRuntime(settings);
     if (runtime.status === 'refused') return refuse(runtime.reason);
     const { canvas, fps } = context.recipe.format;
     const misfit = templateFitsRun(template.details, { canvas, fps, narrationS: narration.durationS });
@@ -169,6 +171,7 @@ export class CompositionExecutor extends BaseStageExecutor {
       disclosure: disclosureLine(context),
       narrationS: narration.durationS,
       accent: brandKit?.palette[0]?.hex ?? null,
+      scenes: sceneTexts(script, narration),
     });
     if (variables.status === 'refused') return refuse(variables.reason);
     const pricing = this.renderPrice(context, narration.durationS);
@@ -181,6 +184,9 @@ export class CompositionExecutor extends BaseStageExecutor {
       const templateDir = join(directory, 'template');
       const staged = await stageTemplateCopy(bound.asset, templateDir, hyperframes, context.signal);
       if (staged.status === 'refused') return refuse('template-not-self-contained');
+      const lengthS = compositionLengthS(narration.durationS);
+      await fitStagedCompositionLength(templateDir, lengthS);
+      const background = await this.stageBackground(context, narration, lengthS, { templateDir, mediaDir: join(directory, 'media-src') });
       context.report({ kind: 'tool', text: stageTexts.hyperframesRendering(template.ref) });
       const output = join(directory, 'composition.mp4');
       const result = await runner.run(
@@ -195,7 +201,8 @@ export class CompositionExecutor extends BaseStageExecutor {
           audio: resolveInsideRun(context.runDir, narration.audioPath),
           output,
           scratchDir: directory,
-          runtime: runtime.value,
+          ...(background === null ? {} : { background }),
+          runtime: runtime.runtime,
         },
         RenderResultSchema,
         { signal: context.signal, timeoutMs: commandTimeoutMs(context), readRoots: [context.runDir] },
@@ -210,6 +217,36 @@ export class CompositionExecutor extends BaseStageExecutor {
     });
     if (rendered.status === 'ok') await this.recordRender(context, rendered.renderSeconds);
     return rendered;
+  }
+
+  /**
+   * The picture behind the text, for a template that references `HYPERFRAMES_BACKGROUND_FILE`:
+   * each directed scene's capture or bound image, copied into the private scratch folder (the
+   * runner reads nothing else) and cut by the runner into one clip. Null for a text-only template.
+   */
+  private async stageBackground(
+    context: StageExecutionContext,
+    narration: NarrationIndex,
+    lengthS: number,
+    folders: { templateDir: string; mediaDir: string },
+  ): Promise<HyperframesRenderRequest['background'] | null> {
+    const index = await readFile(join(folders.templateDir, 'index.html'), 'utf8');
+    if (!index.includes(HYPERFRAMES_BACKGROUND_FILE)) return null;
+    const scenes = await readOptionalStageInput(context, 'scenes', ScenesOutputSchema);
+    const captures = await readOptionalStageInput(context, 'captures-index', CapturesIndexSchema);
+    const plan = backgroundPlan({ runDirPathOf: (path) => resolveInsideRun(context.runDir, path), scenes, captures, narration, assets: context.assets });
+    await stageFiles(folders.mediaDir, plan.files);
+    const shown = plan.segments.filter((segment) => segment.name !== null).length;
+    context.report({ kind: 'tool', text: stageTexts.hyperframesBackground(shown, plan.segments.length) });
+    return {
+      file: HYPERFRAMES_BACKGROUND_FILE,
+      lengthS,
+      segments: plan.segments.map((segment) => ({
+        kind: segment.kind,
+        source: segment.name === null ? null : join(folders.mediaDir, segment.name),
+        durationS: segment.durationS,
+      })),
+    };
   }
 
   /** The render is priced before it runs; a missing price stops before any work (R1-11). */
@@ -247,6 +284,14 @@ export class CompositionExecutor extends BaseStageExecutor {
   private ownerStop(context: StageExecutionContext, message: string, whatToDo: string): StageExecutionResult {
     return stageFailed(this.ownerFailure(context, message, whatToDo));
   }
+}
+
+/** Each narrated scene's on-screen text with the second its narration starts; scenes with no text are left out. */
+function sceneTexts(script: ScriptOutput, narration: NarrationIndex): SceneText[] {
+  return narration.sceneTimings.flatMap((timing) => {
+    const text = script.scenes.find((scene) => scene.sceneId === timing.sceneId)?.onScreenText ?? '';
+    return text === '' ? [] : [{ text, startS: timing.startS }];
+  });
 }
 
 /** The AI-voice disclosure line of the Remotion render, as the `disclosure` template variable. */

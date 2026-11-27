@@ -1,6 +1,7 @@
 import { type RecipeVersionView } from '@studio/shared/api';
 import { assetRefPattern, parseAssetRef } from '@studio/shared/catalog';
 import { slotLabel } from '@/features/comparisons/comparison-labels';
+import { type WebMessages } from '@/messages';
 import { type SelectOption } from '@/features/comparisons/comparison-form-model';
 
 /**
@@ -15,13 +16,17 @@ export interface CompareArmOption {
 }
 
 /** Runnable recipe versions that bind `assetId` in at least one slot, with those slots. */
-export function assetSubjectArmOptions(recipes: readonly RecipeVersionView[], assetId: string): CompareArmOption[] {
+export function assetSubjectArmOptions(
+  recipes: readonly RecipeVersionView[],
+  assetId: string,
+  slotLabels: WebMessages['recipes']['bindings']['slots'],
+): CompareArmOption[] {
   return recipes
     .map((recipe) => ({
       recipe,
       slots: recipe.recipe.bindings
         .filter((binding) => assetRefPattern.test(binding.ref) && parseAssetRef(binding.ref).assetId === assetId)
-        .map((binding) => ({ value: binding.slot, label: `${slotLabel(binding.slot)} · ${binding.ref}` })),
+        .map((binding) => ({ value: binding.slot, label: `${slotLabel(binding.slot, slotLabels)} · ${binding.ref}` })),
     }))
     .filter((option) => option.slots.length > 0);
 }

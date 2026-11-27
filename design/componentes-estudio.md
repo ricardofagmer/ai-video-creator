@@ -1,6 +1,6 @@
 # Componentes do estúdio
 
-Componentes do domínio do Video Studio (catálogo, receitas, execuções e revisão). Usam os
+Componentes do domínio do EngineOS Video Creator (catálogo, receitas, execuções e revisão). Usam os
 componentes de `componentes.md` e os tokens de `tokens.md`. Os textos fixos abaixo são os
 textos da interface; o restante vem das telas.
 

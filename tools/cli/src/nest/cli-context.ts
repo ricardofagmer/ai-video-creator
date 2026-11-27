@@ -1,4 +1,4 @@
-import { type INestApplicationContext, type Type } from '@nestjs/common';
+import { type DynamicModule, type INestApplicationContext, type Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { EmbeddingIndexer } from '@studio/core/embeddings';
@@ -8,6 +8,7 @@ import { QualityScoreService } from '@studio/core/quality';
 import { RedactorService } from '@studio/core/redaction';
 import { CliLogger } from '../logging/cli-logger.js';
 import { PassphraseHashRepository } from '../passphrase/passphrase-hash.repository.js';
+import { type CliSettings } from '../settings/cli-settings.js';
 import { CliSearchModule } from './cli-search.module.js';
 import { CliModule } from './cli.module.js';
 
@@ -37,7 +38,7 @@ export interface CliSearchContext extends CliContext {
  * (redaction reads biometric paths through Prisma), then the context. A boot failure (database
  * file missing, migrations absent) is thrown to the command boundary unchanged.
  */
-async function withApplicationContext<T>(rootModule: Type<unknown>, work: (app: INestApplicationContext, context: CliContext) => Promise<T>): Promise<T> {
+async function withApplicationContext<T>(rootModule: Type<unknown> | DynamicModule, work: (app: INestApplicationContext, context: CliContext) => Promise<T>): Promise<T> {
   const logger = new CliLogger();
   let app: INestApplicationContext;
   try {
@@ -70,6 +71,6 @@ export async function withCliContext<T>(work: (context: CliContext) => Promise<T
 }
 
 /** The CLI module graph plus the embeddings module, for the commands that index or search by meaning. */
-export async function withSearchContext<T>(work: (context: CliSearchContext) => Promise<T>): Promise<T> {
-  return withApplicationContext(CliSearchModule, (app, context) => work({ ...context, embeddingIndexer: app.get(EmbeddingIndexer) }));
+export async function withSearchContext<T>(settings: Pick<CliSettings, 'runtime'>, work: (context: CliSearchContext) => Promise<T>): Promise<T> {
+  return withApplicationContext(CliSearchModule.forRuntime(settings.runtime), (app, context) => work({ ...context, embeddingIndexer: app.get(EmbeddingIndexer) }));
 }

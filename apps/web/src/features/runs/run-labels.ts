@@ -1,17 +1,6 @@
-import { type RunAction, type WatcherState } from '@studio/ui';
+import { type Locale, type RunAction, type WatcherState } from '@studio/ui';
 import { type RunStateResponse } from '@studio/shared/api';
-import { type RunState, type RunStatus, type StepName } from '@studio/shared/run-format';
-
-/** design/componentes-estudio.md section 7: `StepName` in pt-BR. */
-export const stepLabels: Readonly<Record<StepName, string>> = {
-  brief: 'Briefing',
-  preflight: 'Pré-checagem',
-  snapshot: 'Registro de entradas',
-  execute: 'Execução',
-  verify: 'Verificação',
-  archive: 'Arquivamento',
-  record: 'Registro',
-};
+import { type RunState, type RunStatus } from '@studio/shared/run-format';
 
 /**
  * Statuses at which the run page stops polling (design/telas/08 "Terminal"). `draft` is added:
@@ -58,24 +47,35 @@ export function hasReview(state: RunState): boolean {
   return state.status === 'rejected' && state.gate === 'final';
 }
 
-const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
+const dateTimeFormatters = new Map<Locale, Intl.DateTimeFormat>();
+const timeFormatters = new Map<Locale, Intl.DateTimeFormat>();
 
-const timeFormatter = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+function dateTimeFormatterOf(locale: Locale): Intl.DateTimeFormat {
+  const cached = dateTimeFormatters.get(locale);
+  if (cached !== undefined) return cached;
+  const formatter = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  dateTimeFormatters.set(locale, formatter);
+  return formatter;
+}
 
-/** `18/11/2026 14:02` (design/telas/08, 09). */
-export function formatDateTime(isoOrMs: string | number): string {
-  return dateTimeFormatter.format(new Date(isoOrMs)).replace(',', '');
+function timeFormatterOf(locale: Locale): Intl.DateTimeFormat {
+  const cached = timeFormatters.get(locale);
+  if (cached !== undefined) return cached;
+  const formatter = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  timeFormatters.set(locale, formatter);
+  return formatter;
+}
+
+/** `18/11/2026 14:02` in pt-BR, `11/18/2026 14:02` in en (design/telas/08, 09); 24-hour clock in every locale. */
+export function formatDateTime(isoOrMs: string | number, locale: Locale): string {
+  const date = new Date(isoOrMs);
+  if (Number.isNaN(date.getTime())) return String(isoOrMs);
+  return dateTimeFormatterOf(locale).format(date).replace(',', '');
 }
 
 /** `14:05:12` (EventLog time column). */
-export function formatTime(epochMs: number): string {
-  return timeFormatter.format(new Date(epochMs));
+export function formatTime(epochMs: number, locale: Locale): string {
+  return timeFormatterOf(locale).format(new Date(epochMs));
 }
 
 /** `2 s`, `1 min 12 s`, `1 h 3 min`. */

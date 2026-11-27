@@ -1,7 +1,8 @@
 import { type PublishSyncSummary } from '@studio/core/platforms';
 import { type PlatformView, type PlatformsView } from '@studio/shared/api';
 import { type CapabilityStatus } from '@studio/shared/platforms';
-import { PLATFORM_LABELS, RECONNECT_REASON_TEXTS } from '../platforms/platform-labels.js';
+import { cliText } from '../i18n/messages.js';
+import { PLATFORM_LABELS } from '../platforms/platform-labels.js';
 import { backoffText, capabilityStatusText, platformHeading } from '../platforms/platform-text.js';
 import { type DoctorCheck } from './doctor-check.js';
 
@@ -17,12 +18,13 @@ function anyStatus(view: PlatformView, status: CapabilityStatus): boolean {
 }
 
 function platformProblems(view: PlatformView, now: Date): string[] {
+  const text = cliText().platforms;
   const problems: string[] = [];
   if (anyStatus(view, 'needs-reconnect')) {
-    const reason = view.reconnectReason === null ? '' : ` ${RECONNECT_REASON_TEXTS[view.reconnectReason]}`;
-    problems.push(`reconecte a conta na página Contas do web.${reason}`);
+    const reason = view.reconnectReason === null ? '' : ` ${text.reconnectReasons[view.reconnectReason]}`;
+    problems.push(text.doctor.reconnect(reason));
   }
-  if (anyStatus(view, 'not-configured')) problems.push('aplicativo não configurado: rode "studio secrets set" com as credenciais do aplicativo');
+  if (anyStatus(view, 'not-configured')) problems.push(text.doctor.notConfigured);
   const backoff = backoffText(view, now);
   if (backoff !== null) problems.push(backoff);
   return problems;
@@ -30,9 +32,10 @@ function platformProblems(view: PlatformView, now: Date): string[] {
 
 /** One check per platform, in `PlatformSchema` order. */
 export function platformChecks(views: PlatformsView, now: Date): DoctorCheck[] {
+  const text = cliText().platforms.doctor;
   return views.platforms.map((view): DoctorCheck => {
-    const label = `plataforma ${PLATFORM_LABELS[view.platform]}`;
-    const tracked = `${view.trackedPublications} publicação(ões) acompanhada(s)`;
+    const label = text.platformLabel(PLATFORM_LABELS[view.platform]);
+    const tracked = text.tracked(view.trackedPublications);
     const detail = `${platformHeading(view)}; ${capabilityStatusText(view)}; ${tracked}`;
     const problems = platformProblems(view, now);
     if (problems.length === 0) return { label, status: 'ok', detail };
@@ -42,9 +45,6 @@ export function platformChecks(views: PlatformsView, now: Date): DoctorCheck[] {
 
 /** Section 5.4 "Result": what one sync pass found; expiring a request is normal, never a warning. */
 export function publishAttemptCheck(summary: PublishSyncSummary): DoctorCheck {
-  return {
-    label: 'envios às plataformas',
-    status: 'ok',
-    detail: `${summary.open} em aberto, ${summary.updated} atualizado(s), ${summary.expired} vencido(s) agora, ${summary.linked} ligado(s) a publicações.`,
-  };
+  const text = cliText().platforms.doctor;
+  return { label: text.attemptsLabel, status: 'ok', detail: text.attempts(summary.open, summary.updated, summary.expired, summary.linked) };
 }

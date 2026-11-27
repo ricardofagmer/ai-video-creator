@@ -18,7 +18,7 @@ import { PlanRecorder } from './gates/plan-recorder';
 import { ownerTexts, stepStatusText } from './owner-texts';
 import { checkReviewReadiness } from './review-readiness';
 import { captureBaseline, emptyBaseline } from './run-budget';
-import { settleOrphanedSteps } from './run-mutations';
+import { resetStages, settleOrphanedSteps } from './run-mutations';
 import { type ControlState } from './seams';
 import { StageRunner } from './stage-runner';
 
@@ -122,6 +122,7 @@ export class RunEngine {
   private async executeOwned(active: ActiveRun, mode: StartMode, control: ControlState): Promise<void> {
     try {
       await this.claim(active, mode);
+      await this.applyBriefCorrection(active, mode, control);
       const hold = await this.runControl.holdAtStart(active, control);
       if (hold === null) await this.drive(active);
     } catch (error) {
@@ -130,6 +131,32 @@ export class RunEngine {
     } finally {
       await active.finish();
     }
+  }
+
+  /**
+   * A `resume` request may carry the owner's corrected brief (the fix window of "Aguardando você").
+   * It replaces run.json `brief` and reopens the stage that stopped, so that stage runs again with
+   * the new values.
+   */
+  private async applyBriefCorrection(active: ActiveRun, mode: StartMode, control: ControlState): Promise<void> {
+    const brief = control.request?.brief;
+    if (mode.kind !== 'owner-resume' || brief === undefined) return;
+    await active.apply((run) => {
+      const sourceChanged = (run.brief.sourceUrl ?? '') !== (brief.sourceUrl ?? '');
+      run.brief = brief;
+      // The stage that stopped runs again from its `brief` step, or its outputs would still carry
+      // the old values. A new source also makes the page read by `research` stale, so the rerun
+      // starts there when that stage is at or before the one that stopped.
+      if (run.cursor === null) return;
+      const stopped = run.cursor.stageNumber;
+      const research = run.stages.find((stage) => stage.stageId === 'research' && stage.number <= stopped);
+      // Past the script, the script and everything built on it were written from the old brief:
+      // rerunning only the stage that stopped (a review of the render, say) would judge the same work again.
+      const script = run.stages.find((stage) => stage.stageId === 'script' && stage.number <= stopped);
+      const fromStageNumber = sourceChanged && research !== undefined ? research.number : (script?.number ?? stopped);
+      resetStages(run, { fromStageNumber, toStageNumber: stopped }, ownerTexts.briefCorrected);
+    });
+    await active.emit({ type: 'log', level: 'info', text: ownerTexts.briefCorrected, stepKey: null });
   }
 
   /** `running` for this pid; a crash first records `interrupted`, and its orphaned step goes back to `pending`. */

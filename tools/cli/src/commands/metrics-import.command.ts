@@ -1,5 +1,6 @@
 import type { Platform } from '@studio/shared/metrics';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { metricImportReportLines } from '../metrics/metric-import-text.js';
 import { type MetricsImporter } from '../metrics/metrics-importer.js';
 import { readBoundedInputFile } from '../terminal/bounded-input-file.js';
@@ -26,7 +27,7 @@ export async function metricsImportCommand(
   importer: MetricsImporter,
   dependencies: Pick<CommandDependencies, 'printer' | 'signal'>,
 ): Promise<number> {
-  const file = await readBoundedInputFile({ option: 'métricas', path: options.file, maxBytes: importer.maxFileBytes });
+  const file = await readBoundedInputFile({ option: cliText().metrics.fileOption, path: options.file, maxBytes: importer.maxFileBytes });
   dependencies.signal.throwIfAborted();
   const report = await importer.importFile({ platform: options.platform, asOfDate: options.asOfDate, dryRun: options.dryRun, file });
   for (const line of metricImportReportLines(report)) dependencies.printer.line(line);

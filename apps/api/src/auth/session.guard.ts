@@ -9,7 +9,8 @@ import { SessionStore } from './session-store';
 
 /**
  * Global guard (APP_GUARD): secure by default. Every route needs a valid session cookie unless
- * it is marked `@Public()` (D8, criterion 27: `health` and login only).
+ * it is marked `@Public()` (D8, criterion 27: `health` and login; ADR 0010 adds the installer's
+ * `GET /install/presence` and `POST /install/pair`, and `GET /install/status` uses a portal token).
  */
 @Injectable()
 export class SessionGuard implements CanActivate {

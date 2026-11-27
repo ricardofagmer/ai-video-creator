@@ -7,7 +7,7 @@ import { platformPublishSupport } from '@studio/shared/platforms';
 import { useState, type KeyboardEvent, type ReactElement } from 'react';
 import { platformLabels } from '@/features/metrics/metric-labels';
 import { capabilityStatusBadge } from '@/features/platforms/platform-labels';
-import { CANNOT_UNPUBLISH_TEXT, INSTAGRAM_PUBLISH_TEXT } from '../publish-labels';
+import { useWebMessages } from '@/lib/i18n/client';
 import styles from '../publishing.module.css';
 import { PublishPlatformTab } from './PublishPlatformTab';
 
@@ -30,15 +30,16 @@ interface PublishDialogProps {
  * while the dialog is open, so each opening creates fresh idempotency keys.
  */
 export function PublishDialog({ open, onClose, runId, runTitle, view, accountLabels, onAttempt, onPasteLink }: PublishDialogProps): ReactElement {
+  const t = useWebMessages().publishing;
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="Publicar o vídeo aprovado"
-      description={`O estúdio só envia quando você clica em Publicar. O envio é feito pelo vigia, entre as execuções. ${CANNOT_UNPUBLISH_TEXT}`}
+      title={t.dialog.title}
+      description={t.dialog.description(t.cannotUnpublish)}
       footer={
         <Button variant="secondary" onClick={onClose}>
-          Fechar
+          {t.dialog.close}
         </Button>
       }
     >
@@ -50,6 +51,7 @@ export function PublishDialog({ open, onClose, runId, runTitle, view, accountLab
 type PublishTabsProps = Omit<PublishDialogProps, 'open' | 'onClose'>;
 
 function PublishTabs({ runId, runTitle, view, accountLabels, onAttempt, onPasteLink }: PublishTabsProps): ReactElement {
+  const messages = useWebMessages();
   const tabs = view.platforms.filter((entry) => platformPublishSupport[entry.platform]);
   const [active, setActive] = useState<Platform | null>(tabs[0]?.platform ?? null);
 
@@ -72,10 +74,10 @@ function PublishTabs({ runId, runTitle, view, accountLabels, onAttempt, onPasteL
 
   return (
     <div className={styles.tabs}>
-      <div role="tablist" aria-label="Plataformas" className={styles.tabList} onKeyDown={handleKeyDown}>
+      <div role="tablist" aria-label={messages.publishing.dialog.platforms} className={styles.tabList} onKeyDown={handleKeyDown}>
         {tabs.map((entry) => {
           const selected = entry.platform === active;
-          const badge = capabilityStatusBadge(entry.status);
+          const badge = capabilityStatusBadge(entry.status, messages.platforms);
           return (
             <button
               key={entry.platform}
@@ -115,7 +117,7 @@ function PublishTabs({ runId, runTitle, view, accountLabels, onAttempt, onPasteL
       ))}
       <p className={styles.instagramNote}>
         <Button variant="ghost" onClick={onPasteLink}>
-          {INSTAGRAM_PUBLISH_TEXT}
+          {messages.publishing.instagram}
         </Button>
       </p>
     </div>

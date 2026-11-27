@@ -60,11 +60,6 @@ const SIGNATURES_BY_MIME_TYPE: ReadonlyMap<string, SignatureCheck> = new Map(Obj
 /** Types accepted without a signature: arbitrary bytes by definition. */
 export const UNSIGNED_MIME_TYPES: readonly string[] = ['application/octet-stream'];
 
-/** True when the type has a signature check here. */
-export function hasContentSignature(mimeType: string): boolean {
-  return SIGNATURES_BY_MIME_TYPE.has(mimeType);
-}
-
 /** A type without a signature (octet-stream, or one not listed) is not refused here. */
 export function contentMatchesMimeType(mimeType: string, head: Buffer): boolean {
   const check = SIGNATURES_BY_MIME_TYPE.get(mimeType);

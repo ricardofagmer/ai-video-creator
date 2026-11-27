@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "apps/web"],
+      "port": 4310,
+      "url": "http://127.0.0.1:4310"
+    },
+    {
+      "name": "portal",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd /Users/ricardofagmer/projects/ai-video-creator/video-studio/apps/portal && exec ./node_modules/.bin/next dev -p 3100"],
+      "port": 3100
+    }
+  ]
+}

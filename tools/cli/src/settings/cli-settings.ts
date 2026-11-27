@@ -3,6 +3,14 @@ import { z } from 'zod';
 import { DATA_HOME_ENV_VAR, resolveDataHome, type DataHome } from '@studio/core/paths';
 import { platformMockFaultVariable, platformModeVariable } from '@studio/core/platforms';
 import { mockFaultVariable, modeVariable } from '@studio/core/providers';
+import {
+  RUNTIME_DIR_ENV_VAR,
+  nodeRuntimeFileSystem,
+  resolveStudioRuntime,
+  runtimeChildEnvironment,
+  type RuntimeFileSystem,
+  type StudioRuntime,
+} from '@studio/core/runtime';
 import { SEED_SOURCE_ROOT_ENV_VAR } from '@studio/core/seed';
 import { PlatformSchema } from '@studio/shared/platforms';
 import { ProviderNameSchema } from '@studio/shared/run-format';
@@ -13,12 +21,20 @@ export const DEFAULT_WEB_PORT = 4310;
 export const DEFAULT_API_PORT = 4311;
 
 /** Same variable the api reads (apps/api `ApiConfig`), so `studio start` and the api agree. */
-export const API_PORT_ENV_VAR = 'VIDEO_STUDIO_API_PORT';
-/** CLI-side web port; the api receives it as `VIDEO_STUDIO_WEB_ORIGIN`. */
-export const WEB_PORT_ENV_VAR = 'VIDEO_STUDIO_WEB_PORT';
+export const API_PORT_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_API_PORT';
+/** CLI-side web port; the api receives it as `ENGINEOS_VIDEO_CREATOR_WEB_ORIGIN`. */
+export const WEB_PORT_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_WEB_PORT';
+
+/**
+ * The hosted portal's origin (apps/api `PORTAL_ORIGIN_ENV_VAR`): the api opens CORS on its install
+ * routes for that one origin. The installed app's shell sets it; only the api receives it.
+ */
+const PORTAL_ORIGIN_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_PORTAL_ORIGIN';
 
 /** Used when the caller has no PATH: Apple Silicon Homebrew first (A18), then the system folders. */
 const FALLBACK_PATH = '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin';
+/** Packaged fallback: system folders only, so nothing from Homebrew is reached (DI-AC-03). */
+const PACKAGED_FALLBACK_PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
 
 /** Non-secret variables a started api or web may need; nothing else of the caller's env is passed. */
 const BASE_CHILD_VARIABLES = ['HOME', 'TMPDIR', 'LANG'];
@@ -44,8 +60,15 @@ export interface CliSettings {
   ports: CliPorts;
   /** The monorepo root that holds `apps/api` and `apps/web`. */
   studioRoot: string;
+  /** Plan C3 rev 2: packaged (the installed app's runtime folder) or development (this checkout). */
+  runtime: StudioRuntime;
   /** `PATH` plus the allowlisted non-secret variables that were set. */
   childEnvironment: Readonly<Record<string, string>>;
+  /**
+   * Added to the api child only: the portal origin when set. The api validates it and refuses to
+   * start on a malformed value, naming the variable. Absent means no portal CORS.
+   */
+  apiEnvironment?: Readonly<Record<string, string>>;
   /** Names of provider-key variables that are set; never their values. */
   keyVariablesSet: readonly string[];
   /**
@@ -60,6 +83,8 @@ export interface CliSettingsSource {
   homeDirectory: string;
   /** `import.meta.dirname` of `dist/main.js`; the monorepo root is three levels up. */
   cliDirectory: string;
+  /** Checks the runtime folder; defaults to the real file system. */
+  fileSystem?: RuntimeFileSystem;
 }
 
 function readPort(environment: CliSettingsSource['environment'], variable: string, fallback: number): number {
@@ -83,13 +108,24 @@ function studioVariableNames(): string[] {
   return [DATA_HOME_ENV_VAR, SEED_SOURCE_ROOT_ENV_VAR, ...providerVariables, ...platformVariables];
 }
 
-function childEnvironmentOf(environment: CliSettingsSource['environment']): Record<string, string> {
-  const child: Record<string, string> = { PATH: environment['PATH'] ?? FALLBACK_PATH };
+/**
+ * Packaged mode prefixes PATH with the bundled programs and passes the runtime folder on, so every
+ * child (services, model fetch, HyperFrames) stays inside the app; development is unchanged.
+ */
+function childEnvironmentOf(environment: CliSettingsSource['environment'], runtime: StudioRuntime): Record<string, string> {
+  const fallbackPath = runtime.mode === 'packaged' ? PACKAGED_FALLBACK_PATH : FALLBACK_PATH;
+  const child: Record<string, string> = { PATH: environment['PATH'] ?? fallbackPath };
   for (const name of [...BASE_CHILD_VARIABLES, ...studioVariableNames()]) {
     const value = environment[name];
     if (value !== undefined && value !== '') child[name] = value;
   }
-  return child;
+  return runtimeChildEnvironment(runtime, child);
+}
+
+/** The portal origin, passed through trimmed and unchanged otherwise; the api owns its validation. */
+function apiEnvironmentOf(environment: CliSettingsSource['environment']): Record<string, string> {
+  const portalOrigin = environment[PORTAL_ORIGIN_ENV_VAR]?.trim() ?? '';
+  return portalOrigin === '' ? {} : { [PORTAL_ORIGIN_ENV_VAR]: portalOrigin };
 }
 
 export function readCliSettings(source: CliSettingsSource, keyVariableNames: readonly string[]): CliSettings {
@@ -99,11 +135,14 @@ export function readCliSettings(source: CliSettingsSource, keyVariableNames: rea
     api: readPort(environment, API_PORT_ENV_VAR, DEFAULT_API_PORT),
   };
   if (ports.web === ports.api) throw new CliConfigurationError(WEB_PORT_ENV_VAR);
+  const runtime = resolveStudioRuntime({ override: environment[RUNTIME_DIR_ENV_VAR], fileSystem: source.fileSystem ?? nodeRuntimeFileSystem });
   return {
     dataHome: resolveDataHome({ homeDirectory: source.homeDirectory, override: environment[DATA_HOME_ENV_VAR] }),
     ports,
     studioRoot: resolve(source.cliDirectory, '..', '..', '..'),
-    childEnvironment: childEnvironmentOf(environment),
+    runtime,
+    childEnvironment: childEnvironmentOf(environment, runtime),
+    apiEnvironment: apiEnvironmentOf(environment),
     keyVariablesSet: keyVariableNames.filter((name) => (environment[name] ?? '').trim() !== ''),
     homeDirectory: source.homeDirectory,
   };

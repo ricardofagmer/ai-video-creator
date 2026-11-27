@@ -1,5 +1,5 @@
 import { type ApiRev5ErrorReason } from '@studio/shared/api';
-import { type RecipeRef } from '@studio/shared/recipes';
+import { COMPOSITION_CONFLICTS_MAX, type CompositionConflict, type RecipeRef } from '@studio/shared/recipes';
 import { type InputIssue } from '../catalog';
 
 /** Error taxonomy category (rules/observability.md); the api filter maps it to a status code. */
@@ -63,18 +63,26 @@ export type ScheduleRecipeProblem =
   | 'recipe-not-runnable'
   | 'bindings-unresolvable'
   | 'references-unresolvable'
-  | 'brief-inputs-missing';
+  | 'brief-inputs-missing'
+  | 'composition-conflict';
 
 /** 422 `schedule-recipe-not-runnable`: the same checks as `RunDraftService.create`, for every brief. */
 export class ScheduleRecipeNotRunnableError extends ScheduleError {
   override readonly category = 'validation';
   override readonly reason = 'schedule-recipe-not-runnable';
 
+  /** The broken composition rules when `problem` is `composition-conflict`, at most 20; empty otherwise. */
+  readonly conflicts: readonly CompositionConflict[];
+
   constructor(
     readonly ref: RecipeRef,
     readonly problem: ScheduleRecipeProblem,
+    conflicts: readonly CompositionConflict[] = [],
   ) {
-    super(`Recipe ${ref} cannot back a schedule: ${problem}`);
+    const kept = conflicts.slice(0, COMPOSITION_CONFLICTS_MAX);
+    const rules = kept.length === 0 ? '' : ` (${[...new Set(kept.map((conflict) => conflict.rule))].join(', ')})`;
+    super(`Recipe ${ref} cannot back a schedule: ${problem}${rules}`);
+    this.conflicts = kept;
     this.name = 'ScheduleRecipeNotRunnableError';
   }
 }

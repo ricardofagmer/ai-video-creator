@@ -1,6 +1,8 @@
 import { join } from 'node:path';
+import { isReadableSourceUrl } from '@ace/toolbox/dist/providers/media/capture-url';
 import { EgressLog } from '@studio/core/providers';
 import type { StageExecutionContext, StageExecutionResult, StagePlanningContext } from '@studio/shared/ports';
+import { type Brief } from '@studio/shared/recipes';
 import { type DeclaredOutput, type StageEstimate } from '@studio/shared/run-format';
 import { MediaWriteResultSchema } from '../process/tool-runner.protocol';
 import { BaseStageExecutor, zeroEstimate } from '../shared/base-stage.executor';
@@ -13,6 +15,15 @@ import { stageTexts } from '../shared/stage-texts';
 const CAPTURE_ID = 'capture-1';
 /** The toolbox recorder records 5 to 20 s; scenes reuse the clip by in/out points. */
 const MAX_CAPTURE_S = 20;
+
+/**
+ * The page this run records: the brief's `sourceUrl`, unless the owner answered that the site's
+ * screenshots stay out of the video. A run file older than that question has no answer and records.
+ */
+function capturedUrlOf(brief: Pick<Brief, 'sourceUrl' | 'siteCapture'>): string | null {
+  if (brief.sourceUrl === undefined || brief.siteCapture === 'skip') return null;
+  return brief.sourceUrl;
+}
 
 /**
  * `capture`: one screen recording of the brief's `sourceUrl`. Live mode records egress first, then
@@ -31,7 +42,7 @@ export class CaptureExecutor extends BaseStageExecutor {
 
   declaredOutputs(context: StagePlanningContext): readonly DeclaredOutput[] {
     const index = stageOutput(context.stage, 'captures-index', 'captures-index.json', 'application/json');
-    if (context.brief.sourceUrl === undefined) return [index];
+    if (capturedUrlOf(context.brief) === null) return [index];
     const video = this.isLive('capture')
       ? stageOutput(context.stage, 'capture-video', `${CAPTURE_ID}.webm`, 'video/webm')
       : stageOutput(context.stage, 'capture-video', `${CAPTURE_ID}.mp4`, 'video/mp4');
@@ -43,13 +54,13 @@ export class CaptureExecutor extends BaseStageExecutor {
   }
 
   protected async run(context: StageExecutionContext, outputs: StageOutputSink): Promise<StageExecutionResult> {
-    const sourceUrl = context.brief.sourceUrl ?? null;
+    const sourceUrl = capturedUrlOf(context.brief);
     if (sourceUrl === null) {
       await outputs.writeJson('captures-index', CapturesIndexSchema, { format: 1, mode: 'no-source', sourceUrl, captures: [] });
-      return reportedSuccess(stageTexts.noSourceUrl);
+      return reportedSuccess(context.brief.sourceUrl === undefined ? stageTexts.noSourceUrl : stageTexts.siteCaptureSkipped);
     }
     const live = this.isLive('capture');
-    if (live && !sourceUrl.startsWith('https://')) {
+    if (live && !isReadableSourceUrl(sourceUrl)) {
       return stageFailed(needsPerson({ kind: 'needs-person', stepKey: context.stepKey }, stageTexts.captureBlocked, stageTexts.captureBlockedWhatToDo));
     }
     const durationS = Math.min(MAX_CAPTURE_S, context.brief.targetDurationSec);
@@ -77,7 +88,12 @@ export class CaptureExecutor extends BaseStageExecutor {
       if (result.status === 'ok') await outputs.adoptFile('capture-video', output);
       return result;
     });
-    if (recorded.status === 'failed') return stageFailed(toolFailure(recorded, context));
+    if (recorded.status === 'failed') {
+      // The owner asked for the site on screen: a page that still cannot be recorded on a second
+      // attempt stops for a person, with what to do, instead of going on to a video without it.
+      if (!live || context.attempt < 2 || recorded.kind === 'blocked') return stageFailed(toolFailure(recorded, context));
+      return stageFailed(needsPerson({ kind: 'needs-person', stepKey: context.stepKey }, stageTexts.siteCaptureFailed, stageTexts.siteCaptureFailedWhatToDo));
+    }
 
     const entry: CaptureEntry = {
       captureId: CAPTURE_ID,

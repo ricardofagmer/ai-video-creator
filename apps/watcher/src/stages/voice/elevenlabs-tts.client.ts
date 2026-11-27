@@ -1,8 +1,9 @@
 import { classifyProviderFailure, type ProviderErrorSignal, type ProviderFailure } from '@studio/core/providers';
 import { type Secret } from '@studio/core/secrets';
+import { elevenLabsRefusalCode } from '../shared/elevenlabs-refusal-code';
 
 const API_BASE = 'https://api.elevenlabs.io/v1/text-to-speech';
-/** Same format as the absorbed toolbox adapter (`packages/toolbox/src/providers/voice/elevenlabs-voice.ts`). */
+/** Same format as the retired toolbox ElevenLabs adapter (removed 2026-11-25; last in commit c52a849). */
 const OUTPUT_FORMAT = 'mp3_44100_128';
 /** A narration line is a few hundred characters; a larger body is not narration audio. */
 const MAX_AUDIO_BYTES = 50 * 1024 * 1024;
@@ -21,7 +22,8 @@ export type ElevenLabsSpeechOutcome = { status: 'ok'; audio: Uint8Array } | { st
 /**
  * One ElevenLabs text-to-speech call (live mode only; the caller records egress first). The key
  * is revealed only into the request header. Failures are classified from the HTTP status and
- * the network error code alone: the response body is never read on error, logged or returned.
+ * the network error code, plus the short refusal code of a 401/403 (`elevenLabsRefusalCode`);
+ * the error body is never logged, stored or returned.
  */
 export async function speakWithElevenLabs(request: ElevenLabsSpeechRequest): Promise<ElevenLabsSpeechOutcome> {
   const url = `${API_BASE}/${encodeURIComponent(request.voiceId)}?output_format=${OUTPUT_FORMAT}`;
@@ -38,8 +40,8 @@ export async function speakWithElevenLabs(request: ElevenLabsSpeechRequest): Pro
     return failed(request, { httpStatus: null, retryAfter: null, networkCode: networkCodeOf(error) });
   }
   if (!response.ok) {
-    await response.body?.cancel();
-    return failed(request, { httpStatus: response.status, retryAfter: response.headers.get('retry-after'), networkCode: null });
+    const refusalCode = await elevenLabsRefusalCode(response);
+    return failed(request, { httpStatus: response.status, retryAfter: response.headers.get('retry-after'), networkCode: null, refusalCode });
   }
   const audio = new Uint8Array(await response.arrayBuffer());
   if (audio.byteLength === 0 || audio.byteLength > MAX_AUDIO_BYTES) {
@@ -50,7 +52,7 @@ export async function speakWithElevenLabs(request: ElevenLabsSpeechRequest): Pro
 
 function failed(
   request: ElevenLabsSpeechRequest,
-  observed: { httpStatus: number | null; retryAfter: string | null; networkCode: string | null },
+  observed: { httpStatus: number | null; retryAfter: string | null; networkCode: string | null; refusalCode?: string | null },
 ): ElevenLabsSpeechOutcome {
   const signal: ProviderErrorSignal = { provider: 'elevenlabs', aborted: request.signal.aborted, ...observed };
   return { status: 'failed', failure: classifyProviderFailure(signal, request.now()) };

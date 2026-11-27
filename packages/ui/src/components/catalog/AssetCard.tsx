@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactElement, ReactNode } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { Badge } from '../badge/Badge';
 import { StatusBadge } from '../status/StatusBadge';
@@ -19,6 +22,8 @@ export interface AssetCardProps {
   /** Already formatted date, for example "18/11/2026". */
   updatedAtLabel: string;
   headingLevel?: 'h2' | 'h3';
+  /** Optional picture at the top of the card (a video thumbnail); the title link still covers the whole card. */
+  media?: ReactNode;
   className?: string;
 }
 
@@ -33,11 +38,14 @@ export function AssetCard({
   usageCount,
   updatedAtLabel,
   headingLevel: Heading = 'h2',
+  media,
   className,
 }: AssetCardProps): ReactElement {
-  const usageLabel = usageCount === 1 ? 'Usado em 1 execução' : `Usado em ${usageCount} execuções`;
+  const { ui } = useI18n();
+  const usageLabel = ui.catalog.usedIn(usageCount);
   return (
     <article className={classNames(styles.card, className)}>
+      {media !== undefined && <div className={styles.media}>{media}</div>}
       <div className={styles.top}>
         <span className="overline">{kindLabel}</span>
         <div className={styles.badges}>
@@ -48,7 +56,7 @@ export function AssetCard({
       <Heading className={classNames('heading-3', styles.title)}>{title}</Heading>
       <p className={classNames('mono', styles.ref)}>{assetRef}</p>
       {tags.length > 0 && (
-        <ul className={styles.tags} aria-label="Etiquetas">
+        <ul className={styles.tags} aria-label={ui.catalog.tags}>
           {tags.map((tag) => (
             <li key={tag}>
               <Badge tone="neutral">{tag}</Badge>
@@ -59,7 +67,7 @@ export function AssetCard({
       <p className={classNames('caption', styles.meta)}>
         <span>{usageLabel}</span>
         <span aria-hidden="true"> · </span>
-        <span>Atualizado em {updatedAtLabel}</span>
+        <span>{ui.catalog.updatedAt(updatedAtLabel)}</span>
       </p>
     </article>
   );

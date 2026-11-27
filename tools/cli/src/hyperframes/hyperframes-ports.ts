@@ -16,24 +16,19 @@ export interface SandboxDenial {
 
 export type SandboxLogRead = { status: 'read'; denials: readonly SandboxDenial[] } | { status: 'unavailable' };
 
-/** The video stream of a picture, as ffprobe reports it. */
-export interface PictureProbe {
-  codec: string;
-  pixelFormat: string;
-  width: number;
-  height: number;
-  fps: number;
-  durationS: number;
-}
-
-export type PictureProbeRead = { status: 'read'; probe: PictureProbe } | { status: 'unavailable' };
+/** ffprobe's stdout, or `unavailable` when it did not start, timed out, exited non-zero or wrote too much. */
+export type ProbeOutput = { status: 'read'; stdout: string } | { status: 'unavailable' };
 
 export interface HyperframesSystemPort {
   sandboxExecExists(): boolean;
   /** Sandbox denials logged between the two instants (`/usr/bin/log show`). */
   readSandboxDenials(window: { start: Date; end: Date }): Promise<SandboxLogRead>;
-  /** `ffprobe` resolved through `searchPath`, the CLI's child PATH, as `doctor` does. */
-  probePicture(file: string, searchPath: string): Promise<PictureProbeRead>;
+  /**
+   * Runs `program` (the render runtime's resolved `ffprobeBin`: the PATH match in development, the
+   * bundled binary when packaged) by `args`, with `searchPath`, the CLI's child PATH. The picture
+   * check of `@studio/hyperframes` builds the arguments and reads the output.
+   */
+  readProbe(program: string, args: readonly string[], searchPath: string): Promise<ProbeOutput>;
   /** Waits before the log read so the last denials are flushed; aborts with the command. */
   pause(milliseconds: number, signal: AbortSignal): Promise<void>;
 }

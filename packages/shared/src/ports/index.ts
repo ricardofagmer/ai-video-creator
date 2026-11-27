@@ -1,3 +1,4 @@
+export type * from './asset-jobs';
 export type * from './asset-resolver';
 export type * from './cost-ledger';
 export type * from './curator';

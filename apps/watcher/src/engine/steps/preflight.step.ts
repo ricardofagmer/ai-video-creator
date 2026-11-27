@@ -9,10 +9,10 @@ import { type PreflightCheck } from '../seams';
 import { postconditionFailed, type StepContext, type StepHandler, type StepOutcome } from './step-handler';
 
 /**
- * Step 2: re-hash every bound asset through `AssetResolverPort` (criterion 9), refuse a third-party
- * asset without a licence, ask the executor for its estimate, check both cost ceilings (criteria 20
- * and 28), then run the composition root's extra `PREFLIGHT_CHECKS`. The licence and cost guards
- * are built in, so no `PREFLIGHT_CHECKS` binding can remove them.
+ * Step 2: re-hash every bound asset through `AssetResolverPort` (criterion 9), warn about a
+ * third-party asset without a licence, ask the executor for its estimate, check both cost ceilings
+ * (criteria 20 and 28), then run the composition root's extra `PREFLIGHT_CHECKS`. The owner handles
+ * licences outside the studio (decision 2026-11-25), so a missing licence is a caveat, not a stop.
  */
 @Injectable()
 export class PreflightStep implements StepHandler {
@@ -29,18 +29,10 @@ export class PreflightStep implements StepHandler {
     workspace.rememberBoundAssets(resolution.assets);
 
     const doubtful = licenseDoubtAsset(resolution.assets);
-    if (doubtful !== undefined) {
-      const ref = doubtful.asset.ref;
-      const reason = ownerTexts.licenseDoubtReason(ref);
-      return {
-        kind: 'failed',
-        failure: { origin: 'guard', cause: { kind: 'license-doubt', ref }, reason, whatToDo: ownerTexts.licenseDoubtWhatToDo(ref) },
-        detail: reason,
-      };
-    }
+    const licenseWarning = doubtful === undefined ? null : ownerTexts.licenseDoubtWarning(doubtful.asset.ref);
 
     const estimate = await workspace.executor.estimate(workspace.planningContext());
-    // An invalid estimate is never recorded (run.json would refuse it); the cost check fails closed on it.
+    // An invalid estimate is never recorded (run.json would refuse it); the cost check warns about it.
     if (isUsableUsd(estimate.usd)) workspace.active.setStageEstimate(workspace.location.stageNumber, estimate);
 
     const cost = await this.costCeiling.check(workspace, estimate);
@@ -51,7 +43,10 @@ export class PreflightStep implements StepHandler {
       const verdict = await check.check(workspace, signal);
       if (verdict.status === 'failed') return { kind: 'failed', failure: verdict.failure, detail: `${check.name}: ${failureDetail(verdict.failure)}` };
     }
-    return { kind: 'passed', detail: `${ownerTexts.assetsVerified(resolution.assets.length, estimate.usd)} ${cost.detail}` };
+    const usableEstimateUsd = isUsableUsd(estimate.usd) ? estimate.usd : 0;
+    const verified = `${ownerTexts.assetsVerified(resolution.assets.length, usableEstimateUsd)} ${cost.detail}`;
+    const detail = licenseWarning === null ? verified : `${verified} ${licenseWarning}`;
+    return { kind: cost.caveat === true || licenseWarning !== null ? 'passed-with-caveat' : 'passed', detail };
   }
 }
 

@@ -39,8 +39,8 @@ type RecipeVersionParams = z.output<typeof RecipeVersionParamsSchema>;
 /**
  * Recipes (PRD 6). Field shapes of the definition are checked at this boundary; the recipes module
  * applies the C2 cross-field rules and checks every binding against the catalog. Rev 3 (SPEC 0003
- * section 4.3): every view carries `activation`; `PUT .../status` no longer activates (core answers
- * 422 `promotion-approval-required`); `POST .../promotion` records the owner's approval.
+ * section 4.3): every view carries `activation`; `PUT .../status` only deprecates (any other status
+ * answers 400 `validation`); `POST .../promotion` records the owner's approval.
  */
 @Controller(apiRouteSegments.recipes)
 export class RecipesController {
@@ -77,17 +77,14 @@ export class RecipesController {
     return this.views.one(await this.queryBus.execute(new GetRecipeVersionQuery(`${params.recipeId}@${params.version}`)));
   }
 
-  /** Rev 3 (**breaking**, L6, R2-AC-18): deprecation only; `replaced` stays null. */
+  /** Deprecation only (L6, R2-AC-18): the body accepts `deprecated` alone; anything else answers 400. */
   @Put(':recipeId/versions/:version/status')
   async setStatus(
     @Param(new ZodValidationPipe(RecipeVersionParamsSchema)) params: RecipeVersionParams,
     @Body(new ZodValidationPipe(SetVersionStatusRequestSchema)) body: SetVersionStatusRequest,
   ): Promise<SetRecipeStatusResponse> {
     const result = await this.commandBus.execute(new SetRecipeStatusCommand({ ref: `${params.recipeId}@${params.version}`, status: body.status }));
-    return {
-      version: await this.views.one(result.version),
-      replaced: result.replaced === null ? null : await this.views.one(result.replaced),
-    };
+    return { version: await this.views.one(result.version) };
   }
 
   /**

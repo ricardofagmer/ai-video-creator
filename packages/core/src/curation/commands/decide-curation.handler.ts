@@ -6,6 +6,7 @@ import { type CuratableRef, type CurationFile, type CurationId, type CurationPro
 import { SaveAssetVersionCommand, type AssetContentInput, type AssetVersionMetadataInput } from '../../catalog';
 import { CreateComparisonCommand } from '../../comparisons';
 import { SaveRecipeVersionCommand, type RecipeDraftInput, type RecipeVersionView } from '../../recipes';
+import { SerialMutex } from '../../runtime/keyed-mutex';
 import { CurationCatalogReader } from '../curation-catalog.reader';
 import { type CurationDecisionRecord } from '../curation-decision.mapper';
 import { CurationDecisionRepository } from '../curation-decision.repository';
@@ -42,7 +43,7 @@ interface DecisionContext {
 export class DecideCurationHandler implements ICommandHandler<DecideCurationCommand, CurationView> {
   private readonly logger = new Logger(DecideCurationHandler.name);
   /** Decisions run one at a time in this api process, so a double click cannot save twice. */
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly decisionOrder = new SerialMutex();
 
   constructor(
     private readonly commandBus: CommandBus,
@@ -56,7 +57,8 @@ export class DecideCurationHandler implements ICommandHandler<DecideCurationComm
 
   async execute(command: DecideCurationCommand): Promise<CurationView> {
     const input = parseCurationInput(DecideCurationInputSchema, command.input, '');
-    const run = this.tail.then(async () => {
+    // The mutex only orders the decisions; each caller still receives its own result or error.
+    return this.decisionOrder.run(async () => {
       const file = await this.store.readState(input.curationId);
       if (file === null) throw new CurationNotFoundError(input.curationId);
       const context: DecisionContext = { file, decidedBy: input.decidedBy, correlationId: input.correlationId, now: new Date() };
@@ -70,9 +72,6 @@ export class DecideCurationHandler implements ICommandHandler<DecideCurationComm
       });
       return this.assembler.viewOf(file, queueOf([]), decision);
     });
-    // The chain only orders the decisions; each caller still receives its own result or error.
-    this.tail = run.catch(() => undefined);
-    return run;
   }
 
   private async decide(context: DecisionContext, request: CurationDecisionRequest): Promise<CurationDecisionRecord> {

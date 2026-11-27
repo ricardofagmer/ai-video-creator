@@ -1,4 +1,5 @@
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { toErrorReport } from '../errors/error-report.js';
 import { type ServiceName } from '../errors/service.errors.js';
 import { loopbackUrl } from '../doctor/http-probe.js';
@@ -14,19 +15,21 @@ const SERVICE_LABELS: Readonly<Record<ServiceName, string>> = { api: 'api', web:
 
 function startLine(name: ServiceName, outcome: StartOutcome): string {
   const url = loopbackUrl(outcome.port, '/');
-  if (outcome.status === 'already-running') return `${SERVICE_LABELS[name]} já estava rodando (pid ${outcome.pid}) em ${url}.`;
-  if (outcome.ready) return `${SERVICE_LABELS[name]} iniciado (pid ${outcome.pid}) em ${url}.`;
-  return `${SERVICE_LABELS[name]} iniciado (pid ${outcome.pid}), mas ainda não respondeu em ${url}; confira com "studio doctor".`;
+  const text = cliText().commands.services;
+  if (outcome.status === 'already-running') return text.alreadyRunning(SERVICE_LABELS[name], outcome.pid, url);
+  if (outcome.ready) return text.started(SERVICE_LABELS[name], outcome.pid, url);
+  return text.startedNotReady(SERVICE_LABELS[name], outcome.pid, url);
 }
 
 function stopLine(name: ServiceName, outcome: StopOutcome): string {
+  const text = cliText().commands.services;
   switch (outcome.status) {
     case 'stopped':
-      return `${SERVICE_LABELS[name]} parado (pid ${outcome.pid}).`;
+      return text.stopped(SERVICE_LABELS[name], outcome.pid);
     case 'not-running':
-      return `${SERVICE_LABELS[name]} não estava rodando.`;
+      return text.notRunning(SERVICE_LABELS[name]);
     case 'stale-record-removed':
-      return `${SERVICE_LABELS[name]} não estava rodando; registro antigo removido.`;
+      return text.staleRecordRemoved(SERVICE_LABELS[name]);
   }
 }
 

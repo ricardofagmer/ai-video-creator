@@ -4,6 +4,7 @@ import {
   GateDecisionResponseSchema,
   RunControlRequestSchema,
   RunControlResponseSchema,
+  RunDeleteResponseSchema,
   RunDraftResponseSchema,
   RunEventsResponseSchema,
   RunIndexPageSchema,
@@ -14,6 +15,7 @@ import {
   type GateDecisionResponse,
   type RunControlRequest,
   type RunControlResponse,
+  type RunDeleteResponse,
   type RunDraftResponse,
   type RunEventsResponse,
   type RunIndexPageView,
@@ -43,6 +45,8 @@ export interface RunsApi {
   createRun(request: CreateRunRequest): Promise<RunDraftResponse>;
   startRun(runId: string): Promise<RunDraftResponse>;
   requestControl(runId: string, request: RunControlRequest): Promise<RunControlResponse>;
+  /** Removes a stopped run for good: its folder and its index row. */
+  deleteRun(runId: string): Promise<RunDeleteResponse>;
   recordGateDecision(runId: string, request: GateDecisionRequest): Promise<GateDecisionResponse>;
   /** A JSON run artifact (`manifest.json`, `cost.json`, `qa/summary.json`) parsed with its C3 schema. */
   readArtifactJson<Schema extends z.ZodTypeAny>(runId: string, relativePath: string, schema: Schema): Promise<z.output<Schema>>;
@@ -67,6 +71,7 @@ export function createRunsApi(transport: ApiTransport): RunsApi {
         { method: 'POST', path: apiPaths.runControl(runId), body: { kind: 'json', value: checkedBody(RunControlRequestSchema, request) } },
         RunControlResponseSchema,
       ),
+    deleteRun: (runId) => requestJson(transport, { method: 'DELETE', path: apiPaths.run(runId) }, RunDeleteResponseSchema),
     recordGateDecision: (runId, request) =>
       requestJson(
         transport,

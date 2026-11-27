@@ -1,5 +1,6 @@
 import { Box, Text, useApp, useInput } from 'ink';
 import { type ReactElement } from 'react';
+import { cliText } from '../i18n/messages.js';
 import { RunDetailView } from './run-detail-view.js';
 import { RunListView } from './run-list-view.js';
 import { SafeText } from './safe-text.js';
@@ -10,8 +11,6 @@ export interface DashboardProps {
   dataHomeRoot: string;
   requestControl: ControlRequester;
 }
-
-const KEY_HELP = 'setas: escolher   p: pausar   s: parar   r: retomar   q: sair';
 
 /**
  * Full-screen dashboard (R1-21): the newest runs, the selected run's stages and live activity,
@@ -33,7 +32,7 @@ export function Dashboard({ runsRoot, dataHomeRoot, requestControl }: DashboardP
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box justifyContent="space-between">
-        <Text bold>Video Studio</Text>
+        <Text bold>EngineOS Video Creator</Text>
         <SafeText dimColor>{dataHomeRoot}</SafeText>
       </Box>
       {model.loadError === null ? null : <SafeText color="red">{model.loadError}</SafeText>}
@@ -44,7 +43,7 @@ export function Dashboard({ runsRoot, dataHomeRoot, requestControl }: DashboardP
         <RunDetailView snapshot={model.selected} />
       </Box>
       {model.notice === null ? null : <SafeText color={model.notice.tone === 'error' ? 'red' : 'green'}>{model.notice.text}</SafeText>}
-      <Text dimColor>{KEY_HELP}</Text>
+      <Text dimColor>{cliText().runs.dashboard.keyHelp}</Text>
     </Box>
   );
 }

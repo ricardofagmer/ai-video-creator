@@ -1,10 +1,12 @@
-import { Alert, Badge, Card, Table, formatUsd, textLinkClassName, type TableColumn } from '@studio/ui';
+import { Alert, Badge, Card, Table, formatUsd, textLinkClassName, type Locale, type TableColumn } from '@studio/ui';
 import { type CurationView } from '@studio/shared/api';
 import { type CurationSubject } from '@studio/shared/curation';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { formatDateTime } from '@/features/runs/run-labels';
+import { getI18n } from '@/lib/i18n/server';
+import { type WebMessages } from '@/messages';
 import { curationDecisionText, curationHref, curationProgressText, curationStatusTones } from '../curation-labels';
 import { loadSubjectCurations } from '../curations.server';
 import { RequestCurationForm } from './RequestCurationForm';
@@ -18,25 +20,28 @@ interface SubjectCurationsCardProps {
   blockedText: string | null;
 }
 
-const columns: readonly TableColumn<CurationView>[] = [
+function curationColumns(t: WebMessages['curations'], locale: Locale): readonly TableColumn<CurationView>[] {
+  const header = t.subjectCard.columns;
+  return [
   {
     key: 'requested',
-    header: 'Pedida em',
+    header: header.requested,
     rowHeader: true,
     render: (curation) => (
       <Link href={curationHref(curation.curationId)} className={textLinkClassName()}>
-        {formatDateTime(curation.requestedAt)}
+        {formatDateTime(curation.requestedAt, locale)}
       </Link>
     ),
   },
   {
     key: 'status',
-    header: 'Status',
-    render: (curation) => <Badge tone={curationStatusTones[curation.status]}>{curationProgressText(curation)}</Badge>,
+    header: header.status,
+    render: (curation) => <Badge tone={curationStatusTones[curation.status]}>{curationProgressText(curation, t)}</Badge>,
   },
-  { key: 'decision', header: 'Sua decisão', render: (curation) => curationDecisionText(curation.decision) ?? '—' },
-  { key: 'spent', header: 'Gasto', align: 'end', render: (curation) => formatUsd(curation.spentUsd) },
-];
+  { key: 'decision', header: header.decision, render: (curation) => curationDecisionText(curation.decision, t) ?? '—' },
+  { key: 'spent', header: header.spent, align: 'end', render: (curation) => formatUsd(curation.spentUsd, locale) },
+  ];
+}
 
 /**
  * "Propostas do curador" on a prompt, skill or recipe version page (SPEC 0005 section 5.9): the
@@ -45,23 +50,25 @@ const columns: readonly TableColumn<CurationView>[] = [
  */
 export async function SubjectCurationsCard({ subject, blockedText }: SubjectCurationsCardProps): Promise<ReactElement> {
   const curations = await loadSubjectCurations(subject);
+  const { t, locale } = await getI18n();
+  const texts = t.curations.subjectCard;
   return (
     <Card
-      title="Propostas do curador"
-      description="O curador lê as execuções revisadas desta versão e propõe uma versão nova em rascunho. Ativar continua sendo decisão sua."
+      title={texts.title}
+      description={texts.description}
     >
       <div className={layout.stack}>
         {blockedText === null ? <RequestCurationForm subject={subject} /> : <p className="caption">{blockedText}</p>}
         {curations.status === 'failed' ? (
-          <Alert variant="warning">{`Não foi possível carregar as propostas desta versão. ${curations.message}`}</Alert>
+          <Alert variant="warning">{texts.loadFailed(curations.message)}</Alert>
         ) : (
           <Table
-            caption="Propostas do curador para esta versão"
+            caption={texts.caption}
             hideCaption
-            columns={columns}
+            columns={curationColumns(t.curations, locale)}
             rows={curations.items}
             rowKey={(curation) => curation.curationId}
-            emptyText="Nenhuma proposta para esta versão ainda."
+            emptyText={texts.empty}
           />
         )}
       </div>

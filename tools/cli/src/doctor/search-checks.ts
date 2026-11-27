@@ -1,11 +1,19 @@
 import { GetSearchIndexStatusQuery, type SearchIndexStatus } from '@studio/core/embeddings';
+import { cliText } from '../i18n/messages.js';
 import { readManifestState, type ManifestState } from '../models/model-manifest.js';
 import { type CliSearchContext } from '../nest/cli-context.js';
 import { type CliSettings } from '../settings/cli-settings.js';
 import { type DoctorCheck } from './doctor-check.js';
 
-export const MODEL_CHECK_LABEL = 'modelo de busca';
-export const INDEX_CHECK_LABEL = 'índice de busca';
+/** The label of the search model line, in the active language. */
+export function modelCheckLabel(): string {
+  return cliText().doctor.labels.model;
+}
+
+/** The label of the search index line, in the active language. */
+export function indexCheckLabel(): string {
+  return cliText().doctor.labels.index;
+}
 
 export interface SearchChecks {
   model: DoctorCheck;
@@ -13,13 +21,14 @@ export interface SearchChecks {
 }
 
 function absentDetail(manifest: ManifestState): string {
+  const text = cliText().doctor.search;
   switch (manifest.status) {
     case 'unpinned':
-      return 'ausente; o manifesto em scripts/models ainda é provisório, então nada foi baixado. A busca por significado fica indisponível; o resto do studio funciona.';
+      return text.absentUnpinned;
     case 'invalid':
-      return 'ausente; o manifesto em scripts/models não pode ser usado (veja "studio models status").';
+      return text.absentInvalid;
     case 'pinned':
-      return `ausente (${manifest.manifest.modelRef}); rode "studio models fetch" quando a rede estiver disponível.`;
+      return text.absentPinned(manifest.manifest.modelRef);
   }
 }
 
@@ -29,29 +38,25 @@ function absentDetail(manifest: ManifestState): string {
  * `studio doctor`, and install step 14 with it, keeps exit 0 (R2-AC-27). No path, no checksum.
  */
 export function modelCheck(status: SearchIndexStatus, manifest: ManifestState): DoctorCheck {
+  const text = cliText().doctor.search;
+  const label = modelCheckLabel();
   switch (status.model) {
     case 'ready':
-      return { label: MODEL_CHECK_LABEL, status: 'ok', detail: `pronto (${status.modelRef ?? 'sem modelRef'}).` };
+      return { label, status: 'ok', detail: text.ready(status.modelRef ?? text.noModelRef) };
     case 'absent':
-      return { label: MODEL_CHECK_LABEL, status: 'warning', detail: absentDetail(manifest) };
+      return { label, status: 'warning', detail: absentDetail(manifest) };
     case 'rejected':
-      return {
-        label: MODEL_CHECK_LABEL,
-        status: 'warning',
-        detail: `recusado (${status.modelRef ?? 'sem modelRef'}): os arquivos não conferem com o manifesto ou o runtime não os carregou. Rode "studio models verify" e depois "studio models fetch".`,
-      };
+      return { label, status: 'warning', detail: text.rejected(status.modelRef ?? text.noModelRef) };
   }
 }
 
 /** The index line of SPEC 0003 section 7: `indexed`, `pending` and `stale` counts. */
 export function indexCheck(status: SearchIndexStatus): DoctorCheck {
-  const counts = `${status.indexed} indexada(s), ${status.pending} pendente(s), ${status.stale} desatualizada(s)`;
-  if (status.pending === 0 && status.stale === 0) return { label: INDEX_CHECK_LABEL, status: 'ok', detail: `${counts}.` };
-  const hint =
-    status.model === 'ready'
-      ? 'rode "studio catalog embed" (ou --stale) para indexar.'
-      : 'a indexação espera o modelo de busca ficar pronto.';
-  return { label: INDEX_CHECK_LABEL, status: 'warning', detail: `${counts}; ${hint}` };
+  const text = cliText().doctor.search;
+  const counts = text.counts(status.indexed, status.pending, status.stale);
+  if (status.pending === 0 && status.stale === 0) return { label: indexCheckLabel(), status: 'ok', detail: `${counts}.` };
+  const hint = status.model === 'ready' ? text.embedHint : text.waitHint;
+  return { label: indexCheckLabel(), status: 'warning', detail: `${counts}; ${hint}` };
 }
 
 /** One status read serves both lines; it verifies (and lazily loads) the local model, never downloads. */

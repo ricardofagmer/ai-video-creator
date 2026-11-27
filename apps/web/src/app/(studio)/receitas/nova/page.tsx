@@ -1,27 +1,36 @@
-import { PageHeader, textLinkClassName } from '@studio/ui';
+import { textLinkClassName } from '@studio/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { loadBindingOptions } from '@/features/recipes/binding-options.server';
 import { RecipeEditor } from '@/features/recipes/components/RecipeEditor';
+import { getI18n } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'Nova receita' };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t.recipes.newRecipe.title };
+}
 
 /** design/telas/06: `/receitas/nova`, a recipe built from active catalog versions. */
 export default async function NewRecipePage() {
   const options = await loadBindingOptions([]);
+  const { t } = await getI18n();
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.recipes}
+        glyph="script"
         back={
           <Link href="/receitas" className={textLinkClassName()}>
-            ← Receitas
+            {t.recipes.detail.back}
           </Link>
         }
-        title="Nova receita"
-        description="A receita é salva como rascunho, versão 1."
+        title={t.recipes.newRecipe.title}
+        description={t.recipes.newRecipe.description}
       />
-      <RecipeEditor base={null} options={options} />
+      <RecipeEditor base={null} options={options} wizard />
     </div>
   );
 }

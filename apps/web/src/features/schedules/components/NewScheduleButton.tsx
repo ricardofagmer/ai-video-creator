@@ -4,7 +4,8 @@ import { Button, Dialog } from '@studio/ui';
 import { type RecipeVersionView, type ScheduleView } from '@studio/shared/api';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactElement } from 'react';
-import { SCHEDULE_SAFETY_TEXT, scheduleHref } from '../schedule-labels';
+import { useWebMessages } from '@/lib/i18n/client';
+import { scheduleHref } from '../schedule-labels';
 import { ScheduleCreateForm } from './ScheduleCreateForm';
 
 interface NewScheduleButtonProps {
@@ -21,6 +22,7 @@ const FORM_ID = 'novo-agendamento';
  * page; nothing runs until its first slot, and every fired run waits at the plan gate.
  */
 export function NewScheduleButton({ recipes, atLimit }: NewScheduleButtonProps): ReactElement {
+  const t = useWebMessages().schedules;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -36,20 +38,20 @@ export function NewScheduleButton({ recipes, atLimit }: NewScheduleButtonProps):
   return (
     <>
       <Button variant="primary" disabled={recipes.length === 0 || atLimit} onClick={() => setOpen(true)}>
-        Novo agendamento
+        {t.list.newSchedule}
       </Button>
       <Dialog
         open={open}
         onClose={close}
-        title="Novo agendamento"
-        description={SCHEDULE_SAFETY_TEXT}
+        title={t.create.dialogTitle}
+        description={t.safety}
         footer={
           <>
             <Button variant="secondary" disabled={pending} onClick={close}>
-              Cancelar
+              {t.create.cancel}
             </Button>
-            <Button type="submit" form={FORM_ID} variant="primary" loading={pending} loadingLabel="Criando…">
-              Criar agendamento
+            <Button type="submit" form={FORM_ID} variant="primary" loading={pending} loadingLabel={t.create.creating}>
+              {t.create.create}
             </Button>
           </>
         }

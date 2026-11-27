@@ -1,0 +1,131 @@
+/* "Criar vídeo": the step list and the rows of the wizard. Tokens from @studio/ui only. */
+
+/* The numbered list of where the owner is; in the draft flow the browser steps are buttons that jump there. */
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-6);
+  height: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.stepCurrent {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.stepCurrent .stepNumber {
+  border-color: var(--color-text);
+}
+
+.stepDone .stepNumber {
+  border-color: var(--color-text-muted);
+}
+
+.stepButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.stepButton:hover .stepNumber {
+  border-color: var(--color-text);
+}
+
+.stepButton:hover .stepLabel {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.stepButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.rowName {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.referenceItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Voltar on the left, Avançar or Iniciar on the right, wrapping on narrow screens instead of overlapping. */
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.footerEnd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.pipelineRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: var(--radius-md, 8px);
+}

@@ -1,6 +1,7 @@
 import { setImmediate as yieldToEventLoop } from 'node:timers/promises';
 import { Injectable, Logger } from '@nestjs/common';
 import { assetRefPattern, parseAssetRef, type AssetRef } from '@studio/shared/catalog';
+import { SerialMutex } from '../runtime/keyed-mutex';
 import { EmbeddingDocumentPlanner, type PlannedRow } from './embedding-document.planner';
 import { EmbeddingIndexRepository, MAX_REFS_PER_LOOKUP, type EmbeddingSourceRow } from './embedding-index.repository';
 import { EmbeddingModelRuntime } from './embedding-model.runtime';
@@ -48,7 +49,7 @@ function inScope(row: PlannedRow, scope: EmbedScope): boolean {
 @Injectable()
 export class EmbeddingIndexer {
   private readonly logger = new Logger(EmbeddingIndexer.name);
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly passes = new SerialMutex();
   private readonly queuedRefs = new Set<AssetRef>();
   private refsPassQueued = false;
 
@@ -84,9 +85,7 @@ export class EmbeddingIndexer {
   }
 
   private serialized<T>(pass: () => Promise<T>): Promise<T> {
-    const run = this.tail.then(pass, pass);
-    this.tail = run.catch(() => undefined);
-    return run;
+    return this.passes.run(pass);
   }
 
   private async syncAll(scope: EmbedScope): Promise<EmbeddingSyncSummary> {

@@ -50,7 +50,7 @@ export interface MockPlatformProfile {
  * the browser back at the api's callback with `MOCK_AUTHORIZATION_CODE`, the upload reads the bytes
  * through the caller's handle to count them and sends nothing (finding S2: never by path), metrics
  * are `mockMetrics` and stop when the pass budget's signal aborts (finding C7).
- * The fault scenario of `VIDEO_STUDIO_PLATFORM_<PLATFORM>_MOCK_FAULT` makes the calls fail as
+ * The fault scenario of `ENGINEOS_VIDEO_CREATOR_PLATFORM_<PLATFORM>_MOCK_FAULT` makes the calls fail as
  * section 5.8 lists.
  */
 export class MockPlatformClient implements PlatformClient {

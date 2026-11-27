@@ -4,8 +4,12 @@
   Self-contained: no script, no remote reference, system fonts only. HyperFrames 0.9.72 reads the
   variable declarations from data-composition-variables, writes each value into the element named
   by data-var-text, and exposes every value as a CSS custom property whose name is the id in
-  lower case (durationS becomes --durations). The composition length is fixed at 30 s (U1): the
-  render is cut to the narration, and durationS only times the closing fade.
+  lower case (durationS becomes --durations). The declared length is the 600 s ceiling: the render sets the
+  staged copy to the narration length, and durationS times the closing fade.
+  The picture behind the text is media/background.mp4: the render writes it into the staged copy
+  from the run's scene media (site capture, chosen images). The hook and the title open the video
+  and leave when the second scene starts, so later pictures are not covered; each scene's on-screen
+  text then shows in the lower band while that scene is narrated.
 -->
 <html lang="pt-BR">
   <head>
@@ -20,19 +24,34 @@
       class="card"
       data-composition-id="TitleCard"
       data-start="0"
-      data-duration="30"
+      data-duration="600"
       data-width="1080"
       data-height="1920"
       data-fps="30"
       data-no-timeline
-      data-composition-variables='[{"id":"title","type":"string","label":"Title","default":""},{"id":"hook","type":"string","label":"Hook","default":""},{"id":"disclosure","type":"string","label":"Disclosure","default":""},{"id":"accent","type":"color","label":"Accent","default":"#f97316"},{"id":"durationS","type":"number","label":"Duration (s)","default":30,"min":3,"max":30}]'
+      data-composition-variables='[{"id":"title","type":"string","label":"Title","default":""},{"id":"hook","type":"string","label":"Hook","default":""},{"id":"disclosure","type":"string","label":"Disclosure","default":""},{"id":"accent","type":"color","label":"Accent","default":"#f97316"},{"id":"durationS","type":"number","label":"Duration (s)","default":600,"min":3,"max":600},{"id":"scene1Text","type":"string","label":"Scene 1 text","default":""},{"id":"scene1StartS","type":"number","label":"Scene 1 start (s)","default":600,"min":0,"max":600},{"id":"scene2Text","type":"string","label":"Scene 2 text","default":""},{"id":"scene2StartS","type":"number","label":"Scene 2 start (s)","default":600,"min":0,"max":600},{"id":"scene3Text","type":"string","label":"Scene 3 text","default":""},{"id":"scene3StartS","type":"number","label":"Scene 3 start (s)","default":600,"min":0,"max":600},{"id":"scene4Text","type":"string","label":"Scene 4 text","default":""},{"id":"scene4StartS","type":"number","label":"Scene 4 start (s)","default":600,"min":0,"max":600},{"id":"scene5Text","type":"string","label":"Scene 5 text","default":""},{"id":"scene5StartS","type":"number","label":"Scene 5 start (s)","default":600,"min":0,"max":600},{"id":"scene6Text","type":"string","label":"Scene 6 text","default":""},{"id":"scene6StartS","type":"number","label":"Scene 6 start (s)","default":600,"min":0,"max":600},{"id":"scene7Text","type":"string","label":"Scene 7 text","default":""},{"id":"scene7StartS","type":"number","label":"Scene 7 start (s)","default":600,"min":0,"max":600},{"id":"scene8Text","type":"string","label":"Scene 8 text","default":""},{"id":"scene8StartS","type":"number","label":"Scene 8 start (s)","default":600,"min":0,"max":600},{"id":"scene9Text","type":"string","label":"Scene 9 text","default":""},{"id":"scene9StartS","type":"number","label":"Scene 9 start (s)","default":600,"min":0,"max":600},{"id":"scene10Text","type":"string","label":"Scene 10 text","default":""},{"id":"scene10StartS","type":"number","label":"Scene 10 start (s)","default":600,"min":0,"max":600}]'
     >
+      <!-- The run's own picture (site capture, chosen images), written beside this file by the render. -->
+      <video id="background" class="clip background" src="media/background.mp4" data-start="0" data-duration="600" muted playsinline></video>
+      <div class="scrim" aria-hidden="true"></div>
       <div class="accent-bar" aria-hidden="true"></div>
-      <main class="content">
+      <header class="content">
+        <p class="disclosure" data-var-text="disclosure"></p>
         <p class="hook" data-var-text="hook"></p>
         <h1 class="title" data-var-text="title"></h1>
+      </header>
+      <main class="stage">
+        <p class="scene scene-1" data-var-text="scene1Text"></p>
+        <p class="scene scene-2" data-var-text="scene2Text"></p>
+        <p class="scene scene-3" data-var-text="scene3Text"></p>
+        <p class="scene scene-4" data-var-text="scene4Text"></p>
+        <p class="scene scene-5" data-var-text="scene5Text"></p>
+        <p class="scene scene-6" data-var-text="scene6Text"></p>
+        <p class="scene scene-7" data-var-text="scene7Text"></p>
+        <p class="scene scene-8" data-var-text="scene8Text"></p>
+        <p class="scene scene-9" data-var-text="scene9Text"></p>
+        <p class="scene scene-10" data-var-text="scene10Text"></p>
       </main>
-      <footer class="disclosure" data-var-text="disclosure"></footer>
     </div>
   </body>
 </html>

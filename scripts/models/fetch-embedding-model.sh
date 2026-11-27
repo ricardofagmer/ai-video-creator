@@ -44,6 +44,9 @@ SOURCE_REPOSITORY=''
 SOURCE_REVISION=''
 MODEL_REF=''
 PINNED_FILES=''
+# The file `@studio/shared` is resolved from: packages/core/package.json of the checkout, or the
+# same relative path under the packaged resources, whose lookup walks up to payload/node_modules.
+MANIFEST_RESOLVE_FROM=''
 
 # Validates both committed files and prints, one per line: host, repository, revision, modelRef,
 # then "<sha256> <size> <path>" per file. The manifest goes through the frozen shared schema
@@ -143,7 +146,7 @@ read_pinned_model() {
   local output status=0 line index=0
   output="$(
     trap - ERR
-    "$MANIFEST_NODE" -e "$MANIFEST_READER_JS" "$REPO_ROOT/packages/core/package.json" "$MANIFEST_FILE" "$SOURCE_FILE"
+    "$MANIFEST_NODE" -e "$MANIFEST_READER_JS" "$MANIFEST_RESOLVE_FROM" "$MANIFEST_FILE" "$SOURCE_FILE"
   )" || status=$?
   case "$status" in
     0) ;;
@@ -276,7 +279,13 @@ main() {
   CURRENT_STEP='modelo de busca'
   trap 'warn "modelo de busca: um comando saiu com código $? (linha $LINENO)."; exit 1' ERR
   trap cleanup EXIT
-  resolve_repo_root "$MODELS_DIR/.."
+  # Packaged app: the scripts sit in <runtime>/payload/resources (no monorepo around them).
+  if resolve_packaged_resources_root "$MODELS_DIR/.."; then
+    MANIFEST_RESOLVE_FROM="$PACKAGED_RESOURCES_ROOT/packages/core/package.json"
+  else
+    resolve_repo_root "$MODELS_DIR/.."
+    MANIFEST_RESOLVE_FROM="$REPO_ROOT/packages/core/package.json"
+  fi
   read_pinned_model
   local model_directory="$TARGET_DATA_HOME/models/embeddings/$MODEL_REF" sha size path
   info "modelo: $MODEL_REF ($SOURCE_HOST/$SOURCE_REPOSITORY na revisão $SOURCE_REVISION)"

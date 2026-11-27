@@ -1,0 +1,12 @@
+.sample {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.problem {
+  flex-basis: 100%;
+  color: var(--color-danger);
+}

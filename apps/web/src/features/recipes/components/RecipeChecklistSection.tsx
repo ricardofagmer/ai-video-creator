@@ -4,6 +4,7 @@ import { Card, Checkbox } from '@studio/ui';
 import { type ChecklistItem } from '@studio/shared/recipes';
 import { type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { useWebMessages } from '@/lib/i18n/client';
 
 export interface RecipeChecklistSectionProps {
   items: readonly ChecklistItem[];
@@ -12,10 +13,11 @@ export interface RecipeChecklistSectionProps {
 
 /** design/telas/06 card "Checklist da revisão": one "Obrigatório" Checkbox per item (D14). */
 export function RecipeChecklistSection({ items, onChange }: RecipeChecklistSectionProps): ReactElement {
+  const texts = useWebMessages().recipes.checklist;
   return (
     <fieldset className={layout.fieldset}>
-      <legend className="visually-hidden">Checklist da revisão</legend>
-      <Card title="Checklist da revisão" description={`${items.length} itens`}>
+      <legend className="visually-hidden">{texts.title}</legend>
+      <Card title={texts.title} description={texts.itemCount(items.length)}>
         <ul className={`${layout.selectedFiles} ${layout.stack}`}>
           {items.map((item) => (
             <li key={item.id} className={layout.field}>
@@ -24,7 +26,8 @@ export function RecipeChecklistSection({ items, onChange }: RecipeChecklistSecti
                 id={`checklist-${item.id}`}
                 label={
                   <>
-                    Obrigatório<span className="visually-hidden">: {item.label}</span>
+                    {texts.required}
+                    <span className="visually-hidden">: {item.label}</span>
                   </>
                 }
                 checked={item.required}

@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rota | `/catalogo/[assetId]` (versão aberta em `?versao=N`; sem ela, a ativa ou a mais nova) |
-| Título do documento | `<nome do ativo> · Catálogo · Video Studio` |
+| Título do documento | `<nome do ativo> · Catálogo · EngineOS Video Creator` |
 | Ticket | R1-19 (critérios 5, 6, 7) |
 
 ## Objetivo

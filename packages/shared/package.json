@@ -33,6 +33,14 @@
       "types": "./src/api/index.ts",
       "default": "./dist/api/index.js"
     },
+    "./asset-jobs": {
+      "types": "./src/asset-jobs/index.ts",
+      "default": "./dist/asset-jobs/index.js"
+    },
+    "./asset-jobs/files": {
+      "types": "./src/asset-jobs/files/index.ts",
+      "node": "./dist/asset-jobs/files/index.js"
+    },
     "./ace": {
       "types": "./src/ace/index.ts",
       "default": "./dist/ace/index.js"
@@ -80,23 +88,63 @@
   },
   "typesVersions": {
     "*": {
-      "catalog": ["./src/catalog/index.ts"],
-      "recipes": ["./src/recipes/index.ts"],
-      "run-format": ["./src/run-format/index.ts"],
-      "run-files": ["./src/run-files/index.ts"],
-      "ports": ["./src/ports/index.ts"],
-      "agents": ["./src/agents/index.ts"],
-      "api": ["./src/api/index.ts"],
-      "ace": ["./src/ace/index.ts"],
-      "curation": ["./src/curation/index.ts"],
-      "curation/files": ["./src/curation/files/index.ts"],
-      "metrics": ["./src/metrics/index.ts"],
-      "schedules": ["./src/schedules/index.ts"],
-      "schedules/files": ["./src/schedules/files/index.ts"],
-      "platforms": ["./src/platforms/index.ts"],
-      "platforms/files": ["./src/platforms/files/index.ts"],
-      "hyperframes": ["./src/hyperframes/index.ts"],
-      "hyperframes/files": ["./src/hyperframes/files/index.ts"]
+      "catalog": [
+        "./src/catalog/index.ts"
+      ],
+      "recipes": [
+        "./src/recipes/index.ts"
+      ],
+      "run-format": [
+        "./src/run-format/index.ts"
+      ],
+      "run-files": [
+        "./src/run-files/index.ts"
+      ],
+      "ports": [
+        "./src/ports/index.ts"
+      ],
+      "agents": [
+        "./src/agents/index.ts"
+      ],
+      "api": [
+        "./src/api/index.ts"
+      ],
+      "asset-jobs": [
+        "./src/asset-jobs/index.ts"
+      ],
+      "asset-jobs/files": [
+        "./src/asset-jobs/files/index.ts"
+      ],
+      "ace": [
+        "./src/ace/index.ts"
+      ],
+      "curation": [
+        "./src/curation/index.ts"
+      ],
+      "curation/files": [
+        "./src/curation/files/index.ts"
+      ],
+      "metrics": [
+        "./src/metrics/index.ts"
+      ],
+      "schedules": [
+        "./src/schedules/index.ts"
+      ],
+      "schedules/files": [
+        "./src/schedules/files/index.ts"
+      ],
+      "platforms": [
+        "./src/platforms/index.ts"
+      ],
+      "platforms/files": [
+        "./src/platforms/files/index.ts"
+      ],
+      "hyperframes": [
+        "./src/hyperframes/index.ts"
+      ],
+      "hyperframes/files": [
+        "./src/hyperframes/files/index.ts"
+      ]
     }
   },
   "scripts": {

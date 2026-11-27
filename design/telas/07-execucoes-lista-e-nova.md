@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rotas | `/execucoes` (lista, página inicial), `/execucoes/nova?receita=<id>@<versão>` |
-| Título do documento | `Execuções · Video Studio` / `Nova execução · Video Studio` |
+| Título do documento | `Execuções · EngineOS Video Creator` / `Nova execução · EngineOS Video Creator` |
 | Ticket | R1-20 (critérios 8, 14, 20, 28) |
 
 ## Objetivo

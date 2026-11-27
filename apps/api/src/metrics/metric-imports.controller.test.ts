@@ -3,13 +3,13 @@ import { type IncomingHttpHeaders } from 'node:http';
 import { Readable } from 'node:stream';
 import { describe, it } from 'node:test';
 import { ImportMetricsCommand, MetricImportRefusedError } from '@studio/core/metrics';
-import { type MetricImportPageView, type MetricImportReport } from '@studio/shared/api';
+import { type MetricImportReport } from '@studio/shared/api';
 import { metricsBounds } from '@studio/shared/metrics';
 import { type MultipartSource } from '../catalog/multipart-parts';
 import { MetricsFileTooLargeError, UploadRejectedError } from '../platform/api.errors';
 import { mapError } from '../platform/error-mapping';
 import { OWNER_SUBJECT, RequestContext, type Principal } from '../platform/request-context';
-import { MetricImportsController, type MetricImportCommandPort, type MetricImportQueryPort } from './metric-imports.controller';
+import { MetricImportsController, type MetricImportCommandPort } from './metric-imports.controller';
 import { MetricsResponseAssembler } from './metrics-response.assembler';
 
 const BOUNDARY = 'studio-test-boundary';
@@ -72,10 +72,6 @@ class RecordingImportCommands implements MetricImportCommandPort {
   }
 }
 
-const noQueries: MetricImportQueryPort = {
-  execute: (): Promise<MetricImportPageView> => Promise.reject(new Error('no query is expected')),
-};
-
 interface Harness {
   commands: RecordingImportCommands;
   submit(request: MultipartSource, dryRun?: 'true' | 'false'): Promise<MetricImportReport>;
@@ -84,7 +80,7 @@ interface Harness {
 function harness(): Harness {
   const commands = new RecordingImportCommands();
   const context = new RequestContext();
-  const controller = new MetricImportsController(commands, noQueries, context, new MetricsResponseAssembler());
+  const controller = new MetricImportsController(commands, context, new MetricsResponseAssembler());
   return {
     commands,
     submit: (request, dryRun) =>

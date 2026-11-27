@@ -4,7 +4,7 @@ import { parseShellArguments } from './shell-arguments';
 
 describe('shell arguments', () => {
   it('recognises --unregister-login-item', () => {
-    assert.deepEqual(parseShellArguments(['/Applications/Video Studio.app/Contents/MacOS/Video Studio', '--unregister-login-item']), {
+    assert.deepEqual(parseShellArguments(['/Applications/EngineOS Video Creator.app/Contents/MacOS/EngineOS Video Creator', '--unregister-login-item']), {
       kind: 'unregister-login-item',
     });
   });

@@ -1,0 +1,258 @@
+name: Release
+
+# Desktop installer release (ticket 05, plan rev 3 contract C2 rev 2, DI-AC-19, DI-AC-25).
+# A pushed v* tag builds the macOS arm64 .dmg, renders latest.json and its checksum, publishes them
+# with the ffmpeg corresponding-source archive to the tag's GitHub release, then writes latest.json
+# to the orphan `release-manifest` branch that the portal reads (section 9.1: release download URLs
+# redirect without CORS headers). A manual run is a dry run by default: it builds and keeps the
+# result as a workflow artifact only, and publishes nothing.
+#
+# Untrusted values (tag names, inputs) reach `run:` only through `env:` and quoted shell variables.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and render only. Publishing also needs the run to start from a v* tag.
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  # Contract C4 rev 1 (plan section 9.2): ffmpeg and ffprobe are built from pinned sources, and the
+  # output folder (binaries, licences, corresponding-source archive, build-manifest.json) is handed
+  # to the packaging job as a workflow artifact.
+  build-ffmpeg:
+    name: build ffmpeg from pinned sources
+    runs-on: macos-15
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Keyed on every builder file and the lock, so any pin or script change rebuilds from source.
+      # The cache is written only by this workflow, which runs on tags and on manual runs.
+      - name: Restore the ffmpeg build
+        id: ffmpeg-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: apps/shell/out/ffmpeg
+          key: ffmpeg-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/ffmpeg-build/**') }}
+
+      # The builder validates its lock file with a small Node script (scripts/ffmpeg-build/lock-tool.mjs).
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        with:
+          node-version: 24
+
+      # Homebrew bottles are checksummed by their formulae; the versions used are printed for the
+      # record. nasm and pkg-config (pkgconf) are the builder's toolchain prerequisites; gpg checks
+      # the FFmpeg tarball signature against the pinned release key fingerprint (C4).
+      - name: Install build prerequisites (nasm, pkg-config, gpg)
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+          HOMEBREW_NO_INSTALL_CLEANUP: '1'
+        run: |
+          brew install nasm pkgconf gnupg
+          echo "prerequisite versions:"
+          nasm -v
+          printf 'pkg-config %s\n' "$(pkg-config --version)"
+          gpg --version | head -n 1
+
+      - name: Build ffmpeg and ffprobe
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        run: bash scripts/ffmpeg-build/build-ffmpeg.sh
+
+      - name: Check the build output is complete
+        run: |
+          for required in bin/ffmpeg bin/ffprobe build-manifest.json; do
+            if [ ! -f "apps/shell/out/ffmpeg/$required" ]; then
+              echo "apps/shell/out/ffmpeg/$required is missing; the ffmpeg build did not complete." >&2
+              exit 1
+            fi
+          done
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ffmpeg-build
+          path: apps/shell/out/ffmpeg
+          if-no-files-found: error
+          retention-days: 7
+
+  build:
+    name: build installer and manifest
+    needs: build-ffmpeg
+    # The .dmg stages and verifies darwin-arm64 binaries, so it is built on Apple Silicon.
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Reads the version from package.json `packageManager` (pnpm@10.12.1).
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      # No dependency cache on a release build: every byte comes from the lockfile, not a shared cache.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Resolve the release tag from the app version
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          release_tag="$(node scripts/release/cli.mjs release-tag --event "$EVENT_NAME" --ref-type "$REF_TYPE" --ref-name "$REF_NAME")"
+          printf 'tag=%s\n' "$release_tag" >> "$GITHUB_OUTPUT"
+
+      # Vetting 0006 section 4 and correction 11: SHASUMS256.txt.asc checked with gpgv against the
+      # nodejs/release-keys keyring, then the SHA-256 pinned in apps/shell/scripts/lib/pins.mjs must be
+      # the signed line. The staging script refuses any tarball with another hash, so this links the
+      # shipped Node to the Node release signature. Without gpgv on the runner the release stops.
+      - name: Install gpg for the Node signature check
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+          HOMEBREW_NO_INSTALL_CLEANUP: '1'
+        run: |
+          brew install gnupg
+          gpgv --version | head -n 1
+
+      - name: Verify the pinned Node tarball against the signed SHASUMS256
+        run: |
+          if ! command -v gpgv >/dev/null 2>&1; then
+            echo "gpgv is not installed on this runner; the Node signature check cannot run, so the release stops." >&2
+            exit 1
+          fi
+          work="$RUNNER_TEMP/node-signature"
+          mkdir -p "$work"
+          sums_url="$(node scripts/release/cli.mjs node-sums-url)"
+          curl --proto '=https' --tlsv1.2 -fsSL -o "$work/pubring.kbx" 'https://github.com/nodejs/release-keys/raw/HEAD/gpg/pubring.kbx'
+          curl --proto '=https' --tlsv1.2 -fsSL -o "$work/SHASUMS256.txt.asc" "$sums_url"
+          gpgv --keyring "$work/pubring.kbx" --output "$work/SHASUMS256.txt" < "$work/SHASUMS256.txt.asc"
+          node scripts/release/cli.mjs check-node-sums --sums "$work/SHASUMS256.txt"
+
+      # Install scripts run only for the `onlyBuiltDependencies` allowlist in pnpm-workspace.yaml.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm exec turbo run build
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ffmpeg-build
+          path: apps/shell/out/ffmpeg
+
+      # Workflow artifacts drop file modes; packaging checks both binaries against build-manifest.json.
+      - name: Restore the executable bit of ffmpeg and ffprobe
+        run: chmod 755 apps/shell/out/ffmpeg/bin/ffmpeg apps/shell/out/ffmpeg/bin/ffprobe
+
+      # Fails closed while a pin in apps/shell/scripts/lib/pins.mjs is missing or the ffmpeg folder
+      # does not match its build-manifest.json.
+      # Both are public https addresses kept as repository variables, not secrets. Packaging writes
+      # them into the app (portal-settings.json) because an app started from Finder has no shell
+      # environment; an unset variable ships that menu entry switched off, an invalid one stops here.
+      - name: Package the .dmg
+        env:
+          ENGINEOS_VIDEO_CREATOR_PORTAL_ORIGIN: ${{ vars.ENGINEOS_VIDEO_CREATOR_PORTAL_ORIGIN }}
+          ENGINEOS_VIDEO_CREATOR_RELEASE_MANIFEST_URL: ${{ vars.ENGINEOS_VIDEO_CREATOR_RELEASE_MANIFEST_URL }}
+        run: pnpm --filter @studio/shell run package:dmg
+
+      - name: Render latest.json and the installer checksum
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          node scripts/release/cli.mjs render \
+            --release-dir apps/shell/out/dmg/release \
+            --ffmpeg-manifest apps/shell/out/ffmpeg/build-manifest.json \
+            --out-dir "$RUNNER_TEMP/release" \
+            --base-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/"
+          node scripts/release/cli.mjs verify --dir "$RUNNER_TEMP/release" --tag "$RELEASE_TAG"
+          cat "$RUNNER_TEMP/release/assets/latest.json"
+
+      # The only hand-over to the publish job; a dry run stops here.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish release and manifest branch
+    needs: build
+    # Only a v* tag ref publishes: a tag push, or a manual run from a tag with dry_run unticked.
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') &&
+      (github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.dry_run == false))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Deployment protection (required reviewers, v* tags only) is configured on this environment.
+    environment: release
+    permissions:
+      contents: write
+    concurrency:
+      group: release-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release
+          path: ${{ runner.temp }}/release
+
+      - name: Re-verify the release set
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/release/cli.mjs verify --dir "$RUNNER_TEMP/release" --tag "$RELEASE_TAG"
+
+      # --verify-tag: the release attaches to the pushed tag and never creates one.
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "EngineOS Video Creator $RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/release/release-notes.md" \
+            "$RUNNER_TEMP/release/assets/"*
+
+      - name: Publish latest.json to the release-manifest branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/release/cli.mjs publish-branch \
+            --manifest "$RUNNER_TEMP/release/assets/latest.json" \
+            --repository "$GITHUB_REPOSITORY"

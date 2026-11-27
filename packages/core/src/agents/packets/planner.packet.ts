@@ -9,7 +9,7 @@ import {
 } from '@studio/shared/agents';
 import { recipeRefOf, type Brief, type Recipe } from '@studio/shared/recipes';
 import { stagePhase, type PhaseId } from '@studio/shared/run-format';
-import { bindingSummaries, packetBaseFor, type BoundAssetSummary, type PacketCoordinates } from './packet-support';
+import { bindingSummaries, packetBaseFor, skillTextsField, type AssetText, type BoundAssetSummary, type PacketCoordinates } from './packet-support';
 
 export interface PlannerPacketSource {
   readonly coordinates: PacketCoordinates;
@@ -23,6 +23,8 @@ export interface PlannerPacketSource {
   readonly costPerMonthUsd: number;
   /** An aggregate of the ledger; no other run's files or state reach the packet. */
   readonly monthToDateUsd: number;
+  /** Bound skill texts for the planner (its slot, else every skill of the recipe); absent when none. */
+  readonly skills?: readonly AssetText[];
 }
 
 /** `ref, phases, stages (on/off), checks, inputs schema, rubric ref`; the criteria stay out. */
@@ -56,6 +58,7 @@ export function buildPlannerPacket(source: PlannerPacketSource): PlannerPacket {
         costPerMonthUsd: source.costPerMonthUsd,
         monthToDateUsd: source.monthToDateUsd,
       },
+      ...skillTextsField(source.skills),
     },
     constraints: { stageSetFixed: true, maxDurationSec: Math.max(1, Math.floor(source.recipe.format.duration.maxSec)) },
     outputContract: OutputContractSchema.enum.PlanOutput,

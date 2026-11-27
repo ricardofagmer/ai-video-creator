@@ -1,4 +1,5 @@
 export type * from './agents-port';
+export * from './analyst';
 export * from './bounds';
 export * from './director';
 export * from './packet-base';
@@ -6,6 +7,7 @@ export * from './packet-parts';
 export * from './planner';
 export * from './protocol';
 export * from './recovery';
+export * from './reference-analysis';
 export * from './reviewer';
 export * from './role-contracts';
 export * from './tool-envelope';

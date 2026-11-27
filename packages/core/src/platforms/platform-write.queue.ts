@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { SerialMutex } from '../runtime/keyed-mutex';
 
 /**
  * Serializes this process's read-decide-write sequences on platform files and attempt rows
@@ -8,14 +9,9 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class PlatformWriteQueue {
-  private tail: Promise<void> = Promise.resolve();
+  private readonly mutex = new SerialMutex();
 
   exclusive<Result>(work: () => Promise<Result>): Promise<Result> {
-    const run = this.tail.then(work, work);
-    this.tail = run.then(
-      () => undefined,
-      () => undefined,
-    );
-    return run;
+    return this.mutex.run(work);
   }
 }

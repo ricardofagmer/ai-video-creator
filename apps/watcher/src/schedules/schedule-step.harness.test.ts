@@ -147,7 +147,7 @@ export function passingFacts(schedule: ScheduleFile, fixtureRun: RunFile): SlotG
     runsAtReview: 0,
     brief: schedule.briefs[0] ?? null,
     monthToDateUsd: 0,
-    recipe: { state: 'found', version: { ref: recipe.ref, contentHash: recipe.contentHash, recipe: recipe.definition }, refsResolvable: true },
+    recipe: { state: 'found', version: { ref: recipe.ref, contentHash: recipe.contentHash, recipe: recipe.definition }, refsResolvable: true, compositionAllowed: true },
   };
 }
 

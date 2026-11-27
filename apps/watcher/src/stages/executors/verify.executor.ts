@@ -3,19 +3,23 @@ import { type CheckId, type DeclaredOutput, type StageEstimate } from '@studio/s
 import { BaseStageExecutor, zeroEstimate } from '../shared/base-stage.executor';
 import { ClaimsArtifactSchema, ResearchArtifactSchema, type ClaimsArtifact } from '../shared/stage-artifacts';
 import { readOptionalStageInput, readOwnOutput, stageOutput, type StageOutputSink } from '../shared/stage-io';
-import { needsPerson, reportedSuccess, stageFailed, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
+import { reportedSuccess, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
+import { readSiteAnalysisInput, siteAnalysisCaveat } from '../shared/site-analysis-input';
 import { stageTexts } from '../shared/stage-texts';
-import { claimsFromKeyMessages } from './claim-evidence';
+import { claimsFromKeyMessages, claimsFromKeyPoints, claimsStatedByOwner } from './claim-evidence';
 
-/** C3 `claim-without-evidence.claimIds` holds at most 50 ids. */
-const MAX_REPORTED_CLAIM_IDS = 50;
+/** The step result names at most this many dropped key messages. */
+const MAX_REPORTED_DROPPED = 10;
 
 /**
  * `verify` (stage): each brief key message becomes a claim with an evidence span in the research
- * text, or stays unverified. Deterministic, no model. An unverified claim fails `claims-evidence`
- * with the claim ids in the check result (obligation 2), which the engine never retries: the run
- * waits for the owner. When the recipe does not list `claims-evidence` on this stage, the executor
- * stops with a `claim-without-evidence` cause itself, so a claim never passes unchecked.
+ * text. A key message with no span is dropped from `claims.json` and named in the step result, so
+ * the run continues and the script can only cite claims the page supports (owner decision,
+ * 2026-11-24: an unbacked key message no longer stops the run). Then each site analysis key point
+ * with a span joins as a verified claim; points without one are dropped (site analysis spec,
+ * Amendment). Deterministic, no model. `claims-evidence` still fails if an unverified claim ever
+ * reaches the artifact. A run with no Source URL has no page: its key messages pass as statements
+ * made by the owner.
  */
 export class VerifyExecutor extends BaseStageExecutor {
   readonly stageId = 'verify';
@@ -31,20 +35,25 @@ export class VerifyExecutor extends BaseStageExecutor {
 
   protected async run(context: StageExecutionContext, outputs: StageOutputSink): Promise<StageExecutionResult> {
     const research = await readOptionalStageInput(context, 'research', ResearchArtifactSchema);
-    const claims: ClaimsArtifact = { format: 1, claims: claimsFromKeyMessages(context.brief.keyMessages, research?.text ?? '') };
+    const pageText = research?.text ?? '';
+    // No Source URL: there is no page to check against, so the key messages are the owner's own
+    // statements and pass as such. With a source they need a span of the page text, as before.
+    const ownerStated = (context.brief.sourceUrl ?? '') === '';
+    const messageClaims = ownerStated ? claimsStatedByOwner(context.brief.keyMessages) : claimsFromKeyMessages(context.brief.keyMessages, pageText);
+    const keptMessages = messageClaims.filter((claim) => claim.status !== 'unverified');
+    const droppedMessages = messageClaims.filter((claim) => claim.status === 'unverified');
+    const siteAnalysis = await readSiteAnalysisInput(context);
+    const keyPoints = siteAnalysis.status === 'present' ? siteAnalysis.analysis.keyPoints : [];
+    // Ids keep the brief's numbering, so a dropped message leaves a gap instead of renaming the rest.
+    const pointClaims = claimsFromKeyPoints(keyPoints, pageText, messageClaims.length + 1);
+    const claims: ClaimsArtifact = { format: 1, claims: [...keptMessages, ...pointClaims] };
     await outputs.writeJson('claims', ClaimsArtifactSchema, claims);
-    const unverified = unverifiedIds(claims);
-    if (unverified.length > 0 && !context.stageBrief.checks.includes('claims-evidence')) {
-      return stageFailed(
-        needsPerson(
-          { kind: 'claim-without-evidence', claimIds: unverified.slice(0, MAX_REPORTED_CLAIM_IDS) },
-          stageTexts.claimsWithoutEvidence(unverified),
-          stageTexts.claimsWithoutEvidenceWhatToDo,
-        ),
-      );
-    }
-    const verified = claims.claims.length - unverified.length;
-    return reportedSuccess(`${verified} de ${claims.claims.length} afirmação(ões) com evidência na página.`);
+    if (ownerStated) return reportedSuccess(stageTexts.claimsStatedByOwner(messageClaims.length));
+    const pointsNote = keyPoints.length === 0 ? '' : ` ${pointClaims.length} de ${keyPoints.length} ponto(s) da análise do site com evidência.`;
+    const droppedNote = droppedMessages.length === 0 ? '' : ` ${stageTexts.keyMessagesDropped(droppedMessages.slice(0, MAX_REPORTED_DROPPED).map((claim) => claim.statement))}`;
+    return reportedSuccess(
+      `${keptMessages.length} de ${messageClaims.length} mensagem(ns)-chave com evidência na página.${droppedNote}${pointsNote}${siteAnalysisCaveat(siteAnalysis)}`,
+    );
   }
 
   protected async checkEvidence(context: StageExecutionContext, checks: readonly CheckId[]): Promise<CheckEvidenceMap> {

@@ -32,15 +32,15 @@ export class InvalidPlatformModeConfigError extends Error {
 }
 
 function variableStem(platform: Platform): string {
-  return `VIDEO_STUDIO_PLATFORM_${platform.toUpperCase()}`;
+  return `ENGINEOS_VIDEO_CREATOR_PLATFORM_${platform.toUpperCase()}`;
 }
 
-/** `VIDEO_STUDIO_PLATFORM_YOUTUBE_MODE`, ...: `mock` (default) or `live`. */
+/** `ENGINEOS_VIDEO_CREATOR_PLATFORM_YOUTUBE_MODE`, ...: `mock` (default) or `live`. */
 export function platformModeVariable(platform: Platform): string {
   return `${variableStem(platform)}_MODE`;
 }
 
-/** `VIDEO_STUDIO_PLATFORM_<PLATFORM>_MOCK_FAULT`: a section 5.8 fault scenario. */
+/** `ENGINEOS_VIDEO_CREATOR_PLATFORM_<PLATFORM>_MOCK_FAULT`: a section 5.8 fault scenario. */
 export function platformMockFaultVariable(platform: Platform): string {
   return `${variableStem(platform)}_MOCK_FAULT`;
 }

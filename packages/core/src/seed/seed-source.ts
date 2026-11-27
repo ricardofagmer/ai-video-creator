@@ -8,7 +8,7 @@ import { SeedManifestInvalidError, SeedSourceRootInvalidError } from './seed.err
  * the owner's workspace folder that holds `video-studio/`, `ai-creator-engine/`, the Spesia run
  * and `ricardo-clone/` side by side (SPEC 0002 R1-07).
  */
-export const SEED_SOURCE_ROOT_ENV_VAR = 'VIDEO_STUDIO_SEED_SOURCE_ROOT';
+export const SEED_SOURCE_ROOT_ENV_VAR = 'ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT';
 
 /** Default root, relative to the user's home folder. */
 export const DEFAULT_SEED_SOURCE_ROOT_SEGMENTS: readonly string[] = ['projects', 'ai-video-creator'];
@@ -35,7 +35,7 @@ export function assertSeedSourceRoot(root: string): string {
 
 export interface SeedSourceRootSource {
   homeDirectory: string;
-  /** Value of `VIDEO_STUDIO_SEED_SOURCE_ROOT`; undefined or empty means the default. */
+  /** Value of `ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT`; undefined or empty means the default. */
   override: string | undefined;
 }
 

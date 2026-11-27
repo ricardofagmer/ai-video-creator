@@ -107,7 +107,7 @@ describe('studio platforms (SPEC 0007 sections 5.3 and 5.9)', () => {
     const exitCode = await platformsDisconnectCommand('youtube', { gateway, now: () => NOW }, studio.dependencies);
 
     assert.equal(exitCode, ExitCode.ok);
-    assert.match(studio.printer.text(), /confirmou a remoção do acesso do Video Studio/);
+    assert.match(studio.printer.text(), /confirmou a remoção do acesso do EngineOS Video Creator/);
     assert.doesNotMatch(studio.printer.text(), /remova o acesso/);
     assertNoSecretInOutput(studio.printer.text());
   });

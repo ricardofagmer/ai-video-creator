@@ -5,6 +5,7 @@ import { type ConnectionResultQuery } from '@studio/shared/api';
 import { type Platform } from '@studio/shared/metrics';
 import { useSyncExternalStore, type ReactElement } from 'react';
 import { rev7ReasonText } from '@/features/common/platform-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import { platformLabels } from '@/features/metrics/metric-labels';
 import { readConnectingPlatform } from '../connecting-platform';
 
@@ -27,12 +28,13 @@ function serverPlatform(): Platform | null {
  */
 export function ConnectionResultNotice({ result }: ConnectionResultNoticeProps): ReactElement {
   const platform = useSyncExternalStore(subscribeToNothing, readConnectingPlatform, serverPlatform);
+  const t = useWebMessages();
   if (result.resultado === 'conectada') {
-    return <Alert variant="success">{platform === null ? 'Conta conectada.' : `Conta de ${platformLabels[platform]} conectada.`}</Alert>;
+    return <Alert variant="success">{platform === null ? t.platforms.connection.connected : t.platforms.connection.connectedTo(platformLabels[platform])}</Alert>;
   }
   return (
     <Alert variant="error">
-      {result.motivo === undefined ? 'Não foi possível concluir a conexão. Tente de novo.' : rev7ReasonText(result.motivo, { platform })}
+      {result.motivo === undefined ? t.platforms.connection.failed : rev7ReasonText(result.motivo, { platform }, t)}
     </Alert>
   );
 }

@@ -1,12 +1,12 @@
-import { Alert, Badge, Card, EmptyState, PageHeader, buttonClassName, formatUsd, textLinkClassName } from '@studio/ui';
+import { Alert, Badge, Card, EmptyState, buttonClassName, formatUsd, textLinkClassName, type Locale } from '@studio/ui';
 import { type CurationView } from '@studio/shared/api';
 import { curationBounds, isTerminalCurationStatus } from '@studio/shared/curation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
+import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import {
-  curatableKindLabels,
   curatedVersionHref,
   curationOutcomeText,
   curationProgressText,
@@ -19,6 +19,8 @@ import { CurationDecisionActions } from '@/features/curations/components/Curatio
 import { CurationProposalDetails } from '@/features/curations/components/CurationProposalDetails';
 import { RunListAutoRefresh } from '@/features/runs/components/RunListAutoRefresh';
 import { formatDateTime } from '@/features/runs/run-labels';
+import { getI18n } from '@/lib/i18n/server';
+import { type WebMessages } from '@/messages';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,15 +31,16 @@ interface CurationPageProps {
 export async function generateMetadata({ params }: CurationPageProps): Promise<Metadata> {
   const { curationId } = await params;
   const curation = await loadCuration(curationId);
-  return { title: curation === null ? 'Proposta do curador' : `${curation.subject.title} · Proposta do curador` };
+  const { t } = await getI18n();
+  return { title: curation === null ? t.curations.page.title : t.curations.page.titleOf(curation.subject.title) };
 }
 
 /** "Na fila (posição N)" / "O curador está trabalhando", or the T§9 text of an outcome without a proposal. */
-function ProgressNotice({ curation }: { curation: CurationView }): ReactElement | null {
+function ProgressNotice({ curation, t }: { curation: CurationView; t: WebMessages['curations'] }): ReactElement | null {
   if (!isTerminalCurationStatus(curation.status)) {
-    return <Alert variant="info">{`${curationProgressText(curation)}. Esta página se atualiza sozinha.`}</Alert>;
+    return <Alert variant="info">{t.page.autoRefresh(curationProgressText(curation, t))}</Alert>;
   }
-  const outcome = curationOutcomeText(curation);
+  const outcome = curationOutcomeText(curation, t);
   if (outcome === null) return null;
   // Model-written `noChangeReason` is inside `outcome`: rendered as a text node only.
   return (
@@ -48,13 +51,14 @@ function ProgressNotice({ curation }: { curation: CurationView }): ReactElement 
 }
 
 /** The owner's decision on the proposal, the actions while undecided, and "Comparar" after saving. */
-async function DecisionSection({ curation }: { curation: CurationView }): Promise<ReactElement | null> {
+async function DecisionSection({ curation, t, locale }: { curation: CurationView; t: WebMessages; locale: Locale }): Promise<ReactElement | null> {
+  const texts = t.curations.decision;
   const { decision, proposal } = curation;
   if (curation.status !== 'proposed' || proposal === null) return null;
 
   if (decision === null) {
     return (
-      <Card title="Sua decisão">
+      <Card title={texts.title}>
         <CurationDecisionActions curationId={curation.curationId} />
       </Card>
     );
@@ -62,10 +66,10 @@ async function DecisionSection({ curation }: { curation: CurationView }): Promis
 
   if (decision.action === 'declined') {
     return (
-      <Card title="Sua decisão">
+      <Card title={texts.title}>
         <div className={layout.stack}>
-          <p className={styles.plainText}>{`Você recusou esta proposta em ${formatDateTime(decision.decidedAt)}. Nenhuma versão foi criada.`}</p>
-          {decision.ownerReason !== null && <p className={styles.plainText}>{`Motivo: ${decision.ownerReason}`}</p>}
+          <p className={styles.plainText}>{texts.declined(formatDateTime(decision.decidedAt, locale))}</p>
+          {decision.ownerReason !== null && <p className={styles.plainText}>{texts.reason(decision.ownerReason)}</p>}
         </div>
       </Card>
     );
@@ -75,7 +79,7 @@ async function DecisionSection({ curation }: { curation: CurationView }): Promis
   const savedHref = savedRef === null ? null : curatedVersionHref(curation.subject.kind, savedRef);
   const saved = (
     <Alert variant="success">
-      {'Proposta salva como rascunho em '}
+      {texts.savedBefore}
       {savedHref === null ? (
         <span className="mono">{savedRef ?? '—'}</span>
       ) : (
@@ -83,41 +87,37 @@ async function DecisionSection({ curation }: { curation: CurationView }): Promis
           <span className="mono">{savedRef}</span>
         </Link>
       )}
-      {'. Ela continua em rascunho: para ativá-la, abra a página da versão.'}
+      {texts.savedAfter}
     </Alert>
   );
 
   if (decision.comparisonId !== null) {
     return (
-      <Card title="Sua decisão">
+      <Card title={texts.title}>
         <div className={layout.stack}>
           {saved}
           <Link href={`/comparacoes/${encodeURIComponent(decision.comparisonId)}`} className={textLinkClassName()}>
-            Abrir a comparação
+            {texts.openComparison}
           </Link>
         </div>
       </Card>
     );
   }
 
-  if (savedRef === null) return <Card title="Sua decisão">{saved}</Card>;
+  if (savedRef === null) return <Card title={texts.title}>{saved}</Card>;
 
   const compare = await loadCompareOptions(curation.subject);
   return (
     <div className={layout.stackLarge}>
-      <Card title="Sua decisão">{saved}</Card>
+      <Card title={texts.title}>{saved}</Card>
       <Card
-        title="Comparar"
-        description={
-          proposal.suggestComparison
-            ? 'O curador sugere comparar a versão nova com a atual antes de ativá-la.'
-            : 'Opcional: compare a versão nova com a atual numa execução lado a lado.'
-        }
+        title={texts.compareTitle}
+        description={proposal.suggestComparison ? texts.compareSuggested : texts.compareOptional}
       >
         {compare.status === 'failed' ? (
-          <Alert variant="warning">{`Não foi possível carregar as receitas para comparar. ${compare.message}`}</Alert>
+          <Alert variant="warning">{texts.compareLoadFailed(compare.message)}</Alert>
         ) : compare.options.length === 0 ? (
-          <p className="caption">Nenhuma receita em rascunho ou ativa usa este ativo, então não há com o que comparar.</p>
+          <p className="caption">{texts.noCompareOptions}</p>
         ) : (
           <CurationCompareForm curationId={curation.curationId} subjectKind={curation.subject.kind} savedRef={savedRef} options={compare.options} />
         )}
@@ -135,15 +135,17 @@ async function DecisionSection({ curation }: { curation: CurationView }): Promis
 export default async function CurationPage({ params }: CurationPageProps) {
   const { curationId } = await params;
   const curation = await loadCuration(curationId);
+  const { t, locale } = await getI18n();
+  const texts = t.curations.page;
 
   if (curation === null) {
     return (
       <EmptyState
-        title="Proposta do curador não encontrada"
-        description="Ela pode ter sido digitada errada no endereço."
+        title={texts.notFoundTitle}
+        description={texts.notFoundDescription}
         action={
           <Link href="/catalogo" className={buttonClassName({ variant: 'secondary' })}>
-            Voltar ao catálogo
+            {texts.backToCatalog}
           </Link>
         }
       />
@@ -156,7 +158,10 @@ export default async function CurationPage({ params }: CurationPageProps) {
 
   return (
     <div className={layout.page}>
-      <PageHeader
+      <StudioHero
+        variant="compact"
+        eyebrow={t.common.heroEyebrows.curations}
+        glyph="magnifier"
         back={
           subjectHref === null ? undefined : (
             <Link href={subjectHref} className={textLinkClassName()}>
@@ -164,27 +169,27 @@ export default async function CurationPage({ params }: CurationPageProps) {
             </Link>
           )
         }
-        title="Proposta do curador"
-        meta={<Badge tone={curationStatusTones[curation.status]}>{curationProgressText(curation)}</Badge>}
+        title={texts.title}
+        meta={<Badge tone={curationStatusTones[curation.status]}>{curationProgressText(curation, t.curations)}</Badge>}
         description={
           <>
-            {`${curatableKindLabels[subject.kind]} ${subject.title} · `}
+            {`${t.curations.kinds[subject.kind]} ${subject.title} · `}
             <span className="mono">{subject.ref}</span>
-            {` · pedida em ${formatDateTime(curation.requestedAt)}`}
+            {texts.requestedAt(formatDateTime(curation.requestedAt, locale))}
           </>
         }
       />
-      <ProgressNotice curation={curation} />
+      <ProgressNotice curation={curation} t={t.curations} />
       {curation.ownerFocus !== null && (
-        <Card title="O que você pediu para melhorar">
+        <Card title={texts.ownerFocus}>
           <p className={styles.plainText}>{curation.ownerFocus}</p>
         </Card>
       )}
-      {curation.proposal !== null && <CurationProposalDetails proposal={curation.proposal} />}
-      <DecisionSection curation={curation} />
+      {curation.proposal !== null && <CurationProposalDetails proposal={curation.proposal} t={t.curations.proposal} />}
+      <DecisionSection curation={curation} t={t} locale={locale} />
       <p className="caption">
-        {`Gasto: ${formatUsd(curation.spentUsd)} de no máximo ${formatUsd(curationBounds.maxUsd)}.`}
-        {curation.endedAt !== null && ` Terminou em ${formatDateTime(curation.endedAt)}.`}
+        {texts.spent(formatUsd(curation.spentUsd, locale), formatUsd(curationBounds.maxUsd, locale))}
+        {curation.endedAt !== null && texts.endedAt(formatDateTime(curation.endedAt, locale))}
       </p>
       <RunListAutoRefresh active={!terminal} />
     </div>

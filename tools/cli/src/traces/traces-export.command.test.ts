@@ -39,7 +39,7 @@ function exported(mappedLines: number): TraceExport {
     document: {
       resourceSpans: [
         {
-          resource: { attributes: [{ key: 'service.name', value: { stringValue: 'video-studio-watcher' } }] },
+          resource: { attributes: [{ key: 'service.name', value: { stringValue: 'engineos-video-creator-watcher' } }] },
           scopeSpans: [
             {
               scope: { name: 'video-studio.traces', version: '1' },

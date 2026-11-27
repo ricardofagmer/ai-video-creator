@@ -91,8 +91,8 @@ export const TRACE_ATTRIBUTE_ALLOWLIST: ReadonlyMap<string, AllowedAttribute> = 
   ['studio.instruction.version', span('version')],
 ]);
 
-/** `video-studio-watcher` writes every source file of the export (RUN-FORMAT sections 4 and 23). */
-export const TRACE_SERVICE_NAMES: readonly string[] = ['video-studio-watcher', 'video-studio-api'];
+/** `engineos-video-creator-watcher` writes every source file of the export (RUN-FORMAT sections 4 and 23). */
+export const TRACE_SERVICE_NAMES: readonly string[] = ['engineos-video-creator-watcher', 'engineos-video-creator-api'];
 
 const ULID_PATTERN = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 /** Lowercase tokens: stage, step, status, role, model, check, reason and outcome names. */

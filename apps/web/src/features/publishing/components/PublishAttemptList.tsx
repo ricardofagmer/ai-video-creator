@@ -1,12 +1,12 @@
 'use client';
 
-import { Alert, Badge, Button } from '@studio/ui';
+import { Alert, Badge, Button, useI18n } from '@studio/ui';
 import { type PublishAttemptView } from '@studio/shared/api';
 import { useState, type ReactElement } from 'react';
 import { describePlatformApiError } from '@/features/common/platform-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import { platformLabels } from '@/features/metrics/metric-labels';
-import { MOCK_BADGE_TEXT } from '@/features/platforms/platform-labels';
-import { QUEUED_BETWEEN_RUNS_TEXT, formatInstant } from '../publish-labels';
+import { formatInstant } from '../publish-labels';
 import { browserPublishingApi } from '../publishing-api';
 import styles from '../publishing.module.css';
 import { PublishStateBadge } from './PublishAttemptStatus';
@@ -27,6 +27,9 @@ type CancelState = { status: 'idle' } | { status: 'cancelling'; attemptId: strin
  * queued is waiting for a run to end; the api exposes no per-run busy flag to check this against.
  */
 export function PublishAttemptList({ runId, attempts, onAttempt }: PublishAttemptListProps): ReactElement | null {
+  const t = useWebMessages();
+  const texts = t.publishing;
+  const { locale } = useI18n();
   const [state, setState] = useState<CancelState>({ status: 'idle' });
 
   async function cancel(attempt: PublishAttemptView): Promise<void> {
@@ -36,33 +39,33 @@ export function PublishAttemptList({ runId, attempts, onAttempt }: PublishAttemp
       onAttempt(await browserPublishingApi.cancelAttempt(runId, attempt.attemptId));
       setState({ status: 'idle' });
     } catch (error) {
-      setState({ status: 'failed', message: describePlatformApiError(error, { platform: attempt.platform, mode: attempt.mode }) });
+      setState({ status: 'failed', message: describePlatformApiError(error, { platform: attempt.platform, mode: attempt.mode }, t) });
     }
   }
 
   if (attempts.length === 0) return null;
   return (
     <div className={styles.attempts}>
-      <h3 className="label">Envios</h3>
+      <h3 className="label">{texts.attempts.title}</h3>
       {state.status === 'failed' && <Alert variant="error">{state.message}</Alert>}
       <ul className={styles.attemptList}>
         {attempts.map((attempt) => (
           <li key={attempt.attemptId} className={styles.attemptLine}>
             <span className="label">{platformLabels[attempt.platform]}</span>
             <PublishStateBadge attempt={attempt} />
-            {attempt.mode === 'mock' && <Badge tone="info">{MOCK_BADGE_TEXT}</Badge>}
-            <span className="caption">{`pedido em ${formatInstant(attempt.requestedAt)}`}</span>
-            {attempt.state === 'queued' && <span className="caption">{QUEUED_BETWEEN_RUNS_TEXT}</span>}
+            {attempt.mode === 'mock' && <Badge tone="info">{t.platforms.mockBadge}</Badge>}
+            <span className="caption">{texts.attempts.requestedAt(formatInstant(attempt.requestedAt, locale))}</span>
+            {attempt.state === 'queued' && <span className="caption">{texts.queuedBetweenRuns}</span>}
             {attempt.state === 'queued' && (
               <Button
                 variant="ghost"
                 size="sm"
                 loading={state.status === 'cancelling' && state.attemptId === attempt.attemptId}
-                loadingLabel="Cancelando…"
+                loadingLabel={texts.attempts.cancelling}
                 disabled={state.status === 'cancelling'}
                 onClick={() => void cancel(attempt)}
               >
-                Cancelar envio
+                {texts.attempts.cancel}
               </Button>
             )}
           </li>

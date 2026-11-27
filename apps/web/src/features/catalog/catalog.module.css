@@ -1,0 +1,888 @@
+/* design/telas/02 kind tabs and category sections. Tokens only, so both themes follow tokens.css. */
+/* A capsule floating at the bottom centre of the window; on a narrow window it scrolls inside itself. */
+.tabList {
+  position: fixed;
+  bottom: var(--space-4);
+  left: 50%;
+  z-index: var(--z-sticky);
+  display: flex;
+  gap: var(--space-1);
+  max-width: calc(100vw - var(--space-8));
+  padding: var(--space-1);
+  overflow-x: auto;
+  border: 1px solid var(--color-border-glow);
+  border-radius: var(--radius-full);
+  /* Opaque, not glass: cards scroll underneath and must not show through the labels. */
+  background-color: var(--color-surface);
+  background-image: var(--gradient-bar);
+  box-shadow: var(--shadow-lg), var(--shadow-float);
+  scrollbar-width: none;
+  transform: translateX(-50%);
+}
+
+/* Centred on the content column, which the desktop rail pushes to the right. */
+@media (min-width: 1024px) {
+  .tabList {
+    left: calc(50% + (var(--layout-rail-width) + var(--space-4)) / 2);
+    max-width: calc(100vw - var(--layout-rail-width) - var(--space-12));
+  }
+}
+
+/* Room under the last row, so the floating capsule never rests on content at the end of the page. */
+.floatingTabsPanel {
+  padding-bottom: var(--space-12);
+}
+
+/* Each section is a pill with a media glyph: the top menu reads like an editor's toolbar. */
+.tab {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-4) 0 var(--space-2);
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  isolation: isolate;
+  animation: tabEnter var(--duration-slow) var(--ease-out) both;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-normal) var(--ease-standard),
+    box-shadow var(--duration-normal) var(--ease-standard);
+}
+
+.tab:nth-child(2) { animation-delay: 40ms; }
+.tab:nth-child(3) { animation-delay: 80ms; }
+.tab:nth-child(4) { animation-delay: 120ms; }
+.tab:nth-child(5) { animation-delay: 160ms; }
+.tab:nth-child(6) { animation-delay: 200ms; }
+.tab:nth-child(7) { animation-delay: 240ms; }
+.tab:nth-child(n + 8) { animation-delay: 280ms; }
+
+.tab:hover {
+  color: var(--color-text);
+  background-color: var(--color-primary-soft);
+  border-color: var(--color-border);
+  transform: translateY(-1px);
+}
+
+/* The icon chip: a small round lens, like the poster cards' cover. */
+.tabIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-full);
+  transition: transform var(--duration-normal) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+
+.tabGlyph {
+  width: 1rem;
+  height: 1rem;
+}
+
+.tab:hover .tabIcon {
+  transform: rotate(-10deg) scale(1.12);
+}
+
+/* Selected: the brand gradient, a soft glow and a film-perforation strip along the bottom. */
+.tabSelected,
+.tabSelected:hover {
+  color: var(--color-text-on-primary);
+  background: linear-gradient(120deg, var(--color-primary-600), var(--color-purple-600));
+  border-color: transparent;
+  box-shadow: var(--shadow-glow);
+  transform: none;
+}
+
+.tabSelected::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 3px;
+  left: 0;
+  z-index: -1;
+  height: 3px;
+  background-image: repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-text-on-primary) 55%, transparent) 0 6px, transparent 6px 12px);
+  animation: filmRoll 1.2s linear infinite;
+}
+
+.tabSelected .tabIcon {
+  color: var(--color-text-on-primary);
+  background: color-mix(in srgb, var(--color-text-on-primary) 22%, transparent);
+  animation: lensPop var(--duration-slow) var(--ease-out);
+}
+
+/* The count badge keeps reading on the gradient. */
+.tabSelected > :last-child:not(:global(.label)) {
+  color: var(--color-text-on-primary);
+  background: color-mix(in srgb, var(--color-text-on-primary) 20%, transparent);
+  border-color: color-mix(in srgb, var(--color-text-on-primary) 35%, transparent);
+}
+
+@keyframes tabEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes filmRoll {
+  to { background-position: 12px 0; }
+}
+
+@keyframes lensPop {
+  0% { transform: scale(0.6) rotate(-30deg); }
+  60% { transform: scale(1.15) rotate(6deg); }
+  100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .tabIcon,
+  .tabSelected::after,
+  .tabSelected .tabIcon {
+    animation: none;
+    transition: none;
+  }
+
+  .tab:hover,
+  .tab:hover .tabIcon {
+    transform: none;
+  }
+}
+
+/*
+ * Nested category tabs: one neutral segmented track, so the row never reads as a second row of the
+ * underlined tabs above it, nor as the blue By words / By meaning switch. At phone width the track
+ * scrolls inside itself instead of widening the page.
+ */
+.segmentList {
+  display: flex;
+  align-self: flex-start;
+  gap: var(--space-1);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-1);
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  /* The page layer, not surface-muted: in dark, surface-muted is lighter than surface, which would sink the selected option. */
+  background: var(--color-bg);
+  scrollbar-width: thin;
+}
+
+.segment {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-xs);
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.segment:hover {
+  color: var(--color-text);
+}
+
+/* The track clips anything drawn outside it, so the focus ring sits inside the option. */
+.segment:focus-visible {
+  outline-offset: -2px;
+}
+
+.segmentSelected {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/*
+ * The By words / By meaning switch: one segmented control in the info (blue) tokens, so it never reads
+ * as another row of the brand-coloured section or kind tabs above it.
+ */
+.modeSwitch {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-muted);
+}
+
+.modeOption {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height-xs);
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.modeOption:hover {
+  color: var(--color-text);
+}
+
+.modeOptionSelected {
+  border-color: var(--color-info-border);
+  background: var(--color-info-soft);
+  color: var(--color-info);
+  font-weight: var(--font-weight-medium);
+}
+
+.groupHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.groupHeading > * {
+  margin: 0;
+}
+
+/* The References link box: field, button and "Clear" on one row that wraps on narrow screens. */
+.linkForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.linkField {
+  display: flex;
+  flex: 1 1 20rem;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* The compact embed with the Save as reference form beside it; the form drops below on narrow screens. */
+.linkPreview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-6);
+}
+
+.saveForm {
+  display: flex;
+  flex: 1 1 18rem;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 26rem;
+}
+
+.saveForm > h3 {
+  margin: 0;
+}
+
+.saveForm > button {
+  align-self: flex-start;
+}
+
+/* The Images section's thumbnail of a pasted link (ImageLinkBox). */
+.imagePreview {
+  display: flex;
+  flex: 0 1 20rem;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.imagePreview img {
+  display: block;
+  max-width: 100%;
+  max-height: 16rem;
+  object-fit: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* `display: block` above would otherwise win over the browser's own `[hidden]` rule and show the broken image. */
+.imagePreview img[hidden] {
+  display: none;
+}
+
+/* The Prompts section's New prompt form (NewPromptForm). */
+.promptForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 40rem;
+}
+
+.promptForm > button {
+  align-self: flex-start;
+}
+
+.promptFormActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.sectionAddBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.promptOpenButton {
+  align-self: flex-start;
+}
+
+/*
+ * The platform's embed (VideoEmbed). Instagram's post card sizes itself: the frame is as wide as the card
+ * likes (Instagram needs at least 326px) and as tall as the embed reports, so nothing is clipped and no
+ * inner scrollbar shows. YouTube Shorts and TikTok fill a 9:16 box, a regular YouTube video a 16:9 one.
+ * Inside the preview row each shape takes its own basis, so the form beside it keeps its width.
+ */
+.embedFrame {
+  width: 100%;
+  min-width: 0;
+}
+
+.embedInstagram {
+  flex: 0 1 25rem;
+  max-width: 25rem;
+  min-width: min(20.375rem, 100%);
+}
+
+.embedVertical {
+  flex: 0 1 20rem;
+  max-width: 20rem;
+  aspect-ratio: 9 / 16;
+}
+
+.embedLandscape {
+  flex: 1 1 30rem;
+  max-width: 44rem;
+  aspect-ratio: 16 / 9;
+}
+
+.embed {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+/* Until Instagram reports its height: about one post card, header to comment box. */
+.embedInstagram > .embed {
+  height: 40rem;
+}
+
+/*
+ * Asset details of a saved reference: the video card keeps the embed's own width (Instagram's card is 25rem
+ * plus the card padding) and the metadata cards take the rest; below 1024px they stack.
+ */
+.videoWithDetails {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .videoWithDetails {
+    grid-template-columns: minmax(0, 28rem) minmax(0, 1fr);
+  }
+}
+
+/*
+ * The cards under that row (learnings, quality, versions, scores) flow top to bottom into two columns whose
+ * heights the browser balances, so no column is left empty. A card never splits across columns.
+ */
+.balancedCards {
+  column-count: 1;
+  column-gap: var(--space-6);
+}
+
+.balancedCards > * {
+  break-inside: avoid;
+  margin-block-end: var(--space-6);
+}
+
+.balancedCards > *:last-child {
+  margin-block-end: 0;
+}
+
+@media (min-width: 1024px) {
+  .balancedCards {
+    column-count: 2;
+  }
+}
+
+/* Category select with the square "+" (new category) on the same line, aligned to the select. */
+.categoryRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.categoryRow > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.categoryAddButton {
+  flex: none;
+  width: var(--control-height-md);
+  padding: 0;
+  font-size: var(--font-size-lg);
+}
+
+/* The new-category row under the Category select: the name field grows, the buttons keep their size. */
+.categoryCreate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.categoryCreate > :first-child {
+  flex: 1 1 12rem;
+}
+
+/*
+ * Images section: a picture library of small tiles, as many per row as fit (at least two at phone width).
+ * Each tile is a little film frame: a dark gate with sprocket holes along the top and bottom, a vignette
+ * over the picture, and a lift with the brand glow when pointed at or focused.
+ */
+.libraryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.libraryTile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+
+.libraryTile:hover,
+.libraryTile:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary-600) 55%, var(--color-border));
+  box-shadow: var(--shadow-glow-hover);
+  transform: translateY(-4px);
+}
+
+/* The gate: near-black whatever the theme, so every picture sits on the same screen. */
+.libraryThumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  padding-block: 12px;
+  background: var(--color-gray-950);
+  border-radius: var(--radius-md);
+  isolation: isolate;
+}
+
+/* Sprocket holes along the top and bottom edges. */
+.libraryThumb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(90deg, color-mix(in srgb, white 70%, transparent) 0 6px, transparent 6px 14px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, white 70%, transparent) 0 6px, transparent 6px 14px);
+  background-repeat: no-repeat;
+  background-size: 100% 4px, 100% 4px;
+  background-position: 4px 4px, 4px calc(100% - 4px);
+  opacity: 0.55;
+  transition: opacity var(--duration-normal) var(--ease-standard);
+}
+
+/* Vignette and a brand-tinted light leak that warms up on hover. */
+.libraryThumb::after {
+  content: '';
+  position: absolute;
+  inset: 12px 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 40%, transparent 55%, color-mix(in srgb, black 55%, transparent) 100%),
+    linear-gradient(140deg, color-mix(in srgb, var(--color-primary-600) 0%, transparent), transparent 60%);
+  transition: background var(--duration-normal) var(--ease-standard);
+}
+
+.libraryThumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.92) contrast(1.04);
+  transition: transform var(--duration-slow) var(--ease-out), filter var(--duration-normal) var(--ease-standard);
+}
+
+.libraryTile:hover .libraryThumb img,
+.libraryTile:focus-within .libraryThumb img {
+  filter: saturate(1.1) contrast(1.06);
+  transform: scale(1.07);
+}
+
+.libraryTile:hover .libraryThumb::before,
+.libraryTile:focus-within .libraryThumb::before {
+  opacity: 0.9;
+  animation: sprocketRoll 1.2s linear infinite;
+}
+
+/* Both sprocket strips roll together; filmRoll would move the bottom strip to the top edge. */
+@keyframes sprocketRoll {
+  from { background-position: 4px 4px, 4px calc(100% - 4px); }
+  to { background-position: 18px 4px, 18px calc(100% - 4px); }
+}
+
+.libraryTile:hover .libraryThumb::after,
+.libraryTile:focus-within .libraryThumb::after {
+  background:
+    radial-gradient(120% 90% at 50% 40%, transparent 60%, color-mix(in srgb, black 45%, transparent) 100%),
+    linear-gradient(140deg, color-mix(in srgb, var(--color-purple-600) 28%, transparent), transparent 60%);
+}
+
+.libraryName {
+  overflow: hidden;
+  padding-inline: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.libraryName:hover,
+.libraryName:focus-visible {
+  color: var(--color-primary);
+}
+
+.libraryActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libraryTile,
+  .libraryThumb::before,
+  .libraryThumb::after,
+  .libraryThumb img {
+    animation: none;
+    transition: none;
+  }
+
+  .libraryTile:hover,
+  .libraryTile:focus-within,
+  .libraryTile:hover .libraryThumb img,
+  .libraryTile:focus-within .libraryThumb img {
+    transform: none;
+  }
+
+  .libraryTile:hover .libraryThumb::before,
+  .libraryTile:focus-within .libraryThumb::before {
+    animation: none;
+  }
+}
+
+/* Tags on a catalog poster card: one wrapping row of neutral badges. */
+.posterTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The global `.label` utility sets its own text colour; on the selected gradient it must stay white. */
+.tabSelected :global(.label) {
+  color: var(--color-text-on-primary);
+}
+
+/* Search, the four selects and Only favourites share one line; the row wraps only when it runs out of room. */
+/* Search, four filters, the mode switch and Only favourites share one line on a desktop-wide catalog. */
+/* `form.` outranks layout.row's gap whatever order the two CSS modules load in. */
+form.filterBar {
+  gap: var(--space-2);
+}
+
+.filterBar > [role='search'] {
+  flex: 1 1 9rem;
+  width: auto;
+}
+
+/* Sits on the same baseline as the selects instead of floating at the top of the row. */
+.filterBar > .modeSwitch {
+  align-self: flex-end;
+}
+
+/* An image asset's own picture at the top of its details (page and modal); never wider than the view. */
+/* A dark stage the full width of the modal; small pictures scale up to fill it instead of sitting tiny in a corner. */
+.detailImage {
+  display: block;
+  width: 100%;
+  height: min(60vh, 34rem);
+  object-fit: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-gray-950);
+}
+
+/* Details Metadata card: tag chips with an inline editor. */
+.tagEditor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tagEditorForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tagEditorActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/*
+ * A saved website (SiteEmbed): a 1280x800 page scaled to the box width, so the box keeps the same 16:10 shape.
+ * A card's preview is a still picture: no pointer, no focus; the link around it opens the item.
+ */
+.siteEmbed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background-color: var(--color-surface);
+}
+
+.siteEmbedPreview {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.siteEmbedPreview .siteEmbedFrame {
+  pointer-events: none;
+}
+
+.siteEmbedFrame {
+  display: block;
+  border: 0;
+  transform-origin: top left;
+}
+
+/* Asset details: the live page with its link under it. */
+.siteDetail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.siteDetail > .siteEmbed {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* Shown while the framing check runs and when the site refuses to be framed. */
+.siteHost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  text-align: center;
+}
+
+.siteHost .siteHostIcon,
+.siteHostGlyph {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.siteHostGlyph {
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background-color: var(--color-border);
+}
+
+.siteHostName {
+  color: var(--color-text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Live view of a site that refuses framing: no empty 16:10 box, only the host card. */
+.siteEmbedRefused {
+  aspect-ratio: auto;
+}
+
+.siteEmbedRefused .siteHost {
+  position: static;
+  padding: var(--space-4);
+}
+
+/* Card preview with no page to show: the card's own gradient cover shows through; text sits on glass. */
+.siteEmbedPainted {
+  background-color: transparent;
+}
+
+.siteEmbedPainted .siteHost {
+  z-index: 2;
+}
+
+.siteEmbedPainted .siteHostName,
+.siteEmbedPainted .siteHost :global(.caption) {
+  padding: 0 var(--space-2);
+  color: var(--color-text);
+  background-color: var(--color-surface-glass);
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(6px);
+}
+
+/*
+ * Images section, second pass: a light table. Each group of pictures sits on a softly lit, dotted
+ * surface; every tile is a print pinned with a strip of tape, tilted a little, numbered like film
+ * edge marks, and its lower part warms to the brand tint the poster cards use for their footer.
+ */
+.libraryGrid {
+  counter-reset: libraryFrame;
+  gap: var(--space-5) var(--space-4);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  background-color: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  background-image:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-text) 12%, transparent) 1px, transparent 0),
+    radial-gradient(90% 70% at 15% 0%, color-mix(in srgb, var(--color-primary-600) 10%, transparent), transparent 70%),
+    radial-gradient(80% 70% at 100% 100%, color-mix(in srgb, var(--color-purple-600) 10%, transparent), transparent 70%);
+  background-size: 14px 14px, 100% 100%, 100% 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.libraryGrid > li {
+  counter-increment: libraryFrame;
+}
+
+.libraryTile {
+  background-image: linear-gradient(
+    180deg,
+    var(--color-surface) 58%,
+    color-mix(in srgb, var(--color-primary-600) 14%, var(--color-surface)) 82%,
+    color-mix(in srgb, var(--color-purple-600) 18%, var(--color-surface))
+  );
+  transform: rotate(var(--library-tilt, 0deg));
+}
+
+.libraryGrid > li:nth-child(3n + 1) .libraryTile { --library-tilt: -2.2deg; }
+.libraryGrid > li:nth-child(3n + 2) .libraryTile { --library-tilt: 1.8deg; }
+.libraryGrid > li:nth-child(3n) .libraryTile { --library-tilt: -0.9deg; }
+
+/* A strip of translucent tape holding the print to the table. */
+.libraryTile::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  z-index: 3;
+  width: 52px;
+  height: 18px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-yellow-300) 55%, transparent),
+    color-mix(in srgb, var(--color-orange-400) 45%, transparent)
+  );
+  border-radius: 2px;
+  box-shadow: var(--shadow-sm);
+  transform: translateX(-50%) rotate(calc(-3 * var(--library-tilt, 0deg)));
+  opacity: 0.85;
+}
+
+/* Film edge number on the gate, over the sprocket strip. */
+.libraryTile::after {
+  content: counter(libraryFrame, decimal-leading-zero) 'A';
+  position: absolute;
+  top: calc(var(--space-2) + 14px);
+  right: calc(var(--space-2) + 6px);
+  z-index: 3;
+  padding: 0 4px;
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-yellow-300);
+  background: color-mix(in srgb, black 55%, transparent);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.libraryName {
+  padding-top: var(--space-1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .libraryTile:hover,
+  .libraryTile:focus-within {
+    transform: rotate(0deg) translateY(-6px) scale(1.03);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libraryTile:hover,
+  .libraryTile:focus-within {
+    transform: rotate(var(--library-tilt, 0deg));
+  }
+}

@@ -7,6 +7,7 @@ import { useState, type ReactElement } from 'react';
 import { PromoteVersionButton } from '@/features/promotion/components/PromoteVersionButton';
 import { type QualityFigures } from '@/features/quality/quality-labels';
 import { browserStudioClient } from '@/lib/api';
+import { useWebMessages } from '@/lib/i18n/client';
 import { LICENSE_ALERT_ID, type StatusNotice } from '../status-notice';
 
 interface VersionStatusControlsProps {
@@ -36,6 +37,7 @@ export function VersionStatusControls({
   activeLearnings,
   evidenceComparisonId,
 }: VersionStatusControlsProps): ReactElement {
+  const texts = useWebMessages().catalog.statusControls;
   const router = useRouter();
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
@@ -72,22 +74,22 @@ export function VersionStatusControls({
         />
       )}
       {status === 'active' && (
-        <Button variant="secondary" disabled={pending} loading={pending} loadingLabel="Descontinuando…" onClick={() => setConfirmOpen(true)}>
-          Descontinuar
+        <Button variant="secondary" disabled={pending} loading={pending} loadingLabel={texts.deprecating} onClick={() => setConfirmOpen(true)}>
+          {texts.deprecate}
         </Button>
       )}
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        title={`Descontinuar a versão v${version}?`}
-        description="Receitas e execuções antigas continuam usando esta versão. Novas receitas não poderão escolhê-la."
+        title={texts.confirmTitle(version)}
+        description={texts.confirmDescription}
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
-              Cancelar
+              {texts.cancel}
             </Button>
             <Button variant="primary" onClick={() => void deprecate()}>
-              Descontinuar
+              {texts.deprecate}
             </Button>
           </>
         }

@@ -1,0 +1,67 @@
+.label {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .label {
+    display: inline;
+  }
+}
+
+/* The Dialog body is a scrolling flex column: without flex-shrink: 0 the diagram collapses into a tiny inner scroller. */
+.diagram,
+.tips {
+  flex-shrink: 0;
+}
+
+.diagram {
+  margin: 0;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.diagramLight,
+.diagramDark {
+  display: block;
+  width: 100%;
+  min-width: 48rem;
+  height: auto;
+}
+
+/* Show the diagram that matches the app theme: explicit data-theme wins, otherwise the OS preference. */
+.diagramDark {
+  display: none;
+}
+
+:global(:root[data-theme='dark']) .diagramLight {
+  display: none;
+}
+
+:global(:root[data-theme='dark']) .diagramDark {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .diagramLight {
+    display: none;
+  }
+
+  :global(:root:not([data-theme='light'])) .diagramDark {
+    display: block;
+  }
+}
+
+.tips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+}
+
+.tipList {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

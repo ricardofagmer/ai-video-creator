@@ -4,12 +4,15 @@ import type { StageExecutionContext, StageExecutionResult, StageFailure, StagePl
 import { type CheckId, type DeclaredOutput, type ModelUse, type StageEstimate } from '@studio/shared/run-format';
 import { callAgent } from '../agents/agent-call';
 import { runEvaluatorLoop, type GeneratorAttempt } from '../agents/evaluator-loop';
-import { boundPromptText, boundTemplate, brandVoiceText, buildPacket, coordinatesOf } from '../agents/packet-sources';
-import { reviewerScoreEvidence, revisionsExhaustedFailure } from '../agents/review-evidence';
+import { boundPromptText, boundSkillTexts, boundTemplate, brandVoiceText, buildPacket, coordinatesOf, unreadableSkillStop } from '../agents/packet-sources';
+import { reviewCaveat, reviewerScoreEvidence } from '../agents/review-evidence';
 import { reviewSubject } from '../agents/reviewer';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
-import { ClaimsArtifactSchema, ReviewOutcomeSchema, type ClaimsArtifact } from '../shared/stage-artifacts';
+import { ClaimsArtifactSchema, ReviewOutcomeSchema, type ClaimsArtifact, type ReviewOutcome } from '../shared/stage-artifacts';
 import { agentCallsEstimate, evaluatorLoopRoles } from '../shared/stage-estimates';
+import { ownerReferencesField, readOwnerReferences } from '../shared/owner-references-input';
+import { readRunReferenceAnalyses, referenceAnalysesField, referenceAnalysesOutput, writeReferenceAnalyses } from '../shared/reference-analyses-input';
+import { readSiteAnalysisInput, siteAnalysisCaveat, siteAnalysisField, type SiteAnalysisInput } from '../shared/site-analysis-input';
 import { readOptionalStageInput, readOwnOutput, stageOutput, type StageOutputSink } from '../shared/stage-io';
 import { needsPerson, reportedSuccess, stageFailed, type CheckEvidence, type CheckEvidenceMap } from '../shared/stage-results';
 import { stageTexts } from '../shared/stage-texts';
@@ -17,6 +20,7 @@ import { stageTexts } from '../shared/stage-texts';
 const JSON_MIME = 'application/json';
 /** Recipe slot of the Scriptwriter prompt; any bound prompt is used when the slot is absent. */
 const WRITER_PROMPT_SLOT = 'prompt:writer';
+const WRITER_SKILL_SLOT = 'skill:writer';
 
 /**
  * `script`: Scriptwriter with the evaluator loop (topology section 7). Only verified claims reach
@@ -29,35 +33,45 @@ export class ScriptExecutor extends BaseStageExecutor {
   protected override readonly appliesCallFaults = false;
 
   async estimate(context: StagePlanningContext): Promise<StageEstimate> {
-    return agentCallsEstimate(evaluatorLoopRoles(WRITER_ROLE, context), this.isLive('claude'));
+    return agentCallsEstimate(evaluatorLoopRoles(WRITER_ROLE, context), this.agentCallsBilled());
   }
 
   declaredOutputs(context: StagePlanningContext): readonly DeclaredOutput[] {
     return [
       stageOutput(context.stage, 'script', 'script.json', JSON_MIME),
       stageOutput(context.stage, 'review-script-outcome', 'review-outcome.json', JSON_MIME),
+      referenceAnalysesOutput(context),
     ];
   }
 
   protected async run(context: StageExecutionContext, outputs: StageOutputSink): Promise<StageExecutionResult> {
-    const source = await this.writerSourceOf(context);
-    if ('class' in source) return stageFailed(source);
+    const siteAnalysis = await readSiteAnalysisInput(context);
+    // Guided-creation design section 4: kept analyses of the run's references guide the writer and,
+    // through the artifact, the director; none (or a reader failure) leaves both as before.
+    const referenceAnalyses = await readRunReferenceAnalyses(context, this.dependencies.referenceAnalyses);
+    const writerSource = await this.writerSourceOf(context, siteAnalysis);
+    if ('class' in writerSource) return stageFailed(writerSource);
+    // Image, text and other references have no analysis: their name, the owner's notes and a text
+    // reference's content reach the writer directly, so nothing the owner chose is left out.
+    const ownerReferences = await readOwnerReferences(context, this.dependencies.catalog);
+    const source: WriterPacketSource = { ...writerSource, ...referenceAnalysesField(referenceAnalyses), ...ownerReferencesField(ownerReferences) };
     const models: ModelUse[] = [];
     const loop = await runEvaluatorLoop<ScriptOutput>({
       context,
       subject: 'script',
       generate: (revision) => this.write(context, { ...source, ...(revision === undefined ? {} : { revision }) }, models),
-      review: () => reviewSubject(this.dependencies, { context, subject: 'script', models }),
+      review: (draft) => reviewSubject(this.dependencies, { context, subject: 'script', models, draft }),
     });
     if (loop.status === 'generator-failed') return stageFailed(loop.failure, models);
     await outputs.writeJson('script', ScriptOutputSchema, loop.output);
-    if (loop.status === 'revisions-exhausted') {
-      await outputs.writeJson('review-script-outcome', ReviewOutcomeSchema, { format: 1, status: 'recorded', revisions: loop.revisions, verdict: loop.verdict });
-      return stageFailed(revisionsExhaustedFailure(this.stageId, loop.verdict), models);
-    }
-    await outputs.writeJson('review-script-outcome', ReviewOutcomeSchema, loop.review);
-    const caveat = loop.review.status === 'unavailable' ? ` ${stageTexts.reviewerUnavailableWarning}` : '';
-    return reportedSuccess(`Roteiro com ${loop.output.scenes.length} cena(s).${caveat}`, models);
+    await writeReferenceAnalyses(context, outputs, referenceAnalyses);
+    // Owner decision 2026-11-24: a review never stops the run; the last draft goes on with a caveat.
+    const exhausted = loop.status === 'revisions-exhausted';
+    const review: ReviewOutcome = exhausted ? { format: 1, status: 'recorded', revisions: loop.revisions, verdict: loop.verdict } : loop.review;
+    await outputs.writeJson('review-script-outcome', ReviewOutcomeSchema, review);
+    const reviewNote = review.status === 'unavailable' ? stageTexts.reviewerUnavailableWarning : reviewCaveat(context, review, exhausted);
+    const caveat = reviewNote === null ? '' : ` ${reviewNote}`;
+    return reportedSuccess(`Roteiro com ${loop.output.scenes.length} cena(s).${caveat}${siteAnalysisCaveat(siteAnalysis)}`, models);
   }
 
   protected async checkEvidence(context: StageExecutionContext, checks: readonly CheckId[]): Promise<CheckEvidenceMap> {
@@ -81,7 +95,7 @@ export class ScriptExecutor extends BaseStageExecutor {
     return { status: 'failed', failure: withOwnerText(call.failure, scriptNotGeneratedText(call.cause)), cause: call.cause };
   }
 
-  private async writerSourceOf(context: StageExecutionContext): Promise<WriterPacketSource | StageFailure> {
+  private async writerSourceOf(context: StageExecutionContext, siteAnalysis: SiteAnalysisInput): Promise<WriterPacketSource | StageFailure> {
     const prompt = await boundPromptText(context, WRITER_PROMPT_SLOT);
     if (prompt === null) {
       return needsPerson(
@@ -90,6 +104,8 @@ export class ScriptExecutor extends BaseStageExecutor {
         'Vincule um prompt de texto ao slot prompt:writer da receita e retome a execução.',
       );
     }
+    const skills = await boundSkillTexts(context, this.dependencies.catalog, WRITER_SKILL_SLOT);
+    if (skills.status === 'unreadable') return unreadableSkillStop(context, skills.ref, WRITER_SKILL_SLOT);
     const claims = await readOptionalStageInput(context, 'claims', ClaimsArtifactSchema);
     const template = await boundTemplate(context, this.dependencies.catalog);
     const brandVoice = await brandVoiceText(context, this.dependencies.catalog);
@@ -99,10 +115,13 @@ export class ScriptExecutor extends BaseStageExecutor {
       verifiedClaims: verifiedClaimsOf(claims),
       templateInputSchema: template?.details.inputSchema ?? {},
       prompt,
+      ...(skills.skills.length === 0 ? {} : { skills: skills.skills }),
       ...(brandVoice === undefined ? {} : { brandVoice }),
       format: { narration: context.recipe.format.narration, sceneCount: context.recipe.format.sceneCount },
+      ...(template === null ? {} : { narrationCeilingSec: template.details.duration.maxSec }),
       // SPEC 0005 section 5.6: the brief's notes, already capped by the `brief` step; never read here.
       learnings: context.stageBrief.learnings ?? [],
+      ...siteAnalysisField(siteAnalysis),
     };
   }
 }

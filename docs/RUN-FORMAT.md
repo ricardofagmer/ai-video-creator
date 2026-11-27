@@ -246,7 +246,7 @@ section 7 table, owned by the agent protocol (C7), not by `limits`.
 | `plan` | object \| null | `source` (`planner` \| `recipe-default`), `totalEstimateUsd`, `risks[]`, `questionsForOwner[]`, `warning` (pt-BR, when the default plan replaced the Planner), `recordedAt` |
 | `stages` | StageRecord[] | Numbered 1..N without gaps |
 | `cursor` | object \| null | `{ stageNumber, stageId, step, attempt }`: where execution continues; null before the first step and after the last stage |
-| `totals` | object | `durationMs`, `costUsd`, `costByProvider { claude, tts, render }`, `executions`, `stagesDelivered`, `sessions`, `checksRun`, `recoveries`, `recoveriesResolved`, `failures` |
+| `totals` | object | `durationMs`, `costUsd`, `costByProvider { claude, tts, render, music }` (`music` absent in older files reads as 0), `executions`, `stagesDelivered`, `sessions`, `checksRun`, `recoveries`, `recoveriesResolved`, `failures` |
 | `lastExecution` | object \| null | `{ pid, startedAt, endedAt, outcome }` of the latest watcher execution; `outcome` is the status it ended in, null while running |
 | `comparison` | RunComparisonLink, optional | SPEC 0003 (R2): present only on the two arms of an A/B comparison; absent on every ordinary run, so `format` stays `1` and every earlier run folder still validates. See **RunComparisonLink** below |
 | `schedule` | RunScheduleLink, optional | SPEC 0006 (R3): present exactly when `createdBy` is `watcher`; absent on every other run, so `format` stays `1`. See **RunScheduleLink** below |
@@ -501,6 +501,8 @@ $0.000001); a file that breaks this does not validate. Session kinds:
   billed rate-limit retries included; `callIndex` separates the calls of one session.
 - `tts`: `sessionId`, `stepKey`, `provider` (`elevenlabs` \| `local-voice`), `characters`, `usd`, `at`.
 - `render`: `sessionId`, `stepKey`, `provider` (`render`), `renderSeconds`, `usd`, `at`.
+- `music`: `sessionId`, `stepKey`, `provider` (`elevenlabs`), `musicSeconds` (requested track
+  length), `usd`, `at`. One per generated track (docs/specs/2026-11-25-music-spend-kind-design.md).
 
 Mock sessions are recorded with `usd: 0`.
 

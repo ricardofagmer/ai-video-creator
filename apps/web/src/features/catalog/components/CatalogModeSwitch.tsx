@@ -1,31 +1,31 @@
-import { buttonClassName } from '@studio/ui';
+import { classNames } from '@studio/ui';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
-import layout from '@/features/common/layout.module.css';
+import { getI18n } from '@/lib/i18n/server';
 import { catalogHref, type CatalogFilters, type CatalogMode } from '../catalog-query';
+import styles from '../catalog.module.css';
 
-const modes: readonly { mode: CatalogMode; label: string }[] = [
-  { mode: 'words', label: 'Por palavras' },
-  { mode: 'meaning', label: 'Por significado' },
-];
+const modes: readonly CatalogMode[] = ['words', 'meaning'];
 
 /**
- * The two search modes of `/catalogo` (SPEC 0003 section 5.2, B10: separate modes, no blending).
- * Plain links in the URL; the kind and status filters carry over, the typed text does not.
+ * The two search modes of `/catalogo` (SPEC 0003 section 5.2, B10: separate modes, no blending), shown
+ * under the search input as a segmented control with its own colours. Plain links in the URL; the
+ * section, kind and status filters carry over, the typed text does not.
  */
-export function CatalogModeSwitch({ filters }: { filters: CatalogFilters }): ReactElement {
+export async function CatalogModeSwitch({ filters }: { filters: CatalogFilters }): Promise<ReactElement> {
+  const { t } = await getI18n();
   return (
-    <nav aria-label="Modo de busca" className={layout.row}>
-      {modes.map(({ mode, label }) => {
+    <nav aria-label={t.catalog.modes.navigationLabel} className={styles.modeSwitch}>
+      {modes.map((mode) => {
         const current = filters.mode === mode;
         return (
           <Link
             key={mode}
-            href={catalogHref({ mode, kind: filters.kind, status: filters.status })}
+            href={catalogHref({ mode, section: filters.section, kind: filters.kind, status: filters.status })}
             aria-current={current ? 'page' : undefined}
-            className={buttonClassName({ variant: current ? 'primary' : 'secondary', size: 'sm' })}
+            className={classNames(styles.modeOption, current && styles.modeOptionSelected)}
           >
-            {label}
+            {t.catalog.modes[mode]}
           </Link>
         );
       })}

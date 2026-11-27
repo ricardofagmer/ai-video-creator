@@ -4,8 +4,10 @@ import { AssetStoreModule } from '../asset-store/asset-store.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AssetVersionRepository } from './asset-version.repository';
 import { CatalogAssetResolver } from './catalog-asset-resolver';
+import { SkillEntryFileService } from './skill-entry-file';
 import { FindAssetVersionsByContentHashHandler } from './queries/find-asset-versions-by-hash.handler';
 import { GetAssetVersionHandler } from './queries/get-asset-version.handler';
+import { GetEntryFileTextHandler } from './queries/get-entry-file-text.handler';
 import { ListAssetVersionsHandler } from './queries/list-asset-versions.handler';
 import { SearchAssetsHandler } from './queries/search-assets.handler';
 
@@ -22,7 +24,10 @@ import { SearchAssetsHandler } from './queries/search-assets.handler';
   providers: [
     AssetVersionRepository,
     CatalogAssetResolver,
+    // The script stage reads a bound writer skill's text through the QueryBus.
+    SkillEntryFileService,
     GetAssetVersionHandler,
+    GetEntryFileTextHandler,
     ListAssetVersionsHandler,
     SearchAssetsHandler,
     FindAssetVersionsByContentHashHandler,

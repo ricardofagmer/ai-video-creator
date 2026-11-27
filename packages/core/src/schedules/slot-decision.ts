@@ -29,9 +29,13 @@ export type LastFiredRun = { state: 'none' } | { state: 'read'; status: RunStatu
 
 /**
  * The pinned recipe at the slot instant. `refsResolvable` covers the recipe bindings and the
- * selected brief's references (`bindings-unresolvable`).
+ * selected brief's references (`bindings-unresolvable`). `compositionAllowed` is false when
+ * `scheduleCompositionConflicts` found a conflict for the selected brief; the slot log has no
+ * reason of its own for it yet, so it skips as `recipe-not-runnable`.
  */
-export type SlotRecipeState = { state: 'missing' } | { state: 'found'; version: RecipeVersionView; refsResolvable: boolean };
+export type SlotRecipeState =
+  | { state: 'missing' }
+  | { state: 'found'; version: RecipeVersionView; refsResolvable: boolean; compositionAllowed: boolean };
 
 export interface SlotGuardFacts {
   lastFiredRun: LastFiredRun;
@@ -83,11 +87,12 @@ export function decideSlot(facts: SlotGuardFacts): SlotDecision {
   if (!isKnownAmount(monthToDateUsd)) return { decision: 'skip', reasonId: 'month-spend-unavailable' };
   if (facts.recipe.state === 'missing') return { decision: 'skip', reasonId: 'recipe-not-runnable' };
 
-  const { version, refsResolvable } = facts.recipe;
+  const { version, refsResolvable, compositionAllowed } = facts.recipe;
   const { costPerMonthUsd } = resolveLimits(version.recipe.limits);
   if (!isKnownAmount(costPerMonthUsd)) return { decision: 'skip', reasonId: 'month-spend-unavailable' };
   if (monthToDateUsd >= costPerMonthUsd) return { decision: 'skip', reasonId: 'over-month-ceiling' };
   if (!RUNNABLE_RECIPE_STATUSES.includes(version.recipe.status)) return { decision: 'skip', reasonId: 'recipe-not-runnable' };
   if (!refsResolvable) return { decision: 'skip', reasonId: 'bindings-unresolvable' };
+  if (!compositionAllowed) return { decision: 'skip', reasonId: 'recipe-not-runnable' };
   return { decision: 'fire', brief: facts.brief, recipe: version, monthToDateUsd, costPerMonthUsd };
 }

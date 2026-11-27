@@ -1,39 +1,49 @@
-import { Badge, Table, textLinkClassName, type TableColumn } from '@studio/ui';
+import { Badge, Table, textLinkClassName, type Locale, type TableColumn } from '@studio/ui';
 import { type RecipeRatingTrend, type RecipeReviewTime, type RunCatalogShare } from '@studio/shared/api';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
+import { type WebMessages } from '@/messages';
 import { formatDuration, formatRating, formatShare, targetVerdict } from './insights-labels';
 
-export function VerdictBadge({ isMet }: { isMet: boolean | null }): ReactElement {
-  const verdict = targetVerdict(isMet);
+type InsightTexts = WebMessages['metrics']['insights'];
+
+export function VerdictBadge({ isMet, t }: { isMet: boolean | null; t: InsightTexts }): ReactElement {
+  const verdict = targetVerdict(isMet, t);
   return <Badge tone={verdict.tone}>{verdict.label}</Badge>;
 }
 
-const reviewTimeColumns: readonly TableColumn<RecipeReviewTime>[] = [
-  { key: 'recipe', header: 'Receita', rowHeader: true, render: (row) => <span className="mono">{row.recipeId}</span> },
-  { key: 'runs', header: 'Execuções', align: 'end', render: (row) => row.runs },
-  { key: 'first', header: 'Primeira', align: 'end', render: (row) => formatDuration(row.firstRunMs) },
-  { key: 'latest', header: 'Mais recente', align: 'end', render: (row) => (row.latestRunMs === null ? '-' : formatDuration(row.latestRunMs)) },
-  { key: 'verdict', header: 'Mais rápida que a primeira', render: (row) => <VerdictBadge isMet={row.faster} /> },
-];
+function reviewTimeColumns(t: InsightTexts): readonly TableColumn<RecipeReviewTime>[] {
+  const header = t.reviewTime.columns;
+  return [
+    { key: 'recipe', header: header.recipe, rowHeader: true, render: (row) => <span className="mono">{row.recipeId}</span> },
+    { key: 'runs', header: header.runs, align: 'end', render: (row) => row.runs },
+    { key: 'first', header: header.first, align: 'end', render: (row) => formatDuration(row.firstRunMs, t) },
+    { key: 'latest', header: header.latest, align: 'end', render: (row) => (row.latestRunMs === null ? '-' : formatDuration(row.latestRunMs, t)) },
+    { key: 'verdict', header: header.verdict, render: (row) => <VerdictBadge isMet={row.faster} t={t} /> },
+  ];
+}
 
-const ratingColumns: readonly TableColumn<RecipeRatingTrend>[] = [
-  { key: 'recipe', header: 'Receita', rowHeader: true, render: (row) => <span className="mono">{row.recipeId}</span> },
-  { key: 'latest', header: 'Últimas', align: 'end', render: (row) => `${formatRating(row.latestMean)} (${row.latestCount})` },
-  {
-    key: 'previous',
-    header: 'Anteriores',
-    align: 'end',
-    render: (row) => (row.previousMean === null ? '-' : `${formatRating(row.previousMean)} (${row.previousCount})`),
-  },
-  { key: 'verdict', header: 'Nota mantida', render: (row) => <VerdictBadge isMet={row.holding} /> },
-];
+function ratingColumns(t: InsightTexts, locale: Locale): readonly TableColumn<RecipeRatingTrend>[] {
+  const header = t.ratingTrend.columns;
+  return [
+    { key: 'recipe', header: header.recipe, rowHeader: true, render: (row) => <span className="mono">{row.recipeId}</span> },
+    { key: 'latest', header: header.latest, align: 'end', render: (row) => `${formatRating(row.latestMean, locale)} (${row.latestCount})` },
+    {
+      key: 'previous',
+      header: header.previous,
+      align: 'end',
+      render: (row) => (row.previousMean === null ? '-' : `${formatRating(row.previousMean, locale)} (${row.previousCount})`),
+    },
+    { key: 'verdict', header: header.verdict, render: (row) => <VerdictBadge isMet={row.holding} t={t} /> },
+  ];
+}
 
-function catalogColumns(target: number): readonly TableColumn<RunCatalogShare>[] {
+function catalogColumns(target: number, t: InsightTexts, locale: Locale): readonly TableColumn<RunCatalogShare>[] {
+  const header = t.catalogRuns.columns;
   return [
     {
       key: 'run',
-      header: 'Execução',
+      header: header.run,
       rowHeader: true,
       render: (row) => (
         <Link href={`/execucoes/${encodeURIComponent(row.runId)}`} className={textLinkClassName()}>
@@ -41,48 +51,58 @@ function catalogColumns(target: number): readonly TableColumn<RunCatalogShare>[]
         </Link>
       ),
     },
-    { key: 'ordinal', header: 'Nº', align: 'end', render: (row) => row.ordinal },
-    { key: 'versions', header: 'Do catálogo', align: 'end', render: (row) => `${row.fromCatalog} de ${row.assetVersions}` },
-    { key: 'share', header: 'Parcela', align: 'end', render: (row) => formatShare(row.share) },
-    { key: 'verdict', header: 'Meta', render: (row) => <VerdictBadge isMet={row.share === null ? null : row.share >= target} /> },
+    { key: 'ordinal', header: header.ordinal, align: 'end', render: (row) => row.ordinal },
+    { key: 'versions', header: header.versions, align: 'end', render: (row) => t.catalogRuns.versions(row.fromCatalog, row.assetVersions) },
+    { key: 'share', header: header.share, align: 'end', render: (row) => formatShare(row.share, t, locale) },
+    { key: 'verdict', header: header.verdict, render: (row) => <VerdictBadge isMet={row.share === null ? null : row.share >= target} t={t} /> },
   ];
 }
 
-export function ReviewTimeTable({ rows }: { rows: readonly RecipeReviewTime[] }): ReactElement {
+export function ReviewTimeTable({ rows, t }: { rows: readonly RecipeReviewTime[]; t: InsightTexts }): ReactElement {
   return (
     <Table
-      caption="Tempo do briefing à revisão, por receita"
+      caption={t.reviewTime.caption}
       hideCaption
-      columns={reviewTimeColumns}
+      columns={reviewTimeColumns(t)}
       rows={rows}
       rowKey={(row) => row.recipeId}
-      emptyText="Nenhuma execução chegou à revisão ainda."
+      emptyText={t.reviewTime.empty}
     />
   );
 }
 
-export function RatingTrendTable({ rows }: { rows: readonly RecipeRatingTrend[] }): ReactElement {
+export function RatingTrendTable({ rows, t, locale }: { rows: readonly RecipeRatingTrend[]; t: InsightTexts; locale: Locale }): ReactElement {
   return (
     <Table
-      caption="Tendência de nota, por receita"
+      caption={t.ratingTrend.caption}
       hideCaption
-      columns={ratingColumns}
+      columns={ratingColumns(t, locale)}
       rows={rows}
       rowKey={(row) => row.recipeId}
-      emptyText="Nenhuma execução foi avaliada ainda."
+      emptyText={t.ratingTrend.empty}
     />
   );
 }
 
-export function CatalogShareTable({ rows, target }: { rows: readonly RunCatalogShare[]; target: number }): ReactElement {
+export function CatalogShareTable({
+  rows,
+  target,
+  t,
+  locale,
+}: {
+  rows: readonly RunCatalogShare[];
+  target: number;
+  t: InsightTexts;
+  locale: Locale;
+}): ReactElement {
   return (
     <Table
-      caption="Ativos do catálogo nas últimas execuções"
+      caption={t.catalogRuns.caption}
       hideCaption
-      columns={catalogColumns(target)}
+      columns={catalogColumns(target, t, locale)}
       rows={rows}
       rowKey={(row) => row.runId}
-      emptyText="Nenhuma execução com manifesto ainda."
+      emptyText={t.catalogRuns.empty}
     />
   );
 }

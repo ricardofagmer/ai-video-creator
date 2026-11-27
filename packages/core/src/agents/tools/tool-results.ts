@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { FRAME_WIDTH_LARGE_PX, toolEnvelopeSchema, toolLimits } from '@studio/shared/agents';
 import {
+  ASSET_PURPOSE_MAX_CHARS,
   AssetKindSchema,
   AssetRefSchema,
   AssetStatusSchema,
@@ -18,17 +19,24 @@ import {
 
 const { catalogSearch, assetDescribe, runArtifactRead, frameSample } = toolLimits;
 
+/**
+ * `purpose` bound for both catalog tools (ADR 0012 decision 8): the stored maximum, so the tools
+ * never cut an owner's text, but still a hard cap on what the model sees.
+ */
+export const purposeMaxChars = ASSET_PURPOSE_MAX_CHARS;
+
 function fitsCharacters(maxChars: number): (value: unknown) => boolean {
   return (value) => JSON.stringify(value).length <= maxChars;
 }
 
-/** One CatalogSearchTool row as the model sees it: no path, hash, sensitivity or license terms. */
+/** One CatalogSearchTool row as the model sees it: no path, hash, sensitivity, purpose source or license terms. */
 export const CatalogRowSchema = z
   .object({
     ref: AssetRefSchema,
     kind: AssetKindSchema,
     title: z.string().max(200),
     summary: z.string().max(catalogSearch.summaryMaxChars),
+    purpose: z.string().max(purposeMaxChars),
     tags: z.array(TagSchema).max(32),
     license: z.object({ name: z.string().max(200), allowedUses: z.array(LicenseUseSchema) }).strict().nullable(),
   })
@@ -60,6 +68,7 @@ export const AssetMetadataSchema = z
     kind: AssetKindSchema,
     title: z.string().max(200),
     summary: z.string().max(200),
+    purpose: z.string().max(purposeMaxChars),
     tags: z.array(TagSchema).max(32),
     license: LicenseSchema.nullable(),
     provenance: ProvenanceSchema.nullable(),
@@ -110,5 +119,25 @@ export type SampledFrame = z.infer<typeof SampledFrameSchema>;
 /** FrameSampleTool has no server-side payload: ffmpeg pipes frames to memory (topology 3.2). */
 export const FrameSampleEnvelopeSchema = toolEnvelopeSchema(
   z.object({ frames: z.array(SampledFrameSchema).min(1).max(frameSample.framesPerCall) }).strict(),
+  z.null(),
+);
+
+/** SiteScreenshotTool cap on the recorded JPEG (the research stage writes at most 1.5 MB). */
+export const SITE_SCREENSHOT_MAX_BYTES = 1_500_000;
+const SITE_SCREENSHOT_MAX_BASE64_CHARS = Math.ceil(SITE_SCREENSHOT_MAX_BYTES / 3) * 4;
+
+/** The one screenshot image; up to 1600 px wide, so not a `SampledFrame` (768 px at most). */
+export const SiteScreenshotImageSchema = z
+  .object({
+    label: z.string().max(260),
+    mediaType: z.literal(JPEG_MEDIA_TYPE),
+    dataBase64: z.string().min(1).max(SITE_SCREENSHOT_MAX_BASE64_CHARS),
+  })
+  .strict();
+export type SiteScreenshotImage = z.infer<typeof SiteScreenshotImageSchema>;
+
+/** Same `{ frames }` shape as FrameSampleTool, so the Mastra adapter sends it as an image part; no server-side payload. */
+export const SiteScreenshotEnvelopeSchema = toolEnvelopeSchema(
+  z.object({ frames: z.array(SiteScreenshotImageSchema).length(1) }).strict(),
   z.null(),
 );

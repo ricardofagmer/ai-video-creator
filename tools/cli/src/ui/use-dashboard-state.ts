@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type RunId } from '@studio/shared/run-format';
 import { toErrorReport } from '../errors/error-report.js';
+import { cliText } from '../i18n/messages.js';
 import { listRecentRuns, type RecentRuns, type RunSnapshot } from '../runs/run-reader.js';
 import { type RunControlKind } from '../commands/run-control.command.js';
 
@@ -77,7 +78,7 @@ export function useDashboardState(runsRoot: string, control: ControlRequester): 
     (kind: RunControlKind) => {
       if (busy || selected === null) return;
       setBusy(true);
-      setNotice({ tone: 'info', text: 'Enviando pedido...' });
+      setNotice({ tone: 'info', text: cliText().runs.dashboard.sending });
       control(kind, selected.runId)
         .then((text) => setNotice({ tone: 'info', text }))
         .catch((error: unknown) => setNotice({ tone: 'error', text: toErrorReport(error).message }))

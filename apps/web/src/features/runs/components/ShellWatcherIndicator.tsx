@@ -1,10 +1,11 @@
 'use client';
 
-import { WatcherIndicator, type WatcherState } from '@studio/ui';
+import { WatcherIndicator, useI18n, type WatcherState } from '@studio/ui';
 import { type WatcherStatusResponse } from '@studio/shared/api';
 import { WATCHER_HEARTBEAT_INTERVAL_MS } from '@studio/shared/run-format';
 import { useEffect, useState, type ReactElement } from 'react';
 import { browserStudioClient } from '@/lib/api';
+import { useWebMessages } from '@/lib/i18n/client';
 import { usePageVisible } from '../hooks/usePageVisible';
 import { isAbort } from '../run-error-text';
 import { formatTime } from '../run-labels';
@@ -32,6 +33,8 @@ function viewOf(status: WatcherStatusResponse): ShellWatcherView {
  */
 export function ShellWatcherIndicator(): ReactElement {
   const visible = usePageVisible();
+  const t = useWebMessages().runs.run;
+  const { locale } = useI18n();
   const [view, setView] = useState<ShellWatcherView>(UNKNOWN_VIEW);
 
   useEffect(() => {
@@ -58,7 +61,7 @@ export function ShellWatcherIndicator(): ReactElement {
   return (
     <>
       <WatcherIndicator state={view.state} />
-      {view.lastSeenAt !== null && <span className="caption">{`último sinal às ${formatTime(Date.parse(view.lastSeenAt))}`}</span>}
+      {view.lastSeenAt !== null && <span className="caption">{t.watcherLastSeen(formatTime(Date.parse(view.lastSeenAt), locale))}</span>}
     </>
   );
 }

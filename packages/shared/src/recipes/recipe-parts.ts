@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { KebabIdSchema, Sha256Schema } from '../common/ids';
-import { JsonObjectSchema } from '../common/json';
+import { JsonObjectSchema, type JsonObject } from '../common/json';
 import { AssetRefSchema } from '../catalog/asset-kind';
+import { MusicCategoryListSchema, type MusicCategory } from '../catalog/kind-details';
 import { AspectRatioSchema, CanvasSchema, DurationRangeSchema, FpsSchema } from '../catalog/media';
 import {
   CheckIdSchema,
@@ -109,6 +110,45 @@ export const RecipeStageSchema = z
   })
   .strict();
 export type RecipeStage = z.infer<typeof RecipeStageSchema>;
+
+/**
+ * `params` of the `research` stage (site analysis spec, 2026-11-23). Passthrough because the
+ * research executor may read other keys; `siteAnalysis` defaults on so older recipes gain it.
+ */
+export const ResearchStageParamsSchema = z.object({ siteAnalysis: z.boolean().default(true) }).passthrough();
+export type ResearchStageParams = z.infer<typeof ResearchStageParamsSchema>;
+
+/** Reads the research params; unknown or invalid input reads as the default (analysis on). */
+export function researchStageParams(params: JsonObject): { siteAnalysis: boolean } {
+  const parsed = ResearchStageParamsSchema.safeParse(params);
+  return { siteAnalysis: parsed.success ? parsed.data.siteAnalysis : true };
+}
+
+/**
+ * `params` of the `music` stage (docs/specs/2026-11-25-ai-music-choice-design.md). `track` mixes
+ * the song bound to the `music` slot; `auto` picks one per video among the catalog tracks carrying
+ * the categories, and none listed means any. Passthrough because the executor may read other keys;
+ * the defaults keep recipes saved before the mode existed on `track`.
+ */
+export const MusicStageParamsSchema = z
+  .object({ musicMode: z.enum(['track', 'auto']).default('track'), musicCategories: MusicCategoryListSchema.default([]) })
+  .passthrough();
+export type MusicStageParams = z.infer<typeof MusicStageParamsSchema>;
+
+export type MusicChoice = { mode: 'track' } | { mode: 'auto'; categories: MusicCategory[] };
+
+/** Reads the music params; unknown or invalid input reads as the default (the bound song). */
+export function musicChoiceOf(params: JsonObject): MusicChoice {
+  const parsed = MusicStageParamsSchema.safeParse(params);
+  if (!parsed.success || parsed.data.musicMode === 'track') return { mode: 'track' };
+  return { mode: 'auto', categories: parsed.data.musicCategories };
+}
+
+/** The music stage `params` that store a choice, keeping the stage's other keys. */
+export function withMusicChoice(params: JsonObject, choice: MusicChoice): JsonObject {
+  const rest = Object.fromEntries(Object.entries(params).filter(([key]) => key !== 'musicMode' && key !== 'musicCategories'));
+  return choice.mode === 'track' ? rest : { ...rest, musicMode: 'auto', musicCategories: [...choice.categories] };
+}
 
 /** A human gate the recipe adds after a stage; `plan` and `final` always exist and are not listed. */
 export const RecipeGateSchema = z

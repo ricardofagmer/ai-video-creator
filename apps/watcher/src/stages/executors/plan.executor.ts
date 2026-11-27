@@ -1,11 +1,11 @@
 import { buildPlannerPacket, plannerFallbackText, recipeDefaultPlan, type PlannerPacketSource } from '@studio/core/agents';
 import { PRICE_TABLE, toPriceTableSummary } from '@studio/core/costs';
 import { PLANNER_ROLE, PlanOutputSchema, type PlanOutput } from '@studio/shared/agents';
-import type { StageExecutionContext, StageExecutionResult, StagePlanningContext } from '@studio/shared/ports';
+import type { StageExecutionContext, StageExecutionResult, StageFailure, StagePlanningContext } from '@studio/shared/ports';
 import { type DeclaredOutput, type ModelUse, type StageEstimate, type StageId } from '@studio/shared/run-format';
 import { clip } from '../../engine/text';
 import { callAgent } from '../agents/agent-call';
-import { buildPacket, coordinatesOf } from '../agents/packet-sources';
+import { boundSkillTexts, buildPacket, coordinatesOf, unreadableSkillStop } from '../agents/packet-sources';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
 import { PlanSourceSchema } from '../shared/stage-artifacts';
 import { type StageDependencies } from '../shared/stage-dependencies';
@@ -16,6 +16,7 @@ import { reportedSuccess, stageFailed, type CheckEvidenceMap } from '../shared/s
 const JSON_MIME = 'application/json';
 const RISK_MAX_CHARS = 300;
 const MAX_RISKS = 10;
+const PLANNER_SKILL_SLOT = 'skill:planner';
 
 /** Every enabled stage's estimate, keyed by stage id, for the recipe-default plan. */
 export type StageEstimator = (context: StagePlanningContext) => Promise<ReadonlyMap<StageId, StageEstimate>>;
@@ -40,7 +41,7 @@ export class PlanExecutor extends BaseStageExecutor {
   }
 
   async estimate(): Promise<StageEstimate> {
-    return agentCallsEstimate([PLANNER_ROLE], this.isLive('claude'));
+    return agentCallsEstimate([PLANNER_ROLE], this.agentCallsBilled());
   }
 
   declaredOutputs(context: StagePlanningContext): readonly DeclaredOutput[] {
@@ -53,6 +54,7 @@ export class PlanExecutor extends BaseStageExecutor {
 
   protected async run(context: StageExecutionContext, outputs: StageOutputSink): Promise<StageExecutionResult> {
     const source = await this.plannerSourceOf(context);
+    if ('class' in source) return stageFailed(source);
     const built = buildPacket(context, PLANNER_ROLE, () => buildPlannerPacket(source));
     if (built.status === 'invalid') return stageFailed(built.failure);
     const models: ModelUse[] = [];
@@ -71,8 +73,10 @@ export class PlanExecutor extends BaseStageExecutor {
     return reportedSuccess(warning, models);
   }
 
-  private async plannerSourceOf(context: StageExecutionContext): Promise<PlannerPacketSource> {
+  private async plannerSourceOf(context: StageExecutionContext): Promise<PlannerPacketSource | StageFailure> {
     const { catalog, ledger, clock } = this.dependencies;
+    const skills = await boundSkillTexts(context, catalog, PLANNER_SKILL_SLOT);
+    if (skills.status === 'unreadable') return unreadableSkillStop(context, skills.ref, PLANNER_SKILL_SLOT);
     return {
       coordinates: coordinatesOf(context),
       brief: context.brief,
@@ -82,6 +86,7 @@ export class PlanExecutor extends BaseStageExecutor {
       costPerRunUsd: context.limits.costPerRunUsd,
       costPerMonthUsd: context.limits.costPerMonthUsd,
       monthToDateUsd: await ledger.monthToDateUsd(clock.now()),
+      ...(skills.skills.length === 0 ? {} : { skills: skills.skills }),
     };
   }
 }

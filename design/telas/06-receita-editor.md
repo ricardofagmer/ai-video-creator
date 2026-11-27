@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rotas | `/receitas/nova` e `/receitas/[recipeId]` (versão aberta em `?versao=N`) |
-| Título do documento | `Nova receita · Video Studio` / `<nome> · Receitas · Video Studio` |
+| Título do documento | `Nova receita · EngineOS Video Creator` / `<nome> · Receitas · EngineOS Video Creator` |
 | Ticket | R1-19 (critério 8) |
 
 ## Objetivo

@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactElement, ReactNode } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { Alert } from '../alert/Alert';
 
 export interface WaitingNoticeProps {
@@ -13,11 +16,12 @@ export interface WaitingNoticeProps {
 
 /** The "Aguardando você" state of a run in `waiting` (PRD 7.3, criterion 16). */
 export function WaitingNotice({ reason, whatToDo, actions, className }: WaitingNoticeProps): ReactElement {
+  const { ui } = useI18n();
   return (
-    <Alert variant="warning" title="Aguardando você" actions={actions} className={className}>
+    <Alert variant="warning" title={ui.runs.waitingTitle} actions={actions} className={className}>
       <p>{reason}</p>
       <p>
-        <strong>O que fazer: </strong>
+        <strong>{ui.runs.whatToDo}</strong>
         {whatToDo}
       </p>
     </Alert>

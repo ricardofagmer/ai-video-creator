@@ -2,6 +2,7 @@ import {
   AiModelDetailsSchema,
   BrandKitDetailsSchema,
   ImageDetailsSchema,
+  MusicCategorySchema,
   MusicDetailsSchema,
   PromptDetailsSchema,
   ReferenceDetailsSchema,
@@ -10,11 +11,12 @@ import {
   TemplateDetailsSchema,
   type AspectRatio,
   type AssetKind,
+  type MusicCategory,
   type PromptVariable,
 } from '@studio/shared/catalog';
 import { type AssetVersionView } from '@studio/shared/api';
 import { type z } from 'zod';
-import { formMessages, type FieldErrors } from './form-messages';
+import { type FieldErrors, type FormErrorTexts } from './form-messages';
 
 /**
  * Kind-specific fields of PRD 5.2 as form text, and their mapping to the C1 `details` of each kind.
@@ -41,6 +43,14 @@ export function detailFieldId(key: string): string {
 
 export const VARIABLES_FIELD_ID = 'variaveis';
 
+/** The ticked categories of the form text (comma-separated ids); an id the list does not know is dropped. */
+export function musicCategoriesOfField(text: string): MusicCategory[] {
+  return text.split(',').flatMap((item) => {
+    const parsed = MusicCategorySchema.safeParse(item.trim());
+    return parsed.success ? [parsed.data] : [];
+  });
+}
+
 const brandKitSkeleton = {
   colors: [{ name: 'primaria', hex: '#000000' }],
   fonts: [],
@@ -58,7 +68,7 @@ export function defaultDetailFields(kind: AssetKind): DetailFields {
     case 'template':
       return { engine: 'remotion', fps: '30', inputSchema: '{}', sceneSchema: '', cameraMoves: '', transitions: '' };
     case 'ai-model':
-      return { modelType: 'provider-model', provider: 'other', modelIdRefType: 'env', modelIdRefValue: '' };
+      return { modelType: 'provider-model', provider: 'other', modelIdRefType: 'env', modelIdRefValue: '', voiceModelId: '' };
     case 'reference':
       return { subKind: 'video', referenceNotes: '' };
     case 'skill':
@@ -101,6 +111,7 @@ export function detailFieldsOf(version: AssetVersionView): DetailFields {
         provider: version.details.provider,
         modelIdRefType: reference.type,
         modelIdRefValue: reference.type === 'literal' ? reference.value : reference.name,
+        voiceModelId: version.details.voiceModelId ?? '',
       };
     }
     case 'reference':
@@ -114,6 +125,7 @@ export function detailFieldsOf(version: AssetVersionView): DetailFields {
         durationSec: String(version.details.durationMs / 1000),
         bpm: optionalNumber(version.details.bpm),
         integratedLufs: optionalNumber(version.details.integratedLufs),
+        categories: version.details.categories.join(','),
       };
     case 'sfx':
       return { durationSec: String(version.details.durationMs / 1000) };
@@ -153,7 +165,10 @@ export function variableRowsOf(version: AssetVersionView): PromptVariableRow[] {
 class FieldReader {
   readonly errors: Record<string, string> = {};
 
-  constructor(private readonly fields: DetailFields) {}
+  constructor(
+    private readonly fields: DetailFields,
+    readonly m: FormErrorTexts,
+  ) {}
 
   text(key: string): string {
     return (this.fields[key] ?? '').trim();
@@ -161,19 +176,19 @@ class FieldReader {
 
   required(key: string): string {
     const value = this.text(key);
-    if (value === '') this.errors[detailFieldId(key)] = formMessages.required;
+    if (value === '') this.errors[detailFieldId(key)] = this.m.required;
     return value;
   }
 
   number(key: string, options: { optional?: boolean } = {}): number | null {
     const value = this.text(key);
     if (value === '') {
-      if (!options.optional) this.errors[detailFieldId(key)] = formMessages.required;
+      if (!options.optional) this.errors[detailFieldId(key)] = this.m.required;
       return null;
     }
     const parsed = Number(value.replace(',', '.'));
     if (!Number.isFinite(parsed)) {
-      this.errors[detailFieldId(key)] = formMessages.number;
+      this.errors[detailFieldId(key)] = this.m.number;
       return null;
     }
     return parsed;
@@ -182,13 +197,13 @@ class FieldReader {
   json(key: string, options: { optional?: boolean } = {}): unknown {
     const value = this.text(key);
     if (value === '') {
-      if (!options.optional) this.errors[detailFieldId(key)] = formMessages.required;
+      if (!options.optional) this.errors[detailFieldId(key)] = this.m.required;
       return null;
     }
     try {
       return JSON.parse(value);
     } catch {
-      this.errors[detailFieldId(key)] = formMessages.json;
+      this.errors[detailFieldId(key)] = this.m.json;
       return null;
     }
   }
@@ -237,7 +252,7 @@ function rawDetails(kind: AssetKind, reader: FieldReader, variables: readonly Pr
       const width = reader.number('width');
       const height = reader.number('height');
       const aspect = aspectOf(width, height);
-      if (width !== null && height !== null && aspect === null) reader.errors[detailFieldId('width')] = formMessages.aspect;
+      if (width !== null && height !== null && aspect === null) reader.errors[detailFieldId('width')] = reader.m.aspect;
       return {
         engine: reader.required('engine'),
         compositionId: reader.required('compositionId'),
@@ -254,10 +269,12 @@ function rawDetails(kind: AssetKind, reader: FieldReader, variables: readonly Pr
     case 'ai-model': {
       const type = reader.required('modelIdRefType');
       const value = reader.required('modelIdRefValue');
+      const voiceModelId = reader.text('voiceModelId');
       return {
         modelType: reader.required('modelType'),
         provider: reader.required('provider'),
         modelIdRef: type === 'literal' ? { type, value } : { type, name: value },
+        ...(voiceModelId === '' ? {} : { voiceModelId }),
       };
     }
     case 'reference':
@@ -272,6 +289,8 @@ function rawDetails(kind: AssetKind, reader: FieldReader, variables: readonly Pr
         durationMs: seconds === null ? null : Math.round(seconds * 1000),
         bpm: reader.number('bpm', { optional: true }),
         integratedLufs: reader.number('integratedLufs', { optional: true }),
+        // Ids from the checkboxes; MusicDetailsSchema refuses unknown ones, repeats and more than the maximum.
+        categories: reader.list('categories'),
       };
     }
     case 'sfx': {
@@ -320,8 +339,13 @@ function fieldIdOfIssue(kind: AssetKind, path: readonly PropertyKey[]): string {
 export type DetailsResult = { ok: true; details: unknown } | { ok: false; errors: FieldErrors };
 
 /** Typed C1 details for `kind`, or the field errors that stop the save. */
-export function parseKindDetails(kind: AssetKind, fields: DetailFields, variables: readonly PromptVariableRow[]): DetailsResult {
-  const reader = new FieldReader(fields);
+export function parseKindDetails(
+  kind: AssetKind,
+  fields: DetailFields,
+  variables: readonly PromptVariableRow[],
+  m: FormErrorTexts,
+): DetailsResult {
+  const reader = new FieldReader(fields, m);
   const raw = rawDetails(kind, reader, variables);
   if (Object.keys(reader.errors).length > 0) return { ok: false, errors: reader.errors };
   const parsed = detailSchemas[kind].safeParse(raw);
@@ -329,7 +353,7 @@ export function parseKindDetails(kind: AssetKind, fields: DetailFields, variable
   const errors: Record<string, string> = {};
   for (const issue of parsed.error.issues) {
     const fieldId = fieldIdOfIssue(kind, issue.path);
-    errors[fieldId] ??= kind === 'brand-kit' || kind === 'prompt' ? `${formMessages.invalid} (${issue.path.join('.')})` : formMessages.invalid;
+    errors[fieldId] ??= kind === 'brand-kit' || kind === 'prompt' ? `${m.invalid} (${issue.path.join('.')})` : m.invalid;
   }
   return { ok: false, errors };
 }

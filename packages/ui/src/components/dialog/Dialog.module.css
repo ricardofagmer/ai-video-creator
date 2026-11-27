@@ -26,6 +26,31 @@
   padding: var(--space-6);
 }
 
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.wide {
+  width: min(var(--layout-max-width), calc(100vw - var(--space-8)));
+  height: calc(100vh - var(--space-16));
+  overflow: hidden;
+}
+
+.wide > .panel {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.wide .body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .description {
   color: var(--color-text-muted);
 }
@@ -49,6 +74,23 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-3);
+}
+
+/* Phone width: the wide dialog takes the whole screen, so long forms get every row. */
+@media (max-width: 40rem) {
+  .wide {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+
+  .wide > .panel {
+    padding: var(--space-4);
+  }
 }
 
 @keyframes enter {

@@ -10,17 +10,28 @@
       "assetId": "tool-demo-template",
       "name": "Tool Demo 9:16",
       "summary": "Demonstração de ferramenta em 70-90 s: gancho, problema, passos, resultado e CTA.",
-      "tags": ["template", "remotion", "vertical", "tool-demo"],
+      "tags": [
+        "template",
+        "remotion",
+        "vertical",
+        "tool-demo"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Composition ToolDemo of the absorbed @ace/video (packages/video/src/Root.tsx). Timeline targets: templateTimelines.TOOL_DEMO in packages/shared/src/ace/templates.ts.",
       "sourceFolder": "video-studio/packages/video/src",
       "details": {
         "engine": "remotion",
         "compositionId": "ToolDemo",
-        "canvas": { "width": 1080, "height": 1920 },
+        "canvas": {
+          "width": 1080,
+          "height": 1920
+        },
         "aspect": "9:16",
         "fps": 30,
-        "duration": { "minSec": 70, "maxSec": 90 },
+        "duration": {
+          "minSec": 70,
+          "maxSec": 90
+        },
         "cameraMoves": [],
         "transitions": []
       },
@@ -32,17 +43,28 @@
       "assetId": "ai-battle-template",
       "name": "AI Battle 9:16",
       "summary": "Comparação entre IAs em 70-90 s: gancho, rubrica, evidências, análise e veredito.",
-      "tags": ["template", "remotion", "vertical", "ai-battle"],
+      "tags": [
+        "template",
+        "remotion",
+        "vertical",
+        "ai-battle"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Composition AiBattle of the absorbed @ace/video (packages/video/src/Root.tsx). Timeline targets: templateTimelines.AI_BATTLE in packages/shared/src/ace/templates.ts.",
       "sourceFolder": "video-studio/packages/video/src",
       "details": {
         "engine": "remotion",
         "compositionId": "AiBattle",
-        "canvas": { "width": 1080, "height": 1920 },
+        "canvas": {
+          "width": 1080,
+          "height": 1920
+        },
         "aspect": "9:16",
         "fps": 30,
-        "duration": { "minSec": 70, "maxSec": 90 },
+        "duration": {
+          "minSec": 70,
+          "maxSec": 90
+        },
         "cameraMoves": [],
         "transitions": []
       },
@@ -54,17 +76,28 @@
       "assetId": "automation-blueprint-template",
       "name": "Automation Blueprint 9:16",
       "summary": "Roteiro de automação em 70-90 s: gancho, visão geral, passos, resultado e CTA.",
-      "tags": ["template", "remotion", "vertical", "automation"],
+      "tags": [
+        "template",
+        "remotion",
+        "vertical",
+        "automation"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Composition AutomationBlueprint of the absorbed @ace/video (packages/video/src/Root.tsx). Timeline targets: templateTimelines.AUTOMATION_BLUEPRINT in packages/shared/src/ace/templates.ts.",
       "sourceFolder": "video-studio/packages/video/src",
       "details": {
         "engine": "remotion",
         "compositionId": "AutomationBlueprint",
-        "canvas": { "width": 1080, "height": 1920 },
+        "canvas": {
+          "width": 1080,
+          "height": 1920
+        },
         "aspect": "9:16",
         "fps": 30,
-        "duration": { "minSec": 70, "maxSec": 90 },
+        "duration": {
+          "minSec": 70,
+          "maxSec": 90
+        },
         "cameraMoves": [],
         "transitions": []
       },
@@ -76,19 +109,34 @@
       "assetId": "product-tour-template",
       "name": "Tour de produto 16:9",
       "summary": "Tour narrado de app web em 16:9: gancho, cenas do app num cartão com capítulo numerado, encerramento; faixa livre abaixo do app para legendas.",
-      "tags": ["template", "remotion", "horizontal", "product-tour"],
+      "tags": [
+        "template",
+        "remotion",
+        "horizontal",
+        "product-tour"
+      ],
       "origin": "spesia-run",
       "notes": "Composition ProductTour16x9 (packages/video/src/templates/ProductTour16x9.tsx, registered in packages/video/src/Root.tsx), derived from SpesiaDemo.tsx of the Spesia run (SPEC 0002 R1-15). Props are RenderInput without template; captions arrive empty and are burned by the captions stage into the band below the app (centre about 93% of the height). Camera moves and transitions are fixed by the template; the render plan does not carry them.",
       "sourceFolder": "video-studio/packages/video/src",
       "details": {
         "engine": "remotion",
         "compositionId": "ProductTour16x9",
-        "canvas": { "width": 1920, "height": 1080 },
+        "canvas": {
+          "width": 1920,
+          "height": 1080
+        },
         "aspect": "16:9",
         "fps": 30,
-        "duration": { "minSec": 30, "maxSec": 180 },
-        "cameraMoves": ["static"],
-        "transitions": ["cut"]
+        "duration": {
+          "minSec": 30,
+          "maxSec": 180
+        },
+        "cameraMoves": [
+          "static"
+        ],
+        "transitions": [
+          "cut"
+        ]
       },
       "inputSchemaFile": "video-studio/seeds/templates/render-input.schema.json",
       "sceneSchemaFile": "video-studio/seeds/templates/render-scene.schema.json"
@@ -98,17 +146,28 @@
       "assetId": "hook-c01-template",
       "name": "Chamada C01 9:16",
       "summary": "Vídeo de chamada de 20-45 s em grade de batidas, com capa e carrossel.",
-      "tags": ["template", "remotion", "vertical", "hook"],
+      "tags": [
+        "template",
+        "remotion",
+        "vertical",
+        "hook"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Composition HookC01 of the absorbed @ace/video (packages/video/src/hooks/HookRoot.tsx). The stills HookC01Cover and HookC01Carousel (1080x1350, 6 slides) render from the same source and props.",
       "sourceFolder": "video-studio/packages/video/src",
       "details": {
         "engine": "remotion",
         "compositionId": "HookC01",
-        "canvas": { "width": 1080, "height": 1920 },
+        "canvas": {
+          "width": 1080,
+          "height": 1920
+        },
         "aspect": "9:16",
         "fps": 30,
-        "duration": { "minSec": 20, "maxSec": 45 },
+        "duration": {
+          "minSec": 20,
+          "maxSec": 45
+        },
         "cameraMoves": [],
         "transitions": []
       },
@@ -120,17 +179,28 @@
       "assetId": "hook-intro-template",
       "name": "Chamada de apresentação 9:16",
       "summary": "Vídeo de apresentação de 20-45 s em grade de batidas, com capa e avatar.",
-      "tags": ["template", "remotion", "vertical", "hook"],
+      "tags": [
+        "template",
+        "remotion",
+        "vertical",
+        "hook"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Composition HookIntro of the absorbed @ace/video (packages/video/src/hooks/HookRoot.tsx). The stills HookIntroCover and HookIntroAvatar (1080x1080) render from the same source.",
       "sourceFolder": "video-studio/packages/video/src",
       "details": {
         "engine": "remotion",
         "compositionId": "HookIntro",
-        "canvas": { "width": 1080, "height": 1920 },
+        "canvas": {
+          "width": 1080,
+          "height": 1920
+        },
         "aspect": "9:16",
         "fps": 30,
-        "duration": { "minSec": 20, "maxSec": 45 },
+        "duration": {
+          "minSec": 20,
+          "maxSec": 45
+        },
         "cameraMoves": [],
         "transitions": []
       },
@@ -141,18 +211,29 @@
       "type": "template",
       "assetId": "title-card-hf-template",
       "name": "Cartão de título 9:16 (HyperFrames)",
-      "summary": "Cartão de título vertical com chamada, título e aviso, animado só com CSS.",
-      "tags": ["template", "hyperframes", "vertical", "title"],
+      "summary": "Vídeo vertical com o site e as imagens do run ao fundo, chamada, título, texto por cena e aviso.",
+      "tags": [
+        "template",
+        "hyperframes",
+        "vertical",
+        "title"
+      ],
       "origin": "studio",
-      "notes": "Studio-authored HyperFrames composition TitleCard (SPEC 0008 OD7 a). Self-contained: CSS animation only, data-no-timeline, system fonts, no script and no remote reference. The composition is 30 s long; durationS times the closing fade and the render is cut to the narration.",
+      "notes": "Studio-authored HyperFrames composition TitleCard (SPEC 0008 OD7 a). Self-contained: CSS animation only, data-no-timeline, system fonts, no script and no remote reference. The files declare the 600 s ceiling; the render sets the staged copy to the narration length and durationS times the closing fade. It plays media/background.mp4 behind the text: the composition stage cuts that clip from the run's site capture and bound images, one stretch per scene, and writes it into the staged copy before the render.",
       "sourceFolder": "video-studio/seeds/templates/hyperframes/title-card",
       "details": {
         "engine": "hyperframes",
         "compositionId": "TitleCard",
-        "canvas": { "width": 1080, "height": 1920 },
+        "canvas": {
+          "width": 1080,
+          "height": 1920
+        },
         "aspect": "9:16",
         "fps": 30,
-        "duration": { "minSec": 3, "maxSec": 30 },
+        "duration": {
+          "minSec": 3,
+          "maxSec": 600
+        },
         "cameraMoves": [],
         "transitions": []
       },
@@ -160,23 +241,80 @@
       "sceneSchemaFile": null
     },
     {
+      "type": "template",
+      "assetId": "scene-cards-hf-template",
+      "name": "Cartões de cena 9:16 (HyperFrames)",
+      "summary": "Vertical com o título no topo e o texto de cada cena no centro enquanto ela é narrada, animado só com CSS.",
+      "tags": [
+        "template",
+        "hyperframes",
+        "vertical",
+        "scenes"
+      ],
+      "origin": "studio",
+      "notes": "Studio-authored HyperFrames composition SceneCards. Self-contained: CSS animation only, data-no-timeline, system fonts, no script and no remote reference. Shows up to 6 scene texts, each from its sceneNStartS to the next scene's start. The files declare the 600 s ceiling; the render sets the staged copy to the narration length and durationS times the closing fade.",
+      "sourceFolder": "video-studio/seeds/templates/hyperframes/scene-cards",
+      "details": {
+        "engine": "hyperframes",
+        "compositionId": "SceneCards",
+        "canvas": {
+          "width": 1080,
+          "height": 1920
+        },
+        "aspect": "9:16",
+        "fps": 30,
+        "duration": {
+          "minSec": 3,
+          "maxSec": 600
+        },
+        "cameraMoves": [],
+        "transitions": []
+      },
+      "inputSchemaFile": "video-studio/seeds/templates/hyperframes/scene-cards.input.schema.json",
+      "sceneSchemaFile": null
+    },
+    {
       "type": "brand-kit",
       "assetId": "fagmer-brand",
       "name": "Identidade Fagmer",
       "summary": "Paleta azul-marinho com destaque ciano, Inter, legendas com a palavra ativa em destaque.",
-      "tags": ["brand", "palette", "fagmer"],
+      "tags": [
+        "brand",
+        "palette",
+        "fagmer"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Colours from videoSpec.brand and safe zone from videoSpec.safeZone (packages/shared/src/ace/templates.ts); caption style from packages/video/src/components/Captions.tsx; fonts from packages/video/src/theme.ts.",
       "details": {
         "colors": [
-          { "name": "background", "hex": "#0B1426" },
-          { "name": "accent", "hex": "#2EC4B6" },
-          { "name": "text", "hex": "#F4F7FB" },
-          { "name": "muted", "hex": "#8EA0BC" }
+          {
+            "name": "background",
+            "hex": "#0B1426"
+          },
+          {
+            "name": "accent",
+            "hex": "#2EC4B6"
+          },
+          {
+            "name": "text",
+            "hex": "#F4F7FB"
+          },
+          {
+            "name": "muted",
+            "hex": "#8EA0BC"
+          }
         ],
         "fonts": [
-          { "family": "Inter", "role": "heading", "ref": null },
-          { "family": "Inter", "role": "body", "ref": null }
+          {
+            "family": "Inter",
+            "role": "heading",
+            "ref": null
+          },
+          {
+            "family": "Inter",
+            "role": "body",
+            "ref": null
+          }
         ],
         "logoRefs": [],
         "captionStyle": {
@@ -195,7 +333,11 @@
             "rightPercent": 12.963
           }
         ],
-        "tagHints": ["ai-tools", "automation", "tool-demo"],
+        "tagHints": [
+          "ai-tools",
+          "automation",
+          "tool-demo"
+        ],
         "toneOfVoice": "Truthful and source-backed: every factual sentence rests on a verified claim; a compelling hook without exaggeration.",
         "motionStyle": "Captions in short lines of up to four words, the spoken word in the accent colour; a progress bar across the top."
       }
@@ -204,22 +346,13 @@
       "type": "skill-set",
       "folder": "video-studio/seeds/skills",
       "entryFile": "SKILL.md",
-      "tags": ["skill", "fagmer-video"],
+      "tags": [
+        "skill",
+        "fagmer-video"
+      ],
       "origin": "ai-creator-engine",
       "skillIds": [
-        "fagmer-video-analytics-loop",
-        "fagmer-video-demo-capture",
-        "fagmer-video-fact-check",
-        "fagmer-video-hook",
-        "fagmer-video-producer",
-        "fagmer-video-publish-review",
-        "fagmer-video-quality-gate",
-        "fagmer-video-scene-generator",
-        "fagmer-video-script",
-        "fagmer-video-seo-package",
-        "fagmer-video-tiktok-render",
-        "fagmer-video-trend-research",
-        "fagmer-video-voiceover"
+        "fagmer-video-seo-package"
       ]
     },
     {
@@ -227,7 +360,11 @@
       "assetId": "elevenlabs-voice",
       "name": "Voz ElevenLabs",
       "summary": "Voz ElevenLabs configurada por nomes de variável e de item do Keychain; nenhum valor é guardado.",
-      "tags": ["voice", "elevenlabs", "tts"],
+      "tags": [
+        "voice",
+        "elevenlabs",
+        "tts"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Credential names come from packages/core/src/secrets/secret-names.ts at seed time; voice and model variable names from the absorbed @ace/toolbox (packages/toolbox/src/config/env.ts).",
       "provider": "elevenlabs",
@@ -241,7 +378,12 @@
       "assetId": "owner-voice-clone-pt",
       "name": "Voz clonada do dono (pt)",
       "summary": "Amostra de referência da voz local clonada, em português; registrada só por caminho e hash.",
-      "tags": ["voice", "voice-clone", "local-voice", "pt"],
+      "tags": [
+        "voice",
+        "voice-clone",
+        "local-voice",
+        "pt"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Biometric. Registered by reference: the row keeps the path and hash; no byte enters the store, exports or agent context.",
       "language": "pt",
@@ -253,7 +395,12 @@
       "assetId": "owner-voice-clone-en",
       "name": "Voz clonada do dono (en)",
       "summary": "Amostra de referência da voz local clonada, em inglês; registrada só por caminho e hash.",
-      "tags": ["voice", "voice-clone", "local-voice", "en"],
+      "tags": [
+        "voice",
+        "voice-clone",
+        "local-voice",
+        "en"
+      ],
       "origin": "ai-creator-engine",
       "notes": "Biometric. Registered by reference: the row keeps the path and hash; no byte enters the store, exports or agent context.",
       "language": "en",
@@ -265,20 +412,35 @@
       "assetId": "spesia-music-680",
       "name": "Epical Drums 05 (Mixkit #680)",
       "summary": "Orquestral e motivacional, cerca de 102 s, sem loop; trilha do primeiro corte do tour Spesia.",
-      "tags": ["music", "orchestral", "motivational", "mixkit"],
+      "tags": [
+        "music",
+        "orchestral",
+        "motivational",
+        "mixkit"
+      ],
       "origin": "spesia-run",
       "notes": "Duration from RELATORIO.md of the Spesia run (102 s, rounded there); not re-measured by the seed.",
       "sourceFile": "video-pipeline-2026-11-17-spesia/music/680.mp3",
       "mimeType": "audio/mpeg",
       "author": "Grigoriy Nuzhny",
-      "details": { "durationMs": 102000, "bpm": null, "integratedLufs": null },
+      "details": {
+        "durationMs": 102000,
+        "bpm": null,
+        "integratedLufs": null
+      },
       "license": {
         "name": "Mixkit Stock Music Free License",
         "url": "https://mixkit.co/license/#musicFree",
         "readOn": "2026-11-17",
-        "allowedUses": ["commercial", "social-media"]
+        "allowedUses": [
+          "commercial",
+          "social-media"
+        ]
       },
-      "credits": { "file": "video-pipeline-2026-11-17-spesia/music/CREDITS.txt", "lineIncludes": "Mixkit #680" },
+      "credits": {
+        "file": "video-pipeline-2026-11-17-spesia/music/CREDITS.txt",
+        "lineIncludes": "Mixkit #680"
+      },
       "termsNote": "Read 2026-11-17 (RELATORIO.md): allows social networks, YouTube, online ads and commercial use without credit; forbids TV/radio, CD/DVD, games, remix and Content ID registration; do not redistribute the track on its own."
     },
     {
@@ -286,21 +448,108 @@
       "assetId": "spesia-music-683",
       "name": "Classical vibes 3 (Mixkit #683)",
       "summary": "Piano e cordas, calma e esperançosa, cerca de 124,8 s, sem loop; trilha da versão final do tour Spesia.",
-      "tags": ["music", "classical", "calm", "mixkit"],
+      "tags": [
+        "music",
+        "classical",
+        "calm",
+        "mixkit"
+      ],
       "origin": "spesia-run",
       "notes": "Duration 124.8 s and a loudness range of 5.1 LU from RELATORIO.md of the Spesia run; not re-measured by the seed.",
       "sourceFile": "video-pipeline-2026-11-17-spesia/music/683.mp3",
       "mimeType": "audio/mpeg",
       "author": "Grigoriy Nuzhny",
-      "details": { "durationMs": 124800, "bpm": null, "integratedLufs": null },
+      "details": {
+        "durationMs": 124800,
+        "bpm": null,
+        "integratedLufs": null
+      },
       "license": {
         "name": "Mixkit Stock Music Free License",
         "url": "https://mixkit.co/license/#musicFree",
         "readOn": "2026-11-17",
-        "allowedUses": ["commercial", "social-media"]
+        "allowedUses": [
+          "commercial",
+          "social-media"
+        ]
       },
-      "credits": { "file": "video-pipeline-2026-11-17-spesia/music/CREDITS.txt", "lineIncludes": "Mixkit #683" },
+      "credits": {
+        "file": "video-pipeline-2026-11-17-spesia/music/CREDITS.txt",
+        "lineIncludes": "Mixkit #683"
+      },
       "termsNote": "Read 2026-11-17 (RELATORIO.md): allows social networks, YouTube, online ads and commercial use without credit; forbids TV/radio, CD/DVD, games, remix and Content ID registration; do not redistribute the track on its own."
+    },
+    {
+      "type": "music",
+      "assetId": "mixkit-trap-electro-vibes-126",
+      "name": "Trap Electro Vibes (Mixkit #126)",
+      "summary": "Trap eletrônico com batida forte; uso livre em redes sociais e comercial.",
+      "tags": [
+        "music",
+        "trap",
+        "electro",
+        "mixkit"
+      ],
+      "origin": "ai-creator-engine",
+      "notes": "Duration measured with ffprobe on 2026-11-22.",
+      "sourceFile": "video-pipeline-2026-11-17-auto/music/126.mp3",
+      "mimeType": "audio/mpeg",
+      "author": "Alejandro Magaña (A. M.)",
+      "details": {
+        "durationMs": 115776,
+        "bpm": null,
+        "integratedLufs": null
+      },
+      "license": {
+        "name": "Mixkit Stock Music Free License",
+        "url": "https://mixkit.co/license/#musicFree",
+        "readOn": "2026-11-22",
+        "allowedUses": [
+          "commercial",
+          "social-media"
+        ]
+      },
+      "credits": {
+        "file": "video-pipeline-2026-11-17-auto/music/CREDITS.txt",
+        "lineIncludes": "Mixkit #126"
+      },
+      "termsNote": "Mixkit Stock Music Free License, as recorded in CREDITS.txt of each track (2026-11-22). Same terms as the spesia-music entries: social networks, YouTube, online ads and commercial use without credit; no TV/radio, CD/DVD, games, remix or Content ID registration; do not redistribute the track on its own. Not re-read from the license page."
+    },
+    {
+      "type": "music",
+      "assetId": "mixkit-lullaby-night-531",
+      "name": "Lullaby Night (Mixkit #531)",
+      "summary": "Trilha calma e suave; uso livre em redes sociais e comercial.",
+      "tags": [
+        "music",
+        "calm",
+        "lullaby",
+        "mixkit"
+      ],
+      "origin": "ai-creator-engine",
+      "notes": "Duration measured with ffprobe on 2026-11-22.",
+      "sourceFile": "video-pipeline-2026-11-17/music/531.mp3",
+      "mimeType": "audio/mpeg",
+      "author": "Diego Nava",
+      "details": {
+        "durationMs": 103262,
+        "bpm": null,
+        "integratedLufs": null
+      },
+      "license": {
+        "name": "Mixkit Stock Music Free License",
+        "url": "https://mixkit.co/license/#musicFree",
+        "readOn": "2026-11-22",
+        "allowedUses": [
+          "commercial",
+          "social-media"
+        ]
+      },
+      "credits": {
+        "file": "video-pipeline-2026-11-17/music/CREDITS.txt",
+        "lineIncludes": "Mixkit #531"
+      },
+      "termsNote": "Mixkit Stock Music Free License, as recorded in CREDITS.txt of each track (2026-11-22). Same terms as the spesia-music entries: social networks, YouTube, online ads and commercial use without credit; no TV/radio, CD/DVD, games, remix or Content ID registration; do not redistribute the track on its own. Not re-read from the license page."
     }
   ]
 }

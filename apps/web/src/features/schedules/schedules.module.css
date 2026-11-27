@@ -58,3 +58,13 @@
   padding: 0;
   list-style: none;
 }
+
+/*
+ * The slot lines close a schedule poster like the shared `links` footer, but they hold no control,
+ * so they stay below the card's stretched link and a click on them still opens the schedule.
+ */
+.posterFooter {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}

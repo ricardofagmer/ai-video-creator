@@ -93,17 +93,66 @@ export function renderPlan(sources: {
   return { scenes, files };
 }
 
-function sceneTimings(scenes: ScenesOutput, narration: NarrationIndex): { startS: number; endS: number }[] {
+type SceneSpan = { startS: number; endS: number };
+
+export function sceneTimings(scenes: ScenesOutput, narration: NarrationIndex): SceneSpan[] {
   const byScene = new Map(narration.sceneTimings.map((timing) => [timing.sceneId, timing]));
   const matched = scenes.scenes.map((scene) => byScene.get(scene.sceneId));
   if (matched.every((timing) => timing !== undefined && timing.endS > timing.startS)) {
     return matched.flatMap((timing) => (timing === undefined ? [] : [{ startS: timing.startS, endS: timing.endS }]));
   }
+  const parented = timingsByParentScene(scenes, narration);
+  if (parented !== null) return parented;
   const slotS = narration.durationS / scenes.scenes.length;
   return scenes.scenes.map((_scene, index) => ({ startS: index * slotS, endS: (index + 1) * slotS }));
 }
 
-function visualAsset(
+function sharedPrefixLength(left: string, right: string): number {
+  let length = 0;
+  while (length < left.length && length < right.length && left[length] === right[length]) length += 1;
+  return length;
+}
+
+/**
+ * The director may split one narrated scene into several shots with ids of its own
+ * (`s1-catalogo` narrated, `s1a-catalogo` and `s1b-catalogo` directed). Without this, every shot
+ * fell back to an even slot of the whole narration and the pictures drifted from the voice. Each
+ * shot goes to the narrated scene whose id shares the longest prefix with its own, never to one
+ * before the previous shot's; the shots of one narrated scene share its stretch evenly. Null when
+ * a shot shares no prefix at all, so the caller keeps the even split.
+ */
+function timingsByParentScene(scenes: ScenesOutput, narration: NarrationIndex): SceneSpan[] | null {
+  const narrated = narration.sceneTimings.filter((timing) => timing.endS > timing.startS);
+  if (narrated.length === 0) return null;
+  const parents: number[] = [];
+  let earliest = 0;
+  for (const scene of scenes.scenes) {
+    let best = -1;
+    let bestLength = 0;
+    for (let index = earliest; index < narrated.length; index += 1) {
+      const timing = narrated[index];
+      if (timing === undefined) continue;
+      const length = timing.sceneId === scene.sceneId ? Number.MAX_SAFE_INTEGER : sharedPrefixLength(timing.sceneId, scene.sceneId);
+      if (length > bestLength) {
+        best = index;
+        bestLength = length;
+      }
+    }
+    if (best < 0) return null;
+    parents.push(best);
+    earliest = best;
+  }
+  return parents.map((parent, index) => {
+    const timing = narrated[parent];
+    if (timing === undefined) return { startS: 0, endS: narration.durationS };
+    const siblings = parents.filter((candidate) => candidate === parent).length;
+    const position = parents.slice(0, index).filter((candidate) => candidate === parent).length;
+    const shareS = (timing.endS - timing.startS) / siblings;
+    return { startS: timing.startS + position * shareS, endS: timing.startS + (position + 1) * shareS };
+  });
+}
+
+export function visualAsset(
   visual: ScenesOutput['scenes'][number]['visual'],
   sources: {
     runDirPathOf: (relativePath: string) => string;

@@ -27,7 +27,7 @@ describe('telemetry attribute allowlist', () => {
         'host.name': 'owner-macbook',
         'process.command_line': 'node /Users/owner/watcher.js',
         // Refused: allowlisted for the resource only.
-        'service.name': 'video-studio-watcher',
+        'service.name': 'engineos-video-creator-watcher',
         // Refused: the value fails the key's rule.
         'studio.session.id': 'not-a-ulid',
         'studio.outcome': 'Falhou ao abrir /Users/owner/ricardo-clone/voice.wav',
@@ -55,7 +55,7 @@ describe('telemetry attribute allowlist', () => {
   it('admits service.name and service.version only on the resource', () => {
     const result = allowedAttributes(
       {
-        'service.name': 'video-studio-watcher',
+        'service.name': 'engineos-video-creator-watcher',
         'service.version': '0.1.0',
         'studio.run.id': RUN_ID,
         'host.name': 'owner-macbook',

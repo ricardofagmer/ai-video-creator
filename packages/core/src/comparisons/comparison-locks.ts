@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { KeyedMutex } from '../runtime/keyed-mutex';
 
 /**
  * Serializes starts of one comparison inside this process, so two requests never both pass the
@@ -7,21 +8,9 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ComparisonLocks {
-  private readonly tails = new Map<string, Promise<void>>();
+  private readonly mutex = new KeyedMutex();
 
-  async withComparison<T>(comparisonId: string, work: () => Promise<T>): Promise<T> {
-    const previous = this.tails.get(comparisonId) ?? Promise.resolve();
-    const result = previous.then(work);
-    // The failure reaches its own caller through `result`; the tail only orders the next start.
-    const tail = result.then(
-      () => undefined,
-      () => undefined,
-    );
-    this.tails.set(comparisonId, tail);
-    try {
-      return await result;
-    } finally {
-      if (this.tails.get(comparisonId) === tail) this.tails.delete(comparisonId);
-    }
+  withComparison<T>(comparisonId: string, work: () => Promise<T>): Promise<T> {
+    return this.mutex.run(comparisonId, work);
   }
 }

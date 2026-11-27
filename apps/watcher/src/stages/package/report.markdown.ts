@@ -1,4 +1,4 @@
-import { type EgressEntry, type QaSummary, type ReviewSubject, type RunFile } from '@studio/shared/run-format';
+import { type EgressEntry, type QaSummary, type ReviewSubject, type RunFile, type StageId } from '@studio/shared/run-format';
 import { type ReviewOutcome } from '../shared/stage-artifacts';
 
 /**
@@ -9,6 +9,8 @@ import { type ReviewOutcome } from '../shared/stage-artifacts';
 export function reportMarkdown(source: {
   title: string;
   run: Readonly<RunFile>;
+  /** The stage writing this report (`package`). */
+  writtenByStage: StageId;
   summary: QaSummary;
   outcomes: ReadonlyMap<ReviewSubject, ReviewOutcome>;
   egress: readonly EgressEntry[];
@@ -19,7 +21,12 @@ export function reportMarkdown(source: {
   const lines: string[] = [`# Relatório — ${source.title}`, ''];
 
   lines.push('## O que foi feito', '');
-  for (const stage of source.run.stages) lines.push(`- ${String(stage.number).padStart(2, '0')} ${stage.stageId}: ${stage.outcome.status}`);
+  for (const stage of source.run.stages) {
+    // The report is an output of the stage that writes it, so that stage is still open in `run.json`
+    // here; the report only exists once it delivers.
+    const status = stage.stageId === source.writtenByStage ? 'delivered' : stage.outcome.status;
+    lines.push(`- ${String(stage.number).padStart(2, '0')} ${stage.stageId}: ${status}`);
+  }
   lines.push(`- Vídeo final: final.mp4, ${(metrics.durationMs / 1000).toFixed(1)} s, ${metrics.width}x${metrics.height}, ${metrics.fps} fps.`, '');
 
   lines.push('## Decisões', '');

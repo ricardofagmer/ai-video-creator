@@ -60,6 +60,9 @@ Forces:
 4. **Renders run under `sandbox-exec` with outbound network denied except loopback** (SPEC 0008
    OD5, recommended answer). The same profile is used by the owner-run network trace that gates
    the engine, so the trace proves the configuration that later runs.
+   *Note, 2026-11-25:* a review found the trace and the watcher build and check the runtime
+   separately and have drifted, so this holds only once both go through the single render runtime
+   gate of `docs/specs/2026-11-25-render-runtime-gate-design.md`. The decision is unchanged.
 5. **The engine is off until the owner turns it on.** `<data home>/hyperframes/engine.json` starts
    absent, which means disabled. `studio hyperframes enable` refuses unless a passing trace record
    exists for the current pin, Chrome build and sandbox profile. A changed pin, Chrome or profile

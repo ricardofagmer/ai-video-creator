@@ -20,6 +20,15 @@ export {
 export { realPathOfExistingPrefix, resolveExecutable } from './executable-paths';
 export { FakeHyperframesProcessPort } from './fake-process-port';
 export { workspaceRoot } from './package-paths';
+export {
+  checkPicture,
+  type PictureCheck,
+  type PictureCheckId,
+  type PictureCheckRequest,
+  type PictureExpectation,
+  type PictureProbe,
+  type RunProbe,
+} from './picture-check';
 export { pinnedBinPath } from './pinned-bin';
 export { createSpawnProcessPort, type HyperframesProcessPort, type HyperframesProcessRequest } from './process-port';
 export {
@@ -30,6 +39,17 @@ export {
   buildRenderEnv,
   type ProcessCommand,
 } from './render-command';
+export {
+  checkRenderRuntime,
+  completeRenderRuntime,
+  type CheckedRenderRuntime,
+  type RenderRuntimeAnswer,
+  type RenderRuntimeRequest,
+  type StartingProcess,
+} from './render-runtime-gate';
+export { fakeRenderRuntimeSystem, realRenderRuntimeSystem, type RenderRuntimeSystem } from './render-runtime-system';
+export { checkInstallRuntime, completeInstallRuntime, type CheckedInstallRuntime } from './install-runtime';
+export { enableReadiness } from './enable-readiness';
 export { renderPicture, type RenderPicturePorts, type RenderPictureRequest } from './render-picture';
 export { type HyperframesBaseRuntime, type HyperframesRuntime } from './runtime';
 export { buildSandboxArgs, type SandboxArgsRequest } from './sandbox-args';

@@ -34,7 +34,8 @@ export interface LiveCaptureRequest {
 async function guardCaptureRoute(route: Route, allowedHosts: readonly string[], refused: string[]): Promise<void> {
   const target = route.request();
   const isNavigation = target.isNavigationRequest();
-  const permitted = (url: URL): boolean => (isNavigation ? isHostAllowed(url, allowedHosts) : isPublicHttpsUrl(url));
+  // A sub-request to the allowlisted host itself is the page's own asset (the only way a local page loads any).
+  const permitted = (url: URL): boolean => isHostAllowed(url, allowedHosts) || (!isNavigation && isPublicHttpsUrl(url));
   const targetUrl = new URL(target.url());
   if (!permitted(targetUrl)) {
     if (isNavigation) refused.push(targetUrl.host);

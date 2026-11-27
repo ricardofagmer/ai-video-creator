@@ -29,7 +29,7 @@ function wantsRevision(verdict: ReviewVerdict): boolean {
  * Evaluator loop of the generator stages (topology section 7). Generate, review, and revise only
  * when the Reviewer asks with an instruction, at most `limits.revisionsPerStage` times (2 by
  * default: 3 generator attempts). A spent budget with the Reviewer still asking returns
- * `revisions-exhausted` for the owner. A Reviewer failure degrades to a warning (section 9): the
+ * `revisions-exhausted`; the executor keeps that last output and continues with a caveat. A Reviewer failure degrades to a warning (section 9): the
  * last output stands and the owner review gate still follows.
  */
 export async function runEvaluatorLoop<Output>(request: EvaluatorLoopRequest<Output>): Promise<EvaluatorLoopResult<Output>> {

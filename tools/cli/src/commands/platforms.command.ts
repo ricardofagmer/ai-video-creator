@@ -1,6 +1,7 @@
 import { type GateState, type Platform, type PlatformCapability } from '@studio/shared/platforms';
 import { ExitCode } from '../errors/exit-codes.js';
-import { CAPABILITY_LABELS, PLATFORM_LABELS, connectIsWebOnlyText } from '../platforms/platform-labels.js';
+import { cliText } from '../i18n/messages.js';
+import { PLATFORM_LABELS } from '../platforms/platform-labels.js';
 import { type PlatformGateway } from '../platforms/platform-gateway.js';
 import { platformDetailLines, platformListLines } from '../platforms/platform-text.js';
 import { type CommandDependencies } from './command-dependencies.js';
@@ -26,9 +27,8 @@ export async function platformsListCommand(ports: PlatformCommandPorts, dependen
 /** Section 5.3: the consequence the web's confirmation names, printed after the gate opens. */
 function openingConsequence(platform: Platform, capability: PlatformCapability): string {
   const name = PLATFORM_LABELS[platform];
-  return capability === 'publish'
-    ? `O estúdio poderá enviar vídeos para ${name} quando você pedir com "studio runs publish" ou clicar em Publicar no web.`
-    : `O estúdio passará a coletar sozinho as métricas das suas publicações em ${name}, dentro da cota gratuita da plataforma.`;
+  const text = cliText().platforms.gate;
+  return capability === 'publish' ? text.publishOpened(name) : text.metricsOpened(name);
 }
 
 /**
@@ -44,13 +44,14 @@ export async function platformsGateCommand(
 ): Promise<number> {
   const { printer } = dependencies;
   const view = await ports.gateway.setGate(options.platform, { capability: options.capability, state });
-  const capability = CAPABILITY_LABELS[options.capability];
+  const text = cliText().platforms;
+  const capability = text.capabilities[options.capability];
   const name = PLATFORM_LABELS[options.platform];
-  printer.line(state === 'enabled' ? `${capability} ligada em ${name}.` : `${capability} desligada em ${name}: nada é pedido nem coletado por ela.`);
+  printer.line(state === 'enabled' ? text.gate.enabled(capability, name) : text.gate.disabled(capability, name));
   if (state === 'enabled') printer.line(openingConsequence(options.platform, options.capability));
   for (const line of platformDetailLines(view, ports.now())) printer.line(line);
   if (view.status[options.capability] === 'needs-reconnect' || view.status[options.capability] === 'disconnected') {
-    printer.line(connectIsWebOnlyText(dependencies.settings.ports.web));
+    printer.line(text.connectIsWebOnly(dependencies.settings.ports.web));
   }
   return ExitCode.ok;
 }
@@ -65,12 +66,9 @@ export async function platformsDisconnectCommand(platform: Platform, ports: Plat
   const { printer } = dependencies;
   const result = await ports.gateway.disconnect(platform);
   const name = PLATFORM_LABELS[platform];
-  printer.line(`Conta de ${name} desconectada: o token foi apagado do Keychain e nenhuma chamada é feita a ${name} até uma nova conexão.`);
-  if (result.revoke === 'revoked') {
-    printer.line(`A conta de ${name} confirmou a remoção do acesso do Video Studio.`);
-  } else {
-    printer.line(`Se o Video Studio ainda aparecer nos apps conectados da sua conta de ${name}, remova o acesso nas configurações de lá.`);
-  }
+  const text = cliText().platforms.disconnect;
+  printer.line(text.done(name));
+  printer.line(result.revoke === 'revoked' ? text.revoked(name) : text.checkThere(name));
   for (const line of platformDetailLines(result, ports.now())) printer.line(line);
   return ExitCode.ok;
 }
@@ -80,6 +78,6 @@ export async function platformsDisconnectCommand(platform: Platform, ports: Plat
  * sends the browser back to the api's callback. The command starts nothing and says so (exit 2).
  */
 export function platformsConnectCommand(platform: Platform, dependencies: CommandDependencies): number {
-  dependencies.printer.error(`${PLATFORM_LABELS[platform]}: ${connectIsWebOnlyText(dependencies.settings.ports.web)}`);
+  dependencies.printer.error(`${PLATFORM_LABELS[platform]}: ${cliText().platforms.connectIsWebOnly(dependencies.settings.ports.web)}`);
   return ExitCode.usage;
 }

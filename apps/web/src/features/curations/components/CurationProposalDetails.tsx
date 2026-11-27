@@ -3,41 +3,38 @@ import { type CurationView } from '@studio/shared/api';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { type WebMessages } from '@/messages';
 import styles from '../curations.module.css';
 
 type CurationProposal = NonNullable<CurationView['proposal']>;
 
 const DIFF_LABEL_ID = 'curadoria-diferenca-titulo';
 
-function lineCount(count: number): string {
-  return count === 1 ? '1 linha' : `${count} linhas`;
-}
-
 /**
  * The proposal of a `proposed` curation (SPEC 0005 section 5.9). Every field is model-written, so
  * each one is a React text node: no markup is ever parsed from it (section 6, C5-AC-20). The diff
  * is a unified text diff inside `<pre><code>`, scrollable and reachable by keyboard.
  */
-export function CurationProposalDetails({ proposal }: { proposal: CurationProposal }): ReactElement {
+export function CurationProposalDetails({ proposal, t }: { proposal: CurationProposal; t: WebMessages['curations']['proposal'] }): ReactElement {
   const { addedLines, removedLines } = proposal.diffStats;
   return (
     <div className={layout.stackLarge}>
-      <Card title="Proposta">
+      <Card title={t.title}>
         <dl className={styles.fields}>
           <div>
-            <dt>Resumo da mudança</dt>
+            <dt>{t.changeSummary}</dt>
             <dd className={styles.plainText}>{proposal.changeSummary}</dd>
           </div>
           <div>
-            <dt>Motivo</dt>
+            <dt>{t.reason}</dt>
             <dd className={styles.plainText}>{proposal.reason}</dd>
           </div>
           <div>
-            <dt>Efeito esperado</dt>
+            <dt>{t.expectedEffect}</dt>
             <dd className={styles.plainText}>{proposal.expectedEffect}</dd>
           </div>
           <div>
-            <dt>Execuções usadas como evidência</dt>
+            <dt>{t.evidenceRuns}</dt>
             <dd>
               <ul className={styles.runLinks}>
                 {proposal.evidenceRunIds.map((runId) => (
@@ -52,12 +49,12 @@ export function CurationProposalDetails({ proposal }: { proposal: CurationPropos
           </div>
         </dl>
       </Card>
-      <Card title="Diferença do texto" description={`${lineCount(addedLines)} a mais, ${lineCount(removedLines)} a menos.`}>
+      <Card title={t.diffTitle} description={t.diffStats(addedLines, removedLines)}>
         <p id={DIFF_LABEL_ID} className="visually-hidden">
-          Diferença entre o texto atual e o proposto
+          {t.diffLabel}
         </p>
         {proposal.diff === '' ? (
-          <p className="caption">Sem diferença para mostrar.</p>
+          <p className="caption">{t.noDiff}</p>
         ) : (
           // A scrollable region must be focusable so it can be scrolled without a pointer.
           <pre className={styles.diff} tabIndex={0} role="region" aria-labelledby={DIFF_LABEL_ID}>

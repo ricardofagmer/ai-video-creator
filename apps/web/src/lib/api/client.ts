@@ -2,9 +2,12 @@ import {
   AssetVersionPageSchema,
   AssetVersionViewSchema,
   CreateRecipeRequestSchema,
+  EntryFileViewSchema,
   HealthResponseSchema,
   LoginRequestSchema,
   RecipeVersionPageSchema,
+  ReferenceAnalysisViewSchema,
+  RequestVoiceSampleRequestSchema,
   RecipeVersionViewSchema,
   RegisterAssetByReferenceRequestSchema,
   SaveAssetVersionByReferenceRequestSchema,
@@ -14,16 +17,21 @@ import {
   SetAssetStatusResponseSchema,
   SetRecipeStatusResponseSchema,
   SetVersionStatusRequestSchema,
+  TemplatePreviewViewSchema,
+  VoiceSampleViewSchema,
   WatcherStatusResponseSchema,
   apiPaths,
   type AssetVersionPageView,
   type AssetVersionView,
   type CreateRecipeRequest,
+  type EntryFileView,
   type HealthResponse,
   type LoginRequest,
   type RecipeVersionPageView,
   type RecipeVersionView,
+  type ReferenceAnalysisView,
   type RegisterAssetByReferenceRequest,
+  type RequestVoiceSampleRequest,
   type SaveAssetVersionByReferenceRequest,
   type SaveMetadataVersionRequest,
   type SaveRecipeVersionRequest,
@@ -31,6 +39,8 @@ import {
   type SetAssetStatusResponse,
   type SetRecipeStatusResponse,
   type SetVersionStatusRequest,
+  type TemplatePreviewView,
+  type VoiceSampleView,
   type WatcherStatusResponse,
 } from '@studio/shared/api';
 import { type AssetKind, type AssetStatus } from '@studio/shared/catalog';
@@ -81,6 +91,8 @@ export interface StudioClient {
   searchAssets(params?: AssetSearchParams): Promise<AssetVersionPageView>;
   listAssetVersions(assetId: string, params?: PageParams): Promise<AssetVersionPageView>;
   getAssetVersion(assetId: string, version: number): Promise<AssetVersionView>;
+  /** Skills spec addendum T5: the entry file (SKILL.md) of a skill version as text. */
+  readEntryFile(assetId: string, version: number): Promise<EntryFileView>;
   createAsset(upload: CreateAssetUpload): Promise<AssetVersionView>;
   saveAssetVersion(assetId: string, upload: SaveAssetVersionUpload): Promise<AssetVersionView>;
   saveMetadataVersion(assetId: string, request: SaveMetadataVersionRequest): Promise<AssetVersionView>;
@@ -96,6 +108,17 @@ export interface StudioClient {
   setRecipeStatus(recipeId: string, version: number, request: SetVersionStatusRequest): Promise<SetRecipeStatusResponse>;
   /** Rev 4: `GET /watcher`, the daemon-wide state read from its heartbeat file. */
   watcherStatus(signal?: AbortSignal): Promise<WatcherStatusResponse>;
+  /**
+   * Guided creation (docs/specs/2026-11-23-guided-creation-design.md section 2): asks for the
+   * voice's sample in one fixed sentence. Idempotent: an open or kept sample comes back as it is.
+   */
+  requestVoiceSample(assetId: string, version: number, request: RequestVoiceSampleRequest, signal?: AbortSignal): Promise<VoiceSampleView>;
+  getVoiceSample(assetId: string, version: number, signal?: AbortSignal): Promise<VoiceSampleView>;
+  /** Section 4: asks the AI to look at a saved video reference again. */
+  requestReferenceAnalysis(assetId: string, version: number, signal?: AbortSignal): Promise<ReferenceAnalysisView>;
+  getReferenceAnalysis(assetId: string, version: number, signal?: AbortSignal): Promise<ReferenceAnalysisView>;
+  /** Template preview (2026-11-25): the state of a template version's preview clip, rendered on register. */
+  getTemplatePreview(assetId: string, version: number, signal?: AbortSignal): Promise<TemplatePreviewView>;
 }
 
 export function createStudioClient(transport: ApiTransport): StudioClient {
@@ -115,6 +138,8 @@ export function createStudioClient(transport: ApiTransport): StudioClient {
       requestJson(transport, { method: 'GET', path: apiPaths.assetVersions(assetId), query: { ...params } }, AssetVersionPageSchema),
     getAssetVersion: (assetId, version) =>
       requestJson(transport, { method: 'GET', path: apiPaths.assetVersion(assetId, version) }, AssetVersionViewSchema),
+    readEntryFile: (assetId, version) =>
+      requestJson(transport, { method: 'GET', path: apiPaths.assetEntryFile(assetId, version) }, EntryFileViewSchema),
     createAsset: (upload) =>
       requestJson(
         transport,
@@ -198,5 +223,24 @@ export function createStudioClient(transport: ApiTransport): StudioClient {
         SetRecipeStatusResponseSchema,
       ),
     watcherStatus: (signal) => requestJson(transport, { method: 'GET', path: apiPaths.watcher(), signal }, WatcherStatusResponseSchema),
+    requestVoiceSample: (assetId, version, request, signal) =>
+      requestJson(
+        transport,
+        {
+          method: 'POST',
+          path: apiPaths.assetVoiceSample(assetId, version),
+          body: { kind: 'json', value: checkedBody(RequestVoiceSampleRequestSchema, request) },
+          signal,
+        },
+        VoiceSampleViewSchema,
+      ),
+    getVoiceSample: (assetId, version, signal) =>
+      requestJson(transport, { method: 'GET', path: apiPaths.assetVoiceSample(assetId, version), signal }, VoiceSampleViewSchema),
+    requestReferenceAnalysis: (assetId, version, signal) =>
+      requestJson(transport, { method: 'POST', path: apiPaths.assetReferenceAnalysis(assetId, version), signal }, ReferenceAnalysisViewSchema),
+    getReferenceAnalysis: (assetId, version, signal) =>
+      requestJson(transport, { method: 'GET', path: apiPaths.assetReferenceAnalysis(assetId, version), signal }, ReferenceAnalysisViewSchema),
+    getTemplatePreview: (assetId, version, signal) =>
+      requestJson(transport, { method: 'GET', path: apiPaths.assetTemplatePreview(assetId, version), signal }, TemplatePreviewViewSchema),
   };
 }

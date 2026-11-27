@@ -1,6 +1,6 @@
-# Video Studio design system
+# EngineOS Video Creator design system
 
-Video Studio uses the Fagmer design system, the same look as the fagmertech site: a navy void
+EngineOS Video Creator uses the Fagmer design system, the same look as the fagmertech site: a navy void
 background, electric blue to cyan accents, Space Grotesk for display, Inter for body and
 JetBrains Mono for code. It works in light and dark mode. Why it is built this way is recorded in
 [ADR 0009](adr/0009-fagmer-design-system.md); the design notes are in
@@ -67,7 +67,7 @@ The woff2 files are self-hosted, so the studio makes no font request to a third 
 - The bright `--gradient-brand` and `--gradient-rail` are decorative only. Never put text on them;
   white text on the cyan end is below 4.5:1. Buttons use `--gradient-control`.
 - Focus is always visible: `--focus-ring-*` outlines or the `--shadow-focus-halo*` shadows.
-- UI copy is pt-BR.
+- UI copy is pt-BR (the source), with es and en catalogues that follow `design/glossario.md`.
 
 ## Allowed literals
 

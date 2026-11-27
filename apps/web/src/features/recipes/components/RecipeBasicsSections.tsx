@@ -4,6 +4,7 @@ import { Card, FormField, Input, Select, Textarea } from '@studio/ui';
 import { LanguageSchema, type Language } from '@studio/shared/recipes';
 import { type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { useWebMessages } from '@/lib/i18n/client';
 import { languageLabels } from '../recipe-labels';
 import { recipeFieldIds, type RecipeFormValues } from '../recipe-form-model';
 
@@ -25,15 +26,16 @@ export interface RecipeIdentitySectionProps {
 
 /** design/telas/06 card "Identificação". */
 export function RecipeIdentitySection({ values, isNew, errors, onNameChange, onChange }: RecipeIdentitySectionProps): ReactElement {
+  const texts = useWebMessages().recipes.identity;
   return (
     <fieldset className={layout.fieldset}>
-      <legend className="visually-hidden">Identificação</legend>
-      <Card title="Identificação">
+      <legend className="visually-hidden">{texts.title}</legend>
+      <Card title={texts.title}>
         <div className={layout.fieldGrid}>
-          <FormField id={recipeFieldIds.name} label="Nome" error={errors[recipeFieldIds.name]}>
+          <FormField id={recipeFieldIds.name} label={texts.name} error={errors[recipeFieldIds.name]}>
             {(control) => <Input {...control} value={values.name} onChange={(event) => onNameChange(event.currentTarget.value)} />}
           </FormField>
-          <FormField id={recipeFieldIds.recipeId} label="Id" help="Letras minúsculas, números e hífens." error={errors[recipeFieldIds.recipeId]}>
+          <FormField id={recipeFieldIds.recipeId} label={texts.id} help={texts.idHelp} error={errors[recipeFieldIds.recipeId]}>
             {(control) => (
               <Input
                 {...control}
@@ -46,10 +48,10 @@ export function RecipeIdentitySection({ values, isNew, errors, onNameChange, onC
               />
             )}
           </FormField>
-          <FormField id={recipeFieldIds.owner} label="Proprietário" error={errors[recipeFieldIds.owner]}>
+          <FormField id={recipeFieldIds.owner} label={texts.owner} error={errors[recipeFieldIds.owner]}>
             {(control) => <Input {...control} autoComplete="name" value={values.owner} onChange={(event) => onChange({ owner: event.currentTarget.value })} />}
           </FormField>
-          <FormField id={recipeFieldIds.description} label="Descrição" optional error={errors[recipeFieldIds.description]} className={layout.fieldWide}>
+          <FormField id={recipeFieldIds.description} label={texts.description} optional error={errors[recipeFieldIds.description]} className={layout.fieldWide}>
             {(control) => <Textarea {...control} rows={3} value={values.description} onChange={(event) => onChange({ description: event.currentTarget.value })} />}
           </FormField>
         </div>
@@ -60,15 +62,7 @@ export function RecipeIdentitySection({ values, isNew, errors, onNameChange, onC
 
 type NumberKey = 'width' | 'height' | 'fps' | 'durationMin' | 'durationMax' | 'integratedLufs' | 'truePeakDbtp';
 
-const numberFields: readonly { key: NumberKey; label: string }[] = [
-  { key: 'width', label: 'Largura' },
-  { key: 'height', label: 'Altura' },
-  { key: 'fps', label: 'FPS' },
-  { key: 'durationMin', label: 'Duração mínima (s)' },
-  { key: 'durationMax', label: 'Duração máxima (s)' },
-  { key: 'integratedLufs', label: 'Loudness alvo (LUFS)' },
-  { key: 'truePeakDbtp', label: 'Pico máximo (dBFS)' },
-];
+const numberFields: readonly NumberKey[] = ['width', 'height', 'fps', 'durationMin', 'durationMax', 'integratedLufs', 'truePeakDbtp'];
 
 function numberPatch(key: NumberKey, value: string): Partial<Pick<RecipeFormValues, NumberKey>> {
   const patch: Partial<Pick<RecipeFormValues, NumberKey>> = {};
@@ -84,13 +78,14 @@ export interface RecipeFormatSectionProps {
 
 /** design/telas/06 card "Formato". */
 export function RecipeFormatSection({ values, errors, onChange }: RecipeFormatSectionProps): ReactElement {
+  const texts = useWebMessages().recipes.format;
   return (
     <fieldset className={layout.fieldset}>
-      <legend className="visually-hidden">Formato</legend>
-      <Card title="Formato">
+      <legend className="visually-hidden">{texts.title}</legend>
+      <Card title={texts.title}>
         <div className={layout.fieldGrid}>
-          {numberFields.map(({ key, label }) => (
-            <FormField key={key} id={recipeFieldIds[key]} label={label} error={errors[recipeFieldIds[key]]}>
+          {numberFields.map((key) => (
+            <FormField key={key} id={recipeFieldIds[key]} label={texts[key]} error={errors[recipeFieldIds[key]]}>
               {(control) => (
                 <Input
                   {...control}
@@ -101,7 +96,7 @@ export function RecipeFormatSection({ values, errors, onChange }: RecipeFormatSe
               )}
             </FormField>
           ))}
-          <FormField id={recipeFieldIds.language} label="Idioma" error={errors[recipeFieldIds.language]}>
+          <FormField id={recipeFieldIds.language} label={texts.language} error={errors[recipeFieldIds.language]}>
             {(control) => (
               <Select
                 {...control}

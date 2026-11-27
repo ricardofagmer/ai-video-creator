@@ -3,20 +3,21 @@
 | Item | Valor |
 | --- | --- |
 | Rotas | `/login` (pública) e o grupo `app/(privado)` (todas as demais) |
-| Título do documento | `Entrar · Video Studio`; nas privadas, `<página> · Video Studio` |
+| Título do documento | `Entrar · EngineOS Video Creator`; nas privadas, `<página> · EngineOS Video Creator` |
 | Acesso | `/login` sem sessão; as privadas só com a sessão de senha (D8, critério 27) |
 | Ticket | R1-19 |
 
 ## Objetivo
 
-Entrar com a senha local e dar a todas as páginas privadas a mesma moldura: navegação entre
-Catálogo, Receitas e Execuções, estado do watcher e saída.
+Entrar com a senha local e dar a todas as páginas privadas a mesma moldura: navbar de uma linha
+com o estado do watcher e uma gaveta de menu com a navegação agrupada (Conteúdo, Produção,
+Publicação), as preferências (idioma e tema) e a conta, com a saída.
 
 ## Wireframe — layout privado, desktop (a partir de `md`)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ [VS] Video Studio   Catálogo  Receitas  [Execuções]      (• Watcher ativo) Sair │
+│ [≡] [VC] EngineOS Video Creator                         (• Watcher ativo) │
 ├────────────────────────────────────────────────────────────────────────────┤
 │                                                                            │
 │   <conteúdo da página: PageHeader + blocos>                                │
@@ -28,18 +29,47 @@ Catálogo, Receitas e Execuções, estado do watcher e saída.
 
 ```
 ┌──────────────────────────────────┐
-│ [VS] Video Studio  (• Watcher) Sair│
-│ Catálogo  Receitas  [Execuções] → │  navegação rola na horizontal
+│ [≡] [VC]            (• Watcher)   │  uma linha; o nome fica para leitores de tela
 ├──────────────────────────────────┤
 │ <conteúdo>                        │
 └──────────────────────────────────┘
+```
+
+## Wireframe — gaveta de menu (qualquer largura)
+
+```
+┌──────────────────────────────┐░░░░░░░░
+│ Menu                     [×] │░ fundo ░  clique no fundo fecha
+├──────────────────────────────┤░░░░░░░░
+│ CONTEÚDO                     │░░░░░░░░  corpo com rolagem própria
+│ [▭] Catálogo                 │░░░░░░░░
+│ [▤] Receitas                 │░░░░░░░░
+├──────────────────────────────┤░░░░░░░░  divisória de largura total
+│ PRODUÇÃO                     │░░░░░░░░
+│▌[▶] Execuções                │░ ativo ░
+│ [◫] Comparações              │░░░░░░░░
+│ [▦] Agendamentos             │░░░░░░░░
+├──────────────────────────────┤░░░░░░░░
+│ PUBLICAÇÃO                   │░░░░░░░░
+│ [▥] Métricas                 │░░░░░░░░
+│ [↗] Indicadores              │░░░░░░░░
+│ [∞] Contas                   │░░░░░░░░
+├──────────────────────────────┤░░░░░░░░
+│ PREFERÊNCIAS                 │░░░░░░░░
+│ [◎] Idioma     (BR)(ES)(US)  │░░░░░░░░
+│ [☾] Tema       (▭)(☀)(☾)     │░░░░░░░░
+├──────────────────────────────┤░░░░░░░░  rodapé fixo, sempre visível
+│ (P) Proprietário          ⌄  │░░░░░░░░
+│     Sessão até 23/11/2026…   │░░░░░░░░
+│ [⇥] Sair                     │░░░░░░░░  menu da conta, aberto pelo chevron
+└──────────────────────────────┘░░░░░░░░
 ```
 
 ## Wireframe — login
 
 ```
 ┌────────────────────────────────────────┐
-│               [VS] Video Studio        │
+│               [VC] EngineOS Video Creator        │
 │  ┌──────────────────────────────────┐  │
 │  │ Entrar                           │  │
 │  │ Digite a senha deste Mac.        │  │
@@ -56,10 +86,17 @@ Catálogo, Receitas e Execuções, estado do watcher e saída.
 
 ### Bloco 1 — AppShell (privadas)
 
-- `AppShell` com `brand` = `Logo` dentro de um link para `/execucoes`; `navigation` = três links
-  com `navLinkClassName({ active })` e `aria-current="page"` no ativo; `status` =
-  `WatcherIndicator` (estado vindo da api, consultado a cada 1 s, A17); `actions` = Button
-  `ghost` `sm` "Sair".
+- `AppShell` com `brand` = `Logo compactBelowMd` dentro de um link para `/execucoes`;
+  `navigation` = três `DrawerSection` (Conteúdo: Catálogo, Receitas; Produção: Execuções,
+  Comparações, Agendamentos; Publicação: Métricas, Indicadores, Contas), cada link com
+  `navLinkClassName({ active })`, um `Icon` e o rótulo, e `aria-current="page"` no ativo;
+  `status` = `WatcherIndicator` (estado vindo da api, consultado a cada 1 s, A17);
+  `preferences` = Idioma (`LanguageSwitch`) e Tema (`ThemeToggle`); `account` = nome
+  "Proprietário", segunda linha "Sessão até {data e hora}" (o `expiresAt` de `GET /auth/session`)
+  e, no menu da conta, a linha "Sair" (`drawerItemClassName`, mesmo `POST /auth/logout`). Não há
+  prop `actions`.
+- O estúdio tem um só dono, com senha; a sessão não traz nome nem e-mail, por isso o nome é o
+  papel "Proprietário" e a inicial do avatar é "P".
 - Página inicial depois do login: `/execucoes`.
 
 ### Bloco 2 — Login
@@ -75,9 +112,15 @@ Catálogo, Receitas e Execuções, estado do watcher e saída.
 
 | Lugar | Texto |
 | --- | --- |
-| Links de navegação | Catálogo · Receitas · Execuções |
-| Botão de saída | Sair |
+| Grupos da gaveta | Conteúdo · Produção · Publicação · Preferências |
+| Links de navegação | Catálogo · Receitas · Execuções · Comparações · Agendamentos · Métricas · Indicadores · Contas |
+| Preferências | Idioma · Tema |
+| Conta (rodapé da gaveta) | Proprietário · Sessão até {data e hora} |
+| Menu da conta (rótulo do grupo) | Menu da conta |
+| Saída (no menu da conta) | Sair |
 | Link de pular | Pular para o conteúdo |
+| Botão do menu | Abrir menu · Fechar menu |
+| Título da gaveta | Menu |
 | Título do login | Entrar |
 | Descrição do login | Digite a senha deste Mac. |
 | Rótulo | Senha |
@@ -97,16 +140,26 @@ Catálogo, Receitas e Execuções, estado do watcher e saída.
 
 ## Responsividade
 
-Top bar em uma linha a partir de `md`; abaixo, navegação na segunda linha com rolagem
-horizontal. O card de login ocupa a largura menos `--layout-gutter-mobile` de cada lado.
+Navbar em uma linha em qualquer largura; abaixo de `md` a Logo mostra só o monograma. Navegação,
+idioma, tema e "Sair" ficam na gaveta em todas as larguras. A gaveta ocupa a altura toda, com
+largura `--layout-auth-card-width` limitada à janela menos `--space-12`; só o corpo rola e o
+rodapé da conta fica sempre visível. Ao abrir, a largura de uma barra de rolagem clássica vira
+`padding-right`, para a página não deslocar. O card de login ocupa a largura menos `--layout-gutter-mobile` de cada lado.
 
 ## Acessibilidade
 
-- Ordem de foco: Pular para o conteúdo → Logo → navegação → Sair → conteúdo.
+- Ordem de foco: Pular para o conteúdo → botão de menu → Logo → status → conteúdo.
+- Gaveta aberta: foco no botão de fechar, preso na gaveta; ordem fechar → links → Preferências →
+  botão da conta → itens do menu da conta. Escape, clique no fundo ou num link fecham e o foco
+  volta ao botão de menu. Com o menu da conta aberto, Escape fecha só esse menu e o foco volta ao
+  botão da conta.
+- Grupos com `role="group"` rotulados pelo título; ícones e avatar com `aria-hidden="true"`;
+  botão da conta com `aria-expanded` e `aria-controls`.
 - O estado do watcher é `role="status"`: mudanças são anunciadas sem mover o foco.
 - O Alert de senha errada é `role="alert"`; o campo recebe `aria-describedby` do erro.
 
 ## Componentes usados
 
-`AppShell`, `navLinkClassName`, `Logo`, `WatcherIndicator`, `Button`, `Card`, `FormField`,
+`AppShell`, `DrawerSection`, `navLinkClassName`, `drawerItemClassName`, `Icon`, `Logo`,
+`LanguageSwitch`, `ThemeToggle`, `WatcherIndicator`, `Button`, `Card`, `FormField`,
 `Input`, `Alert`.

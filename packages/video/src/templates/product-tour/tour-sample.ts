@@ -38,7 +38,7 @@ export function buildProductTourSample(): ProductTourInput {
     cursorS = endS;
   });
   return {
-    title: 'Video Studio',
+    title: 'EngineOS Video Creator',
     durationS: cursorS,
     audioUrl: SAMPLE_AUDIO_URL,
     scenes,

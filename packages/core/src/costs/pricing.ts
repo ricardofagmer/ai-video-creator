@@ -38,5 +38,8 @@ export function priceUsage(table: PriceTable, usage: UsageQuantity): number {
     case 'render':
       assertCount(usage.renderSeconds);
       return unitUsd(table.renderPerSecond, usage.renderSeconds, { kind: 'provider', provider: 'render' }, table);
+    case 'music':
+      assertCount(usage.musicSeconds);
+      return unitUsd(table.musicPerSecond[usage.provider], usage.musicSeconds, { kind: 'provider', provider: usage.provider }, table);
   }
 }

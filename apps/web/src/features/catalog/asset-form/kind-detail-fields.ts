@@ -1,121 +1,137 @@
 import { type SelectOption } from '@studio/ui';
-import { type AssetKind } from '@studio/shared/catalog';
+import { MUSIC_CATEGORIES_MAX, type AssetKind } from '@studio/shared/catalog';
+import { type WebMessages } from '@/messages';
 
-/** How one kind-specific field is drawn; the values and their parsing live in kind-details-model. */
-export interface DetailFieldSpec {
+interface DetailFieldBase {
   key: string;
   label: string;
-  control: 'text' | 'mono' | 'number' | 'textarea' | 'json' | 'select';
-  options?: readonly SelectOption[];
   optional?: boolean;
   help?: string;
   /** Spans both columns of the field grid. */
   wide?: boolean;
 }
 
-const listHelp = 'Separados por vírgula, em minúsculas com hífens.';
+/** A field drawn as one labelled control; the values and their parsing live in kind-details-model. */
+export interface ControlDetailFieldSpec extends DetailFieldBase {
+  control: 'text' | 'mono' | 'number' | 'textarea' | 'json' | 'select' | 'list';
+  options?: readonly SelectOption[];
+}
+
+/** The music categories: a group of checkboxes with a legend, kept as comma-separated ids in the form. */
+export interface MusicCategoriesDetailFieldSpec extends DetailFieldBase {
+  control: 'music-categories';
+}
+
+/** How one kind-specific field is drawn. */
+export type DetailFieldSpec = ControlDetailFieldSpec | MusicCategoriesDetailFieldSpec;
 
 /** PRD 5.2 kind-specific fields per kind (design/telas/04 item 5); `prompt` uses the variables table. */
-export const detailFieldSpecs: Readonly<Record<AssetKind, readonly DetailFieldSpec[]>> = {
+export function detailFieldSpecsOf(t: WebMessages['catalog']['form']['kindDetails']): Readonly<Record<AssetKind, readonly DetailFieldSpec[]>> {
+  const listHelp = t.listHelp;
+  return {
   template: [
     {
       key: 'engine',
-      label: 'Motor',
+      label: t.engine,
       control: 'select',
       options: [
         { value: 'remotion', label: 'Remotion' },
         { value: 'hyperframes', label: 'HyperFrames' },
       ],
     },
-    { key: 'compositionId', label: 'Id da composição', control: 'mono' },
-    { key: 'width', label: 'Largura (px)', control: 'number' },
-    { key: 'height', label: 'Altura (px)', control: 'number' },
-    { key: 'fps', label: 'FPS', control: 'number' },
-    { key: 'durationMin', label: 'Duração mínima (s)', control: 'number' },
-    { key: 'durationMax', label: 'Duração máxima (s)', control: 'number' },
-    { key: 'inputSchema', label: 'Esquema de entrada', control: 'json', help: 'JSON Schema das props da composição.', wide: true },
-    { key: 'sceneSchema', label: 'Esquema de cena', control: 'json', optional: true, help: 'JSON Schema de uma cena.', wide: true },
-    { key: 'cameraMoves', label: 'Movimentos de câmera', control: 'text', optional: true, help: listHelp },
-    { key: 'transitions', label: 'Transições', control: 'text', optional: true, help: listHelp },
+    { key: 'compositionId', label: t.compositionId, control: 'mono' },
+    { key: 'width', label: t.width, control: 'number' },
+    { key: 'height', label: t.height, control: 'number' },
+    { key: 'fps', label: t.fps, control: 'number' },
+    { key: 'durationMin', label: t.durationMin, control: 'number' },
+    { key: 'durationMax', label: t.durationMax, control: 'number' },
+    { key: 'inputSchema', label: t.inputSchema, control: 'json', help: t.inputSchemaHelp, wide: true },
+    { key: 'sceneSchema', label: t.sceneSchema, control: 'json', optional: true, help: t.sceneSchemaHelp, wide: true },
+    { key: 'cameraMoves', label: t.cameraMoves, control: 'list', optional: true, help: listHelp },
+    { key: 'transitions', label: t.transitions, control: 'list', optional: true, help: listHelp },
   ],
   'ai-model': [
     {
       key: 'modelType',
-      label: 'Tipo de modelo',
+      label: t.modelType,
       control: 'select',
       options: [
-        { value: 'provider-model', label: 'Modelo de provedor' },
-        { value: 'voice-clone', label: 'Clone de voz' },
-        { value: 'avatar', label: 'Avatar' },
-        { value: 'checkpoint', label: 'Checkpoint' },
+        { value: 'provider-model', label: t.modelTypes.providerModel },
+        { value: 'voice-clone', label: t.modelTypes.voiceClone },
+        { value: 'avatar', label: t.modelTypes.avatar },
+        { value: 'checkpoint', label: t.modelTypes.checkpoint },
         { value: 'lora', label: 'LoRA' },
       ],
     },
     {
       key: 'provider',
-      label: 'Provedor',
+      label: t.provider,
       control: 'select',
       options: [
         { value: 'anthropic', label: 'Anthropic' },
         { value: 'elevenlabs', label: 'ElevenLabs' },
-        { value: 'local-voice', label: 'Voz local' },
-        { value: 'other', label: 'Outro' },
+        { value: 'local-voice', label: t.providers.localVoice },
+        { value: 'other', label: t.providers.other },
       ],
     },
     {
       key: 'modelIdRefType',
-      label: 'Onde fica o id do modelo',
+      label: t.modelIdRefType,
       control: 'select',
       options: [
-        { value: 'env', label: 'Variável de ambiente' },
-        { value: 'keychain', label: 'Item do Keychain' },
-        { value: 'literal', label: 'Id público' },
+        { value: 'env', label: t.modelIdRefTypes.env },
+        { value: 'keychain', label: t.modelIdRefTypes.keychain },
+        { value: 'literal', label: t.modelIdRefTypes.literal },
       ],
     },
-    { key: 'modelIdRefValue', label: 'Referência do modelo', control: 'mono', help: 'Nunca cole uma chave aqui.' },
+    { key: 'modelIdRefValue', label: t.modelIdRefValue, control: 'mono', help: t.modelIdRefHelp },
+    { key: 'voiceModelId', label: t.voiceModelId, control: 'mono', optional: true, help: t.voiceModelIdHelp },
   ],
   reference: [
     {
       key: 'subKind',
-      label: 'Tipo de referência',
+      label: t.subKind,
       control: 'select',
       options: [
-        { value: 'video', label: 'Vídeo' },
-        { value: 'image', label: 'Imagem' },
-        { value: 'audio', label: 'Áudio' },
-        { value: 'style', label: 'Estilo' },
-        { value: 'screenshot-set', label: 'Conjunto de capturas de tela' },
-        { value: 'text', label: 'Texto' },
+        { value: 'video', label: t.subKinds.video },
+        { value: 'image', label: t.subKinds.image },
+        { value: 'audio', label: t.subKinds.audio },
+        { value: 'style', label: t.subKinds.style },
+        { value: 'screenshot-set', label: t.subKinds.screenshotSet },
+        { value: 'text', label: t.subKinds.text },
+        { value: 'website', label: t.subKinds.website },
       ],
     },
-    { key: 'referenceNotes', label: 'Notas da referência', control: 'textarea', optional: true, wide: true },
+    { key: 'referenceNotes', label: t.referenceNotes, control: 'textarea', optional: true, wide: true },
   ],
   prompt: [],
   skill: [
-    { key: 'entryFile', label: 'Arquivo de entrada', control: 'mono', help: 'Caminho dentro da pasta, por exemplo SKILL.md.' },
-    { key: 'description', label: 'Descrição', control: 'textarea', optional: true, wide: true },
+    { key: 'entryFile', label: t.entryFile, control: 'mono', help: t.entryFileHelp },
+    { key: 'description', label: t.description, control: 'textarea', optional: true, wide: true },
   ],
   image: [
-    { key: 'width', label: 'Largura (px)', control: 'number' },
-    { key: 'height', label: 'Altura (px)', control: 'number' },
+    { key: 'width', label: t.width, control: 'number' },
+    { key: 'height', label: t.height, control: 'number' },
     {
       key: 'purpose',
-      label: 'Uso',
+      label: t.purpose,
       control: 'select',
       options: [
-        { value: 'logo', label: 'Logo' },
-        { value: 'still', label: 'Imagem parada' },
-        { value: 'background', label: 'Fundo' },
-        { value: 'cover', label: 'Capa' },
-        { value: 'other', label: 'Outro' },
+        { value: 'logo', label: t.purposes.logo },
+        { value: 'still', label: t.purposes.still },
+        { value: 'background', label: t.purposes.background },
+        { value: 'cover', label: t.purposes.cover },
+        { value: 'other', label: t.purposes.other },
       ],
     },
   ],
   music: [
-    { key: 'durationSec', label: 'Duração (s)', control: 'number' },
-    { key: 'bpm', label: 'BPM', control: 'number', optional: true },
-    { key: 'integratedLufs', label: 'Loudness integrado (LUFS)', control: 'number', optional: true },
+    { key: 'durationSec', label: t.durationSec, control: 'number' },
+    { key: 'bpm', label: t.bpm, control: 'number', optional: true },
+    { key: 'integratedLufs', label: t.integratedLufs, control: 'number', optional: true },
+    { key: 'categories', label: t.musicCategories, control: 'music-categories', optional: true, help: t.musicCategoriesHelp(MUSIC_CATEGORIES_MAX), wide: true },
   ],
-  sfx: [{ key: 'durationSec', label: 'Duração (s)', control: 'number' }],
-  'brand-kit': [{ key: 'brandKitJson', label: 'Kit de marca', control: 'json', help: 'Cores, fontes, logos, legenda e zonas seguras em JSON.', wide: true }],
+  sfx: [{ key: 'durationSec', label: t.durationSec, control: 'number' }],
+  'brand-kit': [{ key: 'brandKitJson', label: t.brandKit, control: 'json', help: t.brandKitHelp, wide: true }],
 };
+}

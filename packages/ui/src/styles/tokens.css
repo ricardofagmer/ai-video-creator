@@ -1,6 +1,7 @@
 /*
- * Design tokens of Video Studio (design/tokens.md), aligned with the Fagmer design system
- * of the fagmertech site: navy void, electric blue to cyan, Space Grotesk / Inter / JetBrains Mono. This is the only file in
+ * Design tokens of EngineOS Video Creator (design/tokens.md). Palette: the Instagram-style
+ * gradient (yellow, orange, pink, purple, blue-violet) on soft off-white, with neutral greys;
+ * Space Grotesk / Inter / JetBrains Mono. This is the only file in
  * @studio/ui that may hold a colour literal; every other stylesheet reads these
  * variables. Light and dark values live side by side through `light-dark()`,
  * so each semantic token is declared once.
@@ -12,90 +13,109 @@
 :root {
   color-scheme: light dark;
 
-  /* 1.1 Ink scale (blue-tinted neutrals of the Fagmer design system) */
+  /* 1.1 Ink scale (neutral greys, so the gradient carries all the colour) */
   --color-white: #FFFFFF;
   --color-black: #000000;
-  --color-gray-50: #F5F8FF;
-  --color-gray-100: #EBF1FD;
-  --color-gray-200: #DCE5F7;
-  --color-gray-300: #C7D4F2;
-  --color-gray-400: #8B9BC4;
-  --color-gray-500: #5E6E99;
-  --color-gray-600: #42507A;
-  --color-gray-700: #1A2547;
-  --color-gray-800: #111A35;
-  --color-gray-850: #0B1328;
-  --color-gray-900: #060B18;
-  --color-gray-950: #030712;
-  --color-ink-text: #0A1430;
-  --color-ink-text-dark: #EAF1FF;
+  --color-gray-50: #FAFAFA;
+  --color-gray-100: #F4F4F5;
+  --color-gray-200: #E4E4E7;
+  --color-gray-300: #D4D4D8;
+  --color-gray-400: #A1A1AA;
+  --color-gray-500: #71717A;
+  --color-gray-600: #52525B;
+  --color-gray-700: #3F3F46;
+  --color-gray-800: #27272A;
+  --color-gray-850: #1C1C1F;
+  --color-gray-900: #121214;
+  --color-gray-950: #0A0A0B;
+  --color-ink-text: #18181B;
+  --color-ink-text-dark: #FAFAFA;
 
-  /* 1.2 Primary scale (electric blue) and accent (cyan) */
-  --color-primary-50: #EFF5FF;
-  --color-primary-100: #DBE8FF;
-  --color-primary-200: #BFD6FE;
-  --color-primary-300: #93C0FD;
-  --color-primary-400: #60A5FA;
-  --color-primary-500: #3B82F6;
-  --color-primary-600: #2563FF;
-  --color-primary-700: #1D4ED8;
-  --color-primary-800: #1E40AF;
-  --color-primary-950: #0E1D45;
-  --color-cyan-400: #22D3EE;
-  --color-cyan-600: #0891B2;
-  --color-cyan-700: #0E7490;
-  --color-cyan-800: #155E75;
-  --color-violet-500: #8B5CF6;
+  /* 1.2 Primary scale (pink-magenta) and the other gradient stops */
+  --color-primary-50: #FFF0F6;
+  --color-primary-100: #FFE0EC;
+  --color-primary-200: #FFC2DA;
+  --color-primary-300: #FF94BD;
+  --color-primary-400: #F5609B;
+  --color-primary-500: #E83E8C;
+  --color-primary-600: #D62976;
+  --color-primary-700: #B01F61;
+  --color-primary-800: #8C1A4E;
+  --color-primary-950: #3A0A20;
+  --color-yellow-300: #FEDA75;
+  --color-orange-400: #FA7E1E;
+  --color-orange-700: #C2410C;
+  --color-orange-800: #9A3412;
+  --color-purple-400: #C17BE0;
+  --color-purple-600: #962FBF;
+  --color-purple-700: #7A2499;
+  --color-blue-violet-400: #8B93F0;
+  --color-blue-violet-600: #4F5BD5;
 
   /* 1.3 Semantic colours (feedback and status) */
   --color-success: light-dark(#047857, #34D399);
-  --color-success-soft: light-dark(#ECFDF5, #04231A);
-  --color-success-border: light-dark(#A7F3D0, #065F46);
-  --color-warning: light-dark(#B45309, #FBBF24);
-  --color-warning-soft: light-dark(#FFFBEB, #2A1703);
-  --color-warning-border: light-dark(#FDE68A, #92400E);
+  /* Light tints sit at L* 93, a step under the page and the white card, so alerts and badges
+     never read brighter than cards; each -border moves with its tint. */
+  --color-success-soft: light-dark(#DEEFE7, #04231A);
+  --color-success-border: light-dark(#99E5C2, #065F46);
+  --color-warning: light-dark(#AB4F09, #FBBF24);
+  --color-warning-soft: light-dark(#EFEBDB, #2A1703);
+  --color-warning-border: light-dark(#EDD67B, #92400E);
   --color-danger: light-dark(#B91C1C, #F87171);
   --color-danger-hover: light-dark(#991B1B, #FCA5A5);
-  --color-danger-soft: light-dark(#FEF2F2, #2A0A0E);
-  --color-danger-border: light-dark(#FECACA, #991B1B);
-  --color-info: light-dark(var(--color-cyan-700), var(--color-cyan-400));
-  --color-info-soft: light-dark(#ECFEFF, #062430);
-  --color-info-border: light-dark(#A5F3FC, var(--color-cyan-800));
+  --color-danger-soft: light-dark(#F4E8E8, #2A0A0E);
+  --color-danger-border: light-dark(#F4C1C1, #991B1B);
+  --color-info: light-dark(var(--color-blue-violet-600), var(--color-blue-violet-400));
+  --color-info-soft: light-dark(#E8EAF7, #14173A);
+  --color-info-border: light-dark(#C1C6EF, #2E3592);
 
   /* 1.4 Semantic surface and text tokens (components use only these and 1.3) */
-  --color-bg: light-dark(var(--color-gray-50), var(--color-gray-950));
+  /* Light theme: a near-white page with white cards on it (owner decision 2026-11-27; the greys of
+     the earlier glare cut read as silver). Cards are told from the page by their border and
+     shadow, not by a grey fill. The subtle text, the primary and the warning stay a shade deeper
+     than the scale, which keeps them above 4.5:1 here too. */
+  --color-bg: light-dark(#F7F7FA, var(--color-gray-950));
   --color-surface: light-dark(var(--color-white), var(--color-gray-850));
-  --color-surface-muted: light-dark(var(--color-gray-100), var(--color-gray-800));
-  --color-surface-glass: light-dark(rgba(255, 255, 255, 0.72), rgba(6, 11, 24, 0.62));
-  --color-border: light-dark(var(--color-gray-200), var(--color-gray-700));
+  --color-surface-muted: light-dark(#F1F1F4, var(--color-gray-800));
+  --color-surface-glass: light-dark(rgba(255, 255, 255, 0.8), rgba(10, 10, 11, 0.62));
+  --color-border: light-dark(#E0E0E6, var(--color-gray-700));
   --color-border-strong: light-dark(var(--color-gray-500), var(--color-gray-500));
-  --color-border-glow: light-dark(rgba(37, 99, 255, 0.28), rgba(96, 165, 250, 0.28));
+  --color-border-glow: light-dark(rgba(214, 41, 118, 0.22), rgba(245, 96, 155, 0.28));
   --color-text: light-dark(var(--color-ink-text), var(--color-ink-text-dark));
   --color-text-muted: light-dark(var(--color-gray-600), var(--color-gray-400));
-  --color-text-subtle: light-dark(var(--color-gray-500), var(--color-gray-400));
+  --color-text-subtle: light-dark(#64646C, var(--color-gray-400));
   --color-text-disabled: light-dark(var(--color-gray-400), var(--color-gray-600));
   --color-text-on-primary: light-dark(var(--color-white), var(--color-gray-950));
   --color-on-brand: var(--color-white);
-  --color-primary: light-dark(var(--color-primary-600), var(--color-primary-400));
+  --color-primary: light-dark(#BC2468, var(--color-primary-400));
   --color-primary-hover: light-dark(var(--color-primary-700), var(--color-primary-300));
-  --color-primary-soft: light-dark(var(--color-primary-50), var(--color-primary-950));
+  --color-primary-soft: light-dark(#F6E7ED, var(--color-primary-950));
   --color-primary-soft-text: light-dark(var(--color-primary-800), var(--color-primary-200));
-  --color-accent: light-dark(var(--color-cyan-700), var(--color-cyan-400));
+  --color-accent: light-dark(var(--color-purple-600), var(--color-purple-400));
   --color-focus-ring: light-dark(var(--color-primary-600), var(--color-primary-400));
-  --color-overlay: light-dark(rgba(10, 20, 48, 0.45), rgba(3, 7, 18, 0.75));
+  --color-overlay: light-dark(rgba(24, 24, 27, 0.45), rgba(10, 10, 11, 0.75));
   --color-media-bg: var(--color-black);
-  --color-shadow-weak: light-dark(rgba(10, 20, 48, 0.06), rgba(0, 0, 0, 0.4));
-  --color-shadow-strong: light-dark(rgba(10, 20, 48, 0.1), rgba(0, 0, 0, 0.6));
-  --color-glow: light-dark(rgba(37, 99, 255, 0.28), rgba(37, 99, 255, 0.55));
-  --color-glow-blue: light-dark(rgba(37, 99, 255, 0.1), rgba(59, 130, 246, 0.2));
-  --color-glow-cyan: light-dark(rgba(34, 211, 238, 0.1), rgba(34, 211, 238, 0.12));
-  --color-grid-line: light-dark(rgba(37, 99, 255, 0.05), rgba(96, 165, 250, 0.05));
+  --color-shadow-weak: light-dark(rgba(24, 24, 27, 0.06), rgba(0, 0, 0, 0.4));
+  --color-shadow-strong: light-dark(rgba(24, 24, 27, 0.1), rgba(0, 0, 0, 0.6));
+  --color-glow: light-dark(rgba(214, 41, 118, 0.26), rgba(214, 41, 118, 0.5));
+  /* The two halo names are kept for compatibility; they now hold pink and orange. */
+  --color-glow-blue: light-dark(rgba(214, 41, 118, 0.08), rgba(214, 41, 118, 0.18));
+  --color-glow-cyan: light-dark(rgba(250, 126, 30, 0.08), rgba(150, 47, 191, 0.16));
+  --color-grid-line: light-dark(rgba(214, 41, 118, 0.04), rgba(245, 96, 155, 0.05));
 
   /* 1.5 Brand gradients. Decorative ones carry no text; control ones keep white text >= 4.5:1. */
-  --gradient-brand: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-600) 45%, var(--color-cyan-400));
-  --gradient-rail: linear-gradient(90deg, transparent, var(--color-primary-400), var(--color-primary-600) 50%, var(--color-cyan-400), transparent);
-  --gradient-control: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700) 60%, var(--color-cyan-700));
-  --gradient-control-hover: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-800) 60%, var(--color-cyan-800));
+  --gradient-brand: linear-gradient(45deg, var(--color-yellow-300), var(--color-orange-400) 25%, var(--color-primary-600) 50%, var(--color-purple-600) 75%, var(--color-blue-violet-600));
+  --gradient-rail: linear-gradient(90deg, transparent, var(--color-orange-400), var(--color-primary-600) 50%, var(--color-purple-600), transparent);
+  --gradient-control: linear-gradient(45deg, var(--color-orange-700), var(--color-primary-600) 50%, var(--color-purple-600));
+  --gradient-control-hover: linear-gradient(45deg, var(--color-orange-800), var(--color-primary-700) 50%, var(--color-purple-700));
+  /* Soft brand wash on the top bar, light theme only: the stops turn transparent in dark, where the
+     glass already reads as colour against the black page. Low alpha keeps ink text above 4.5:1. */
+  --gradient-bar: linear-gradient(
+    90deg,
+    light-dark(rgba(250, 126, 30, 0.16), transparent),
+    light-dark(rgba(214, 41, 118, 0.16), transparent) 50%,
+    light-dark(rgba(150, 47, 191, 0.16), transparent)
+  );
   --gradient-page:
     radial-gradient(60% 45% at 90% -10%, var(--color-glow-blue), transparent 70%),
     radial-gradient(45% 35% at -5% 15%, var(--color-glow-cyan), transparent 70%);
@@ -150,9 +170,10 @@
   /* 4. Radii */
   --radius-xs: 2px;
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
   --radius-full: 9999px;
 
   /* 5. Shadows (colour from the shadow tokens above, so dark mode follows) */
@@ -191,6 +212,8 @@
   /* 8. Layout and control sizes */
   --layout-max-width: 1280px;
   --layout-topbar-height: 64px;
+  --layout-rail-width: 104px;
+  --layout-rail-item-height: 60px;
   --layout-auth-card-width: 400px;
   --layout-form-max-width: 720px;
   --layout-gutter-mobile: 16px;

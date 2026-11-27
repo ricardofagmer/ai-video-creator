@@ -1,6 +1,7 @@
 import { RecordGateDecisionCommand, ReviewNotAllowedError } from '@studio/core/review';
 import { type GateDecision, type GateId, type RunId, type RunState } from '@studio/shared/run-format';
 import { ExitCode } from '../errors/exit-codes.js';
+import { cliText } from '../i18n/messages.js';
 import { withCliContext } from '../nest/cli-context.js';
 import { readRunSnapshot } from '../runs/run-reader.js';
 import { type CommandDependencies } from './command-dependencies.js';
@@ -33,13 +34,10 @@ function decisionFor(gate: GateId, options: RunGateOptions, decidedAt: Date): In
 }
 
 function confirmation(gate: GateId, options: RunGateOptions): string {
-  if (gate === 'plan') {
-    return options.outcome === 'approved'
-      ? `Plano aprovado (${options.runId}). O watcher continua a execução.`
-      : `Plano recusado (${options.runId}). O watcher encerra a execução.`;
-  }
-  const answer = options.outcome === 'approved' ? 'Aprovação' : 'Recusa';
-  return `${answer} da etapa ${gate} registrada (${options.runId}). O watcher lê a resposta e segue.`;
+  const text = cliText().runs.gate;
+  const approved = options.outcome === 'approved';
+  if (gate === 'plan') return approved ? text.planApproved(options.runId) : text.planRejected(options.runId);
+  return approved ? text.stageApproved(gate, options.runId) : text.stageRejected(gate, options.runId);
 }
 
 /**

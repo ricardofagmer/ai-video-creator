@@ -1,10 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { type ScheduleFile } from '@studio/shared/schedules';
 import { CostLedgerService } from '../costs/cost-ledger.service';
+import { type RecipeVersionView } from '../recipes/recipe-version.mapper';
+import { scheduleCompositionConflicts } from './schedule-composition';
 import { ScheduleRecipeReader } from './schedule-recipe.reader';
 import { ScheduleRunsReader } from './schedule-runs.reader';
 import { ScheduleStore } from './schedule-store';
 import { selectBrief, type SlotGuardFacts, type SlotRecipeState } from './slot-decision';
+
+type SelectedBrief = ReturnType<typeof selectBrief>;
 
 export interface SlotFactsRequest {
   schedule: ScheduleFile;
@@ -14,7 +18,8 @@ export interface SlotFactsRequest {
 
 /**
  * Gathers the facts `decideSlot` needs for one schedule (SPEC 0006 section 5.6), reading only: the
- * slot log, the fired runs' `run.json`, the pinned recipe and its refs (Prisma reads), and the
+ * slot log, the fired runs' `run.json`, the pinned recipe, its refs and its template's details
+ * (Prisma reads, for the composition rules of the selected brief), and the
  * month-to-date figure from `CostLedgerService.monthToDateUsd`, the read the run preflight and the
  * curation spend gate use. Nothing here writes a file or SQLite.
  */
@@ -38,9 +43,30 @@ export class SlotFactsCollector {
     let recipe: SlotRecipeState = { state: 'missing' };
     if (version !== null) {
       const unresolved = await this.recipes.unresolved({ bindings: version.recipe.bindings, references: brief?.references ?? [] });
-      recipe = { state: 'found', version, refsResolvable: unresolved.bindings.length === 0 && unresolved.references.length === 0 };
+      recipe = {
+        state: 'found',
+        version,
+        refsResolvable: unresolved.bindings.length === 0 && unresolved.references.length === 0,
+        compositionAllowed: await this.compositionAllowed(schedule, version, brief),
+      };
     }
     return { lastFiredRun, runsAtReview, brief, monthToDateUsd: await this.monthToDateOrNull(schedule, now), recipe };
+  }
+
+  /** The composition rules for the brief this slot would fire; a conflict is logged by rule id only. */
+  private async compositionAllowed(schedule: ScheduleFile, version: RecipeVersionView, brief: SelectedBrief): Promise<boolean> {
+    const { recipe } = version;
+    const targets = brief === null ? [] : [brief.brief.targetDurationSec];
+    const conflicts = scheduleCompositionConflicts(recipe, await this.recipes.templateDetails(recipe), targets);
+    if (conflicts.length === 0) return true;
+    this.logger.warn({
+      event: 'schedule.composition-conflict',
+      scheduleId: schedule.scheduleId,
+      recipeRef: version.ref,
+      rules: [...new Set(conflicts.map((conflict) => conflict.rule))],
+      conflicts: conflicts.length,
+    });
+    return false;
   }
 
   /** Fail closed: any error reading the month spend is "unknown", never zero (K11). */

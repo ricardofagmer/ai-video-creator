@@ -1,9 +1,10 @@
 # Tokens do design system
 
-Alinhado ao design system Fagmer (site fagmertech): void azul-marinho, azul elétrico a ciano,
-Space Grotesk nos títulos, Inter no texto e JetBrains Mono em navegação, rótulos e código. Fontes
-auto-hospedadas em `packages/ui/src/styles/fonts/`. O tema é escolhido no `ThemeToggle` (sistema,
-claro, escuro) e guardado no cookie `vs-theme`, que o servidor lê para renderizar `data-theme`.
+Paleta no estilo do ícone do Instagram: gradiente amarelo, laranja, rosa, roxo e azul-violeta
+sobre branco suave (off-white neutro), com cinzas neutros. Space Grotesk nos títulos, Inter no
+texto e JetBrains Mono em navegação, rótulos e código. Fontes auto-hospedadas em
+`packages/ui/src/styles/fonts/`. O tema é escolhido no `ThemeToggle` (sistema, claro, escuro) e
+guardado no cookie `vs-theme`, que o servidor lê para renderizar `data-theme`.
 
 Fonte única dos valores visuais. `packages/ui/src/styles/tokens.css` transcreve cada linha para
 CSS variables no seletor `:root`, com o **nome exato** da coluna "Token". Componentes e telas
@@ -15,113 +16,130 @@ sistema operacional, e `data-theme="light"` ou `data-theme="dark"` em `<html>` f
 
 ## 1. Cores
 
-### 1.1 Escala de tinta (neutros azulados do design system Fagmer)
+### 1.1 Escala de tinta (cinzas neutros)
 
-Mesma família do site fagmertech (`site/css/site.css`): o escuro é o "void" azul-marinho, o claro
-é um branco levemente azulado.
+Neutros sem matiz, para que só o gradiente carregue cor. O tema claro usa uma página quase branca
+no tom levemente frio dos cinzas e cards em branco puro sobre ela (seção 1.4); o escuro, quase
+preto neutro.
 
-| Token | Valor | Origem no site |
+| Token | Valor | Uso |
 | --- | --- | --- |
-| `--color-white` | `#FFFFFF` | |
+| `--color-white` | `#FFFFFF` | texto sobre a primária e sobre os gradientes de controle |
 | `--color-black` | `#000000` | |
-| `--color-gray-50` | `#F5F8FF` | fundo claro |
-| `--color-gray-100` | `#EBF1FD` | |
-| `--color-gray-200` | `#DCE5F7` | |
-| `--color-gray-300` | `#C7D4F2` | `--ft-text-soft` |
-| `--color-gray-400` | `#8B9BC4` | `--ft-muted` |
-| `--color-gray-500` | `#5E6E99` | |
-| `--color-gray-600` | `#42507A` | |
-| `--color-gray-700` | `#1A2547` | `--ft-line` |
-| `--color-gray-800` | `#111A35` | `--ft-line-soft` |
-| `--color-gray-850` | `#0B1328` | `--ft-panel` |
-| `--color-gray-900` | `#060B18` | `--ft-ink` |
-| `--color-gray-950` | `#030712` | `--ft-void` |
-| `--color-ink-text` | `#0A1430` | texto no tema claro |
-| `--color-ink-text-dark` | `#EAF1FF` | `--ft-text` |
+| `--color-gray-50` | `#FAFAFA` | |
+| `--color-gray-100` | `#F4F4F5` | |
+| `--color-gray-200` | `#E4E4E7` | |
+| `--color-gray-300` | `#D4D4D8` | |
+| `--color-gray-400` | `#A1A1AA` | |
+| `--color-gray-500` | `#71717A` | |
+| `--color-gray-600` | `#52525B` | |
+| `--color-gray-700` | `#3F3F46` | borda no escuro |
+| `--color-gray-800` | `#27272A` | |
+| `--color-gray-850` | `#1C1C1F` | superfície no escuro |
+| `--color-gray-900` | `#121214` | |
+| `--color-gray-950` | `#0A0A0B` | fundo no escuro |
+| `--color-ink-text` | `#18181B` | texto no tema claro |
+| `--color-ink-text-dark` | `#FAFAFA` | texto no tema escuro |
 
-### 1.2 Primária (azul elétrico) e acento (ciano)
+### 1.2 Primária (rosa-magenta) e paradas do gradiente
 
-| Token | Valor | Origem no site |
+| Token | Valor | Uso |
 | --- | --- | --- |
-| `--color-primary-50` | `#EFF5FF` | |
-| `--color-primary-100` | `#DBE8FF` | |
-| `--color-primary-200` | `#BFD6FE` | |
-| `--color-primary-300` | `#93C0FD` | |
-| `--color-primary-400` | `#60A5FA` | `--ft-blue-bright` |
-| `--color-primary-500` | `#3B82F6` | `--ft-blue` |
-| `--color-primary-600` | `#2563FF` | `--ft-electric` |
-| `--color-primary-700` | `#1D4ED8` | |
-| `--color-primary-800` | `#1E40AF` | |
-| `--color-primary-950` | `#0E1D45` | |
-| `--color-cyan-400` | `#22D3EE` | `--ft-cyan` |
-| `--color-cyan-600` | `#0891B2` | |
-| `--color-cyan-700` | `#0E7490` | ciano legível no claro |
-| `--color-cyan-800` | `#155E75` | |
-| `--color-violet-500` | `#8B5CF6` | `--ft-violet` |
+| `--color-primary-50` | `#FFF0F6` | |
+| `--color-primary-100` | `#FFE0EC` | |
+| `--color-primary-200` | `#FFC2DA` | |
+| `--color-primary-300` | `#FF94BD` | |
+| `--color-primary-400` | `#F5609B` | primária no escuro |
+| `--color-primary-500` | `#E83E8C` | |
+| `--color-primary-600` | `#D62976` | rosa do gradiente, contorno de foco no claro |
+| `--color-primary-700` | `#B01F61` | |
+| `--color-primary-800` | `#8C1A4E` | |
+| `--color-primary-950` | `#3A0A20` | |
+| `--color-yellow-300` | `#FEDA75` | início do gradiente |
+| `--color-orange-400` | `#FA7E1E` | laranja do gradiente |
+| `--color-orange-700` | `#C2410C` | laranja legível com texto branco |
+| `--color-orange-800` | `#9A3412` | |
+| `--color-purple-400` | `#C17BE0` | acento no escuro |
+| `--color-purple-600` | `#962FBF` | acento no claro, roxo do gradiente |
+| `--color-purple-700` | `#7A2499` | |
+| `--color-blue-violet-400` | `#8B93F0` | informação no escuro |
+| `--color-blue-violet-600` | `#4F5BD5` | fim do gradiente, informação no claro |
 
 ### 1.2.1 Gradientes e brilho
 
 | Token | Uso |
 | --- | --- |
-| `--gradient-brand` | Decorativo, sem texto: trilho da navegação, texto `.text-gradient` (= `--ft-gradient`) |
-| `--gradient-rail` | Linha sob a top bar (= `--ft-rail`) |
-| `--gradient-control` / `--gradient-control-hover` | Fundo do botão primário, logo, opção marcada; texto branco ≥ 4.5:1 em todo o gradiente |
-| `--gradient-page` | Halos azul e ciano no fundo da página (claro mais suave, escuro mais forte) |
+| `--gradient-brand` | Decorativo, sem texto: amarelo, laranja, rosa, roxo, azul-violeta a 45°; trilho da navegação, texto `.text-gradient` |
+| `--gradient-rail` | Linha sob a top bar (laranja, rosa, roxo) |
+| `--gradient-control` / `--gradient-control-hover` | Fundo do botão primário, logo, opção marcada (laranja escuro, rosa, roxo); texto branco ≥ 4.5:1 em todo o gradiente |
+| `--gradient-page` | Halos rosa e laranja (roxo no escuro) no fundo da página |
 | `--color-surface-glass` | Top bar de vidro com `backdrop-filter` |
-| `--color-border-glow` | Borda azulada de top bar, diálogo e brilho interno do card |
+| `--color-border-glow` | Borda rosada de top bar, diálogo e brilho interno do card |
 | `--shadow-glow` / `--shadow-float` | Brilho do botão primário e sombra da top bar flutuante |
 | `--color-on-brand` | Texto sobre os gradientes de controle (branco nos dois temas) |
-| `--color-accent` | Ciano para destaque pontual |
+| `--color-accent` | Roxo para destaque pontual |
 
 ### 1.3 Semânticas de feedback (Alert, Badge, estados)
 
 | Token | Claro | Escuro | Uso |
 | --- | --- | --- | --- |
 | `--color-success` | `#15803D` | `#4ADE80` | Texto e marcador de sucesso |
-| `--color-success-soft` | `#F0FDF4` | `#052E16` | Fundo de Alert/Badge de sucesso |
-| `--color-success-border` | `#BBF7D0` | `#166534` | Borda de Alert/Badge de sucesso |
-| `--color-warning` | `#B45309` | `#FBBF24` | Texto e marcador de aviso, "Aguardando você" |
-| `--color-warning-soft` | `#FFFBEB` | `#451A03` | Fundo de aviso |
-| `--color-warning-border` | `#FDE68A` | `#92400E` | Borda de aviso |
+| `--color-success-soft` | `#DEEFE7` | `#052E16` | Fundo de Alert/Badge de sucesso |
+| `--color-success-border` | `#99E5C2` | `#166534` | Borda de Alert/Badge de sucesso |
+| `--color-warning` | `#AB4F09` | `#FBBF24` | Texto e marcador de aviso, "Aguardando você" |
+| `--color-warning-soft` | `#EFEBDB` | `#451A03` | Fundo de aviso |
+| `--color-warning-border` | `#EDD67B` | `#92400E` | Borda de aviso |
 | `--color-danger` | `#B91C1C` | `#F87171` | Erro, falha, botão de perigo |
 | `--color-danger-hover` | `#991B1B` | `#FCA5A5` | Hover do botão de perigo |
-| `--color-danger-soft` | `#FEF2F2` | `#450A0A` | Fundo de erro |
-| `--color-danger-border` | `#FECACA` | `#991B1B` | Borda de erro |
-| `--color-info` | `#0369A1` | `#38BDF8` | Informação, run em revisão |
-| `--color-info-soft` | `#F0F9FF` | `#082F49` | Fundo informativo |
-| `--color-info-border` | `#BAE6FD` | `#075985` | Borda informativa |
+| `--color-danger-soft` | `#F4E8E8` | `#450A0A` | Fundo de erro |
+| `--color-danger-border` | `#F4C1C1` | `#991B1B` | Borda de erro |
+| `--color-info` | `#4F5BD5` | `#8B93F0` | Informação, run em revisão |
+| `--color-info-soft` | `#E8EAF7` | `#14173A` | Fundo informativo |
+| `--color-info-border` | `#C1C6EF` | `#2E3592` | Borda informativa |
+
+No claro, os fundos `-soft` ficam em L* 93, um degrau abaixo da página e do card branco, para que
+alertas e badges nunca pareçam mais claros que os cards; cada `-border` desce junto com o seu fundo.
 
 ### 1.4 Tokens semânticos (os componentes usam só estes e os da seção 1.3)
 
 | Token | Claro | Escuro | Uso |
 | --- | --- | --- | --- |
-| `--color-bg` | `--color-gray-50` | `--color-gray-950` | Fundo da página |
+| `--color-bg` | `#F7F7FA` | `--color-gray-950` | Fundo da página |
 | `--color-surface` | `--color-white` | `--color-gray-850` | Cards, campos, diálogos |
-| `--color-surface-muted` | `--color-gray-100` | `--color-gray-800` | Cabeçalho de tabela, hover, badge neutro |
-| `--color-surface-glass` | `rgba(255, 255, 255, 0.72)` | `rgba(6, 11, 24, 0.62)` | Top bar de vidro |
-| `--color-border` | `--color-gray-200` | `--color-gray-700` | Bordas de card e divisores (decorativos) |
+| `--color-surface-muted` | `#F1F1F4` | `--color-gray-800` | Cabeçalho de tabela, hover, badge neutro |
+| `--color-surface-glass` | `rgba(255, 255, 255, 0.8)` | `rgba(10, 10, 11, 0.62)` | Top bar de vidro |
+| `--color-border` | `#E0E0E6` | `--color-gray-700` | Bordas de card e divisores (decorativos) |
 | `--color-border-strong` | `--color-gray-500` | `--color-gray-500` | Borda de campo e botão secundário (≥ 3:1) |
-| `--color-border-glow` | `rgba(37, 99, 255, 0.28)` | `rgba(96, 165, 250, 0.28)` | Borda azulada da top bar e do diálogo |
+| `--color-border-glow` | `rgba(214, 41, 118, 0.22)` | `rgba(245, 96, 155, 0.28)` | Borda rosada da top bar e do diálogo |
 | `--color-text` | `--color-ink-text` | `--color-ink-text-dark` | Texto principal |
 | `--color-text-muted` | `--color-gray-600` | `--color-gray-400` | Texto secundário, ajuda, legendas |
-| `--color-text-subtle` | `--color-gray-500` | `--color-gray-400` | Placeholder; só sobre `--color-surface` ou `--color-bg` |
+| `--color-text-subtle` | `#64646C` | `--color-gray-400` | Placeholder e legendas discretas |
 | `--color-text-disabled` | `--color-gray-400` | `--color-gray-600` | Controles desabilitados (isento de contraste) |
 | `--color-text-on-primary` | `--color-white` | `--color-gray-950` | Texto sobre `--color-primary` e `--color-danger` |
 | `--color-on-brand` | `--color-white` | `--color-white` | Texto sobre os gradientes de controle |
-| `--color-primary` | `--color-primary-600` | `--color-primary-400` | Links, item ativo, botão primário sem gradiente |
+| `--color-primary` | `#BC2468` | `--color-primary-400` | Links, item ativo, botão primário sem gradiente |
 | `--color-primary-hover` | `--color-primary-700` | `--color-primary-300` | Hover da primária |
-| `--color-primary-soft` | `--color-primary-50` | `--color-primary-950` | Fundo de item ativo, versão aberta, passo atual |
+| `--color-primary-soft` | `#F6E7ED` | `--color-primary-950` | Fundo de item ativo, versão aberta, passo atual |
 | `--color-primary-soft-text` | `--color-primary-800` | `--color-primary-200` | Texto sobre `--color-primary-soft` |
-| `--color-accent` | `--color-cyan-700` | `--color-cyan-400` | Ciano para destaque pontual |
+| `--color-accent` | `--color-purple-600` | `--color-purple-400` | Roxo para destaque pontual |
 | `--color-focus-ring` | `--color-primary-600` | `--color-primary-400` | Contorno de foco |
-| `--color-overlay` | `rgba(10, 20, 48, 0.45)` | `rgba(3, 7, 18, 0.75)` | Fundo atrás do Dialog |
+| `--color-overlay` | `rgba(24, 24, 27, 0.45)` | `rgba(10, 10, 11, 0.75)` | Fundo atrás do Dialog |
 | `--color-media-bg` | `--color-black` | `--color-black` | Moldura do player de vídeo |
-| `--color-shadow-weak` | `rgba(10, 20, 48, 0.06)` | `rgba(0, 0, 0, 0.4)` | Cor das sombras (camada leve) |
-| `--color-shadow-strong` | `rgba(10, 20, 48, 0.1)` | `rgba(0, 0, 0, 0.6)` | Cor das sombras (camada forte) |
-| `--color-glow` | `rgba(37, 99, 255, 0.28)` | `rgba(37, 99, 255, 0.55)` | Brilho do botão primário e da navegação |
-| `--color-glow-blue` | `rgba(37, 99, 255, 0.1)` | `rgba(59, 130, 246, 0.2)` | Halo de foco e halo azul da página |
-| `--color-glow-cyan` | `rgba(34, 211, 238, 0.1)` | `rgba(34, 211, 238, 0.12)` | Halo ciano da página |
-| `--color-grid-line` | `rgba(37, 99, 255, 0.05)` | `rgba(96, 165, 250, 0.05)` | Linhas da grade do fundo |
+| `--color-shadow-weak` | `rgba(24, 24, 27, 0.06)` | `rgba(0, 0, 0, 0.4)` | Cor das sombras (camada leve) |
+| `--color-shadow-strong` | `rgba(24, 24, 27, 0.1)` | `rgba(0, 0, 0, 0.6)` | Cor das sombras (camada forte) |
+| `--color-glow` | `rgba(214, 41, 118, 0.26)` | `rgba(214, 41, 118, 0.5)` | Brilho do botão primário e da navegação |
+| `--color-glow-blue` | `rgba(214, 41, 118, 0.08)` | `rgba(214, 41, 118, 0.18)` | Halo de foco e halo rosa da página (nome mantido) |
+| `--color-glow-cyan` | `rgba(250, 126, 30, 0.08)` | `rgba(150, 47, 191, 0.16)` | Halo laranja (roxo no escuro) da página (nome mantido) |
+| `--color-grid-line` | `rgba(214, 41, 118, 0.04)` | `rgba(245, 96, 155, 0.05)` | Linhas da grade do fundo |
+
+No claro, a página é quase branca (`#F7F7FA`) no tom levemente frio dos cinzas e o card é branco
+puro (decisão do dono em 2026-11-27: os cinzas do corte de brilho anterior pareciam prateados e
+datados). O card se separa da página pela borda (`#E0E0E6`) e pela sombra, não por um fundo cinza;
+`--color-surface-muted` (`#F1F1F4`) fica logo abaixo da página.
+Sobre essas superfícies, `--color-text-subtle` (`#64646C`) e `--color-primary` (`#BC2468`) ficam
+um tom abaixo de `--color-gray-500` e `--color-primary-600`, e `--color-warning` (`#AB4F09`) um
+tom abaixo do âmbar original, para manter 4,5:1 (seção 11.1); o gradiente, a seleção e o contorno
+de foco continuam em `--color-primary-600`.
 
 ### 1.5 Tokens de status (StatusBadge, StepTimeline, CostMeter)
 
@@ -217,9 +235,10 @@ Classes globais de `packages/ui/src/styles/utilities.css`, com o nome da primeir
 | --- | --- | --- |
 | `--radius-xs` | `2px` | Linha de destaque da navegação |
 | `--radius-sm` | `6px` | Badge, passo atual |
-| `--radius-md` | `10px` | Botões, campos, Alert, tabelas, listas |
-| `--radius-lg` | `16px` | Cards, Dialog, dropzone, player |
-| `--radius-xl` | `20px` | Card do login, superfícies de destaque |
+| `--radius-md` | `12px` | Botões, campos, Alert, tabelas, listas |
+| `--radius-lg` | `20px` | Cards, Dialog, dropzone, player |
+| `--radius-xl` | `24px` | Card do login, superfícies de destaque |
+| `--radius-2xl` | `28px` | Trilho flutuante de navegação e cartões de destaque |
 | `--radius-full` | `9999px` | Marcadores de status, Spinner, nota 1-5, trilho do CostMeter |
 
 ## 5. Sombras
@@ -282,6 +301,8 @@ CSS variables não funcionam em `@media`; as media queries usam o número litera
 | --- | --- | --- |
 | `--layout-max-width` | `1280px` | Largura máxima do conteúdo |
 | `--layout-topbar-height` | `64px` | Altura da top bar a partir de `md` |
+| `--layout-rail-width` | `104px` | Largura do trilho flutuante de navegação (desktop) |
+| `--layout-rail-item-height` | `60px` | Altura mínima de um item do trilho |
 | `--layout-auth-card-width` | `400px` | Card do login |
 | `--layout-form-max-width` | `720px` | Formulários de envio e editor de receita |
 | `--layout-gutter-mobile` | `16px` | Margem lateral abaixo de `md` |
@@ -329,50 +350,61 @@ entrada, pulso "Em execução" parado (o texto já diz o estado), Spinner com vo
 
 ## 11. Contraste (WCAG 2.1 AA)
 
-Razões calculadas pela fórmula de luminância relativa da WCAG 2.1 em 2026-11-18. Mínimos:
-**4,5:1** para texto normal; **3:1** para texto grande e elementos de UI. Desabilitados são
-isentos (WCAG 1.4.3). `--color-border` é decorativo e fica fora da regra de 3:1.
+Razões calculadas pela fórmula de luminância relativa da WCAG 2.1 em 2026-11-22, para a paleta
+rosa sobre off-white (claro) e quase preto (escuro). Mínimos: **4,5:1** para texto normal; **3:1**
+para texto grande e elementos de UI.
+Desabilitados são isentos (WCAG 1.4.3). `--color-border` é decorativo e fica fora da regra de 3:1.
 
 ### 11.1 Tema claro
 
 | Texto ou elemento | Fundo | Razão | Resultado |
 | --- | --- | --- | --- |
-| `--color-text` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 17,85 / 17,06 / 16,30 | Passa |
-| `--color-text-muted` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 7,58 / 7,24 / 6,92 | Passa |
-| `--color-text-subtle` | `--color-surface` / `--color-bg` | 4,76 / 4,55 | Passa |
-| `--color-text-on-primary` | `--color-primary` / `--color-primary-hover` | 7,10 / 8,98 | Passa |
-| `--color-primary` (link) | `--color-surface` / `--color-bg` | 7,10 / 6,79 | Passa |
-| `--color-primary-soft-text` | `--color-primary-soft` | 8,19 | Passa |
-| `--color-success` | `--color-success-soft` / `--color-surface` | 4,79 / 5,02 | Passa |
-| `--color-warning` | `--color-warning-soft` / `--color-surface` | 4,84 / 5,02 | Passa |
-| `--color-danger` | `--color-danger-soft` / `--color-surface` | 5,91 / 6,47 | Passa |
+| `--color-text` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 15,44 / 14,22 / 13,84 | Passa |
+| `--color-text` | cada `-soft` (`primary`, `success`, `warning`, `danger`, `info`), pior caso | 14,80 | Passa |
+| `--color-text-muted` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 6,74 / 6,21 / 6,04 | Passa |
+| `--color-text-muted` | cada `-soft` (`primary`, `success`, `warning`, `danger`, `info`), pior caso | 6,46 | Passa |
+| `--color-text-subtle` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 5,11 / 4,71 / 4,58 | Passa |
+| `--color-text-on-primary` | `--color-primary` / `--color-primary-hover` | 5,85 / 6,53 | Passa |
+| `--color-on-brand` | `--gradient-control` (laranja 700 / rosa 600 / roxo 600) | 5,18 / 4,73 / 6,08 | Passa |
+| `--color-primary` (link) | `--color-surface` / `--color-bg` / `--color-surface-muted` | 5,10 / 4,70 / 4,57 | Passa |
+| `--color-primary` (link) | cada `-soft` (`primary`, `success`, `warning`, `danger`, `info`), pior caso | 4,89 | Passa |
+| `--color-accent` | `--color-surface` / `--color-bg` | 5,30 / 4,88 | Passa |
+| `--color-primary-soft-text` | `--color-primary-soft` | 7,41 | Passa |
+| `--color-success` | `--color-success-soft` / `--color-surface` | 4,60 / 4,78 | Passa |
+| `--color-warning` | `--color-warning-soft` / `--color-surface` | 4,56 / 4,75 | Passa |
+| `--color-danger` | `--color-danger-soft` / `--color-surface` | 5,41 / 5,64 | Passa |
 | `--color-text-on-primary` | `--color-danger` / `--color-danger-hover` | 6,47 / 8,31 | Passa |
-| `--color-info` | `--color-info-soft` / `--color-surface` | 5,57 / 5,93 | Passa |
-| `--color-border-strong` (UI) | `--color-surface` | 4,76 | Passa (3:1) |
-| `--color-focus-ring` (UI) | `--color-surface` / `--color-bg` | 5,70 / 5,45 | Passa (3:1) |
-| `--color-meter-fill` (UI) | `--color-meter-track` | 6,49 | Passa (3:1) |
-| `--color-status-neutral` (marcador) | `--color-surface` | 4,76 ou mais | Passa (3:1) |
+| `--color-info` | `--color-info-soft` / `--color-surface` | 4,63 / 4,83 | Passa |
+| `--color-border-strong` (UI) | `--color-surface` / `--color-surface-muted` | 4,21 / 3,78 | Passa (3:1) |
+| `--color-border-strong` (UI) | cada `-soft` (`primary`, `success`, `warning`, `danger`, `info`), pior caso | 4,04 | Passa (3:1) |
+| `--color-focus-ring` (UI) | `--color-surface` / `--color-bg` | 4,12 / 3,80 | Passa (3:1) |
+| `--color-focus-ring` (UI) | cada `-soft` (`primary`, `success`, `warning`, `danger`, `info`), pior caso | 3,95 | Passa (3:1) |
+| `--color-meter-fill` (UI) | `--color-meter-track` | 4,57 | Passa (3:1) |
+| `--color-status-neutral` (marcador) | `--color-surface` | 6,74 | Passa (3:1) |
 
-Par proibido no tema claro: `--color-text-subtle` sobre `--color-surface-muted` (4,34:1); nesse
-fundo use `--color-text-muted`.
+No tema claro não há par proibido entre os tokens desta tabela. Fora dela, `--color-warning` como
+texto direto sobre `--color-bg` fica em 4,37:1 (e 4,26:1 sobre `--color-surface-muted`); use-o
+só sobre `--color-surface` ou `--color-warning-soft`, como hoje. O `--gradient-brand` (com amarelo
+e laranja claros) é só decorativo e nunca leva texto pequeno.
 
 ### 11.2 Tema escuro
 
 | Texto ou elemento | Fundo | Razão | Resultado |
 | --- | --- | --- | --- |
-| `--color-text` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 17,06 / 19,28 / 13,98 | Passa |
-| `--color-text-muted` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 12,02 / 13,59 / 9,85 | Passa |
-| `--color-text-subtle` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 6,96 / 7,87 / 5,71 | Passa |
-| `--color-text-on-primary` | `--color-primary` / `--color-primary-hover` | 10,93 / 14,53 | Passa |
-| `--color-primary` (link) | `--color-surface` / `--color-bg` | 9,67 / 10,93 | Passa |
-| `--color-primary-soft-text` | `--color-primary-soft` | 10,97 | Passa |
-| `--color-success` | `--color-success-soft` / `--color-surface` | 8,55 / 10,25 | Passa |
-| `--color-warning` | `--color-warning-soft` / `--color-surface` | 8,97 / 10,69 | Passa |
-| `--color-danger` | `--color-danger-soft` / `--color-surface` | 5,84 / 6,45 | Passa |
-| `--color-text-on-primary` | `--color-danger` / `--color-danger-hover` | 7,29 / 10,63 | Passa |
-| `--color-info` | `--color-info-soft` / `--color-surface` | 6,48 / 8,33 | Passa |
-| `--color-border-strong` (UI) | `--color-surface` | 6,96 | Passa (3:1) |
-| `--color-focus-ring` (UI) | `--color-surface` / `--color-bg` | 6,56 / 7,41 | Passa (3:1) |
-| `--color-meter-fill` (UI) | `--color-meter-track` | 7,92 | Passa (3:1) |
+| `--color-text` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 16,29 / 18,96 / 14,27 | Passa |
+| `--color-text-muted` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 6,63 / 7,72 / 5,81 | Passa |
+| `--color-text-subtle` | `--color-surface` / `--color-bg` / `--color-surface-muted` | 6,63 / 7,72 / 5,81 | Passa |
+| `--color-text-on-primary` | `--color-primary` / `--color-primary-hover` | 6,62 / 9,63 | Passa |
+| `--color-primary` (link) | `--color-surface` / `--color-bg` | 5,69 / 6,62 | Passa |
+| `--color-accent` | `--color-surface` / `--color-bg` | 5,81 / 6,76 | Passa |
+| `--color-primary-soft-text` | `--color-primary-soft` | 11,24 | Passa |
+| `--color-success` | `--color-success-soft` / `--color-surface` | 8,67 / 8,84 | Passa |
+| `--color-warning` | `--color-warning-soft` / `--color-surface` | 10,29 / 10,18 | Passa |
+| `--color-danger` | `--color-danger-soft` / `--color-surface` | 6,61 / 6,15 | Passa |
+| `--color-text-on-primary` | `--color-danger` / `--color-danger-hover` | 7,15 / 10,43 | Passa |
+| `--color-info` | `--color-info-soft` / `--color-surface` | 6,21 / 6,10 | Passa |
+| `--color-border-strong` (UI) | `--color-surface` | 3,52 | Passa (3:1) |
+| `--color-focus-ring` (UI) | `--color-surface` / `--color-bg` | 5,69 / 6,62 | Passa (3:1) |
+| `--color-meter-fill` (UI) | `--color-meter-track` | 4,99 | Passa (3:1) |
 
 No tema escuro não há par proibido entre os tokens desta tabela.

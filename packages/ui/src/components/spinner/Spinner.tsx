@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactElement } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import styles from './Spinner.module.css';
 
@@ -13,14 +16,15 @@ export interface SpinnerProps {
   className?: string;
 }
 
-export function Spinner({ size = 'md', label = 'Carregando', decorative = false, className }: SpinnerProps): ReactElement {
+export function Spinner({ size = 'md', label, decorative = false, className }: SpinnerProps): ReactElement {
+  const { ui } = useI18n();
   if (decorative) {
     return <span aria-hidden="true" className={classNames(styles.spinner, styles[size], className)} />;
   }
   return (
     <span role="status" className={classNames(styles.wrapper, className)}>
       <span aria-hidden="true" className={classNames(styles.spinner, styles[size])} />
-      <span className="visually-hidden">{label}</span>
+      <span className="visually-hidden">{label ?? ui.feedback.loading}</span>
     </span>
   );
 }

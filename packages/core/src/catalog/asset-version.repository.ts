@@ -94,6 +94,42 @@ export class AssetVersionRepository {
     return db.assetVersion.update({ where: { id: rowId }, data: { status }, ...versionReadProjection });
   }
 
+  /**
+   * ADR 0012 (AP-02, AP-03): writes a done job's purpose with `purposeSource: ai` unless the owner
+   * wrote the purpose. The condition is part of the UPDATE (`WHERE purpose_source <> 'owner'`), so
+   * two concurrent reads copy the same text and an owner edit that lands first is never
+   * overwritten. Returns how many rows changed: 1, or 0 when the row is the owner's or gone.
+   */
+  async copyAiPurpose(key: { assetId: string; version: number; purpose: string }, db: Db = this.prisma): Promise<number> {
+    const result = await db.assetVersion.updateMany({
+      where: { assetId: key.assetId, version: key.version, purposeSource: { not: 'owner' } },
+      data: { purpose: key.purpose, purposeSource: 'ai' },
+    });
+    return result.count;
+  }
+
+  /**
+   * ADR 0012 (C-P4): the owner asked for a new purpose, so the row waits for the next job
+   * (`purposeSource: none`, the current text kept until the job's copy replaces it).
+   */
+  async clearPurposeSource(assetId: string, version: number, db: Db = this.prisma): Promise<AssetVersionRow> {
+    return db.assetVersion.update({ where: { assetId_version: { assetId, version } }, data: { purposeSource: 'none' }, ...versionReadProjection });
+  }
+
+  /**
+   * ADR 0012 (C-P4, AP-03): the owner's purpose text, `purposeSource: owner`. Only the two purpose
+   * columns change; the immutability trigger leaves them writable on a saved version. Null when the
+   * version does not exist, so the caller answers its own not-found error.
+   */
+  async setOwnerPurpose(key: { assetId: string; version: number; purpose: string }, db: Db = this.prisma): Promise<AssetVersionRow | null> {
+    const result = await db.assetVersion.updateMany({
+      where: { assetId: key.assetId, version: key.version },
+      data: { purpose: key.purpose, purposeSource: 'owner' },
+    });
+    if (result.count === 0) return null;
+    return this.findVersion(key.assetId, key.version, db);
+  }
+
   async listVersions(assetId: string, quality: QualityFilter, page: KeysetPage): Promise<RowPage> {
     const where: Prisma.AssetVersionWhereInput = { AND: [{ assetId }, ...qualityFilterWhere(quality)] };
     return this.page(where, page);

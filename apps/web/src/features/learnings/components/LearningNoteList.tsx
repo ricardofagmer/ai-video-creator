@@ -1,6 +1,6 @@
 'use client';
 
-import { Alert, Badge, Button, Dialog, textLinkClassName } from '@studio/ui';
+import { Alert, Badge, Button, Dialog, textLinkClassName, useI18n } from '@studio/ui';
 import { type LearningNoteView } from '@studio/shared/api';
 import { parseAssetRef } from '@studio/shared/catalog';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useState, type ReactElement } from 'react';
 import { formatDateTime } from '@/features/catalog/catalog-labels';
 import { describeApiError } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import { browserLearningsApi } from '../learnings-api';
 import styles from '../learnings.module.css';
 
@@ -24,6 +25,9 @@ interface LearningNoteListProps {
  * never as HTML. "Aposentar" retires a note through its own version; nothing is deleted.
  */
 export function LearningNoteList({ notes, showRef, emptyText }: LearningNoteListProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.runs.learnings.note;
+  const { locale } = useI18n();
   const router = useRouter();
   const [confirming, setConfirming] = useState<LearningNoteView | null>(null);
   const [pending, setPending] = useState(false);
@@ -39,7 +43,7 @@ export function LearningNoteList({ notes, showRef, emptyText }: LearningNoteList
       router.refresh();
     } catch (failure) {
       setConfirming(null);
-      setError(describeApiError(failure));
+      setError(describeApiError(failure, t));
     } finally {
       setPending(false);
     }
@@ -55,16 +59,17 @@ export function LearningNoteList({ notes, showRef, emptyText }: LearningNoteList
           <li key={note.noteId} className={styles.note}>
             <p className={styles.noteText}>{note.text}</p>
             <div className={styles.noteMeta}>
-              {note.status === 'active' ? <Badge tone="success">Ativo</Badge> : <Badge tone="neutral">Aposentado</Badge>}
+              {note.status === 'active' ? <Badge tone="success">{texts.active}</Badge> : <Badge tone="neutral">{texts.retired}</Badge>}
               {showRef && <span className="mono">{note.ref}</span>}
               <Link href={`/execucoes/${note.sourceRunId}/revisao`} className={textLinkClassName()}>
-                Execução <span className="mono">{note.sourceRunId}</span>
+                {texts.run} <span className="mono">{note.sourceRunId}</span>
               </Link>
-              <span>{`${formatDateTime(note.createdAt)} · ${note.createdBy}`}</span>
-              {note.retiredAt !== null && <span>{`Aposentado em ${formatDateTime(note.retiredAt)}`}</span>}
+              <span>{`${formatDateTime(note.createdAt, locale)} · ${note.createdBy}`}</span>
+              {note.retiredAt !== null && <span>{texts.retiredAt(formatDateTime(note.retiredAt, locale))}</span>}
               {note.status === 'active' && (
                 <Button size="sm" variant="ghost" disabled={pending} onClick={() => setConfirming(note)}>
-                  Aposentar<span className="visually-hidden"> o aprendizado de {note.ref}</span>
+                  {texts.retire}
+                  <span className="visually-hidden"> {texts.retireHidden(note.ref)}</span>
                 </Button>
               )}
             </div>
@@ -74,20 +79,20 @@ export function LearningNoteList({ notes, showRef, emptyText }: LearningNoteList
       <Dialog
         open={confirming !== null}
         onClose={() => (pending ? undefined : setConfirming(null))}
-        title="Aposentar este aprendizado?"
-        description="Ele deixa de entrar nos briefings das próximas execuções e na busca por significado. Continua visível aqui como aposentado; nada é apagado."
+        title={texts.retireTitle}
+        description={texts.retireDescription}
         footer={
           <>
             <Button variant="secondary" disabled={pending} onClick={() => setConfirming(null)}>
-              Cancelar
+              {texts.cancel}
             </Button>
             <Button
               variant="primary"
               loading={pending}
-              loadingLabel="Aposentando…"
+              loadingLabel={texts.retiring}
               onClick={() => (confirming === null ? undefined : void retire(confirming))}
             >
-              Aposentar
+              {texts.retire}
             </Button>
           </>
         }

@@ -1,9 +1,10 @@
 'use client';
 
-import { Alert, Checkbox, DescriptionList, formatUsd, type DescriptionItem } from '@studio/ui';
+import { Alert, Checkbox, DescriptionList, formatUsd, useI18n, type DescriptionItem, type Locale } from '@studio/ui';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
-import { PLAN_GATE_TEXT, SCHEDULE_SAFETY_TEXT } from '../schedule-labels';
+import { useWebMessages } from '@/lib/i18n/client';
+import { type WebMessages } from '@/messages';
 import { scheduleFieldIds, type CostFigures } from '../schedule-form-model';
 
 interface ScheduleCostConsentProps {
@@ -14,10 +15,9 @@ interface ScheduleCostConsentProps {
   onConsentChange: (consented: boolean) => void;
 }
 
-function monthFigureText(figures: CostFigures): string {
-  if (figures.worstCasePerMonthUsd === null || figures.slotsNext31Days === null) return 'Complete a repetição para calcular.';
-  const runs = figures.slotsNext31Days === 1 ? '1 execução' : `${figures.slotsNext31Days} execuções`;
-  return `${formatUsd(figures.worstCasePerMonthUsd)} (${runs} nos próximos 31 dias)`;
+function monthFigureText(figures: CostFigures, t: WebMessages['schedules']['consent'], locale: Locale): string {
+  if (figures.worstCasePerMonthUsd === null || figures.slotsNext31Days === null) return t.completeRecurrence;
+  return t.monthFigure(formatUsd(figures.worstCasePerMonthUsd, locale), figures.slotsNext31Days);
 }
 
 /**
@@ -27,28 +27,31 @@ function monthFigureText(figures: CostFigures): string {
  * mode spend real money without a click; this consent is what covers them.
  */
 export function ScheduleCostConsent({ figures, consented, error, disabled, onConsentChange }: ScheduleCostConsentProps): ReactElement {
+  const { locale } = useI18n();
+  const schedules = useWebMessages().schedules;
+  const t = schedules.consent;
   const items: DescriptionItem[] = [
-    { term: 'Custo máximo por execução', description: formatUsd(figures.perRunUsd) },
-    { term: 'Custo máximo por mês', description: monthFigureText(figures) },
-    { term: 'Teto de gasto do mês', description: formatUsd(figures.monthCeilingUsd) },
+    { term: t.perRun, description: formatUsd(figures.perRunUsd, locale) },
+    { term: t.perMonth, description: monthFigureText(figures, t, locale) },
+    { term: t.monthCeiling, description: formatUsd(figures.monthCeilingUsd, locale) },
   ];
   const overCeiling = figures.worstCasePerMonthUsd !== null && figures.worstCasePerMonthUsd > figures.monthCeilingUsd;
-  const monthText = figures.worstCasePerMonthUsd === null ? '' : ` (até ${formatUsd(figures.worstCasePerMonthUsd)} por mês)`;
+  const monthAmount = figures.worstCasePerMonthUsd === null ? null : formatUsd(figures.worstCasePerMonthUsd, locale);
 
   return (
     <div className={layout.stack}>
       <DescriptionList items={items} columns={2} />
       {overCeiling && (
         <p className="caption">
-          O custo máximo por mês passa do teto. Quando o gasto do mês chegar ao teto, os horários seguintes são pulados, sem gasto.
+          {t.overCeiling}
         </p>
       )}
-      <Alert variant="info" title={SCHEDULE_SAFETY_TEXT}>
-        {PLAN_GATE_TEXT}
+      <Alert variant="info" title={schedules.safety}>
+        {schedules.planGate}
       </Alert>
       <Checkbox
         id={scheduleFieldIds.consent}
-        label={`Aceito o custo máximo de ${formatUsd(figures.perRunUsd)} por execução agendada${monthText}`}
+        label={t.accept(formatUsd(figures.perRunUsd, locale), monthAmount)}
         invalid={error !== undefined}
         description={error}
         checked={consented}

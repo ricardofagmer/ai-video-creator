@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { type FileHandle, open, realpath } from 'node:fs/promises';
-import { sep } from 'node:path';
 import { HyperframesChromeMissingError } from './errors';
+import { isInsideFolder } from './inside-folder';
 
 /*
  * The Chrome binary is verified before it runs (SPEC 0008 section 17.6, finding L1, AC 90). The
@@ -29,10 +29,6 @@ function errorCodeOf(error: unknown): string | null {
 function chromeErrorOf(error: unknown): HyperframesChromeMissingError {
   if (error instanceof HyperframesChromeMissingError) return error;
   return new HyperframesChromeMissingError(errorCodeOf(error) === 'ELOOP' ? 'changed' : 'unreadable');
-}
-
-function isInside(folder: string, candidate: string): boolean {
-  return candidate.startsWith(folder.endsWith(sep) ? folder : `${folder}${sep}`);
 }
 
 /**
@@ -91,7 +87,7 @@ export async function hashChromeBinary(executablePath: string): Promise<{ sha256
 export async function verifyChromeBinary(recorded: RecordedChromeBinary, options: { cacheDir: string }): Promise<void> {
   try {
     const [realCacheDir, realBinary] = await Promise.all([realpath(options.cacheDir), realpath(recorded.executablePath)]);
-    if (!isInside(realCacheDir, realBinary)) throw new HyperframesChromeMissingError('changed');
+    if (!isInsideFolder(realCacheDir, realBinary)) throw new HyperframesChromeMissingError('changed');
     const { sha256 } = await hashOpenedBinary(recorded.executablePath, recorded.sizeBytes);
     if (sha256 !== recorded.sha256) throw new HyperframesChromeMissingError('changed');
   } catch (error) {

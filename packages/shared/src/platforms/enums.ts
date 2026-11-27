@@ -36,7 +36,7 @@ export type ReconnectReason = z.infer<typeof ReconnectReasonSchema>;
 export const RevokeOutcomeSchema = z.enum(['revoked', 'skipped', 'failed']);
 export type RevokeOutcome = z.infer<typeof RevokeOutcomeSchema>;
 
-/** Per platform, from `VIDEO_STUDIO_PLATFORM_<PLATFORM>_MODE`; `mock` is the default (section 5.8). */
+/** Per platform, from `ENGINEOS_VIDEO_CREATOR_PLATFORM_<PLATFORM>_MODE`; `mock` is the default (section 5.8). */
 export const PlatformModeSchema = z.enum(['mock', 'live']);
 export type PlatformMode = z.infer<typeof PlatformModeSchema>;
 

@@ -3,7 +3,7 @@ import { type SeedReport } from '../seed-report';
 
 export interface SeedCatalogInput {
   /**
-   * Absolute seed source root for this run; omitted uses `VIDEO_STUDIO_SEED_SOURCE_ROOT` or the
+   * Absolute seed source root for this run; omitted uses `ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT` or the
    * default workspace folder (`SeedSettings`).
    */
   sourceRoot?: string;

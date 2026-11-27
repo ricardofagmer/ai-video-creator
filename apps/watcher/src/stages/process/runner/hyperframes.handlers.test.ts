@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { access, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { ExternalToolError } from '@ace/toolbox/dist/errors';
-import { FakeHyperframesProcessPort, HyperframesProcessFailedError, type HyperframesRuntime } from '@studio/hyperframes';
+import { FakeHyperframesProcessPort, HyperframesProcessFailedError, type HyperframesRuntime, type PictureProbe } from '@studio/hyperframes';
 import {
   PARENT_ENV_SENTINELS,
   RENDER_ENV_KEYS,
@@ -12,14 +12,16 @@ import {
   expectedRenderArgs,
   expectedRenderEnv,
   withParentEnv,
-} from '../../../hyperframes-runtime/hyperframes-runtime.fixtures.harness.test';
+} from './hyperframes-runtime.fixtures.harness.test';
 import { type HyperframesRenderRequest } from '../tool-runner.protocol';
-import { PictureCheckError, hyperframesRender, parsePictureProbe, pictureMismatches, type HyperframesRenderPorts, type PictureProbe } from './hyperframes.handlers';
+import { PictureCheckError, hyperframesRender, type HyperframesRenderPorts } from './hyperframes.handlers';
 
 /*
  * The tool-runner side of a HyperFrames render (SPEC 0008 section 5.2; AC 66, 67, 78, 79, 81).
- * Every start goes to `FakeHyperframesProcessPort` and every picture probe to a fake; the folders
- * are `fs.mkdtemp` folders whose names carry a sentinel, removed after each test.
+ * Every start goes to `FakeHyperframesProcessPort` and every ffprobe run of the picture check to a
+ * fake that answers ffprobe's JSON; the folders are `fs.mkdtemp` folders whose names carry a
+ * sentinel, removed after each test. The probe parsing and the check rules themselves are tested
+ * at `checkPicture` in `@studio/hyperframes`.
  *
  * Two parts of the handler are not ports: the sandbox check of `renderPicture` (an `existsSync` of
  * `/usr/bin/sandbox-exec`, never run) and the narration mux (`runTool`). The request's ffmpeg path
@@ -91,6 +93,15 @@ function matchingProbe(overrides: Partial<PictureProbe> = {}): PictureProbe {
   return { codec: 'h264', pixelFormat: 'yuv420p', width: 1080, height: 1920, fps: FPS, durationS: NARRATION_S, ...overrides };
 }
 
+/** ffprobe's JSON for a probe, or text that is not JSON for an unreadable picture. */
+function ffprobeOutput(probe: PictureProbe | null): string {
+  if (probe === null) return 'ffprobe: not json';
+  return JSON.stringify({
+    streams: [{ codec_name: probe.codec, pix_fmt: probe.pixelFormat, width: probe.width, height: probe.height, avg_frame_rate: `${probe.fps}/1` }],
+    format: { duration: String(probe.durationS) },
+  });
+}
+
 interface FakeRenderPorts {
   ports: HyperframesRenderPorts;
   processPort: FakeHyperframesProcessPort;
@@ -105,9 +116,10 @@ function fakeRenderPorts(options: { probe: PictureProbe | null; exitCodes?: read
     probeCalls,
     ports: {
       process: processPort,
-      probePicture(ffprobePath: string, file: string): Promise<PictureProbe | null> {
-        probeCalls.push({ ffprobePath, file });
-        return Promise.resolve(options.probe);
+      runProbe(program: string, args: readonly string[]): Promise<string> {
+        // The probed file is ffprobe's last argument.
+        probeCalls.push({ ffprobePath: program, file: args.at(-1) ?? '' });
+        return Promise.resolve(ffprobeOutput(options.probe));
       },
       // SPEC 0008 section 17.5 (rev 2): sandbox paths go through `realPath`; the fake answers each
       // path unchanged, so the expectations below keep the request's own paths.
@@ -138,9 +150,12 @@ async function exists(path: string): Promise<boolean> {
 /**
  * The runtime the child must use (section 4.4): the request's runtime plus the runner's own node by
  * absolute path, the scratch directory as TMPDIR and the runner's PATH (`StageSettings.path`).
+ * `completeRenderRuntime` resolves node and the scratch directory to real paths (section 17.5), so
+ * a macOS `/var/folders/...` scratch reaches the child as `/private/var/folders/...`.
  */
-function expectedRuntimeOf(request: HyperframesRenderRequest): HyperframesRuntime {
-  return { ...request.runtime, nodePath: process.execPath, tmpDir: request.scratchDir, path: process.env['PATH'] ?? '/usr/bin:/bin' };
+async function expectedRuntimeOf(request: HyperframesRenderRequest): Promise<HyperframesRuntime> {
+  const [nodePath, tmpDir] = await Promise.all([realpath(process.execPath), realpath(request.scratchDir)]);
+  return { ...request.runtime, nodePath, tmpDir, path: process.env['PATH'] ?? '/usr/bin:/bin' };
 }
 
 describe('hyperframesRender', () => {
@@ -168,7 +183,7 @@ describe('hyperframesRender', () => {
       assert.deepEqual(
         [...start.args],
         expectedRenderArgs({
-          runtime: expectedRuntimeOf(world.request),
+          runtime: await expectedRuntimeOf(world.request),
           templateDir: world.request.templateDir,
           variablesFile: join(world.request.scratchDir, 'variables.json'),
           output: join(world.request.scratchDir, 'picture.mp4'),
@@ -184,7 +199,7 @@ describe('hyperframesRender', () => {
       const start = processPort.requests[0];
       assert.ok(start !== undefined);
       assert.deepEqual(Object.keys(start.env).sort(), RENDER_ENV_KEYS);
-      assert.deepEqual({ ...start.env }, expectedRenderEnv(expectedRuntimeOf(world.request)));
+      assert.deepEqual({ ...start.env }, expectedRenderEnv(await expectedRuntimeOf(world.request)));
       assertNoParentSentinel(start.env, PARENT_ENV_SENTINELS);
     });
   });
@@ -304,83 +319,5 @@ describe('hyperframesRender', () => {
         }
       });
     }
-  });
-});
-
-describe('parsePictureProbe', () => {
-  function ffprobeJson(options: { stream?: Record<string, unknown>; format?: Record<string, unknown> } = {}): string {
-    return JSON.stringify({
-      streams: [{ codec_name: 'h264', pix_fmt: 'yuv420p', width: 1080, height: 1920, avg_frame_rate: '30/1', ...options.stream }],
-      format: { duration: '12.533333', ...options.format },
-    });
-  }
-
-  it('reads the first video stream and the container duration', () => {
-    assert.deepEqual(parsePictureProbe(ffprobeJson()), { codec: 'h264', pixelFormat: 'yuv420p', width: 1080, height: 1920, fps: 30, durationS: 12.533333 });
-  });
-
-  it('turns a fractional frame rate into frames per second', () => {
-    const probe = parsePictureProbe(ffprobeJson({ stream: { avg_frame_rate: '30000/1001' } }));
-
-    assert.ok(probe !== null);
-    assert.ok(Math.abs(probe.fps - 29.97) < 0.001);
-  });
-
-  it('answers null for output that is not JSON', () => {
-    assert.equal(parsePictureProbe('ffprobe: not json'), null);
-  });
-
-  it('answers null when there is no stream', () => {
-    assert.equal(parsePictureProbe(JSON.stringify({ streams: [], format: { duration: '1.0' } })), null);
-  });
-
-  it('answers null for a zero frame-rate denominator', () => {
-    assert.equal(parsePictureProbe(ffprobeJson({ stream: { avg_frame_rate: '0/0' } })), null);
-  });
-
-  it('answers null when the duration is missing or not a number', () => {
-    assert.equal(parsePictureProbe(ffprobeJson({ format: { duration: undefined } })), null);
-    assert.equal(parsePictureProbe(ffprobeJson({ format: { duration: 'N/A' } })), null);
-  });
-
-  it('answers null when a stream field has the wrong type', () => {
-    assert.equal(parsePictureProbe(ffprobeJson({ stream: { width: '1080' } })), null);
-    assert.equal(parsePictureProbe(ffprobeJson({ stream: { codec_name: undefined } })), null);
-  });
-});
-
-describe('pictureMismatches (section 5.2 step 4)', () => {
-  const request = { width: 1080, height: 1920, fps: FPS, durationS: NARRATION_S };
-
-  it('answers no check for the picture the request asked for', () => {
-    assert.deepEqual(pictureMismatches(matchingProbe(), request), []);
-  });
-
-  it('names each failed check in order', () => {
-    const probe = matchingProbe({ codec: 'hevc', pixelFormat: 'yuv422p', height: 1080, fps: 24, durationS: 1 });
-
-    assert.deepEqual(pictureMismatches(probe, request), ['codec', 'pixel-format', 'size', 'fps', 'duration']);
-  });
-
-  it('accepts a picture exactly one frame shorter than the narration', () => {
-    assert.deepEqual(pictureMismatches(matchingProbe({ durationS: NARRATION_S - 1 / FPS }), request), []);
-  });
-
-  it('refuses a picture shorter than the narration by more than one frame', () => {
-    assert.deepEqual(pictureMismatches(matchingProbe({ durationS: NARRATION_S - 1.5 / FPS }), request), ['duration']);
-  });
-
-  it('accepts a picture longer than the narration', () => {
-    assert.deepEqual(pictureMismatches(matchingProbe({ durationS: NARRATION_S + 30 }), request), []);
-  });
-
-  it('tolerates a frame-rate difference of at most 0.01', () => {
-    assert.deepEqual(pictureMismatches(matchingProbe({ fps: FPS - 0.005 }), request), []);
-    assert.deepEqual(pictureMismatches(matchingProbe({ fps: 29.97 }), request), ['fps']);
-  });
-
-  it('refuses a picture whose width alone or height alone differs', () => {
-    assert.deepEqual(pictureMismatches(matchingProbe({ width: 1081 }), request), ['size']);
-    assert.deepEqual(pictureMismatches(matchingProbe({ height: 1919 }), request), ['size']);
   });
 });

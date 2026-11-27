@@ -1,12 +1,14 @@
 'use client';
 
-import { Alert, Button, Dialog, formatUsd } from '@studio/ui';
+import { Alert, Button, Dialog, formatUsd, useI18n } from '@studio/ui';
 import { type ComparisonEstimate } from '@studio/shared/api';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactElement } from 'react';
 import { describeApiError } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import layout from '@/features/common/layout.module.css';
 import { ApiRequestError } from '@/lib/api';
+import { type WebMessages } from '@/messages';
 import { browserComparisonsApi } from '../comparisons-api';
 
 interface StartComparisonButtonProps {
@@ -17,11 +19,9 @@ interface StartComparisonButtonProps {
 const BLOCKED_REASON_ID = 'comparacao-inicio-bloqueado';
 
 /** Why the pair cannot start, before any request: the gate fails closed (SPEC 0003 B20). */
-function blockedReason(estimate: ComparisonEstimate): string | null {
-  if (estimate.monthToDateUsd === null) {
-    return 'O gasto do mês não pôde ser lido, então a comparação não pode ser iniciada agora. Verifique com `studio doctor`.';
-  }
-  if (!estimate.withinMonthCeiling) return 'As duas execuções passariam do teto de gasto do mês.';
+function blockedReason(estimate: ComparisonEstimate, t: WebMessages['curations']['comparisons']['start']): string | null {
+  if (estimate.monthToDateUsd === null) return t.monthUnreadable;
+  if (!estimate.withinMonthCeiling) return t.overCeiling;
   return null;
 }
 
@@ -32,12 +32,16 @@ function blockedReason(estimate: ComparisonEstimate): string | null {
  * sees and confirms the new one; nothing starts on a refusal.
  */
 export function StartComparisonButton({ comparisonId, estimate }: StartComparisonButtonProps): ReactElement {
+  const t = useWebMessages();
+  const texts = t.curations.comparisons.start;
+  const { locale } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const accepted = estimate.pairWorstCaseUsd;
-  const blocked = blockedReason(estimate);
+  const acceptedText = formatUsd(accepted, locale);
+  const blocked = blockedReason(estimate, texts);
 
   async function start(): Promise<void> {
     if (pending) return;
@@ -48,7 +52,7 @@ export function StartComparisonButton({ comparisonId, estimate }: StartCompariso
       setOpen(false);
       router.refresh();
     } catch (failure) {
-      setError(describeApiError(failure));
+      setError(describeApiError(failure, t));
       setOpen(false);
       if (failure instanceof ApiRequestError && failure.reason === 'comparison-estimate-changed') router.refresh();
     } finally {
@@ -71,7 +75,7 @@ export function StartComparisonButton({ comparisonId, estimate }: StartCompariso
           aria-describedby={blocked === null ? undefined : BLOCKED_REASON_ID}
           onClick={() => setOpen(true)}
         >
-          {`Iniciar as duas execuções (até ${formatUsd(accepted)})`}
+          {texts.button(acceptedText)}
         </Button>
       </div>
       <Dialog
@@ -80,15 +84,15 @@ export function StartComparisonButton({ comparisonId, estimate }: StartCompariso
           if (!pending) setOpen(false);
         }}
         role="alertdialog"
-        title="Iniciar a comparação?"
-        description={`As duas execuções começam juntas. O custo máximo do par é ${formatUsd(accepted)}; você aceita esse valor ao iniciar.`}
+        title={texts.dialogTitle}
+        description={texts.dialogDescription(acceptedText)}
         footer={
           <>
             <Button variant="secondary" disabled={pending} onClick={() => setOpen(false)}>
-              Cancelar
+              {texts.cancel}
             </Button>
-            <Button variant="primary" loading={pending} loadingLabel="Iniciando…" onClick={() => void start()}>
-              {`Aceitar ${formatUsd(accepted)} e iniciar`}
+            <Button variant="primary" loading={pending} loadingLabel={texts.starting} onClick={() => void start()}>
+              {texts.accept(acceptedText)}
             </Button>
           </>
         }

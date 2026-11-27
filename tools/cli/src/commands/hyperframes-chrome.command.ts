@@ -1,10 +1,11 @@
-import { ensureBrowser, locateInstalledChrome, pinnedBinPath } from '@studio/hyperframes';
+import { checkInstallRuntime, completeInstallRuntime, ensureBrowser, locateInstalledChrome } from '@studio/hyperframes';
 import { HYPERFRAMES_CHROME_VERSION, HYPERFRAMES_FORMAT_VERSION, hyperframesPaths } from '@studio/shared/hyperframes';
 import { ensureHyperframesFolders, writeChromeFile } from '@studio/shared/hyperframes/files';
 import { TerminalRequiredError } from '../errors/cli.errors.js';
 import { ExitCode } from '../errors/exit-codes.js';
-import { HYPERFRAMES_CLI_ACTOR, baseRuntime, withScratchFolder } from '../hyperframes/cli-runtime.js';
-import { withHyperframesErrors } from '../hyperframes/hyperframes.errors.js';
+import { cliText } from '../i18n/messages.js';
+import { HYPERFRAMES_CLI_ACTOR, startingProcess, withScratchFolder } from '../hyperframes/cli-runtime.js';
+import { renderRuntimeRefusalError, withHyperframesErrors } from '../hyperframes/hyperframes.errors.js';
 import { type HyperframesCommandPorts } from '../hyperframes/hyperframes-ports.js';
 import { chromeInstallNotice } from '../hyperframes/hyperframes-texts.js';
 import { askTypedConfirmation } from '../hyperframes/typed-confirmation.js';
@@ -28,16 +29,17 @@ export async function hyperframesChromeInstallCommand(ports: HyperframesCommandP
     const dataHomeRoot = settings.dataHome.root;
     const paths = hyperframesPaths(dataHomeRoot);
     // The pin is asserted before the owner is asked anything, so a wrong install never downloads.
-    const binPath = pinnedBinPath();
+    const checked = checkInstallRuntime(dataHomeRoot);
+    if (checked.status === 'refused') throw renderRuntimeRefusalError(checked.reason);
     for (const line of chromeInstallNotice(paths.cacheDir)) printer.line(line);
     await askTypedConfirmation(ports.terminal, signal, {
-      label: `Digite ${HYPERFRAMES_CHROME_VERSION} para baixar e instalar (qualquer outra resposta cancela): `,
+      label: cliText().hyperframes.chromeInstallPrompt(HYPERFRAMES_CHROME_VERSION),
       expected: HYPERFRAMES_CHROME_VERSION,
     });
 
     await ensureHyperframesFolders(dataHomeRoot);
     const installed = await withScratchFolder('studio-hyperframes-chrome-', async (tmpDir) => {
-      await ensureBrowser(baseRuntime(settings, { binPath, tmpDir }), { process: ports.process(signal) });
+      await ensureBrowser(completeInstallRuntime(checked.runtime, startingProcess(settings, tmpDir)), { process: ports.process(signal) });
       return locateInstalledChrome(paths.cacheDir);
     });
     await writeChromeFile(dataHomeRoot, {
@@ -49,8 +51,8 @@ export async function hyperframesChromeInstallCommand(ports: HyperframesCommandP
       installedAt: ports.now().toISOString(),
       installedBy: HYPERFRAMES_CLI_ACTOR,
     });
-    printer.line(`Chrome ${installed.version} instalado (${formatBytes(installed.sizeBytes)}).`);
-    printer.line('Próximo passo: `studio hyperframes trace`.');
+    printer.line(cliText().hyperframes.chromeInstalled(installed.version, formatBytes(installed.sizeBytes)));
+    printer.line(cliText().hyperframes.nextTrace);
     await recordHyperframesEvent(ports, printer, { event: 'hyperframes.chrome-installed', version: installed.version, sizeBytes: installed.sizeBytes });
     return ExitCode.ok;
   });

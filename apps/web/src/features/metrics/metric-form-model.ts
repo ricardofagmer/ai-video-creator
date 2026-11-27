@@ -6,6 +6,7 @@ import {
   type MetricName,
   type PlatformMetrics,
 } from '@studio/shared/metrics';
+import { type WebMessages } from '@/messages';
 
 /*
  * The manual metrics form of the run page (SPEC 0006 section 5.9): one text field per
@@ -13,24 +14,19 @@ import {
  * and "1:23" mean the same in both. Only `views` is required. The api validates again.
  */
 
-interface MetricFieldSpec {
-  label: string;
-  help?: string;
-  parser: MetricCellParser;
-}
-
-export const metricFieldSpecs: Readonly<Record<MetricName, MetricFieldSpec>> = {
-  views: { label: 'Visualizações', parser: 'integer' },
-  likes: { label: 'Curtidas', parser: 'integer' },
-  comments: { label: 'Comentários', parser: 'integer' },
-  shares: { label: 'Compartilhamentos', parser: 'integer' },
-  saves: { label: 'Salvamentos', parser: 'integer' },
-  impressions: { label: 'Impressões', parser: 'integer' },
-  reach: { label: 'Alcance', parser: 'integer' },
-  followersGained: { label: 'Seguidores ganhos', parser: 'integer' },
-  watchTimeSeconds: { label: 'Tempo assistido (horas)', help: 'Em horas, como no YouTube Studio. Ex.: 12,5', parser: 'hours' },
-  averageViewDurationSeconds: { label: 'Duração média assistida', help: 'm:ss ou segundos. Ex.: 0:42', parser: 'duration' },
-  averageViewPercent: { label: 'Porcentagem média assistida (%)', help: 'Pode passar de 100 quando o vídeo repete.', parser: 'percent' },
+/** How each field is read; its label is `t.metrics.fields`, its help `t.metrics.fieldHelp`. */
+export const metricFieldParsers: Readonly<Record<MetricName, MetricCellParser>> = {
+  views: 'integer',
+  likes: 'integer',
+  comments: 'integer',
+  shares: 'integer',
+  saves: 'integer',
+  impressions: 'integer',
+  reach: 'integer',
+  followersGained: 'integer',
+  watchTimeSeconds: 'hours',
+  averageViewDurationSeconds: 'duration',
+  averageViewPercent: 'percent',
 };
 
 export const metricFieldOrder: readonly MetricName[] = [
@@ -73,7 +69,7 @@ export type MetricFormResult =
 
 /** `null` for an empty field, the parsed number, or `'invalid'`. */
 function readField(name: MetricName, text: string): number | null | 'invalid' {
-  const parsed = metricCellParsers[metricFieldSpecs[name].parser](text);
+  const parsed = metricCellParsers[metricFieldParsers[name]](text);
   if (parsed.status === 'empty') return null;
   if (parsed.status === 'invalid') return 'invalid';
   return parsed.value;
@@ -83,18 +79,21 @@ function readField(name: MetricName, text: string): number | null | 'invalid' {
  * Builds the C10 `SaveMetricSnapshotRequest` and validates the date against `today` (the api
  * refuses a future `asOfDate`; this only spares the round trip).
  */
-export function buildMetricSnapshot(options: { asOfDate: string; values: MetricFormValues; today: string }): MetricFormResult {
+export function buildMetricSnapshot(
+  options: { asOfDate: string; values: MetricFormValues; today: string },
+  t: WebMessages['metrics']['snapshotForm']['errors'],
+): MetricFormResult {
   const errors: MetricFormErrors = {};
-  if (!IsoDateSchema.safeParse(options.asOfDate).success) errors.asOfDate = 'Escolha a data dos números.';
-  else if (options.asOfDate > options.today) errors.asOfDate = 'A data das métricas não pode ser no futuro.';
+  if (!IsoDateSchema.safeParse(options.asOfDate).success) errors.asOfDate = t.asOfDate;
+  else if (options.asOfDate > options.today) errors.asOfDate = t.future;
 
   const read: Partial<Record<MetricName, number | null>> = {};
   for (const name of metricFieldOrder) {
     const value = readField(name, options.values[name]);
-    if (value === 'invalid') errors[name] = 'Número não reconhecido.';
+    if (value === 'invalid') errors[name] = t.number;
     else read[name] = value;
   }
-  if (errors.views === undefined && (read.views === null || read.views === undefined)) errors.views = 'Informe as visualizações.';
+  if (errors.views === undefined && (read.views === null || read.views === undefined)) errors.views = t.views;
 
   const candidate = {
     views: read.views ?? 0,
@@ -113,9 +112,9 @@ export function buildMetricSnapshot(options: { asOfDate: string; values: MetricF
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       const field = metricFieldOrder.find((name) => name === issue.path[0]);
-      if (field !== undefined && errors[field] === undefined) errors[field] = 'Valor fora do limite aceito.';
+      if (field !== undefined && errors[field] === undefined) errors[field] = t.outOfRange;
     }
-    if (Object.keys(errors).length === 0) errors.views = 'Valor fora do limite aceito.';
+    if (Object.keys(errors).length === 0) errors.views = t.outOfRange;
   }
   if (Object.keys(errors).length > 0 || !parsed.success) return { kind: 'invalid', errors };
   return { kind: 'valid', asOfDate: options.asOfDate, metrics: parsed.data };

@@ -1,6 +1,7 @@
-import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
+import { Module, RequestMethod, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { CqrsModule } from '@nestjs/cqrs';
+import { AssetJobsModule } from '@studio/core/asset-jobs';
 import { CatalogModule } from '@studio/core/catalog';
 import { ComparisonsModule } from '@studio/core/comparisons';
 import { CostsModule } from '@studio/core/costs';
@@ -16,6 +17,7 @@ import { RecipesModule } from '@studio/core/recipes';
 import { ReviewModule } from '@studio/core/review';
 import { RunsModule } from '@studio/core/runs';
 import { SchedulesModule } from '@studio/core/schedules';
+import { apiRouteSegments } from '@studio/shared/api';
 import { AuthModule } from './auth/auth.module';
 import { CatalogApiModule } from './catalog/catalog-api.module';
 import { ComparisonsApiModule } from './comparisons/comparisons-api.module';
@@ -23,6 +25,8 @@ import { ConnectionsApiModule } from './connections/connections-api.module';
 import { CurationsApiModule } from './curations/curations-api.module';
 import { HealthModule } from './health/health.module';
 import { InsightsApiModule } from './insights/insights-api.module';
+import { InstallBoundaryMiddleware } from './install/install-boundary.middleware';
+import { InstallModule } from './install/install.module';
 import { MetricsApiModule } from './metrics/metrics-api.module';
 import { ApiExceptionFilter } from './platform/api-exception.filter';
 import { AccessLogMiddleware, CorrelationMiddleware, HostOriginMiddleware, SecurityHeadersMiddleware } from './platform/http.middleware';
@@ -55,6 +59,9 @@ import { WatcherApiModule } from './watcher/watcher-api.module';
  * records the owner's request and the watcher uploads between runs (K4, AC 52). The api writes
  * `gates.json`, `account.json`, `request.json` and `cancel` through core, and never `health.json`,
  * `claim`, `state.json`, `cursor.json` or `publications.jsonl` (K2, AC 57).
+ * Guided-creation design: the api imports `AssetJobsModule` and writes an asset job's `job.json`
+ * only as `requested`; the watcher (with `AssetJobsReadModule`) owns every later state and the
+ * provider calls. The api indexes a terminal job's `cost.json` (Amendment 3).
  */
 @Module({
   imports: [
@@ -75,6 +82,7 @@ import { WatcherApiModule } from './watcher/watcher-api.module';
     SchedulesModule,
     InsightsModule,
     PlatformsModule,
+    AssetJobsModule,
     AuthModule,
     HealthModule,
     CatalogApiModule,
@@ -89,6 +97,7 @@ import { WatcherApiModule } from './watcher/watcher-api.module';
     InsightsApiModule,
     ConnectionsApiModule,
     PublishingApiModule,
+    InstallModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ApiExceptionFilter }],
 })
@@ -96,10 +105,16 @@ export class AppModule implements NestModule {
   /**
    * Order matters: the correlation id and request context come first so every later step (and
    * the guard, pipes and filter) logs under it; Host/Origin refusals happen before any route.
+   * Desktop installer C1: on `/install/*` the stricter `InstallBoundaryMiddleware` (421 on a
+   * foreign Host, exact-origin CORS for the portal) takes the place of `HostOriginMiddleware`,
+   * which would refuse the portal's POST; every other route keeps today's chain unchanged.
+   * Registrations run in the order written here.
    */
   configure(consumer: MiddlewareConsumer): void {
-    consumer
-      .apply(CorrelationMiddleware, SecurityHeadersMiddleware, HostOriginMiddleware, AccessLogMiddleware)
-      .forRoutes('{*splat}');
+    const installRoutes = { path: `${apiRouteSegments.install}/{*splat}`, method: RequestMethod.ALL };
+    consumer.apply(CorrelationMiddleware, SecurityHeadersMiddleware).forRoutes('{*splat}');
+    consumer.apply(InstallBoundaryMiddleware).forRoutes(installRoutes);
+    consumer.apply(HostOriginMiddleware).exclude(installRoutes).forRoutes('{*splat}');
+    consumer.apply(AccessLogMiddleware).forRoutes('{*splat}');
   }
 }

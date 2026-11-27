@@ -4,24 +4,28 @@ import { Alert, Button, Card, FormField, Input } from '@studio/ui';
 import { useRouter } from 'next/navigation';
 import { useId, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import { ApiRequestError, ApiUnreachableError, browserStudioClient } from '@/lib/api';
-import { API_UNREACHABLE_TEXT } from '@/features/common/api-error-text';
+import { apiUnreachableText } from '@/features/common/api-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
+import { type WebMessages } from '@/messages';
+import styles from '@/features/auth/login.module.css';
 import layout from '@/features/common/layout.module.css';
 
 const HOME_PATH = '/execucoes';
 const FIELD_ID = 'senha';
 
-function loginErrorText(error: unknown): string {
-  if (error instanceof ApiUnreachableError) return API_UNREACHABLE_TEXT;
+function loginErrorText(error: unknown, t: WebMessages): string {
+  const texts = t.auth.errors;
+  if (error instanceof ApiUnreachableError) return apiUnreachableText(t);
   if (error instanceof ApiRequestError) {
-    if (error.status === 401) return 'Senha incorreta. Tente de novo.';
+    if (error.status === 401) return texts.wrongPassphrase;
     if (error.status === 429) {
       const seconds = error.body?.details?.retryAfterSeconds;
-      return seconds === undefined ? 'Muitas tentativas. Espere um pouco e tente de novo.' : `Muitas tentativas. Espere ${seconds} s e tente de novo.`;
+      return seconds === undefined ? texts.tooManyAttempts : texts.tooManyAttemptsWait(seconds);
     }
-    if (error.reason === 'passphrase-not-configured') return 'Nenhuma senha foi definida neste Mac. Rode o script de instalação para definir a senha.';
-    if (error.status === 403 || error.status === 503) return API_UNREACHABLE_TEXT;
+    if (error.reason === 'passphrase-not-configured') return texts.notConfigured;
+    if (error.status === 403 || error.status === 503) return apiUnreachableText(t);
   }
-  return 'Não foi possível entrar. Tente de novo.';
+  return texts.failed;
 }
 
 /**
@@ -31,6 +35,8 @@ function loginErrorText(error: unknown): string {
  * here because the shared Card title stops at h2.
  */
 export function LoginForm(): ReactElement {
+  const t = useWebMessages();
+  const texts = t.auth.form;
   const router = useRouter();
   const titleId = useId();
   const descriptionId = useId();
@@ -51,7 +57,7 @@ export function LoginForm(): ReactElement {
       router.refresh();
     } catch (caught) {
       setPassphrase('');
-      setError(loginErrorText(caught));
+      setError(loginErrorText(caught, t));
       setPending(false);
       inputRef.current?.focus();
     }
@@ -59,12 +65,13 @@ export function LoginForm(): ReactElement {
 
   return (
     <Card>
-      <div className={layout.authCardHeading}>
-        <h1 id={titleId} className="heading-3">
-          Entrar
+      <div className={styles.cardHeading}>
+        <p className="eyebrow">{texts.eyebrow}</p>
+        <h1 id={titleId} className="heading-1">
+          {texts.title}
         </h1>
-        <p id={descriptionId} className={`caption ${layout.authCardDescription}`}>
-          Digite a senha deste Mac.
+        <p id={descriptionId} className={`caption ${styles.cardDescription}`}>
+          {texts.description}
         </p>
       </div>
       <form
@@ -80,7 +87,7 @@ export function LoginForm(): ReactElement {
             <span id={`${FIELD_ID}-alert`}>{error}</span>
           </Alert>
         )}
-        <FormField id={FIELD_ID} label="Senha" disabled={pending}>
+        <FormField id={FIELD_ID} label={texts.passphrase} disabled={pending}>
           {({ invalid, ...control }) => (
             <Input
               {...control}
@@ -97,8 +104,8 @@ export function LoginForm(): ReactElement {
             />
           )}
         </FormField>
-        <Button type="submit" variant="primary" block loading={pending} loadingLabel="Entrando…">
-          Entrar
+        <Button type="submit" variant="primary" block loading={pending} loadingLabel={texts.signingIn}>
+          {texts.submit}
         </Button>
       </form>
     </Card>

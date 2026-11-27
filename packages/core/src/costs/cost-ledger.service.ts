@@ -9,6 +9,7 @@ import {
 import { readCostFile, writeCostFile } from '@studio/shared/run-files';
 import { COST_SUM_TOLERANCE_USD, CostSessionSchema, RunIdSchema, type ProviderName } from '@studio/shared/run-format';
 import { ProviderModeService } from '../providers/provider-mode.service';
+import { KeyedMutex } from '../runtime/keyed-mutex';
 import { appendCostSession } from './cost-file';
 import { costSessionKey, usageOfCostSession } from './cost-session.mapper';
 import { CostFileRunMismatchError, CostSessionPriceMismatchError } from './costs.errors';
@@ -18,7 +19,7 @@ import { priceUsage } from './pricing';
 
 function usageProvider(usage: UsageQuantity): ProviderName {
   if (usage.kind === 'model') return 'claude';
-  if (usage.kind === 'tts') return usage.provider;
+  if (usage.kind === 'tts' || usage.kind === 'music') return usage.provider;
   return 'render';
 }
 
@@ -32,7 +33,8 @@ function usageProvider(usage: UsageQuantity): ProviderName {
 export class CostLedgerService implements CostLedgerPort {
   readonly priceTableVersion = PRICE_TABLE.version;
   private readonly logger = new Logger(CostLedgerService.name);
-  private readonly runQueues = new Map<string, Promise<unknown>>();
+  /** cost.json is read-modify-written; two sessions of one run must not interleave. */
+  private readonly runFiles = new KeyedMutex();
 
   constructor(
     private readonly modes: ProviderModeService,
@@ -41,7 +43,10 @@ export class CostLedgerService implements CostLedgerPort {
 
   /** Throws `PriceNotAvailableError` for live usage the table cannot price (fails closed). */
   priceUsd(usage: UsageQuantity): number {
-    if (!this.modes.isLive(usageProvider(usage))) return 0;
+    const provider = usageProvider(usage);
+    if (!this.modes.isLive(provider)) return 0;
+    // ADR 0011: Claude Code calls run on the subscription, which bills nothing per call.
+    if (provider === 'claude' && this.modes.usesClaudeCode()) return 0;
     return priceUsage(PRICE_TABLE, usage);
   }
 
@@ -56,7 +61,7 @@ export class CostLedgerService implements CostLedgerPort {
       throw new CostSessionPriceMismatchError(key.sessionId, key.callIndex);
     }
 
-    const runTotalUsd = await this.serializedPerRun(request.runDir, async () => {
+    const runTotalUsd = await this.runFiles.run(request.runDir, async () => {
       const existing = await readCostFile(request.runDir);
       const result = appendCostSession({
         existing: existing.status === 'present' ? existing.value : null,
@@ -85,18 +90,5 @@ export class CostLedgerService implements CostLedgerPort {
 
   monthToDateUsd(at: Date): Promise<number> {
     return this.monthToDate.computeUsd(at);
-  }
-
-  /** cost.json is read-modify-written; two sessions of one run must not interleave. */
-  private async serializedPerRun<T>(runDir: string, work: () => Promise<T>): Promise<T> {
-    const previous = this.runQueues.get(runDir) ?? Promise.resolve();
-    // The previous call's failure was already delivered to its own caller.
-    const current = previous.catch(() => undefined).then(work);
-    this.runQueues.set(runDir, current);
-    try {
-      return await current;
-    } finally {
-      if (this.runQueues.get(runDir) === current) this.runQueues.delete(runDir);
-    }
   }
 }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { type ScheduleFile } from '@studio/shared/schedules';
 import { createSchedule, rewriteScheduleFile } from '@studio/shared/schedules/files';
 import { DataHome } from '../paths/data-home';
+import { SerialMutex } from '../runtime/keyed-mutex';
 
 /**
  * The api's and CLI's only schedule writes (SPEC 0006 K2, R3-AC-19): `schedule.json` created
@@ -12,15 +13,13 @@ import { DataHome } from '../paths/data-home';
 @Injectable()
 export class ScheduleWriter {
   /** Read-check-write sequences (the limit count, a brief change) must not interleave in one process. */
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly writes = new SerialMutex();
 
   constructor(private readonly dataHome: DataHome) {}
 
   /** Runs `work` after every earlier write of this process; each caller still gets its own result. */
   exclusive<T>(work: () => Promise<T>): Promise<T> {
-    const run = this.tail.then(work);
-    this.tail = run.catch(() => undefined);
-    return run;
+    return this.writes.run(work);
   }
 
   /** SPEC 0006 section 5.5 step 6: the folder is created exclusively, status `active`. */

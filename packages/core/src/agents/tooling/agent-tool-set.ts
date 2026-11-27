@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { type ToolsInput } from '@mastra/core/agent';
-import { AgentToolNameSchema, agentToolAllowlists, type AgentToolName, type ModelRoleName } from '@studio/shared/agents';
+import { AgentToolNameSchema, agentToolAllowlists, type AgentToolName, type ModelRoleName, type RunArtifactId } from '@studio/shared/agents';
 import { type AssetRef } from '@studio/shared/catalog';
 import { type RunId, type SessionId, type StageId, type StepKey } from '@studio/shared/run-format';
 import { AgentRunError } from '../agents.errors';
@@ -43,6 +43,12 @@ export interface AgentToolScope {
  */
 export interface AgentToolSetProvider {
   toolsFor(scope: AgentToolScope): Promise<AgentToolSet>;
+  /**
+   * Reads run artifacts on the model's behalf, for an engine that cannot offer it tools (the
+   * Claude Code CLI, ADR 0011). Same guards as a model's own call: role allowlist, call counter,
+   * redaction and trace. Returns the delimited blocks, at most `maxCalls` of them.
+   */
+  readArtifacts(scope: AgentToolScope, artifactIds: readonly RunArtifactId[], maxCalls: number): Promise<string[]>;
 }
 
 export const AGENT_TOOL_SET_PROVIDER = Symbol('AGENT_TOOL_SET_PROVIDER');
@@ -56,6 +62,10 @@ export const AGENT_TOOL_SET_PROVIDER = Symbol('AGENT_TOOL_SET_PROVIDER');
 export class NoAgentToolSetProvider implements AgentToolSetProvider {
   async toolsFor(): Promise<AgentToolSet> {
     return {};
+  }
+
+  async readArtifacts(): Promise<string[]> {
+    return [];
   }
 }
 
@@ -85,5 +95,12 @@ export class AgentToolSetResolver {
       throw new AgentRunError(scope.role, { kind: 'configuration', reason: 'tools-unavailable' });
     }
     return tools;
+  }
+
+  /** The artifacts a tool-less engine's prompt carries in place of the model's own reads. */
+  async readArtifacts(scope: Omit<AgentToolScope, 'allowlist'>, artifactIds: readonly RunArtifactId[], maxCalls: number): Promise<string[]> {
+    const allowlist = agentToolAllowlists[scope.role];
+    if (artifactIds.length === 0 || !allowlist.includes('RunArtifactReadTool')) return [];
+    return this.provider.readArtifacts({ ...scope, allowlist }, artifactIds, maxCalls);
   }
 }

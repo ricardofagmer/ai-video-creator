@@ -70,3 +70,42 @@ export function claimsFromKeyMessages(keyMessages: readonly string[], pageText: 
     };
   });
 }
+
+/** Marks a claim the owner stated in the brief of a run with no source: there is no page to check it against. */
+export const OWNER_STATED_REF_PREFIX = 'owner:key-message-';
+
+/**
+ * Key messages of a run with no Source URL (owner decision, 2026-11-24): each is the owner's own
+ * statement, so it passes with the statement as its excerpt and an `owner:` reference instead of a
+ * page span. A run with a source never uses this; its messages need a span of the page text.
+ */
+export function claimsStatedByOwner(keyMessages: readonly string[]): ClaimRecord[] {
+  return keyMessages.map((statement, index) => ({
+    claimId: `claim-${index + 1}`,
+    statement,
+    status: 'verified',
+    evidence: { start: 0, end: 0, excerpt: statement },
+    evidenceRef: `${OWNER_STATED_REF_PREFIX}${index + 1}`,
+  }));
+}
+
+/**
+ * Site analysis key points the page text backs (spec Amendment): only a point with an evidence
+ * span becomes a claim, numbered after the key-message claims; a point with no span is dropped, so
+ * the analyst's reading never enters the script as an unverified fact.
+ */
+export function claimsFromKeyPoints(keyPoints: readonly string[], pageText: string, firstNumber: number): ClaimRecord[] {
+  const claims: ClaimRecord[] = [];
+  for (const statement of keyPoints) {
+    const evidence = findEvidence(statement, pageText);
+    if (evidence === null) continue;
+    claims.push({
+      claimId: `claim-${firstNumber + claims.length}`,
+      statement,
+      status: 'verified',
+      evidence,
+      evidenceRef: `research:${evidence.start}-${evidence.end}`,
+    });
+  }
+  return claims;
+}

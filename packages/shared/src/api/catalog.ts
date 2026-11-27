@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { AbsolutePathSchema } from '../common/ids';
+import { AssetJobErrorCodeSchema } from '../asset-jobs/asset-job';
+import { AbsolutePathSchema, RelativePathSchema } from '../common/ids';
 import {
   AssetIdSchema,
   AssetKindSchema,
@@ -9,6 +10,7 @@ import {
   TagSchema,
 } from '../catalog/asset-kind';
 import {
+  ASSET_PURPOSE_MAX_CHARS,
   AiModelAssetVersionSchema,
   AssetLayoutSchema,
   BrandKitAssetVersionSchema,
@@ -41,13 +43,28 @@ export type AssetStorageView = z.infer<typeof AssetStorageViewSchema>;
  *   (no current vector), `stale` (vector from another model), `unavailable` (model absent or
  *   rejected);
  * - `learnings`: the version's notes, active and retired, newest first;
- * - `activation`: the approval that made it `active`, or null.
+ * - `activation`: the approval that made it `active`, or null;
+ * - `purposeJob`: the open or failed purpose job (ADR 0012, C-P2), or null.
  */
+/**
+ * ADR 0012 (C-P2): the version's open or failed `asset-purpose` job. `null` means no job, or a
+ * `done` one, whose text is already copied into `purpose`. `errorCode` is set for `failed` and
+ * `refused` only.
+ */
+export const AssetPurposeJobViewSchema = z
+  .object({
+    status: z.enum(['requested', 'running', 'failed', 'refused']),
+    errorCode: AssetJobErrorCodeSchema.nullable(),
+  })
+  .strict();
+export type AssetPurposeJobView = z.infer<typeof AssetPurposeJobViewSchema>;
+
 const versionView = {
   storage: AssetStorageViewSchema,
   searchIndex: z.enum(['indexed', 'pending', 'stale', 'unavailable']),
   learnings: z.array(LearningNoteViewSchema).max(50),
   activation: PromotionApprovalViewSchema.nullable(),
+  purposeJob: AssetPurposeJobViewSchema.nullable(),
 };
 
 /** C1 `embedding` is omitted: no response of any route carries a vector (SPEC 0003 L8, R2-AC-10). */
@@ -74,14 +91,12 @@ export const AssetVersionPageSchema = pageOf(AssetVersionViewSchema);
 export type AssetVersionPageView = z.infer<typeof AssetVersionPageSchema>;
 
 /**
- * `PUT /catalog/assets/:assetId/versions/:version/status` response. Rev 3: the route only
- * deprecates; `replaced` is kept for the rev 2 shape and is null.
+ * `PUT /catalog/assets/:assetId/versions/:version/status` response: the version after the call. The
+ * route only deprecates; activation is `POST .../promotion`.
  */
 export const SetAssetStatusResponseSchema = z
   .object({
     version: AssetVersionViewSchema,
-    /** Rev 2: the previously active version when this call promoted another one; rev 3: null. */
-    replaced: AssetVersionViewSchema.nullable(),
   })
   .strict();
 export type SetAssetStatusResponse = z.infer<typeof SetAssetStatusResponseSchema>;
@@ -198,13 +213,37 @@ export const SaveAssetVersionUploadFieldsSchema = z
 export type SaveAssetVersionUploadFields = z.infer<typeof SaveAssetVersionUploadFieldsSchema>;
 
 /** `POST /catalog/assets/:assetId/versions/from-previous` (JSON): N+1 reusing the bytes of `fromVersion`. */
+/** A skill's entry file (SKILL.md) as text; core enforces the same 256 KiB byte cap in UTF-8. */
+export const ENTRY_FILE_TEXT_MAX_BYTES = 256 * 1024;
+
+const EntryFileTextSchema = z
+  .string()
+  .refine((text) => new TextEncoder().encode(text).byteLength <= ENTRY_FILE_TEXT_MAX_BYTES, {
+    message: `at most ${ENTRY_FILE_TEXT_MAX_BYTES} bytes as UTF-8`,
+  });
+
+/**
+ * N+1 from `fromVersion`. With `entryFile` (skills only, skills spec addendum T5) the stored folder
+ * keeps every other file and its entry file is replaced by `entryFile.text`; without it the bytes
+ * are reused as they are.
+ */
 export const SaveMetadataVersionRequestSchema = z
   .object({
     fromVersion: z.number().int().min(1),
     metadata: AssetMetadataInputSchema,
+    entryFile: z.object({ text: EntryFileTextSchema }).strict().optional(),
   })
   .strict();
 export type SaveMetadataVersionRequest = z.infer<typeof SaveMetadataVersionRequestSchema>;
+
+/** `GET .../versions/:version/entry-file`: the entry file of a skill version as UTF-8 text. */
+export const EntryFileViewSchema = z
+  .object({
+    path: RelativePathSchema,
+    text: z.string(),
+  })
+  .strict();
+export type EntryFileView = z.infer<typeof EntryFileViewSchema>;
 
 /**
  * Step 1 of the by-reference path validation (SPEC 0002 rev 4, section 13.4): `AbsolutePathSchema`,
@@ -281,9 +320,39 @@ export function mimeTypeForFileName(name: string): string | null {
 }
 
 /**
- * `PUT .../status` body for asset and recipe versions; nothing is ever deleted. Rev 3 (**breaking**,
- * SPEC 0003 L6): `status: 'active'` still parses but answers 422 `promotion-approval-required`;
- * a version becomes `active` only through `POST .../promotion` (`PromoteVersionRequest`).
+ * `PUT .../status` body for asset and recipe versions; nothing is ever deleted. The route only
+ * deprecates, so `deprecated` is the only accepted value; any other status answers 400 `validation`.
+ * A version becomes `active` only through `POST .../promotion` (`PromoteVersionRequest`).
  */
-export const SetVersionStatusRequestSchema = z.object({ status: AssetStatusSchema }).strict();
+export const SetVersionStatusRequestSchema = z.object({ status: z.literal('deprecated') }).strict();
 export type SetVersionStatusRequest = z.infer<typeof SetVersionStatusRequestSchema>;
+
+/**
+ * Markup and formatting an owner purpose may not carry (ADR 0012, C-P4): HTML or tag brackets,
+ * code backticks, Markdown emphasis, headings, list bullets, links and control characters (a line
+ * break included). The purpose is shown as an `alt` and a `title`, so plain text is the only safe
+ * shape. Same rule as the purpose writer's output check (AP-04).
+ */
+const ASSET_PURPOSE_MARKUP_PATTERN = /[<>`*_#[\]|]|^\s*[-+]\s|\p{Cc}/mu;
+
+/**
+ * `PUT .../purpose` body (ADR 0012, C-P4): the owner's purpose text. Runs of spaces and tabs become
+ * one space and the ends are trimmed before the 1..280 check, so a text of blanks is refused.
+ * Sets `purposeSource: owner`; no job overwrites it afterwards (AP-03).
+ */
+export const SetAssetPurposeRequestSchema = z
+  .object({
+    purpose: z
+      .string()
+      .max(ASSET_PURPOSE_MAX_CHARS * 4)
+      .transform((text) => text.replace(/[ \t]+/g, ' ').trim())
+      .pipe(
+        z
+          .string()
+          .min(1)
+          .max(ASSET_PURPOSE_MAX_CHARS)
+          .refine((text) => !ASSET_PURPOSE_MARKUP_PATTERN.test(text), { message: 'purpose must be plain text without markup' }),
+      ),
+  })
+  .strict();
+export type SetAssetPurposeRequest = z.input<typeof SetAssetPurposeRequestSchema>;

@@ -14,6 +14,9 @@ export const SceneIdSchema = z
   .string()
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/, 'expected a scene id: a letter or digit, then letters, digits, - or _, at most 64');
 
+/** Most bound skill texts one agent packet carries: each may be a full delimited block. */
+export const WRITER_SKILLS_MAX = 5;
+
 /** Scriptwriter answer (topology section 5). */
 export const ScriptOutputSchema = z
   .object({
@@ -63,10 +66,25 @@ export const WriterPacketSchema = z
         templateInputSchema: JsonObjectSchema,
         /** Bound prompt asset version, delimited. */
         promptText: UntrustedTextSchema,
-        /** Bound skill asset version, delimited. */
-        skillText: UntrustedTextSchema.optional(),
+        /** Bound skill asset versions (`skill:writer`, else every skill of the recipe), one delimited block each; absent when none is bound. */
+        skillTexts: z.array(UntrustedTextSchema).min(1).max(WRITER_SKILLS_MAX).optional(),
         /** Brand-kit tone section, delimited. */
         brandVoice: UntrustedTextSchema.optional(),
+        /**
+         * The research stage's SiteAnalysis as JSON, delimited (site analysis spec): third-party
+         * page content, so data only; the owner's brief and instructions win over it.
+         */
+        siteAnalysis: UntrustedTextSchema.optional(),
+        /**
+         * The kept style analyses of the run's video references as JSON, delimited (guided-creation
+         * spec): AI notes about third-party videos, so data only; the owner's brief and instructions win.
+         */
+        referenceAnalyses: UntrustedTextSchema.optional(),
+        /**
+         * Every reference the owner put on the run (any sub-kind) as JSON, delimited: name, sub-kind,
+         * the owner's notes and the content of a text reference. Data only, and it must be used.
+         */
+        ownerReferences: UntrustedTextSchema.optional(),
         targetDurationSec: z.number().int().positive(),
         language: LanguageSchema,
         /** Attempt > 1 only, from ReviewVerdict. */

@@ -8,6 +8,8 @@ export * from './media';
 export * from './provenance';
 export * from './quality-score';
 export * from './template-engine';
+export * from './upload-limits';
+export * from './video-post';
 export {
   AbsolutePathSchema,
   ComparisonIdSchema,

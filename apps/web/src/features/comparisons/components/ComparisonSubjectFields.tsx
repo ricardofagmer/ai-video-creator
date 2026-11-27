@@ -3,6 +3,8 @@
 import { FormField, Input, RadioGroup, Select, type RadioOption } from '@studio/ui';
 import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
+import { useWebMessages } from '@/lib/i18n/client';
+import { type WebMessages } from '@/messages';
 import {
   TITLE_MAX_CHARS,
   comparisonFieldIds,
@@ -32,21 +34,19 @@ interface ComparisonSubjectFieldsProps {
   onChange: (field: Exclude<ComparisonChoiceField, 'slot'>, value: string) => void;
 }
 
-const kindOptions: readonly RadioOption<ComparisonKind>[] = [
-  {
-    value: 'asset-binding',
-    label: 'Outra versão de um ativo',
-    description: 'A versão B troca só a versão do ativo de um vínculo da receita.',
-  },
-  { value: 'recipe-version', label: 'Outra versão da receita', description: 'A versão B roda outra versão da mesma receita.' },
-];
+type SubjectFieldTexts = WebMessages['curations']['comparisons']['subjectFields'];
 
-function candidatesHelp(candidates: CandidateVersions): string | undefined {
-  if (candidates.status === 'loading') return 'Carregando as versões…';
+function kindOptionsOf(t: SubjectFieldTexts): readonly RadioOption<ComparisonKind>[] {
+  return [
+    { value: 'asset-binding', label: t.assetBinding, description: t.assetBindingDescription },
+    { value: 'recipe-version', label: t.recipeVersion, description: t.recipeVersionDescription },
+  ];
+}
+
+function candidatesHelp(candidates: CandidateVersions, t: SubjectFieldTexts): string | undefined {
+  if (candidates.status === 'loading') return t.loadingVersions;
   if (candidates.status === 'failed') return candidates.message;
-  if (candidates.status === 'ready' && candidates.options.length === 0) {
-    return 'Nenhuma outra versão comparável: só versões em rascunho ou ativas, sem material biométrico.';
-  }
+  if (candidates.status === 'ready' && candidates.options.length === 0) return t.noCandidates;
   return undefined;
 }
 
@@ -62,18 +62,19 @@ export function ComparisonSubjectFields({
   onSlotChange,
   onChange,
 }: ComparisonSubjectFieldsProps): ReactElement {
+  const t = useWebMessages().curations.comparisons.subjectFields;
   const candidateOptions = candidates.status === 'ready' ? candidates.options : [];
   return (
     <div className={layout.stack}>
-      <RadioGroup name="comparacao-tipo" legend="O que muda" options={kindOptions} value={choice.kind} onChange={onKindChange} disabled={disabled} />
+      <RadioGroup name="comparacao-tipo" legend={t.legend} options={kindOptionsOf(t)} value={choice.kind} onChange={onKindChange} disabled={disabled} />
       {choice.kind === 'asset-binding' ? (
         <>
-          <FormField id={comparisonFieldIds.slot} label="Vínculo" error={errors.slot} disabled={disabled}>
+          <FormField id={comparisonFieldIds.slot} label={t.slot} error={errors.slot} disabled={disabled}>
             {({ invalid, ...control }) => (
               <Select
                 {...control}
                 invalid={invalid}
-                placeholder="Selecione o vínculo…"
+                placeholder={t.slotPlaceholder}
                 options={slotOptions}
                 value={choice.slot}
                 onChange={(event) => onSlotChange(event.currentTarget.value)}
@@ -83,8 +84,8 @@ export function ComparisonSubjectFields({
           {choice.slot !== '' && (
             <FormField
               id={comparisonFieldIds.assetRef}
-              label="Versão B do ativo"
-              help={candidatesHelp(candidates)}
+              label={t.assetVersion}
+              help={candidatesHelp(candidates, t)}
               error={errors.assetRef}
               disabled={disabled || candidates.status !== 'ready'}
             >
@@ -92,7 +93,7 @@ export function ComparisonSubjectFields({
                 <Select
                   {...control}
                   invalid={invalid}
-                  placeholder="Selecione a versão…"
+                  placeholder={t.versionPlaceholder}
                   options={candidateOptions}
                   value={choice.assetRef}
                   onChange={(event) => onChange('assetRef', event.currentTarget.value)}
@@ -104,8 +105,8 @@ export function ComparisonSubjectFields({
       ) : (
         <FormField
           id={comparisonFieldIds.recipeRef}
-          label="Versão B da receita"
-          help={recipeVersionOptions.length === 0 ? 'Esta receita não tem outra versão em rascunho ou ativa.' : undefined}
+          label={t.recipeVersionField}
+          help={recipeVersionOptions.length === 0 ? t.noRecipeVersions : undefined}
           error={errors.recipeRef}
           disabled={disabled}
         >
@@ -113,7 +114,7 @@ export function ComparisonSubjectFields({
             <Select
               {...control}
               invalid={invalid}
-              placeholder="Selecione a versão…"
+              placeholder={t.versionPlaceholder}
               options={recipeVersionOptions}
               value={choice.recipeRef}
               onChange={(event) => onChange('recipeRef', event.currentTarget.value)}
@@ -121,7 +122,7 @@ export function ComparisonSubjectFields({
           )}
         </FormField>
       )}
-      <FormField id={comparisonFieldIds.title} label="Título" optional help="Sem título, o serviço local escolhe um." error={errors.title} disabled={disabled}>
+      <FormField id={comparisonFieldIds.title} label={t.title} optional help={t.titleHelp} error={errors.title} disabled={disabled}>
         {({ invalid, ...control }) => (
           <Input {...control} invalid={invalid} maxLength={TITLE_MAX_CHARS} value={choice.title} onChange={(event) => onChange('title', event.currentTarget.value)} />
         )}

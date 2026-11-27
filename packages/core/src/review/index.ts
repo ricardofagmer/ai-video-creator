@@ -1,3 +1,4 @@
+export { DeleteRunCommand, type DeleteRunInput, type DeleteRunResult } from './commands/delete-run.command';
 export { PromoteFromRunCommand, type PromoteFromRunInput, type PromoteFromRunResult } from './commands/promote-from-run.command';
 export { RecordGateDecisionCommand, type GateDecisionResult, type RecordGateDecisionInput } from './commands/record-gate-decision.command';
 export {
@@ -11,6 +12,7 @@ export {
   type RunControlRequest,
   type RunControlResult,
 } from './commands/request-run-control.command';
+export { SaveRunVideoCommand, type SaveRunVideoInput, type SaveRunVideoResult } from './commands/save-run-video.command';
 export {
   ApprovalFileFullError,
   ArtifactChangedError,
@@ -25,9 +27,11 @@ export {
   ReviewNotAllowedError,
   ReviewRunMismatchError,
   ReviewRunNotFoundError,
+  RunNotDeletableError,
   UnsafeArtifactPathError,
   type BiometricRefusalReason,
   type ReviewErrorCategory,
   type ReviewRefusalReason,
+  type RunDeleteRefusalReason,
 } from './review.errors';
 export { ReviewModule } from './review.module';

@@ -141,6 +141,21 @@ export const PageTextRequestSchema = z
   })
   .strict();
 
+/** Site analysis spec (2026-11-23): the screenshot the analyst sees is at most this wide and this large. */
+export const PAGE_SCREENSHOT_MAX_WIDTH_PX = 1600;
+export const PAGE_SCREENSHOT_MAX_BYTES = 1_500_000;
+
+/** One viewport JPEG of the brief's page, held to the same https host rule as `page-text`. */
+export const PageScreenshotRequestSchema = z
+  .object({
+    command: z.literal('page-screenshot'),
+    url: z.string().url().max(2048).startsWith('https://'),
+    maxWidthPx: z.number().int().min(320).max(PAGE_SCREENSHOT_MAX_WIDTH_PX),
+    maxBytes: z.number().int().min(10_000).max(PAGE_SCREENSHOT_MAX_BYTES),
+    output: absolutePath,
+  })
+  .strict();
+
 export const NarrationAssembleRequestSchema = z
   .object({
     command: z.literal('narration-assemble'),
@@ -173,6 +188,31 @@ export const HyperframesRenderRequestSchema = z
     audio: absolutePath,
     output: absolutePath,
     scratchDir: absolutePath,
+    /**
+     * The picture behind the template's text: the segments are cut, in order, into one clip of
+     * `lengthS` written at `file` inside `templateDir` before the render. Absent when the template
+     * does not reference that file.
+     */
+    background: z
+      .object({
+        file: z.literal('media/background.mp4'),
+        lengthS: z.number().positive().max(3600),
+        segments: z
+          .array(
+            z
+              .object({
+                kind: z.enum(['video', 'image', 'blank']),
+                /** Null only for `blank`. */
+                source: absolutePath.nullable(),
+                durationS: z.number().positive().max(3600),
+              })
+              .strict(),
+          )
+          .min(1)
+          .max(32),
+      })
+      .strict()
+      .optional(),
     runtime: z
       .object({
         binPath: absolutePath,
@@ -208,6 +248,7 @@ export const ToolRunnerRequestSchema = z.discriminatedUnion('command', [
   TestCaptureRequestSchema,
   LiveCaptureRequestSchema,
   PageTextRequestSchema,
+  PageScreenshotRequestSchema,
   NarrationAssembleRequestSchema,
   HyperframesRenderRequestSchema,
 ]);
@@ -247,6 +288,11 @@ export type MediaReviewResult = z.infer<typeof MediaReviewResultSchema>;
 export const MediaWriteResultSchema = z.object({ durationS: z.number().nonnegative() });
 export const RenderResultSchema = z.object({ durationS: z.number().nonnegative(), renderSeconds: z.number().nonnegative() });
 export const PageTextResultSchema = z.object({ title: z.string().max(500), text: z.string(), truncated: z.boolean() });
+export const PageScreenshotResultSchema = z.object({
+  bytes: z.number().int().positive().max(PAGE_SCREENSHOT_MAX_BYTES),
+  width: z.number().int().positive().max(PAGE_SCREENSHOT_MAX_WIDTH_PX),
+  height: z.number().int().positive().max(8192),
+});
 export const NarrationAssembleResultSchema = z.object({
   durationS: z.number().positive(),
   sceneTimings: z.array(z.object({ sceneId: z.string(), startS: z.number(), endS: z.number() })),

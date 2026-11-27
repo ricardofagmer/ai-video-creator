@@ -17,8 +17,9 @@ type PlanLearnings = { kind: 'read'; learnings: StageBriefLearnings | null } | {
 
 /**
  * After the `plan` stage is delivered, the engine reads the recorded `PlanOutput`, keeps its
- * summary in `run.plan` and exports `plan.md` with the learning notes of the `plan` stage brief. Questions for the owner hold the run in `waiting`
- * (topology section 12). The plan gate itself is checked by `GateKeeper` before the next stage.
+ * summary in `run.plan` and exports `plan.md` with the learning notes of the `plan` stage brief. Questions for the owner stay in
+ * `run.plan` and plan.md and are warned about; they no longer hold the run (owner decision
+ * 2026-11-25). The plan gate itself is read by `GateKeeper` before the next stage.
  */
 @Injectable()
 export class PlanRecorder {
@@ -51,15 +52,11 @@ export class PlanRecorder {
     });
     await writeRunMarkdown(active.runDir, 'plan', renderPlanMarkdown(active.snapshot, plan, planLearnings.learnings));
     await active.persist();
-    if (plan.questionsForOwner.length === 0) return { kind: 'open' };
-    await active.setState({
-      status: 'waiting',
-      since: now,
-      cause: { kind: 'planner-questions', questions: plan.questionsForOwner },
-      reason: ownerTexts.plannerQuestionsReason,
-      whatToDo: ownerTexts.plannerQuestionsWhatToDo,
-    });
-    return { kind: 'held', status: 'waiting' };
+    if (plan.questionsForOwner.length > 0) {
+      const text = ownerTexts.plannerQuestionsSkipped(plan.questionsForOwner.length);
+      await active.emit({ type: 'log', level: 'warning', text, stepKey: null });
+    }
+    return { kind: 'open' };
   }
 
   /**

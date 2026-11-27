@@ -1,4 +1,5 @@
 import {
+  ANALYST_ROLE,
   DIRECTOR_ROLE,
   EVALUATOR_ROLE,
   PLANNER_ROLE,
@@ -18,6 +19,11 @@ import { type AgentFailure } from '../agents.errors';
 export type AgentFailureResponse =
   /** Planner: deterministic default plan from the recipe, with a warning in the report. */
   | 'fallback-default-plan'
+  /**
+   * Site analyst: like the Planner, the stage falls back and never waits. Research keeps the page
+   * text, writes no analysis and ends with a warning; script and scenes run without it.
+   */
+  | 'fallback-without-analysis'
   /** Scriptwriter, Scene director, Recovery: the run goes to `waiting`. */
   | 'waiting'
   /** Reviewer: the stage continues without a revision loop; the owner review gate still follows. */
@@ -29,6 +35,7 @@ export const agentFailurePolicy: Readonly<Record<ModelRoleName, AgentFailureResp
   [DIRECTOR_ROLE]: 'waiting',
   [EVALUATOR_ROLE]: 'warning',
   [RECOVERY_ROLE]: 'waiting',
+  [ANALYST_ROLE]: 'fallback-without-analysis',
 };
 
 function providerCauseText(failure: ProviderFailure): string {

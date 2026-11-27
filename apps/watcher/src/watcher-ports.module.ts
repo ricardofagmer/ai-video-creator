@@ -1,5 +1,6 @@
 import { Module, type DynamicModule, type ModuleMetadata, type Provider } from '@nestjs/common';
-import { AgentsModule, AgentsService } from '@studio/core/agents';
+import { AgentsModule, AgentsService, ASSET_PURPOSE_WRITER_PORT, REFERENCE_ANALYST_PORT } from '@studio/core/agents';
+import { AssetJobsReadModule, ReferenceAnalysisReader } from '@studio/core/asset-jobs';
 import { AssetStoreModule } from '@studio/core/asset-store';
 import { readOnlyAgentToolSet } from '@studio/core/agents/tools';
 import { CatalogReadModule } from '@studio/core/catalog';
@@ -8,6 +9,7 @@ import { LearningNotesReader, LearningsReadModule } from '@studio/core/learnings
 import { PathsModule } from '@studio/core/paths';
 import { ProviderModeService, ProvidersModule } from '@studio/core/providers';
 import { catalogAssetResolverProvider } from './adapters/catalog/catalog-asset-resolver.adapter';
+import { ASSET_PURPOSE_WRITER, REFERENCE_ANALYSIS_READER, REFERENCE_ANALYST } from './asset-jobs/asset-jobs.tokens';
 import { SystemClock, type WatcherProcess } from './engine/clock';
 import { AGENTS, CLOCK, COST_LEDGER, LEARNING_NOTES, PROVIDER_MODE, WATCHER_PROCESS, enginePortTokens } from './engine/engine.tokens';
 import { type MockFaultPlan } from './mocks/mock-fault';
@@ -20,6 +22,7 @@ import {
   mockProviderModeProvider,
   mockStageExecutorsProvider,
 } from './mocks/mock-providers';
+import { STAGE_SETTINGS } from './stages/shared/stage-settings';
 import { stageExecutorProviders } from './stages/stage-executors.providers';
 
 /**
@@ -52,7 +55,30 @@ function costLedgerBinding(selection: PortSelection): Provider {
 }
 
 function stageExecutorBindings(selection: PortSelection): Provider[] {
-  return selection.kind === 'catalog' ? stageExecutorProviders : [mockStageExecutorsProvider];
+  if (selection.kind !== 'catalog') return [mockStageExecutorsProvider];
+  // The `script` stage reads the kept reference analyses (guided-creation design section 4).
+  return [{ provide: REFERENCE_ANALYSIS_READER, useExisting: ReferenceAnalysisReader }, ...stageExecutorProviders];
+}
+
+/** The run-less reference analyst of the asset-job step; core agents only (the daemon). */
+function referenceAnalystBindings(selection: PortSelection): Provider[] {
+  return usesCoreAgents(selection)
+    ? [
+        { provide: REFERENCE_ANALYST, useExisting: REFERENCE_ANALYST_PORT },
+        { provide: ASSET_PURPOSE_WRITER, useExisting: ASSET_PURPOSE_WRITER_PORT },
+      ]
+    : [];
+}
+
+/**
+ * Tokens beyond the engine ports that the daemon's asset-job step shares with the stages
+ * (`WatcherAssetJobsModule`): the stage settings and the reader with the catalog selection, the
+ * analyst with core agents. The mock fixture binds none of them, so it exports none.
+ */
+function assetJobExports(selection: PortSelection): symbol[] {
+  if (selection.kind !== 'catalog') return [];
+  const catalog = [STAGE_SETTINGS, REFERENCE_ANALYSIS_READER];
+  return usesCoreAgents(selection) ? [...catalog, REFERENCE_ANALYST, ASSET_PURPOSE_WRITER] : catalog;
 }
 
 function usesCoreAgents(selection: PortSelection): boolean {
@@ -78,7 +104,8 @@ function agentsBinding(selection: PortSelection): Provider {
 function portImports(selection: PortSelection): NonNullable<ModuleMetadata['imports']> {
   if (selection.kind === 'mock') return [];
   // `PathsModule` and `AssetStoreModule` give the stages `DataHome` and the read-only `FolderReader` (SPEC 0008).
-  const readSide = [CatalogReadModule, ProvidersModule, CostsReadModule, LearningsReadModule, PathsModule, AssetStoreModule];
+  // `AssetJobsReadModule` gives the `script` stage the read-only `ReferenceAnalysisReader` (guided-creation design section 4).
+  const readSide = [CatalogReadModule, ProvidersModule, CostsReadModule, LearningsReadModule, PathsModule, AssetStoreModule, AssetJobsReadModule];
   return usesCoreAgents(selection) ? [...readSide, AgentsModule.register({ toolSet: readOnlyAgentToolSet })] : readSide;
 }
 
@@ -103,8 +130,9 @@ export class WatcherPortsModule {
         agentsBinding(selection),
         learningNotesBinding(selection),
         ...stageExecutorBindings(selection),
+        ...referenceAnalystBindings(selection),
       ],
-      exports: [...enginePortTokens],
+      exports: [...enginePortTokens, ...assetJobExports(selection)],
     };
   }
 }

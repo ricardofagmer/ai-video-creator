@@ -5,6 +5,7 @@ import { type MetricImportReport } from '@studio/shared/api';
 import { type MetricImportRefusedReason, type Platform } from '@studio/shared/metrics';
 import { newUlid } from '@studio/shared/run-files';
 import { QualityScoreService } from '../../quality';
+import { SerialMutex } from '../../runtime/keyed-mutex';
 import { readMetricFile } from '../metric-file.reader';
 import { planMetricImport, type MetricImportPlan } from '../metric-import.planner';
 import { buildMetricImportReport } from '../metric-import.report';
@@ -50,7 +51,7 @@ interface AppliedImport extends PlannedImport {
 export class ImportMetricsHandler implements ICommandHandler<ImportMetricsCommand, MetricImportReport> {
   private readonly logger = new Logger(ImportMetricsHandler.name);
   /** Imports run one at a time in this process, so two uploads of one file cannot both create. */
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly imports = new SerialMutex();
 
   constructor(
     @Inject(PrismaMetricImportStore) private readonly store: MetricImportStore,
@@ -78,10 +79,8 @@ export class ImportMetricsHandler implements ICommandHandler<ImportMetricsComman
       correlationId: input.correlationId,
       now,
     };
-    const run = this.tail.then(() => this.apply(context));
-    // The chain only orders the imports; each caller still receives its own result or error.
-    this.tail = run.catch(() => undefined);
-    const applied = await run;
+    // The mutex only orders the imports; each caller still receives its own result or error.
+    const applied = await this.imports.run(() => this.apply(context));
     const scoreRecomputed = applied.wroteSnapshots
       ? await this.quality.recomputeAfterMetrics({ change: 'metrics-imported', correlationId: input.correlationId })
       : false;

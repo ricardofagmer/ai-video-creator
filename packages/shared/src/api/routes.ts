@@ -1,13 +1,16 @@
 /**
  * C10 routes. The api's controllers use `apiRouteSegments` in their decorators and the web builds
  * URLs with `apiPaths`, so both read the same strings. Paths are relative to the api origin
- * (`http://127.0.0.1:4311` by default, A9). Every route except `health` and `auth/login` needs
- * the session cookie and answers 401 without it (criterion 27). Rows marked "rev 4" were added by
+ * (`http://127.0.0.1:4311` by default, A9). Every route except `health`, `auth/login` and the
+ * installer's `install/*` routes needs the session cookie and answers 401 without it (criterion 27,
+ * amended by ADR 0010: `install/presence` and `install/pair` are public, `install/status` needs a
+ * portal token instead of the session). Rows marked "rev 4" were added by
  * SPEC 0002 rev 4 (section 13.2, `API_CONTRACT_REVISION = 2`); neither by-reference route clashes
  * with a rev 3 route (`versions/by-reference` sits beside `versions/from-previous`). Rows marked
  * "R2" are contract revision 3 (SPEC 0003 section 4.3, `API_CONTRACT_REVISION = 3`); "R2 breaking"
- * marks the one behaviour change: both `PUT .../status` routes answer 422
- * `promotion-approval-required` to `status: 'active'`. `/catalog/search` is its own controller
+ * marks the one behaviour change: both `PUT .../status` routes stopped activating. Their body now
+ * accepts `status: 'deprecated'` only, so `active` (or any other value) answers 400 `validation`
+ * and the response carries `version` alone. `/catalog/search` is its own controller
  * base, so it does not clash with `/catalog/assets`.
  *
  * | Method | Path | Body / query | Success |
@@ -29,6 +32,20 @@
  * | PUT | /catalog/assets/:assetId/versions/:version/learnings/:noteId/status | RetireLearningRequest | 200 LearningNoteView (R2) |
  * | POST | /catalog/search | SemanticSearchRequest | 200 SemanticSearchResponse (R2) |
  * | GET | /catalog/search/status | - | 200 SearchIndexStatusResponse (R2) |
+ * | GET | /catalog/assets/:assetId/versions/:version/image | - | 200 stored PNG/JPEG/WebP bytes (images upload) |
+ * | GET | /catalog/assets/:assetId/versions/:version/audio | - | 200 stored music bytes, `Range` honoured (music preview) |
+ * | POST | /catalog/assets/:assetId/versions/:version/voice-sample | RequestVoiceSampleRequest | 202 VoiceSampleView (guided creation) |
+ * | GET | /catalog/assets/:assetId/versions/:version/voice-sample | - | 200 VoiceSampleView (guided creation) |
+ * | GET | /catalog/assets/:assetId/versions/:version/voice-sample/audio | - | 200 audio bytes, `no-store` (guided creation) |
+ * | POST | /catalog/assets/:assetId/versions/:version/reference-analysis | - | 202 ReferenceAnalysisView (guided creation) |
+ * | GET | /catalog/assets/:assetId/versions/:version/reference-analysis | - | 200 ReferenceAnalysisView (guided creation) |
+ * | GET | /catalog/assets/:assetId/versions/:version/template-preview | - | 200 TemplatePreviewView (template preview) |
+ * | GET | /catalog/assets/:assetId/versions/:version/template-preview/clip | - | 200 video/mp4 bytes (template preview) |
+ * | GET | /catalog/assets/:assetId/versions/:version/template-preview/poster | - | 200 image/png bytes (template preview) |
+ * | PUT | /catalog/assets/:assetId/versions/:version/purpose | SetAssetPurposeRequest | 200 AssetVersionView, `purposeSource: owner` (asset purpose C-P4) |
+ * | POST | /catalog/assets/:assetId/versions/:version/purpose/generation | - | 202 AssetVersionView; 409 `asset-purpose-job-open` while a job is open (asset purpose C-P4) |
+ * | GET | /catalog/assets/purposes/backfill | - | 200 PurposeBackfillCountView (asset purpose C-P4) |
+ * | POST | /catalog/assets/purposes/backfill | - | 200 PurposeBackfillResultView (asset purpose C-P4) |
  * | GET | /recipes | ListRecipesQuery | 200 RecipeVersionPageView |
  * | POST | /recipes | CreateRecipeRequest | 201 RecipeVersionView |
  * | POST | /recipes/:recipeId/versions | SaveRecipeVersionRequest | 201 RecipeVersionView |
@@ -38,6 +55,7 @@
  * | GET | /runs | ListRunsQuery | 200 RunIndexPageView |
  * | POST | /runs | CreateRunRequest | 201 RunDraftResponse |
  * | GET | /runs/:runId | - | 200 RunStateResponse |
+ * | DELETE | /runs/:runId | - | 200 RunDeleteResponse, 409 `run-not-deletable` while a watcher owns it |
  * | POST | /runs/:runId/start | - | 200 RunDraftResponse |
  * | GET | /runs/:runId/events | RunEventsQuery | 200 RunEventsResponse |
  * | GET | /runs/:runId/artifact | RunArtifactQuery, optional Range | 200/206 bytes |
@@ -45,6 +63,7 @@
  * | POST | /runs/:runId/gate-decisions | GateDecisionRequest | 201 GateDecisionResponse |
  * | POST | /runs/:runId/review | ReviewDecisionRequest | 201 ReviewDecisionResponse |
  * | POST | /runs/:runId/promote | PromoteFromRunRequest | 201 PromoteFromRunResponse |
+ * | POST | /runs/:runId/save-video | (none) | 201 SaveRunVideoResponse |
  * | POST | /runs/:runId/learnings | SaveLearningRequest | 201 LearningNoteView (R2) |
  * | GET | /watcher | - | 200 WatcherStatusResponse (rev 4) |
  * | GET | /comparisons | ListComparisonsQuery | 200 ComparisonPageView (R2) |
@@ -60,7 +79,6 @@
  * | DELETE | /runs/:runId/publications/:publicationId | - | 200 RemovePublicationResponse, 409 with snapshots (R3) |
  * | PUT | /runs/:runId/publications/:publicationId/metrics/:asOfDate | SaveMetricSnapshotRequest | 200 MetricSnapshotView, source `form` (R3) |
  * | POST | /metrics/imports | multipart MetricImportFields + `file`; MetricImportQuery | 200 MetricImportReport (R3) |
- * | GET | /metrics/imports | ListMetricImportsQuery | 200 MetricImportPageView (R3) |
  * | GET | /schedules | - | 200 ScheduleListView, never `deleted` (R3) |
  * | POST | /schedules | CreateScheduleRequest | 201 ScheduleView (R3) |
  * | GET | /schedules/:scheduleId | - | 200 ScheduleView (R3) |
@@ -74,6 +92,9 @@
  * | GET | /runs/:runId/publish | - | 200 RunPublishView (R4, rev 7) |
  * | POST | /runs/:runId/publish/:platform | PublishRequest | 202 PublishAttemptView; 200 when `idempotencyKey` repeats (R4, rev 7) |
  * | DELETE | /runs/:runId/publish/attempts/:attemptId | - | 200 PublishAttemptView `cancelled`; 409 once claimed (R4, rev 7) |
+ * | GET | /install/presence | - | 200 InstallPresence, 503 with no body on an unsupported platform (public; desktop installer C1 rev 2) |
+ * | POST | /install/pair | InstallPairRequest | 200 InstallPairing, 401 with no body (public; C1 rev 2) |
+ * | GET | /install/status | `Authorization: Bearer` portal token | 200 InstallStatus, 401 or 503 with no body (C1 rev 2) |
  *
  * Errors use `ApiError`: 400 request shape, 401 no session or wrong passphrase, 403 refused Host
  * or Origin, 404 unknown id, 409 state conflict (e.g. a live watcher owns the run), 413 upload too
@@ -113,6 +134,30 @@ export const apiRouteSegments = {
   watcher: 'watcher',
   /** Rev 4: last segment of the two by-reference catalog routes. */
   byReference: 'by-reference',
+  /** Skills spec addendum T5: last segment of `GET /catalog/assets/:id/versions/:version/entry-file`. */
+  entryFile: 'entry-file',
+  /** Images upload (2026-11-24): last segment of `GET /catalog/assets/:id/versions/:version/image`. */
+  image: 'image',
+  /** Music preview (2026-11-25): last segment of `GET /catalog/assets/:id/versions/:version/audio`. */
+  audio: 'audio',
+  /** Guided-creation spec: segment of the voice sample routes, after `versions/:version`. */
+  voiceSample: 'voice-sample',
+  /** Guided-creation spec: last segment of `GET .../voice-sample/audio`. */
+  voiceSampleAudio: 'audio',
+  /** Guided-creation spec: segment of the reference analysis routes, after `versions/:version`. */
+  referenceAnalysis: 'reference-analysis',
+  /** Template preview (2026-11-25): segment of the template preview routes, after `versions/:version`. */
+  templatePreview: 'template-preview',
+  /** Template preview: last segments of `GET .../template-preview/clip` and `.../poster`. */
+  templatePreviewClip: 'clip',
+  templatePreviewPoster: 'poster',
+  /** Asset purpose (ADR 0012, C-P4): segment of the purpose routes, after `versions/:version`. */
+  purpose: 'purpose',
+  /** Asset purpose: last segment of `POST .../purpose/generation`. */
+  purposeGeneration: 'generation',
+  /** Asset purpose backfill (C-P4): `purposes/backfill` under the catalog assets base. */
+  purposes: 'purposes',
+  purposeBackfill: 'backfill',
   /** R2: controller base of `POST /catalog/search` and `GET /catalog/search/status`. */
   catalogSearch: 'catalog/search',
   /** R2: last segment of `GET /catalog/search/status`. */
@@ -131,7 +176,7 @@ export const apiRouteSegments = {
   publications: 'publications',
   /** R3 (rev 5): segment of the form metrics route, after `publications/:publicationId`. */
   metrics: 'metrics',
-  /** R3 (rev 5): controller base of `POST` and `GET /metrics/imports`. */
+  /** R3 (rev 5): controller base of `POST /metrics/imports`. */
   metricImports: 'metrics/imports',
   /** R3 (rev 5): controller base of the schedule routes. */
   schedules: 'schedules',
@@ -149,6 +194,14 @@ export const apiRouteSegments = {
   publish: 'publish',
   /** R4 (rev 7): segment of the cancel route, after `runs/:runId/publish`. */
   publishAttempts: 'attempts',
+  /** Desktop installer C1 rev 1: controller base of the three `/install/*` routes (portal only). */
+  install: 'install',
+  /** C1 rev 1: last segment of `GET /install/presence` (public). */
+  installPresence: 'presence',
+  /** C1 rev 1: last segment of `POST /install/pair` (one-time code). */
+  installPair: 'pair',
+  /** C1 rev 1: last segment of `GET /install/status` (portal bearer token). */
+  installStatus: 'status',
 };
 
 export const apiPaths = {
@@ -164,6 +217,29 @@ export const apiPaths = {
     `/catalog/assets/${encodeURIComponent(assetId)}/versions/by-reference`,
   assetVersion: (assetId: string, version: number): string =>
     `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}`,
+  assetEntryFile: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/entry-file`,
+  assetImage: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/image`,
+  assetAudio: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/audio`,
+  assetVoiceSample: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/voice-sample`,
+  assetVoiceSampleAudio: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/voice-sample/audio`,
+  assetReferenceAnalysis: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/reference-analysis`,
+  assetTemplatePreview: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/template-preview`,
+  assetTemplatePreviewClip: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/template-preview/clip`,
+  assetTemplatePreviewPoster: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/template-preview/poster`,
+  assetPurpose: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/purpose`,
+  assetPurposeGeneration: (assetId: string, version: number): string =>
+    `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/purpose/generation`,
+  purposeBackfill: (): string => '/catalog/assets/purposes/backfill',
   assetVersionStatus: (assetId: string, version: number): string =>
     `/catalog/assets/${encodeURIComponent(assetId)}/versions/${version}/status`,
   assetVersionPromotion: (assetId: string, version: number): string =>
@@ -189,6 +265,7 @@ export const apiPaths = {
   runGateDecisions: (runId: string): string => `/runs/${encodeURIComponent(runId)}/gate-decisions`,
   runReview: (runId: string): string => `/runs/${encodeURIComponent(runId)}/review`,
   runPromote: (runId: string): string => `/runs/${encodeURIComponent(runId)}/promote`,
+  runSaveVideo: (runId: string): string => `/runs/${encodeURIComponent(runId)}/save-video`,
   runLearnings: (runId: string): string => `/runs/${encodeURIComponent(runId)}/learnings`,
   watcher: (): string => '/watcher',
   comparisons: (): string => '/comparisons',
@@ -216,4 +293,7 @@ export const apiPaths = {
     `/runs/${encodeURIComponent(runId)}/publish/${encodeURIComponent(platform)}`,
   runPublishAttempt: (runId: string, attemptId: string): string =>
     `/runs/${encodeURIComponent(runId)}/publish/attempts/${encodeURIComponent(attemptId)}`,
+  installPresence: (): string => '/install/presence',
+  installPair: (): string => '/install/pair',
+  installStatus: (): string => '/install/status',
 };

@@ -8,14 +8,14 @@ version of its asset or recipe is reported `unchanged` and nothing is written.
 
 Every path in `catalog.seed.json` is relative to the seed source root: the folder that holds
 `video-studio/`, the Spesia run folder and `ricardo-clone/` side by side. It defaults to
-`~/projects/ai-video-creator` and is moved with `VIDEO_STUDIO_SEED_SOURCE_ROOT` (absolute,
+`~/projects/ai-video-creator` and is moved with `ENGINEOS_VIDEO_CREATOR_SEED_SOURCE_ROOT` (absolute,
 normalized path) or the command's `sourceRoot` input.
 
 ## Files
 
 | Path | Owner | Content |
 |---|---|---|
-| `catalog.seed.json` | R1-07 | Templates, brand kit, the 13 skills, ElevenLabs config by names, the cloned voice by path reference, the Spesia music with its license |
+| `catalog.seed.json` | R1-07 | Templates, brand kit, the `fagmer-video-seo-package` skill (the other 12 `ace` stage skills were retired 2026-11-25), ElevenLabs config by names, the cloned voice by path reference, the Spesia music with its license |
 | `templates/*.schema.json` | R1-07 | JSON Schema of the composition props, mirroring `@studio/shared/ace`; becomes `details.inputSchema` / `sceneSchema` |
 | `skills/<id>/` | R1-01 | One `skill` asset per folder; name and description come from `SKILL.md` front matter |
 | `prompts/*.prompt.json` | R1-15 | One `prompt` asset per file (format below); optional folder |

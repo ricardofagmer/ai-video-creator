@@ -5,15 +5,17 @@
   "description": "Menu-bar shell: thin Electron tray app over the local services, no window and no listener (SPEC 0006 R3-08, ADR 0005, vetting 0002)",
   "main": "dist/main.js",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main.js",
+    "build": "esbuild src/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main.js && esbuild src/setup/window/setup-preload.ts --bundle --platform=browser --format=cjs --external:electron --outfile=dist/setup-preload.js && cp src/setup/window/setup.html src/setup/window/setup.css dist/",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "package": "node scripts/package-app.mjs"
+    "package": "node scripts/package-app.mjs",
+    "package:dmg": "node scripts/package-dmg.mjs"
   },
   "devDependencies": {
     "@electron/fuses": "2.1.3",
     "@electron/packager": "20.3.0",
+    "@studio/core": "workspace:*",
     "@studio/eslint-config": "workspace:*",
     "@studio/shared": "workspace:*",
     "@studio/tsconfig": "workspace:*",

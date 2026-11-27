@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { QualityFormulaExplanation } from '@/features/quality/components/QualityFormulaExplanation';
 import { formatScoreValue, platformSampleSizeLabel, sampleSizeLabel } from '@/features/quality/quality-labels';
-import { searchIndexLabels } from '@/features/search/search-labels';
+import { getI18n } from '@/lib/i18n/server';
 import { formatDateTime } from '../catalog-labels';
 
 /**
@@ -13,16 +13,18 @@ import { formatDateTime } from '../catalog-labels';
  * when it was computed, the state of its row in the search index, and how the score is calculated. No score shows "sem nota", never 0. The score is information only: nothing here
  * activates or compares anything.
  */
-export function VersionQualityCard({ version }: { version: AssetVersionView }): ReactElement {
+export async function VersionQualityCard({ version }: { version: AssetVersionView }): Promise<ReactElement> {
+  const { t, locale } = await getI18n();
+  const q = t.catalog.quality;
   const items: DescriptionItem[] = [
-    { term: 'Nota', description: version.qualityScore === null ? 'sem nota' : `${formatScoreValue(version.qualityScore)} de 5` },
-    { term: 'Execuções revisadas', description: sampleSizeLabel(version.qualitySampleSize) },
-    { term: 'Com métricas das plataformas', description: platformSampleSizeLabel(version.qualityPlatformSampleSize) },
-    { term: 'Calculada em', description: version.qualityScoredAt === null ? 'Ainda não calculada' : formatDateTime(version.qualityScoredAt) },
-    { term: 'Busca por significado', description: searchIndexLabels[version.searchIndex] },
+    { term: q.score, description: version.qualityScore === null ? q.noScore : q.scoreOutOfFive(formatScoreValue(version.qualityScore, locale)) },
+    { term: q.reviewedRuns, description: sampleSizeLabel(version.qualitySampleSize, t.catalog.qualityText) },
+    { term: q.withPlatformMetrics, description: platformSampleSizeLabel(version.qualityPlatformSampleSize, t.catalog.qualityText) },
+    { term: q.scoredAt, description: version.qualityScoredAt === null ? q.notScoredYet : formatDateTime(version.qualityScoredAt, locale) },
+    { term: q.semanticSearch, description: t.catalog.search.indexStates[version.searchIndex] },
   ];
   return (
-    <Card title="Nota de qualidade">
+    <Card title={q.title}>
       <div className={layout.stack}>
         <DescriptionList items={items} columns={2} />
         <QualityFormulaExplanation />

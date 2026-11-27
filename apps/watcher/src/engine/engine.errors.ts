@@ -39,7 +39,7 @@ export class ResumeNotRequestedError extends EngineError {
 export class StepInterruptedError extends EngineError {
   override readonly category = 'conflict';
 
-  constructor(readonly kind: 'stop' | 'timeout' | 'cost-ceiling' | 'run-aborted' | 'shutdown') {
+  constructor(readonly kind: 'stop' | 'timeout' | 'run-aborted' | 'shutdown') {
     super(`Step interrupted by the engine: ${kind}`);
     this.name = 'StepInterruptedError';
   }

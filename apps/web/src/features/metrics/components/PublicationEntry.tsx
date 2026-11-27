@@ -2,7 +2,9 @@ import { Alert, Badge, textLinkClassName, type BadgeTone } from '@studio/ui';
 import { type RunPublicationEntryView } from '@studio/shared/api';
 import { type PublicationOrigin } from '@studio/shared/metrics';
 import type { ReactElement } from 'react';
-import { baselineMissingText, formatIsoDate, localTodayIso, platformLabels, pollingLineText, publicationOriginLabels } from '../metric-labels';
+import { formatIsoDate } from '@/lib/i18n/format';
+import { getI18n } from '@/lib/i18n/server';
+import { baselineMissingText, localTodayIso, platformLabels, pollingLineText } from '../metric-labels';
 import styles from '../metrics.module.css';
 import { publicationHref } from '../publication-link';
 import { MetricHistoryTable } from './MetricHistoryTable';
@@ -29,7 +31,9 @@ const originTones: Readonly<Record<PublicationOrigin, BadgeTone>> = {
  * 0007 sections 4.1 and 5.9): the origin badge ("simulado" on a mock upload), the studio attempt
  * that created it (AC 49) and the polling line. An absent `origin` reads `manual`.
  */
-export function PublicationEntry({ runId, entry, todayIso = localTodayIso() }: PublicationEntryProps): ReactElement {
+export async function PublicationEntry({ runId, entry, todayIso = localTodayIso() }: PublicationEntryProps): Promise<ReactElement> {
+  const { t, locale } = await getI18n();
+  const texts = t.metrics.publications;
   const { publication, inForce, history, baselineReady } = entry;
   const origin = publication.origin ?? 'manual';
   const polling = publication.polling ?? null;
@@ -43,14 +47,14 @@ export function PublicationEntry({ runId, entry, todayIso = localTodayIso() }: P
       <h3 id={`publicacao-${publication.publicationId}`} className={styles.publicationHeader}>
         <span className="heading-3">{platform}</span>
         <span className="caption mono">{publication.platformVideoId}</span>
-        {publication.publishedOn !== null && <span className="caption">{`Publicado em ${formatIsoDate(publication.publishedOn)}`}</span>}
-        <Badge tone={originTones[origin]}>{publicationOriginLabels[origin]}</Badge>
+        {publication.publishedOn !== null && <span className="caption">{texts.publishedOn(formatIsoDate(publication.publishedOn, locale))}</span>}
+        <Badge tone={originTones[origin]}>{texts.origins[origin]}</Badge>
       </h3>
-      {attemptId !== null && <p className="caption mono">{`Envio ${attemptId}`}</p>}
+      {attemptId !== null && <p className="caption mono">{texts.attempt(attemptId)}</p>}
       {polling !== null && (
         <p className="caption">
-          {pollingLineText(polling, todayIso)}
-          {polling.lastPolledOn !== null && ` · Última coleta: ${formatIsoDate(polling.lastPolledOn)}`}
+          {pollingLineText(polling, todayIso, t.metrics, locale)}
+          {polling.lastPolledOn !== null && texts.lastPolled(formatIsoDate(polling.lastPolledOn, locale))}
         </p>
       )}
       {href === null ? (
@@ -59,14 +63,14 @@ export function PublicationEntry({ runId, entry, todayIso = localTodayIso() }: P
         <p className={styles.breakable}>
           <a href={href} target="_blank" rel="noopener noreferrer" className={textLinkClassName()}>
             {href}
-            <span className="visually-hidden"> (abre em uma nova aba)</span>
+            <span className="visually-hidden">{texts.opensInNewTab}</span>
           </a>
         </p>
       )}
-      {!baselineReady && <Alert variant="info">{baselineMissingText(publication.platform)}</Alert>}
-      <MetricHistoryTable inForce={inForce} history={history} caption={`Métricas de ${platform}`} />
+      {!baselineReady && <Alert variant="info">{baselineMissingText(publication.platform, t.metrics)}</Alert>}
+      <MetricHistoryTable inForce={inForce} history={history} caption={t.metrics.history.caption(platform)} t={t.metrics} locale={locale} />
       <details>
-        <summary className="label">Registrar métricas</summary>
+        <summary className="label">{texts.recordMetrics}</summary>
         <MetricSnapshotForm runId={runId} publicationId={publication.publicationId} />
       </details>
       {!hasSnapshots && (

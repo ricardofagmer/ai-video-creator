@@ -4,7 +4,8 @@ import { Card, Checkbox, FormField, Input, Select, Textarea } from '@studio/ui';
 import { LicenseUseSchema, type LicenseUse } from '@studio/shared/catalog';
 import { type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
-import { licenseUseLabels } from '../catalog-labels';
+import { useWebMessages } from '@/lib/i18n/client';
+import { type WebMessages } from '@/messages';
 import { fieldIds, type AssetFormValues, type ProvenanceOrigin } from './asset-form-model';
 import { type FieldErrors } from './form-messages';
 
@@ -36,19 +37,23 @@ function isOrigin(value: string): value is ProvenanceOrigin {
   return originValues.some((origin) => origin === value);
 }
 
-function originOptions(values: LicenseValues): { value: ProvenanceOrigin; label: string }[] {
+function originOptions(values: LicenseValues, t: WebMessages['catalog']['form']['license']['origins']): { value: ProvenanceOrigin; label: string }[] {
   const options: { value: ProvenanceOrigin; label: string }[] = [
-    { value: 'none', label: 'Sem procedência' },
-    { value: 'url', label: 'URL' },
-    { value: 'created-here', label: 'Criado aqui' },
+    { value: 'none', label: t.none },
+    { value: 'url', label: t.url },
+    { value: 'created-here', label: t['created-here'] },
   ];
   // Seed and run origins are system-set; they can be kept on a new version but never chosen.
-  if (values.inheritedSource !== null) options.push({ value: 'inherited', label: 'Mantida da versão anterior' });
+  if (values.inheritedSource !== null) options.push({ value: 'inherited', label: t.inherited });
   return options;
 }
 
 /** design/telas/04 card "Licença e procedência" (PRD 5.2; criterion 7 applies on activation). */
 export function LicenseSection({ values, errors, disabled, onChange }: LicenseSectionProps): ReactElement {
+  const catalogTexts = useWebMessages().catalog;
+  const licenseUseLabels = catalogTexts.licenseUses;
+  const texts = catalogTexts.form.license;
+
   function toggleUse(use: LicenseUse, checked: boolean): void {
     const next = checked ? [...values.licenseUses, use] : values.licenseUses.filter((candidate) => candidate !== use);
     onChange({ licenseUses: LicenseUseSchema.options.filter((option) => next.includes(option)) });
@@ -56,22 +61,22 @@ export function LicenseSection({ values, errors, disabled, onChange }: LicenseSe
 
   const usesErrorId = `${fieldIds.licenseUses}-error`;
   const description =
-    values.sensitivity === 'third-party' ? 'Obrigatório para ativar um ativo de terceiros.' : 'Opcional para ativos próprios.';
+    values.sensitivity === 'third-party' ? texts.requiredForThirdParty : texts.optionalForOwn;
 
   return (
     <fieldset className={layout.fieldset} disabled={disabled}>
-      <legend className="visually-hidden">Licença e procedência</legend>
-      <Card title="Licença e procedência" description={description}>
+      <legend className="visually-hidden">{texts.title}</legend>
+      <Card title={texts.title} description={description}>
         <div className={layout.fieldGrid}>
-          <FormField id={fieldIds.licenseName} label="Licença (nome)" optional error={errors[fieldIds.licenseName]}>
+          <FormField id={fieldIds.licenseName} label={texts.name} optional error={errors[fieldIds.licenseName]}>
             {(control) => <Input {...control} value={values.licenseName} onChange={(event) => onChange({ licenseName: event.currentTarget.value })} />}
           </FormField>
-          <FormField id={fieldIds.licenseUrl} label="URL da licença" optional error={errors[fieldIds.licenseUrl]}>
+          <FormField id={fieldIds.licenseUrl} label={texts.url} optional error={errors[fieldIds.licenseUrl]}>
             {(control) => (
               <Input {...control} type="url" inputMode="url" value={values.licenseUrl} onChange={(event) => onChange({ licenseUrl: event.currentTarget.value })} />
             )}
           </FormField>
-          <FormField id={fieldIds.licenseReadOn} label="Lida em" optional error={errors[fieldIds.licenseReadOn]}>
+          <FormField id={fieldIds.licenseReadOn} label={texts.readOn} optional error={errors[fieldIds.licenseReadOn]}>
             {(control) => (
               <Input {...control} type="date" value={values.licenseReadOn} onChange={(event) => onChange({ licenseReadOn: event.currentTarget.value })} />
             )}
@@ -82,7 +87,7 @@ export function LicenseSection({ values, errors, disabled, onChange }: LicenseSe
             className={`${layout.fieldset} ${layout.field} ${layout.fieldWide}`}
             aria-describedby={errors[fieldIds.licenseUses] === undefined ? undefined : usesErrorId}
           >
-            <legend className="label">Usos permitidos (opcional)</legend>
+            <legend className="label">{texts.usesLegend}</legend>
             <div className={layout.inlineList}>
               {LicenseUseSchema.options.map((use) => (
                 <Checkbox
@@ -101,14 +106,14 @@ export function LicenseSection({ values, errors, disabled, onChange }: LicenseSe
               </p>
             )}
           </fieldset>
-          <FormField id={fieldIds.licenseTerms} label="Termos" optional error={errors[fieldIds.licenseTerms]} className={layout.fieldWide}>
+          <FormField id={fieldIds.licenseTerms} label={texts.terms} optional error={errors[fieldIds.licenseTerms]} className={layout.fieldWide}>
             {(control) => <Textarea {...control} value={values.licenseTerms} onChange={(event) => onChange({ licenseTerms: event.currentTarget.value })} />}
           </FormField>
-          <FormField id={fieldIds.origin} label="Origem" optional error={errors[fieldIds.origin]}>
+          <FormField id={fieldIds.origin} label={texts.origin} optional error={errors[fieldIds.origin]}>
             {(control) => (
               <Select
                 {...control}
-                options={originOptions(values)}
+                options={originOptions(values, texts.origins)}
                 value={values.origin}
                 onChange={(event) => {
                   const value = event.currentTarget.value;
@@ -118,16 +123,16 @@ export function LicenseSection({ values, errors, disabled, onChange }: LicenseSe
             )}
           </FormField>
           {values.origin === 'url' && (
-            <FormField id={fieldIds.originUrl} label="URL de origem" error={errors[fieldIds.originUrl]}>
+            <FormField id={fieldIds.originUrl} label={texts.originUrl} error={errors[fieldIds.originUrl]}>
               {(control) => (
                 <Input {...control} type="url" inputMode="url" value={values.originUrl} onChange={(event) => onChange({ originUrl: event.currentTarget.value })} />
               )}
             </FormField>
           )}
-          <FormField id={fieldIds.author} label="Autor" optional={values.origin === 'none'} error={errors[fieldIds.author]}>
+          <FormField id={fieldIds.author} label={texts.author} optional={values.origin === 'none'} error={errors[fieldIds.author]}>
             {(control) => <Input {...control} value={values.author} onChange={(event) => onChange({ author: event.currentTarget.value })} />}
           </FormField>
-          <FormField id={fieldIds.capturedOn} label="Data de captura" optional error={errors[fieldIds.capturedOn]}>
+          <FormField id={fieldIds.capturedOn} label={texts.capturedOn} optional error={errors[fieldIds.capturedOn]}>
             {(control) => (
               <Input {...control} type="date" value={values.capturedOn} onChange={(event) => onChange({ capturedOn: event.currentTarget.value })} />
             )}

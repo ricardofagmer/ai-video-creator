@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { CreatePublicationRequestSchema, MetricImportFieldsSchema, SaveMetricSnapshotRequestSchema } from '@studio/shared/api';
-import { IsoDateSchema, MetricImportIdSchema, PublicationIdSchema } from '@studio/shared/metrics';
+import { IsoDateSchema, PublicationIdSchema } from '@studio/shared/metrics';
 import { CorrelationIdSchema, RunIdSchema } from '@studio/shared/run-format';
-import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, type InputIssue } from '../catalog';
+import { type InputIssue } from '../catalog';
 import { InvalidMetricsInputError } from './metrics.errors';
 
 /*
@@ -63,16 +63,6 @@ export const ImportMetricsInputSchema = z
   })
   .strict();
 export type ImportMetricsInput = z.input<typeof ImportMetricsInputSchema>;
-
-/** rules/backend.md pagination (default 20, max 100); newest first, keyed by the time-ordered id. */
-export const ListMetricImportsCriteriaSchema = z
-  .object({
-    limit: z.number().int().min(1).max(MAX_PAGE_LIMIT).default(DEFAULT_PAGE_LIMIT),
-    /** The `nextCursor` of the previous page. */
-    cursor: MetricImportIdSchema.optional(),
-  })
-  .strict();
-export type ListMetricImportsCriteria = z.input<typeof ListMetricImportsCriteriaSchema>;
 
 function issuesOf(error: z.ZodError, prefix: string): InputIssue[] {
   return error.issues.map((issue) => ({ path: [prefix, ...issue.path].filter((part) => part !== '').join('.'), message: issue.message }));

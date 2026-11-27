@@ -203,7 +203,7 @@ describe('KeychainPlatformTokenVault with a fake security tool', () => {
     assert.deepEqual(spawnCall?.args, ['-i']);
     assert.equal(
       spawnCall?.stdin,
-      `add-generic-password -U -s ${SERVICE} -a youtube -l "Video Studio - YouTube account tokens" -T ${SECURITY_TOOL_PATH} -w ${encoded}\n`,
+      `add-generic-password -U -s ${SERVICE} -a youtube -l "EngineOS Video Creator - YouTube account tokens" -T ${SECURITY_TOOL_PATH} -w ${encoded}\n`,
     );
     assert.deepEqual(readBack?.args, ['find-generic-password', '-s', SERVICE, '-a', 'youtube', '-w']);
     for (const call of keychain.calls) {

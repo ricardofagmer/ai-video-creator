@@ -3,7 +3,7 @@
 | Item | Valor |
 | --- | --- |
 | Rota | `/execucoes/[runId]` |
-| Título do documento | `<runId> · Execuções · Video Studio` |
+| Título do documento | `<runId> · Execuções · EngineOS Video Creator` |
 | Ticket | R1-20 (critérios 10, 12, 14, 15, 16, 20) |
 
 ## Objetivo

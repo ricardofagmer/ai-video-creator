@@ -58,6 +58,8 @@ export const runArtifactSources: Readonly<Record<RunArtifactId, ArtifactSource>>
   'failed-check': { kind: 'failed-check' },
   'events-tail': { kind: 'events-tail' },
   now: { kind: 'now' },
+  'site-analysis': { kind: 'stage-output', producedBy: 'research' },
+  'reference-analyses': { kind: 'stage-output', producedBy: 'script' },
 };
 
 /** Producing stage of each id, for the tool description (topology 3.3). */

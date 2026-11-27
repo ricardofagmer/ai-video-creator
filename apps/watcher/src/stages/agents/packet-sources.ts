@@ -1,17 +1,18 @@
 import { readFile } from 'node:fs/promises';
 import { UntrustedTextTooLongError, type AssetText, type PacketCoordinates } from '@studio/core/agents';
-import { type BrandKitSummary, type ModelRoleName, type RunArtifactId } from '@studio/shared/agents';
+import { WRITER_SKILLS_MAX, type BrandKitSummary, type ModelRoleName, type RunArtifactId } from '@studio/shared/agents';
 import { type TemplateDetails } from '@studio/shared/catalog';
 import type { StageExecutionContext, StageFailure } from '@studio/shared/ports';
 import { type ReviewSubject } from '@studio/shared/run-format';
 import { ZodError } from 'zod';
-import { boundOfKind, type CatalogLookup } from '../shared/catalog-lookup';
+import { EntryFileUnavailableError } from '@studio/core/catalog';
+import { boundAssets, boundOfKind, type CatalogLookup } from '../shared/catalog-lookup';
 import { needsPerson } from '../shared/stage-results';
 
 /** Artifact ids the Reviewer may read per subject (C7 RunArtifactReadTool, topology section 5). */
 export const reviewArtifacts: Readonly<Record<ReviewSubject, readonly RunArtifactId[]>> = {
-  script: ['brief', 'script'],
-  scenes: ['brief', 'script', 'scenes', 'captures-index'],
+  script: ['brief', 'script', 'site-analysis', 'reference-analyses'],
+  scenes: ['brief', 'script', 'scenes', 'captures-index', 'site-analysis', 'reference-analyses'],
   render: ['brief', 'scenes', 'qa-metrics', 'checks'],
 };
 
@@ -28,6 +29,42 @@ export async function boundPromptText(context: StageExecutionContext, preferredS
   const bound = boundOfKind(context, 'prompt', preferredSlot);
   if (bound === null || bound.asset.layout !== 'file' || bound.asset.sensitivity === 'biometric') return null;
   return { ref: bound.asset.ref, text: await readFile(bound.asset.absolutePath, 'utf8') };
+}
+
+/**
+ * Entry texts of the skills bound to `slot` (e.g. `skill:writer`), in binding order and at most
+ * `WRITER_SKILLS_MAX`. With none on that slot, every skill bound to the recipe is used, once per
+ * ref: the owner's skills guide every generating stage, not only the one whose slot they named.
+ * Biometric versions are never read. A bound skill whose entry file cannot be read is reported by
+ * ref, so the stage stops instead of running without guidance the owner chose.
+ */
+export async function boundSkillTexts(
+  context: StageExecutionContext,
+  catalog: CatalogLookup,
+  slot: string,
+): Promise<{ status: 'read'; skills: AssetText[] } | { status: 'unreadable'; ref: string }> {
+  const allSkills = boundAssets(context).filter((candidate) => candidate.asset.kind === 'skill' && candidate.asset.sensitivity !== 'biometric');
+  const onSlot = allSkills.filter((candidate) => candidate.slot === slot);
+  const chosen = onSlot.length > 0 ? onSlot : allSkills.filter((candidate, index) => allSkills.findIndex((other) => other.asset.ref === candidate.asset.ref) === index);
+  const skills: AssetText[] = [];
+  for (const { asset } of chosen.slice(0, WRITER_SKILLS_MAX)) {
+    try {
+      skills.push({ ref: asset.ref, text: await catalog.skillEntryText(asset.ref) });
+    } catch (error) {
+      if (!(error instanceof EntryFileUnavailableError)) throw error;
+      return { status: 'unreadable', ref: asset.ref };
+    }
+  }
+  return { status: 'read', skills };
+}
+
+/** The owner stop for a bound skill whose entry file cannot be read. */
+export function unreadableSkillStop(context: StageExecutionContext, ref: string, slot: string): StageFailure {
+  return needsPerson(
+    { kind: 'needs-person', stepKey: context.stepKey },
+    `A skill ${ref} vinculada à receita (${slot}) não pôde ser lida.`,
+    'Confira o arquivo de entrada da skill no catálogo ou tire a skill da receita e retome a execução.',
+  );
 }
 
 export async function brandVoiceText(context: StageExecutionContext, catalog: CatalogLookup): Promise<AssetText | undefined> {

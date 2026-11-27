@@ -103,12 +103,21 @@ export type MonthToDateFailureReason =
   | 'unreadable-cost-file'
   | 'too-many-entries'
   | 'too-many-curations'
-  | 'unreadable-curation-cost-file';
+  | 'unreadable-curation-cost-file'
+  | 'too-many-asset-jobs'
+  | 'unreadable-asset-job-cost-file';
+
+function folderKindOf(reason: MonthToDateFailureReason): string {
+  if (reason === 'unreadable-curation-cost-file') return 'curation';
+  if (reason === 'unreadable-asset-job-cost-file') return 'asset job';
+  return 'run';
+}
 
 /**
  * Month-to-date spend could not be computed. Fails closed: the ceiling check cannot pass on an
- * unknown spend (criterion 28). `runId` names the run, or for the two curation reasons the
- * curation (SPEC 0005 section 5.8), whose cost.json could not be read.
+ * unknown spend (criterion 28). `runId` names the run, or for the curation reason the curation
+ * (SPEC 0005 section 5.8), or for the asset job reason the job ref (spec Amendment 3), whose
+ * cost.json could not be read.
  */
 export class MonthToDateUnavailableError extends CostsError {
   override readonly category = 'dependency';
@@ -117,8 +126,50 @@ export class MonthToDateUnavailableError extends CostsError {
     readonly reason: MonthToDateFailureReason,
     readonly runId: string | null,
   ) {
-    const folderKind = reason === 'unreadable-curation-cost-file' ? 'curation' : 'run';
+    const folderKind = folderKindOf(reason);
     super(`Month-to-date spend is unavailable (${reason}${runId === null ? '' : `, ${folderKind} ${runId}`})`);
     this.name = 'MonthToDateUnavailableError';
+  }
+}
+
+/** `asset-jobs/<kind>/<ref>/cost.json` names another job than the one being recorded or indexed. */
+export class AssetJobCostFileMismatchError extends CostsError {
+  override readonly category = 'conflict';
+
+  constructor(
+    readonly kind: string,
+    readonly ref: string,
+  ) {
+    super(`cost.json of asset job ${kind} ${ref} belongs to another job`);
+    this.name = 'AssetJobCostFileMismatchError';
+  }
+}
+
+/**
+ * An asset job's cost.json already holds `ASSET_JOB_COST_SESSIONS_MAX` sessions. The billed call
+ * is refused rather than dropped (fails closed); the owner must not be billed unseen.
+ */
+export class AssetJobCostSessionsFullError extends CostsError {
+  override readonly category = 'conflict';
+
+  constructor(
+    readonly kind: string,
+    readonly ref: string,
+  ) {
+    super(`cost.json of asset job ${kind} ${ref} holds the most sessions it may`);
+    this.name = 'AssetJobCostSessionsFullError';
+  }
+}
+
+/** A usage no asset job bills (render) was handed to `AssetJobCostPort.record`. */
+export class AssetJobCostUsageUnsupportedError extends CostsError {
+  override readonly category = 'validation';
+
+  constructor(
+    readonly ref: string,
+    readonly usageKind: string,
+  ) {
+    super(`Asset job ${ref} cannot bill ${usageKind} usage`);
+    this.name = 'AssetJobCostUsageUnsupportedError';
   }
 }

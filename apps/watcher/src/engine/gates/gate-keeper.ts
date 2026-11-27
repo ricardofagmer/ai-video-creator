@@ -9,7 +9,6 @@ import { ownerTexts } from '../owner-texts';
 interface HumanGate {
   gate: GateId;
   label: string;
-  whatToDo: string;
 }
 
 export type GateVerdict = { kind: 'open' } | { kind: 'held'; status: RunStatus };
@@ -21,18 +20,19 @@ export type GateVerdict = { kind: 'open' } | { kind: 'held'; status: RunStatus }
 function gatesAfter(run: Readonly<RunFile>, stageId: string): HumanGate[] {
   const planGate: HumanGate[] =
     stageId === 'plan'
-      ? [{ gate: 'plan', label: ownerTexts.planGateLabel, whatToDo: ownerTexts.gateWhatToDo(ownerTexts.planGateLabel) }]
+      ? [{ gate: 'plan', label: ownerTexts.planGateLabel }]
       : [];
   const recipeGates = run.recipe.definition.gates
     .filter((gate) => gate.afterStage === stageId)
-    .map((gate): HumanGate => ({ gate: gate.id, label: gate.label, whatToDo: gate.whatToDo }));
+    .map((gate): HumanGate => ({ gate: gate.id, label: gate.label }));
   return [...planGate, ...recipeGates];
 }
 
 /**
- * Human gates as run states answered through files (SPEC 0002 A6, K2): before a stage starts, the
- * gates after the previous delivered stage must be approved in `approval.json`, which only the
- * api or CLI writes. Unanswered gives `waiting`; rejected ends the run `rejected`.
+ * Human gates answered through files (SPEC 0002 A6, K2): before a stage starts, the gates after the
+ * previous delivered stage are read from `approval.json`, which only the api or CLI writes. A
+ * rejected gate ends the run `rejected`. An unanswered gate no longer holds the run (owner decision
+ * 2026-11-25): a warning names it and the stage starts.
  */
 @Injectable()
 export class GateKeeper {
@@ -51,7 +51,10 @@ export class GateKeeper {
     for (const gate of gates) {
       const decision =
         approval.status === 'present' && approval.value.runId === run.runId ? latestDecision(approval.value, gate.gate) : undefined;
-      if (decision === undefined) return this.wait(active, gate);
+      if (decision === undefined) {
+        await active.emit({ type: 'log', level: 'warning', text: ownerTexts.gateSkipped(gate.label), stepKey: null });
+        continue;
+      }
       await active.emit({
         type: 'gate.answered',
         level: decision.outcome === 'approved' ? 'ok' : 'warning',
@@ -67,17 +70,5 @@ export class GateKeeper {
       }
     }
     return { kind: 'open' };
-  }
-
-  private async wait(active: ActiveRun, gate: HumanGate): Promise<GateVerdict> {
-    await active.emit({ type: 'gate.waiting', level: 'info', text: ownerTexts.gateWaitingReason(gate.label), stepKey: null, gate: gate.gate });
-    await active.setState({
-      status: 'waiting',
-      since: this.clock.now().toISOString(),
-      cause: { kind: 'gate', gate: gate.gate },
-      reason: ownerTexts.gateWaitingReason(gate.label),
-      whatToDo: gate.whatToDo,
-    });
-    return { kind: 'held', status: 'waiting' };
   }
 }

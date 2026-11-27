@@ -1,11 +1,11 @@
 import { type AssetMetadataInput, type AssetVersionView } from '@studio/shared/api';
 import { ApiRequestError, browserStudioClient, type UploadContent } from '@/lib/api';
 import { describeApiError } from '@/features/common/api-error-text';
-import { formatBytes } from '@studio/ui';
-import { assetKindLabels } from '../catalog-labels';
+import { formatBytes, type Locale } from '@studio/ui';
+import { type WebMessages } from '@/messages';
 import { folderRelativePath, maxUploadBytesByKind, selectionProblem, withResolvedType } from '../upload-rules';
 import { fieldIdOfMetadataPath, fieldIds, referencePathOf, type AssetFormValues, type ContentMode } from './asset-form-model';
-import { formMessages, type FieldErrors } from './form-messages';
+import { type FieldErrors } from './form-messages';
 
 /** Which save the form performs: a new asset (v1) or version N+1 of an existing one. */
 export type AssetFormTarget = { type: 'new' } | { type: 'new-version'; assetId: string; baseVersion: number };
@@ -16,18 +16,18 @@ export function isFolderSelection(values: Pick<AssetFormValues, 'kind' | 'files'
 }
 
 /** design/telas/04 "Erros de arquivo" for the current selection, or null when the web sees none. */
-export function fileError(values: AssetFormValues): string | null {
+export function fileError(values: AssetFormValues, t: WebMessages['catalog'], locale: Locale): string | null {
   const problem = selectionProblem(values.kind, isFolderSelection(values) ? 'folder' : 'file', values.files);
   if (problem === null) return null;
   switch (problem.type) {
     case 'missing':
-      return formMessages.missingFile;
+      return t.form.errors.missingFile;
     case 'size':
-      return `O arquivo passa do limite de ${formatBytes(maxUploadBytesByKind[values.kind])}.`;
+      return t.form.fileErrors.tooLarge(formatBytes(maxUploadBytesByKind[values.kind], locale));
     case 'mime':
-      return `Tipo de arquivo não aceito para ${assetKindLabels[values.kind]}.`;
+      return t.form.fileErrors.typeNotAccepted(t.kinds[values.kind]);
     case 'name':
-      return `O nome "${problem.fileName}" tem caracteres não aceitos. Use letras, números, ponto, hífen ou sublinhado.`;
+      return t.form.fileErrors.badName(problem.fileName);
   }
 }
 
@@ -72,25 +72,25 @@ const referenceReasons: ReadonlySet<string> = new Set([
 export type SaveOutcome = { ok: true; saved: AssetVersionView } | { ok: false; fieldErrors: FieldErrors; formError: string | null };
 
 /** Field errors the api reported, keyed like the form's own (C10 `details.issues`). */
-function serverFieldErrors(error: ApiRequestError, contentMode: ContentMode): Record<string, string> {
+function serverFieldErrors(error: ApiRequestError, contentMode: ContentMode, t: WebMessages): Record<string, string> {
   const errors: Record<string, string> = {};
   const reason = error.reason;
-  if (reason === 'asset-already-exists') errors[fieldIds.assetId] = describeApiError(error);
+  if (reason === 'asset-already-exists') errors[fieldIds.assetId] = describeApiError(error, t);
   if (reason !== null && contentMode === 'reference' && referenceReasons.has(reason)) {
-    errors[fieldIds.referencePath] = describeApiError(error);
+    errors[fieldIds.referencePath] = describeApiError(error, t);
   } else if (reason !== null && fileReasons.has(reason)) {
-    errors[fieldIds.files] = describeApiError(error);
+    errors[fieldIds.files] = describeApiError(error, t);
   }
   for (const issue of error.issues) {
     const fieldId = fieldIdOfMetadataPath(issue.path);
-    if (fieldId !== null) errors[fieldId] ??= formMessages.invalid;
+    if (fieldId !== null) errors[fieldId] ??= t.catalog.form.errors.invalid;
   }
   return errors;
 }
 
-function failureOf(error: unknown, contentMode: ContentMode): SaveOutcome {
-  const fieldErrors = error instanceof ApiRequestError ? serverFieldErrors(error, contentMode) : {};
-  return { ok: false, fieldErrors, formError: `Não foi possível salvar. ${describeApiError(error)}` };
+function failureOf(error: unknown, contentMode: ContentMode, t: WebMessages): SaveOutcome {
+  const fieldErrors = error instanceof ApiRequestError ? serverFieldErrors(error, contentMode, t) : {};
+  return { ok: false, fieldErrors, formError: t.catalog.form.saveFailed(describeApiError(error, t)) };
 }
 
 /**
@@ -105,8 +105,16 @@ function saveByReference(target: AssetFormTarget, values: AssetFormValues, metad
     : browserStudioClient.saveAssetVersionByReference(target.assetId, { absolutePath, metadata });
 }
 
+export interface SaveAssetRequest {
+  target: AssetFormTarget;
+  values: AssetFormValues;
+  metadata: AssetMetadataInput;
+  /** Web texts of the active locale, for the api error sentences. */
+  t: WebMessages;
+}
+
 /** Sends the validated metadata through the C10 route that matches the target and content mode. */
-export async function saveAsset(target: AssetFormTarget, values: AssetFormValues, metadata: AssetMetadataInput): Promise<SaveOutcome> {
+export async function saveAsset({ target, values, metadata, t }: SaveAssetRequest): Promise<SaveOutcome> {
   const client = browserStudioClient;
   try {
     if (target.type === 'new-version' && values.contentMode === 'previous') {
@@ -115,13 +123,13 @@ export async function saveAsset(target: AssetFormTarget, values: AssetFormValues
     }
     if (values.contentMode === 'reference') return { ok: true, saved: await saveByReference(target, values, metadata) };
     const content = uploadContentOf(values);
-    if (content === null) return { ok: false, fieldErrors: { [fieldIds.files]: formMessages.missingFile }, formError: null };
+    if (content === null) return { ok: false, fieldErrors: { [fieldIds.files]: t.catalog.form.errors.missingFile }, formError: null };
     const saved =
       target.type === 'new'
         ? await client.createAsset({ fields: { assetId: values.assetId, kind: values.kind, metadata }, content })
         : await client.saveAssetVersion(target.assetId, { fields: { metadata }, content });
     return { ok: true, saved };
   } catch (error) {
-    return failureOf(error, values.contentMode);
+    return failureOf(error, values.contentMode, t);
   }
 }

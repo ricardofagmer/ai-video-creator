@@ -105,8 +105,14 @@ class LoopFakes {
     run: async (): Promise<boolean> => false,
   };
 
+  /** Asset jobs are a required collaborator (guided-creation design section 1); here they never find work. */
+  readonly assetJobs = {
+    sweepStale: async (): Promise<void> => undefined,
+    claimNext: async (): Promise<boolean> => false,
+  };
+
   loop(): DaemonLoop {
-    return new DaemonLoop(this.engine, this.scanner, this.curations, this.schedules, this.busy, this.shutdown.signal, this.publish, this.metricsPoll);
+    return new DaemonLoop(this.engine, this.scanner, this.curations, this.schedules, this.busy, this.shutdown.signal, this.publish, this.metricsPoll, this.assetJobs);
   }
 }
 

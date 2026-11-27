@@ -1,10 +1,13 @@
-import { Alert, Badge, formatBytes, type BadgeTone } from '@studio/ui';
+'use client';
+
+import { Alert, Badge, formatBytes, useI18n, type BadgeTone, type Locale } from '@studio/ui';
 import { type PublishAttemptView } from '@studio/shared/api';
 import { isOpenPublishState, type PublishState } from '@studio/shared/platforms';
 import type { ReactElement } from 'react';
 import { platformLabels } from '@/features/metrics/metric-labels';
-import { MOCK_BADGE_TEXT } from '@/features/platforms/platform-labels';
-import { NO_RESEND_TEXT, QUEUED_BETWEEN_RUNS_TEXT, formatInstant, outcomeUnknownText, publishFailureTexts, publishStateLabels } from '../publish-labels';
+import { useWebMessages } from '@/lib/i18n/client';
+import { type WebMessages } from '@/messages';
+import { formatInstant } from '../publish-labels';
 import styles from '../publishing.module.css';
 
 const stateTones: Readonly<Record<PublishState, BadgeTone>> = {
@@ -22,16 +25,17 @@ const stateTones: Readonly<Record<PublishState, BadgeTone>> = {
 
 /** The state badge of one attempt; the dot pulses while it is open. */
 export function PublishStateBadge({ attempt }: { attempt: PublishAttemptView }): ReactElement {
+  const t = useWebMessages().publishing;
   return (
     <Badge tone={stateTones[attempt.state]} dot={isOpenPublishState(attempt.state) ? 'live' : true}>
-      {publishStateLabels[attempt.state]}
+      {t.states[attempt.state]}
     </Badge>
   );
 }
 
-function progressText(attempt: PublishAttemptView): string | null {
+function progressText(attempt: PublishAttemptView, t: WebMessages['publishing'], locale: Locale): string | null {
   if (attempt.state !== 'uploading' || attempt.bytesTotal === 0) return null;
-  return `${formatBytes(attempt.bytesSent)} de ${formatBytes(attempt.bytesTotal)}`;
+  return t.attempts.progress(formatBytes(attempt.bytesSent, locale), formatBytes(attempt.bytesTotal, locale));
 }
 
 /**
@@ -40,21 +44,24 @@ function progressText(attempt: PublishAttemptView): string | null {
  * clique." An `outcome-unknown` attempt says to check the platform before trying again.
  */
 export function PublishAttemptStatus({ attempt }: { attempt: PublishAttemptView }): ReactElement {
-  const progress = progressText(attempt);
+  const messages = useWebMessages();
+  const t = messages.publishing;
+  const { locale } = useI18n();
+  const progress = progressText(attempt, t, locale);
   return (
     <div className={styles.attemptStatus} aria-live="polite">
       <p className={styles.attemptLine}>
-        <span className="label">{`Envio para ${platformLabels[attempt.platform]}`}</span>
+        <span className="label">{t.attempts.sendingTo(platformLabels[attempt.platform])}</span>
         <PublishStateBadge attempt={attempt} />
-        {attempt.mode === 'mock' && <Badge tone="info">{MOCK_BADGE_TEXT}</Badge>}
-        <span className="caption">{`desde ${formatInstant(attempt.since)}`}</span>
+        {attempt.mode === 'mock' && <Badge tone="info">{messages.platforms.mockBadge}</Badge>}
+        <span className="caption">{t.attempts.since(formatInstant(attempt.since, locale))}</span>
         {progress !== null && <span className="caption">{progress}</span>}
       </p>
-      {attempt.state === 'queued' && <p className="caption">{QUEUED_BETWEEN_RUNS_TEXT}</p>}
+      {attempt.state === 'queued' && <p className="caption">{t.queuedBetweenRuns}</p>}
       {attempt.state === 'failed' && (
-        <Alert variant="error">{`${attempt.reasonId === null ? '' : `${publishFailureTexts[attempt.reasonId]} `}${NO_RESEND_TEXT}`}</Alert>
+        <Alert variant="error">{`${attempt.reasonId === null ? '' : `${t.failures[attempt.reasonId]} `}${t.noResend}`}</Alert>
       )}
-      {attempt.state === 'outcome-unknown' && <Alert variant="warning">{outcomeUnknownText(attempt.platform)}</Alert>}
+      {attempt.state === 'outcome-unknown' && <Alert variant="warning">{t.outcomeUnknown(platformLabels[attempt.platform])}</Alert>}
     </div>
   );
 }

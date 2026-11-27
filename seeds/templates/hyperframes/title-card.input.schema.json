@@ -1,12 +1,110 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["title"],
+  "required": [
+    "title"
+  ],
   "properties": {
-    "title": { "type": "string", "maxLength": 120 },
-    "hook": { "type": "string", "maxLength": 200 },
-    "disclosure": { "type": "string", "maxLength": 200 },
-    "accent": { "type": "string", "format": "color", "default": "#f97316" },
-    "durationS": { "type": "number", "default": 30 }
+    "title": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "hook": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "disclosure": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "accent": {
+      "type": "string",
+      "format": "color",
+      "default": "#f97316"
+    },
+    "durationS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene1Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene1StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene2Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene2StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene3Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene3StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene4Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene4StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene5Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene5StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene6Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene6StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene7Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene7StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene8Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene8StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene9Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene9StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene10Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene10StartS": {
+      "type": "number",
+      "default": 600
+    }
   }
 }

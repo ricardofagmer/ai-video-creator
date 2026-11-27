@@ -23,14 +23,12 @@ export const RecipeVersionPageSchema = pageOf(RecipeVersionViewSchema);
 export type RecipeVersionPageView = z.infer<typeof RecipeVersionPageSchema>;
 
 /**
- * `PUT /recipes/:recipeId/versions/:version/status` response. Rev 3: the route only deprecates
- * (`active` answers 422 `promotion-approval-required`); `replaced` is kept for the rev 2 shape and
- * is null.
+ * `PUT /recipes/:recipeId/versions/:version/status` response: the version after the call. The route
+ * only deprecates; activation is `POST .../promotion`.
  */
 export const SetRecipeStatusResponseSchema = z
   .object({
     version: RecipeVersionViewSchema,
-    replaced: RecipeVersionViewSchema.nullable(),
   })
   .strict();
 export type SetRecipeStatusResponse = z.infer<typeof SetRecipeStatusResponseSchema>;

@@ -70,6 +70,8 @@ export function toAssetVersion(row: AssetVersionRow): AssetVersion {
     qualityPlatformSampleSize: row.qualityPlatformSampleSize,
     qualityScoredAt: row.qualityScoredAt === null ? null : row.qualityScoredAt.toISOString(),
     notes: row.notes,
+    purpose: row.purpose,
+    purposeSource: row.purposeSource,
     details: parseJsonColumn(row.detailsJson, ref),
   };
   const parsed = AssetVersionSchema.safeParse(candidate);
@@ -106,6 +108,8 @@ export function toCreateData(version: AssetVersion): Prisma.AssetVersionUnchecke
     qualityPlatformSampleSize: version.qualityPlatformSampleSize,
     qualityScoredAt: version.qualityScoredAt === null ? null : new Date(version.qualityScoredAt),
     notes: version.notes,
+    purpose: version.purpose,
+    purposeSource: version.purposeSource,
     createdAt: new Date(version.createdAt),
     updatedAt: new Date(version.updatedAt),
   };

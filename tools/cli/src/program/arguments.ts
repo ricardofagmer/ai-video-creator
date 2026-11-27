@@ -6,6 +6,8 @@ import { IsoDateSchema, PlatformSchema } from '@studio/shared/metrics';
 import { RunIdSchema, type RunId } from '@studio/shared/run-format';
 import { ScheduleIdSchema, type ScheduleId } from '@studio/shared/schedules';
 import { CliUsageError } from '../errors/cli.errors.js';
+import { cliText } from '../i18n/messages.js';
+import { type UsageMessages } from '../i18n/messages/usage.js';
 import { type ServiceName } from '../errors/service.errors.js';
 import { type CatalogImportOptions } from '../commands/catalog-import.command.js';
 import { type SemanticSearchOptions } from '../commands/catalog-search.command.js';
@@ -32,9 +34,17 @@ function usage(message: string): CliUsageError {
   return new CliUsageError(message);
 }
 
+function text(): UsageMessages {
+  return cliText().usage;
+}
+
+function flagsOf(issues: readonly { path: readonly PropertyKey[] }[]): string {
+  return issues.map((issue) => `--${issue.path.map(String).join('.')}`).join(', ');
+}
+
 export function parseRunId(value: unknown): RunId {
   const parsed = RunIdSchema.safeParse(value);
-  if (!parsed.success) throw usage('Id de execução inválido; use o id mostrado por "studio status".');
+  if (!parsed.success) throw usage(text().invalidRunId);
   return parsed.data;
 }
 
@@ -45,7 +55,7 @@ export function parseOptionalRunId(value: unknown): RunId | undefined {
 export function parseServiceName(value: unknown): ServiceName | undefined {
   if (value === undefined) return undefined;
   const parsed = ServiceNameSchema.safeParse(value);
-  if (!parsed.success) throw usage('Serviço inválido; use "web" ou "api".');
+  if (!parsed.success) throw usage(text().invalidService);
   return parsed.data;
 }
 
@@ -58,12 +68,12 @@ export function parseStopTarget(value: unknown): StopTarget {
   if (service.success) return { kind: 'services', service: service.data };
   const runId = RunIdSchema.safeParse(value);
   if (runId.success) return { kind: 'run', runId: runId.data };
-  throw usage('Use "studio stop" (web e api), "studio stop web", "studio stop api" ou "studio stop <id da execução>".');
+  throw usage(text().stopTarget);
 }
 
 export function parseSecretName(value: unknown): string {
   const parsed = z.string().min(1).max(64).safeParse(value);
-  if (!parsed.success) throw usage('Informe o nome da chave.');
+  if (!parsed.success) throw usage(text().secretNameMissing);
   return parsed.data;
 }
 
@@ -76,7 +86,7 @@ const RunOptionsSchema = z.object({
 
 export function parseRunOptions(value: unknown): RunCommandOptions {
   const parsed = RunOptionsSchema.safeParse(value);
-  if (!parsed.success) throw usage(`Opções inválidas em ${parsed.error.issues.map((issue) => `--${issue.path.join('.')}`).join(', ')}.`);
+  if (!parsed.success) throw usage(text().invalidOptions(flagsOf(parsed.error.issues)));
   const { recipe, brief, reference, title } = parsed.data;
   return { recipe, brief, references: reference, title };
 }
@@ -88,9 +98,9 @@ const GateOptionsSchema = z.object({ notes: z.string().trim().min(1).max(MAX_GAT
 /** `studio approve|reject <runId>`: notes are optional on approve and required on reject (the web asks a reason). */
 export function parseGateOptions(runId: unknown, outcome: GateOutcome, options: unknown): RunGateOptions {
   const parsed = GateOptionsSchema.safeParse(options);
-  if (!parsed.success) throw usage(`--notes deve ter de 1 a ${MAX_GATE_NOTES} caracteres.`);
+  if (!parsed.success) throw usage(text().notesLength(MAX_GATE_NOTES));
   const notes = parsed.data.notes ?? '';
-  if (outcome === 'rejected' && notes === '') throw usage('Informe o motivo da recusa com --notes "<texto>".');
+  if (outcome === 'rejected' && notes === '') throw usage(text().rejectNotesMissing);
   return { runId: parseRunId(runId), outcome, notes };
 }
 
@@ -105,28 +115,28 @@ const CatalogImportOptionsSchema = z.object({
 
 export function parseCatalogImportOptions(path: unknown, options: unknown): CatalogImportOptions {
   const parsedPath = PathArgumentSchema.safeParse(path);
-  if (!parsedPath.success) throw usage('Informe o caminho do arquivo ou pasta a importar.');
+  if (!parsedPath.success) throw usage(text().importPathMissing);
   const parsed = CatalogImportOptionsSchema.safeParse(options);
-  if (!parsed.success) throw usage(`Opções inválidas em ${parsed.error.issues.map((issue) => `--${issue.path.join('.')}`).join(', ')}.`);
+  if (!parsed.success) throw usage(text().invalidOptions(flagsOf(parsed.error.issues)));
   return { path: parsedPath.data, ...parsed.data };
 }
 
 export function parseSeedSourceRoot(options: unknown): string | undefined {
   const parsed = z.object({ sourceRoot: PathArgumentSchema.optional() }).safeParse(options);
-  if (!parsed.success) throw usage('Opção inválida em --source-root.');
+  if (!parsed.success) throw usage(text().invalidOption('--source-root'));
   return parsed.data.sourceRoot;
 }
 
 export function parseDoctorOptions(options: unknown): DoctorOptions {
   const parsed = z.object({ rebuildIndex: z.boolean().default(false) }).safeParse(options);
-  if (!parsed.success) throw usage('Opção inválida em --rebuild-index.');
+  if (!parsed.success) throw usage(text().invalidOption('--rebuild-index'));
   return { rebuildIndex: parsed.data.rebuildIndex };
 }
 
 export function parseEmbedScope(options: unknown): EmbedScope {
   const parsed = z.object({ stale: z.boolean().default(false), all: z.boolean().default(false) }).safeParse(options);
-  if (!parsed.success) throw usage('Opção inválida em --stale ou --all.');
-  if (parsed.data.stale && parsed.data.all) throw usage('Use --stale ou --all, não os dois.');
+  if (!parsed.success) throw usage(text().invalidOneOfTwo('--stale', '--all'));
+  if (parsed.data.stale && parsed.data.all) throw usage(text().staleOrAll);
   if (parsed.data.all) return 'all';
   return parsed.data.stale ? 'stale' : 'unindexed';
 }
@@ -158,15 +168,15 @@ export function parseSemanticSearchOptions(options: unknown): SemanticSearchOpti
   const parsed = SemanticSearchOptionsSchema.safeParse(options);
   if (!parsed.success) {
     const fields = new Set(parsed.error.issues.map((issue) => String(issue.path[0] ?? '')));
-    if (fields.has('limit')) throw usage(`Use --limit entre 1 e ${MAX_SEARCH_LIMIT}.`);
-    throw usage(`Informe em --semantic um texto de 1 a ${SEMANTIC_SEARCH_QUERY_MAX_CHARS} caracteres.`);
+    if (fields.has('limit')) throw usage(text().searchLimit(MAX_SEARCH_LIMIT));
+    throw usage(text().searchText(SEMANTIC_SEARCH_QUERY_MAX_CHARS));
   }
   return { query: parsed.data.semantic, limit: parsed.data.limit ?? SEMANTIC_SEARCH_DEFAULT_LIMIT };
 }
 
 export function parseScheduleId(value: unknown): ScheduleId {
   const parsed = ScheduleIdSchema.safeParse(value);
-  if (!parsed.success) throw usage('Id de agendamento inválido; use o id mostrado por "studio schedules list".');
+  if (!parsed.success) throw usage(text().invalidScheduleId);
   return parsed.data;
 }
 
@@ -175,7 +185,7 @@ const InsightsFlagsSchema = z.object({ json: z.boolean().default(false) });
 /** `insights [--json]`. */
 export function parseInsightsOptions(options: unknown): InsightsOptions {
   const parsed = InsightsFlagsSchema.safeParse(options);
-  if (!parsed.success) throw usage('Opção inválida em --json.');
+  if (!parsed.success) throw usage(text().invalidOption('--json'));
   return { json: parsed.data.json };
 }
 
@@ -192,13 +202,13 @@ const MetricsImportFlagsSchema = z.object({
  */
 export function parseMetricsImportOptions(file: unknown, options: unknown): MetricsImportOptions {
   const parsedFile = PathArgumentSchema.safeParse(file);
-  if (!parsedFile.success) throw usage('Informe o arquivo CSV exportado pela plataforma.');
+  if (!parsedFile.success) throw usage(text().csvFileMissing);
   const parsed = MetricsImportFlagsSchema.safeParse(options);
   if (!parsed.success) {
     const fields = new Set(parsed.error.issues.map((issue) => String(issue.path[0] ?? '')));
-    if (fields.has('platform')) throw usage(`Use --platform ${PlatformSchema.options.join(', ')}.`);
-    if (fields.has('asOf')) throw usage('Use --as-of com a data dos números, no formato AAAA-MM-DD.');
-    throw usage('Opção inválida em --dry-run.');
+    if (fields.has('platform')) throw usage(text().usePlatform(PlatformSchema.options.join(', ')));
+    if (fields.has('asOf')) throw usage(text().asOfDate);
+    throw usage(text().invalidOption('--dry-run'));
   }
   return { file: parsedFile.data, platform: parsed.data.platform, asOfDate: parsed.data.asOf, dryRun: parsed.data.dryRun };
 }

@@ -1,12 +1,16 @@
-import { Badge, Table, textLinkClassName, type TableColumn } from '@studio/ui';
+import { Badge, Table, textLinkClassName, type Locale, type TableColumn } from '@studio/ui';
 import { type SlotLine } from '@studio/shared/schedules';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
-import { formatSlotWithYear, slotLineText, slotResultTones } from '../schedule-labels';
+import { formatSlotWithYear } from '@/lib/i18n/format';
+import { type WebMessages } from '@/messages';
+import { slotLineText, slotResultTones } from '../schedule-labels';
 
 interface ScheduleSlotTableProps {
   slots: readonly SlotLine[];
   timezone: string;
+  t: WebMessages['schedules'];
+  locale: Locale;
 }
 
 /**
@@ -14,13 +18,14 @@ interface ScheduleSlotTableProps {
  * what the watcher decided and, for a fired slot, the run it created. Missed slots are logged,
  * never replayed.
  */
-export function ScheduleSlotTable({ slots, timezone }: ScheduleSlotTableProps): ReactElement {
+export function ScheduleSlotTable({ slots, timezone, t, locale }: ScheduleSlotTableProps): ReactElement {
+  const texts = t.slotTable;
   const columns: readonly TableColumn<SlotLine>[] = [
-    { key: 'slot', header: 'Horário', rowHeader: true, render: (line) => formatSlotWithYear(line.slotAt, timezone) },
-    { key: 'result', header: 'Resultado', render: (line) => <Badge tone={slotResultTones[line.result]}>{slotLineText(line)}</Badge> },
+    { key: 'slot', header: texts.slot, rowHeader: true, render: (line) => formatSlotWithYear(line.slotAt, timezone, locale) },
+    { key: 'result', header: texts.result, render: (line) => <Badge tone={slotResultTones[line.result]}>{slotLineText(line, t)}</Badge> },
     {
       key: 'run',
-      header: 'Execução',
+      header: texts.run,
       render: (line) =>
         line.runId === null ? (
           '—'
@@ -33,12 +38,12 @@ export function ScheduleSlotTable({ slots, timezone }: ScheduleSlotTableProps): 
   ];
   return (
     <Table
-      caption="Últimos horários"
+      caption={texts.caption}
       hideCaption
       columns={columns}
       rows={slots}
       rowKey={(line) => `${line.slotAt}|${line.decidedAt}`}
-      emptyText="Nenhum horário chegou ainda."
+      emptyText={texts.empty}
     />
   );
 }

@@ -1,22 +1,28 @@
 'use client';
 
-import { Alert, Button, EmptyState, FormField, Spinner, Textarea } from '@studio/ui';
+import { Alert, Button, EmptyState, FormField, Spinner, Textarea, useI18n } from '@studio/ui';
 import { type SearchIndexStatusResponse, type SemanticSearchResponse } from '@studio/shared/api';
 import { SEMANTIC_SEARCH_QUERY_MAX_CHARS, type AssetKind, type AssetStatus } from '@studio/shared/catalog';
-import { useState, type FormEvent, type ReactElement } from 'react';
+import { useState, type FormEvent, type ReactElement, type ReactNode } from 'react';
+import { versionInSection, type CatalogSection } from '@/features/catalog/catalog-sections';
 import { CatalogAssetItem } from '@/features/catalog/components/CatalogAssetItem';
 import { describeApiError } from '@/features/common/api-error-text';
 import layout from '@/features/common/layout.module.css';
 import { ApiRequestError } from '@/lib/api';
-import { pendingIndexText, searchModelLabels, similarityText } from '../search-labels';
+import { useWebMessages } from '@/lib/i18n/client';
+import { pendingIndexText, similarityText } from '../search-labels';
 import { browserSemanticSearchApi } from '../semantic-search-api';
 
 interface SemanticSearchPanelProps {
   /** `GET /catalog/search/status` read on the server; null when it could not be read. */
   status: SearchIndexStatusResponse | null;
-  /** The URL's kind and status filters, applied to the search too. */
-  kind: AssetKind | null;
+  /** The kinds of the URL's section (or its one picked kind) and its status filter, applied to the search too. */
+  kinds: readonly AssetKind[];
+  /** The URL's section: Sites and References share the `reference` kind, so results are split by subtype here. */
+  section: CatalogSection;
   assetStatus: AssetStatus | null;
+  /** The By words / By meaning switch, shown right under the query box (or the unavailable notice). */
+  modeSwitch: ReactNode;
 }
 
 type SearchState =
@@ -34,19 +40,22 @@ const QUERY_ID = 'busca-significado';
  * stays in component state and goes out in a POST body only. `pending` is always shown, so an
  * incomplete index is never silent; results render as text.
  */
-export function SemanticSearchPanel({ status, kind, assetStatus }: SemanticSearchPanelProps): ReactElement {
+export function SemanticSearchPanel({ status, kinds, section, assetStatus, modeSwitch }: SemanticSearchPanelProps): ReactElement {
   const [query, setQuery] = useState('');
   const [queryError, setQueryError] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchState>({ status: 'idle' });
 
-  const indexPending = status === null ? null : pendingIndexText(status.pending + status.stale);
+  const { locale } = useI18n();
+  const messages = useWebMessages();
+  const searchTexts = messages.catalog.search;
+  const indexPending = status === null ? null : pendingIndexText(status.pending + status.stale, searchTexts, locale);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (search.status === 'loading') return;
     const text = query.trim();
     if (text === '' || text.length > SEMANTIC_SEARCH_QUERY_MAX_CHARS) {
-      setQueryError(`Escreva de 1 a ${SEMANTIC_SEARCH_QUERY_MAX_CHARS} caracteres.`);
+      setQueryError(searchTexts.queryLength(SEMANTIC_SEARCH_QUERY_MAX_CHARS));
       document.getElementById(QUERY_ID)?.focus();
       return;
     }
@@ -55,35 +64,38 @@ export function SemanticSearchPanel({ status, kind, assetStatus }: SemanticSearc
     try {
       const response = await browserSemanticSearchApi.search({
         query: text,
-        kinds: kind === null ? undefined : [kind],
+        kinds: [...kinds],
         statuses: assetStatus === null ? undefined : [assetStatus],
       });
-      setSearch({ status: 'done', response });
+      setSearch({ status: 'done', response: { ...response, items: response.items.filter((item) => versionInSection(section, item.version)) } });
     } catch (error) {
       const unavailable = error instanceof ApiRequestError && error.reason === 'embedding-unavailable';
-      setSearch({ status: unavailable ? 'unavailable' : 'failed', message: describeApiError(error) });
+      setSearch({ status: unavailable ? 'unavailable' : 'failed', message: describeApiError(error, messages) });
     }
   }
 
   if (status !== null && status.model !== 'ready') {
     return (
-      <Alert variant="warning" title="Busca por significado indisponível">
-        {`${searchModelLabels[status.model]} A busca por palavras continua funcionando.`}
-      </Alert>
+      <div className={layout.stack}>
+        <Alert variant="warning" title={searchTexts.unavailableTitle}>
+          {searchTexts.unavailableBody(searchTexts.modelStates[status.model])}
+        </Alert>
+        {modeSwitch}
+      </div>
     );
   }
 
   return (
     <div className={layout.stack}>
-      {status === null && <Alert variant="warning">Não foi possível ler o estado do índice de busca. A busca ainda pode funcionar.</Alert>}
+      {status === null && <Alert variant="warning">{searchTexts.statusUnreadable}</Alert>}
       {indexPending !== null && (
-        <Alert variant="info">{`${indexPending}. Elas não aparecem nos resultados até o estúdio indexá-las.`}</Alert>
+        <Alert variant="info">{searchTexts.pendingNotice(indexPending)}</Alert>
       )}
       <form className={layout.stack} onSubmit={(event) => void handleSubmit(event)} noValidate>
         <FormField
           id={QUERY_ID}
-          label="Descreva o que você procura"
-          help="Em português ou inglês. O texto fica só neste computador e não é guardado no endereço da página."
+          label={searchTexts.queryLabel}
+          help={searchTexts.queryHelp}
           error={queryError ?? undefined}
           disabled={search.status === 'loading'}
         >
@@ -99,12 +111,13 @@ export function SemanticSearchPanel({ status, kind, assetStatus }: SemanticSearc
           )}
         </FormField>
         <div className={layout.formFooter}>
-          <Button type="submit" variant="primary" loading={search.status === 'loading'} loadingLabel="Buscando…">
-            Buscar por significado
+          <Button type="submit" variant="primary" loading={search.status === 'loading'} loadingLabel={searchTexts.searching}>
+            {searchTexts.submit}
           </Button>
         </div>
       </form>
-      {search.status === 'loading' && <Spinner size="sm" label="Buscando por significado" />}
+      {modeSwitch}
+      {search.status === 'loading' && <Spinner size="sm" label={searchTexts.spinner} />}
       {(search.status === 'failed' || search.status === 'unavailable') && <Alert variant="error">{search.message}</Alert>}
       {search.status === 'done' && <SemanticResults response={search.response} />}
     </div>
@@ -112,20 +125,29 @@ export function SemanticSearchPanel({ status, kind, assetStatus }: SemanticSearc
 }
 
 function SemanticResults({ response }: { response: SemanticSearchResponse }): ReactElement {
-  const pending = pendingIndexText(response.pending);
-  const countText = response.items.length === 1 ? '1 resultado' : `${response.items.length} resultados`;
+  const { locale } = useI18n();
+  const catalogTexts = useWebMessages().catalog;
+  const pending = pendingIndexText(response.pending, catalogTexts.search, locale);
+  const searchTexts = catalogTexts.search;
+  const countText = searchTexts.resultCount(response.items.length);
   return (
     <div className={layout.stack}>
       <p className="caption" aria-live="polite">
-        {pending === null ? countText : `${countText} · ${pending} entre os filtros escolhidos`}
+        {pending === null ? countText : searchTexts.resultCountWithPending(countText, pending)}
       </p>
       {response.items.length === 0 ? (
-        <EmptyState title="Nenhum ativo encontrado" description="Tente descrever de outro jeito ou use a busca por palavras." />
+        <EmptyState title={searchTexts.noResultsTitle} description={searchTexts.noResultsDescription} />
       ) : (
-        <ol className={layout.cardGrid} aria-label="Resultados da busca por significado, do mais parecido ao menos parecido">
+        <ol className={layout.cardGrid} aria-label={searchTexts.resultsLabel}>
           {response.items.map((item) => (
             <li key={`${item.version.id}@${item.version.version}`}>
-              <CatalogAssetItem version={item.version} linkToVersion detail={similarityText(item.similarity)} />
+              <CatalogAssetItem
+                version={item.version}
+                linkToVersion
+                detail={similarityText(item.similarity, catalogTexts.search, locale)}
+                t={catalogTexts}
+                locale={locale}
+              />
             </li>
           ))}
         </ol>

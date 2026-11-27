@@ -8,7 +8,7 @@ export interface CostSessionKey {
   callIndex: number;
 }
 
-/** `callIndex` for model calls; 1 for TTS and render, as the C8 column default says. */
+/** `callIndex` for model calls; 1 for TTS, render and music, as the C8 column default says. */
 export function costSessionKey(session: CostSession): CostSessionKey {
   return { sessionId: session.sessionId, callIndex: session.kind === 'model' ? session.callIndex : 1 };
 }
@@ -17,7 +17,7 @@ export function costSessionKeyText(runId: string, key: CostSessionKey): string {
   return `${runId}/${key.sessionId}/${key.callIndex}`;
 }
 
-/** When the spend happened: a model call bills when it ends; TTS and render carry `at`. */
+/** When the spend happened: a model call bills when it ends; TTS, render and music carry `at`. */
 export function costSessionOccurredAt(session: CostSession): Date {
   return new Date(session.kind === 'model' ? session.endedAt : session.at);
 }
@@ -38,6 +38,8 @@ export function usageOfCostSession(session: CostSession): UsageQuantity {
       return { kind: 'tts', provider: session.provider, characters: session.characters };
     case 'render':
       return { kind: 'render', renderSeconds: session.renderSeconds };
+    case 'music':
+      return { kind: 'music', provider: session.provider, musicSeconds: session.musicSeconds };
   }
 }
 
@@ -75,5 +77,7 @@ export function toCostEntryData(
       return { ...common, ttsCharacters: session.characters };
     case 'render':
       return { ...common, renderSeconds: session.renderSeconds };
+    case 'music':
+      return { ...common, musicSeconds: session.musicSeconds };
   }
 }

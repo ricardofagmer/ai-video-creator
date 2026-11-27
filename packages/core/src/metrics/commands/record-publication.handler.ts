@@ -5,6 +5,7 @@ import { metricsBounds, parsePublicationUrl } from '@studio/shared/metrics';
 import { newUlid } from '@studio/shared/run-files';
 import { PrismaService } from '../../prisma';
 import { QualityScoreService } from '../../quality';
+import { SerialMutex } from '../../runtime/keyed-mutex';
 import {
   PublicationAlreadyLinkedError,
   PublicationLimitReachedError,
@@ -25,7 +26,7 @@ import { RecordPublicationCommand } from './record-publication.command';
 export class RecordPublicationHandler implements ICommandHandler<RecordPublicationCommand, PublicationView> {
   private readonly logger = new Logger(RecordPublicationHandler.name);
   /** Publications are recorded one at a time in this process, so a double click cannot pass the limit. */
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly writes = new SerialMutex();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -54,10 +55,8 @@ export class RecordPublicationHandler implements ICommandHandler<RecordPublicati
       attemptId: null,
       platformMediaId: null,
     };
-    const run = this.tail.then(() => this.insert(candidate));
-    // The chain only orders the writes; each caller still receives its own result or error.
-    this.tail = run.catch(() => undefined);
-    const publication = await run;
+    // The mutex only orders the writes; each caller still receives its own result or error.
+    const publication = await this.writes.run(() => this.insert(candidate));
     // Ids and the platform only: never the URL or the video id (section 7).
     this.logger.log({
       event: 'metrics.publication-recorded',

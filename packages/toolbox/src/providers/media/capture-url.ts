@@ -14,29 +14,49 @@ export function extractCaptureUrl(visual: string): URL | null {
   }
 }
 
-const PRIVATE_IPV4 = [/^127\./, /^10\./, /^192\.168\./, /^169\.254\./, /^172\.(1[6-9]|2\d|3[01])\./, /^0\./];
+const PRIVATE_IPV4 = [/^127\./, /^10\./, /^192\.168\./, /^172\.(1[6-9]|2\d|3[01])\./];
+// Link-local (cloud metadata) and the unspecified network.
+const REFUSED_IPV4 = [/^169\.254\./, /^0\./];
 
-/** Loopback, link-local and private-network literals are never capture targets, allowlisted or not. */
+/** This machine and private-network literals: reachable only when the owner typed that host. */
 function isLocalNetworkHost(hostname: string): boolean {
   if (hostname === 'localhost' || hostname.endsWith('.localhost')) return true;
-  if (hostname.startsWith('[')) return true;
   return PRIVATE_IPV4.some((pattern) => pattern.test(hostname));
 }
 
+/** Never a capture target, allowlisted or not: link-local addresses and IPv6 literals. */
+function isRefusedHost(hostname: string): boolean {
+  return hostname.startsWith('[') || REFUSED_IPV4.some((pattern) => pattern.test(hostname));
+}
+
+/**
+ * A navigation target: its host is on the allowlist (the host the owner typed as the source URL).
+ * Public hosts must be https; a local-network host may also be plain http, because a local
+ * development server rarely has a certificate (owner decision, 2026-11-24).
+ */
 export function isHostAllowed(url: URL, allowedHosts: readonly string[]): boolean {
-  if (url.protocol !== 'https:') return false;
   const hostname = url.hostname.toLowerCase();
-  return !isLocalNetworkHost(hostname) && allowedHosts.includes(hostname);
+  if (isRefusedHost(hostname) || !allowedHosts.includes(hostname)) return false;
+  return url.protocol === 'https:' || (url.protocol === 'http:' && isLocalNetworkHost(hostname));
 }
 
 /**
  * Sub-requests of a captured page (images, scripts, fetch/XHR, media) may use any public CDN, so
  * they skip the host allowlist, but they still must be https, carry no credentials and stay off
- * loopback, link-local and private-network addresses.
+ * loopback, link-local and private-network addresses. A local page's own assets pass through
+ * `isHostAllowed` instead.
  */
 export function isPublicHttpsUrl(url: URL): boolean {
   if (url.protocol !== 'https:' || url.username !== '' || url.password !== '') return false;
-  return !isLocalNetworkHost(url.hostname.toLowerCase());
+  const hostname = url.hostname.toLowerCase();
+  return !isLocalNetworkHost(hostname) && !isRefusedHost(hostname);
+}
+
+/** Whether research and capture read this owner-typed source URL at all. */
+export function isReadableSourceUrl(sourceUrl: string): boolean {
+  if (!URL.canParse(sourceUrl)) return false;
+  const url = new URL(sourceUrl);
+  return url.username === '' && url.password === '' && isHostAllowed(url, [url.hostname.toLowerCase()]);
 }
 
 /** Checks every capture target up front so no browser time is spent before a refusal. */

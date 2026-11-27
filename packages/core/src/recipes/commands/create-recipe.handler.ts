@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { CommandHandler, type ICommandHandler } from '@nestjs/cqrs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RecipeBindingVerifier } from '../recipe-binding.verifier';
+import { RecipeCompositionCheck } from '../recipe-composition.check';
 import { hashRecipeDefinition } from '../recipe-definition';
 import { buildDraftRecipe, parseRecipeId } from '../recipe-version.factory';
 import { toCreateData, toRecipeVersionView, type RecipeVersionView } from '../recipe-version.mapper';
@@ -17,6 +18,7 @@ export class CreateRecipeHandler implements ICommandHandler<CreateRecipeCommand,
     private readonly prisma: PrismaService,
     private readonly versions: RecipeVersionRepository,
     private readonly bindings: RecipeBindingVerifier,
+    private readonly composition: RecipeCompositionCheck,
   ) {}
 
   async execute(command: CreateRecipeCommand): Promise<RecipeVersionView> {
@@ -24,6 +26,7 @@ export class CreateRecipeHandler implements ICommandHandler<CreateRecipeCommand,
     if (await this.versions.recipeExists(recipeId)) throw new RecipeAlreadyExistsError(recipeId);
     const draft = buildDraftRecipe({ recipeId, version: 1, definition: command.input.definition, now: new Date() });
     await this.bindings.verify(draft);
+    await this.composition.assertRecipe(draft);
     const hashed = hashRecipeDefinition(draft);
 
     const saved = await this.prisma

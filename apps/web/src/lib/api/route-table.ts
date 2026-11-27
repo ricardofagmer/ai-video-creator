@@ -51,6 +51,29 @@ const rows: readonly RouteRow[] = [
   { id: 'catalog.save-metadata-version', method: 'POST', pattern: 'catalog/assets/:assetId/versions/from-previous', body: 'json' },
   { id: 'catalog.save-version-by-reference', method: 'POST', pattern: 'catalog/assets/:assetId/versions/by-reference', body: 'json' },
   { id: 'catalog.version', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version' },
+  // SKILL.md text editing (skills page spec, T5): the entry file of one version as UTF-8 text.
+  { id: 'catalog.entry-file', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/entry-file' },
+  { id: 'catalog.image', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/image' },
+  // Music preview (docs/specs/2026-11-25-music-preview.md): stored music bytes for the "Listen" button.
+  { id: 'catalog.audio', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/audio' },
+  // Guided creation (docs/specs/2026-11-23-guided-creation-design.md, amendment 1). The audio is
+  // bytes, not JSON: the api sends `no-store` and `nosniff`, and the proxy passes both on. No query
+  // is forwarded, so the player's cache-busting value never reaches the api.
+  { id: 'catalog.voice-sample', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/voice-sample' },
+  { id: 'catalog.voice-sample-request', method: 'POST', pattern: 'catalog/assets/:assetId/versions/:version/voice-sample', body: 'json' },
+  { id: 'catalog.voice-sample-audio', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/voice-sample/audio' },
+  { id: 'catalog.template-preview', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/template-preview' },
+  { id: 'catalog.template-preview-clip', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/template-preview/clip' },
+  { id: 'catalog.template-preview-poster', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/template-preview/poster' },
+  { id: 'catalog.reference-analysis', method: 'GET', pattern: 'catalog/assets/:assetId/versions/:version/reference-analysis' },
+  { id: 'catalog.reference-analysis-request', method: 'POST', pattern: 'catalog/assets/:assetId/versions/:version/reference-analysis' },
+  // Catalog asset purpose (ADR 0012): Retry and Regenerate queue a new `asset-purpose` job.
+  // The owner's own text (C-P4): `purposeSource: owner`, which no job overwrites.
+  { id: 'catalog.purpose', method: 'PUT', pattern: 'catalog/assets/:assetId/versions/:version/purpose', body: 'json' },
+  { id: 'catalog.purpose-generation', method: 'POST', pattern: 'catalog/assets/:assetId/versions/:version/purpose/generation' },
+  // Purpose backfill (C-P4): the count for the catalog page button, and the confirmed batch request.
+  { id: 'catalog.purpose-backfill-count', method: 'GET', pattern: 'catalog/assets/purposes/backfill' },
+  { id: 'catalog.purpose-backfill', method: 'POST', pattern: 'catalog/assets/purposes/backfill' },
   { id: 'catalog.status', method: 'PUT', pattern: 'catalog/assets/:assetId/versions/:version/status', body: 'json' },
   // Rev 3 (SPEC 0003 section 4.3): the only way a version becomes `active`, one recorded owner approval per call.
   { id: 'catalog.promotion', method: 'POST', pattern: 'catalog/assets/:assetId/versions/:version/promotion', body: 'json' },
@@ -67,6 +90,7 @@ const rows: readonly RouteRow[] = [
   { id: 'runs.list', method: 'GET', pattern: 'runs', query: true },
   { id: 'runs.create', method: 'POST', pattern: 'runs', body: 'json' },
   { id: 'runs.state', method: 'GET', pattern: 'runs/:runId' },
+  { id: 'runs.delete', method: 'DELETE', pattern: 'runs/:runId' },
   { id: 'runs.start', method: 'POST', pattern: 'runs/:runId/start' },
   { id: 'runs.events', method: 'GET', pattern: 'runs/:runId/events', query: true },
   { id: 'runs.artifact', method: 'GET', pattern: 'runs/:runId/artifact', query: true, range: true },
@@ -74,6 +98,7 @@ const rows: readonly RouteRow[] = [
   { id: 'runs.gate-decisions', method: 'POST', pattern: 'runs/:runId/gate-decisions', body: 'json' },
   { id: 'runs.review', method: 'POST', pattern: 'runs/:runId/review', body: 'json' },
   { id: 'runs.promote', method: 'POST', pattern: 'runs/:runId/promote', body: 'json' },
+  { id: 'runs.save-video', method: 'POST', pattern: 'runs/:runId/save-video' },
   { id: 'runs.learnings', method: 'POST', pattern: 'runs/:runId/learnings', body: 'json' },
   // Rev 4: daemon-wide watcher state from the heartbeat file; session-guarded like every row but `health` and login.
   { id: 'watcher.status', method: 'GET', pattern: 'watcher' },

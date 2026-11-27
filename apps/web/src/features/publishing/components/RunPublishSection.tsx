@@ -6,11 +6,11 @@ import { platformPublishSupport } from '@studio/shared/platforms';
 import { useEffect, useState, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { rev7ReasonText } from '@/features/common/platform-error-text';
+import { useWebMessages } from '@/lib/i18n/client';
 import { platformLabels } from '@/features/metrics/metric-labels';
 import { PUBLICATION_URL_INPUT_ID } from '@/features/metrics/publication-link';
-import { MOCK_BADGE_TEXT, capabilityStatusBadge } from '@/features/platforms/platform-labels';
+import { capabilityStatusBadge } from '@/features/platforms/platform-labels';
 import { useRunPublishView } from '../hooks/useRunPublishView';
-import { INSTAGRAM_PUBLISH_TEXT } from '../publish-labels';
 import styles from '../publishing.module.css';
 import { type RunPublishData } from '../run-publish-data';
 import { LeftTheMachineCard } from './LeftTheMachineCard';
@@ -23,8 +23,6 @@ interface RunPublishSectionProps {
   data: RunPublishData;
 }
 
-const CARD_TITLE = 'Publicar';
-const CARD_DESCRIPTION = 'Envie o vídeo aprovado para as suas contas. Nada é enviado sem o seu clique em Publicar.';
 
 /** OD8: the R3 pasted-link form, in "Publicações" further down the page. */
 function openPastedLinkForm(): void {
@@ -39,11 +37,12 @@ function openPastedLinkForm(): void {
  * and 5.9). Each read fails on its own; the rest of the run page is unaffected.
  */
 export function RunPublishSection({ runId, runTitle, data }: RunPublishSectionProps): ReactElement {
+  const texts = useWebMessages().publishing.section;
   if (data.publish.status === 'failed') {
     return (
       <>
-        <Card title={CARD_TITLE} description={CARD_DESCRIPTION}>
-          <Alert variant="warning">{`Não foi possível carregar a publicação. ${data.publish.message}`}</Alert>
+        <Card title={texts.title} description={texts.description}>
+          <Alert variant="warning">{texts.loadFailed(data.publish.message)}</Alert>
         </Card>
         <LeftTheMachineCard egress={data.egress} lines={null} />
       </>
@@ -54,6 +53,8 @@ export function RunPublishSection({ runId, runTitle, data }: RunPublishSectionPr
 
 function LivePublishSection({ runId, runTitle, data, initialView }: RunPublishSectionProps & { initialView: RunPublishView }): ReactElement {
   const live = useRunPublishView(runId, initialView);
+  const t = useWebMessages();
+  const texts = t.publishing.section;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pasteRequested, setPasteRequested] = useState(false);
   const { view } = live;
@@ -74,30 +75,30 @@ function LivePublishSection({ runId, runTitle, data, initialView }: RunPublishSe
   return (
     <>
       <Card
-        title={CARD_TITLE}
-        description={CARD_DESCRIPTION}
+        title={texts.title}
+        description={texts.description}
         actions={
           <Button variant="primary" disabled={!canOpen} onClick={() => setDialogOpen(true)}>
-            Publicar…
+            {texts.open}
           </Button>
         }
       >
         <div className={layout.stack}>
-          {!view.approved && <Alert variant="info">{rev7ReasonText('publish-run-not-approved', { platform: null })}</Alert>}
-          {live.unreachable && <Alert variant="warning">Não foi possível atualizar o envio agora. Tentando de novo…</Alert>}
+          {!view.approved && <Alert variant="info">{rev7ReasonText('publish-run-not-approved', { platform: null }, t)}</Alert>}
+          {live.unreachable && <Alert variant="warning">{texts.unreachable}</Alert>}
           <ul className={styles.platformList}>
             {view.platforms.map((entry) => {
-              const badge = capabilityStatusBadge(entry.status);
+              const badge = capabilityStatusBadge(entry.status, t.platforms);
               return (
                 <li key={entry.platform} className={styles.attemptLine}>
                   <span className="label">{platformLabels[entry.platform]}</span>
                   <Badge tone={badge.tone} dot>
                     {badge.label}
                   </Badge>
-                  {entry.mode === 'mock' && <Badge tone="info">{MOCK_BADGE_TEXT}</Badge>}
+                  {entry.mode === 'mock' && <Badge tone="info">{t.platforms.mockBadge}</Badge>}
                   {!platformPublishSupport[entry.platform] && (
                     <Button variant="ghost" size="sm" onClick={openPastedLinkForm}>
-                      {INSTAGRAM_PUBLISH_TEXT}
+                      {t.publishing.instagram}
                     </Button>
                   )}
                 </li>

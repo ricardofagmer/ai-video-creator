@@ -1,0 +1,399 @@
+/*
+ * `/login` in the fagmertech landing layout (docs/specs/2026-11-22-fagmer-design-system-design.md,
+ * section Login): floating glass top bar, aurora behind a split hero, and the sign-in card with a
+ * gradient edge. Tokens only; the blueprint grid comes from base.css.
+ */
+
+.page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
+}
+
+/* Two slow-drifting halos, as on the landing page stage. Decorative, behind everything. */
+.aurora {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.aurora::before,
+.aurora::after {
+  content: '';
+  position: absolute;
+  border-radius: var(--radius-full);
+  filter: blur(var(--space-10));
+}
+
+.aurora::before {
+  top: -15%;
+  left: -12%;
+  width: 60vmax;
+  height: 48vmax;
+  background: radial-gradient(closest-side, var(--color-glow), transparent);
+  opacity: 0.55;
+  animation: drift-blue calc(var(--duration-pulse) * 14) var(--ease-standard) infinite alternate;
+}
+
+.aurora::after {
+  right: -10%;
+  bottom: -20%;
+  width: 46vmax;
+  height: 38vmax;
+  background: radial-gradient(closest-side, var(--color-glow-cyan), transparent);
+  opacity: 0.9;
+  animation: drift-cyan calc(var(--duration-pulse) * 18) var(--ease-standard) infinite alternate;
+}
+
+@keyframes drift-blue {
+  to {
+    transform: translate3d(8%, 6%, 0) scale(1.08);
+  }
+}
+
+@keyframes drift-cyan {
+  to {
+    transform: translate3d(-6%, -8%, 0) scale(1.1);
+  }
+}
+
+/* Same floating glass bar and gradient rail as the studio shell (AppShell.module.css). */
+.topBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: calc(100% - var(--space-4));
+  max-width: var(--layout-max-width);
+  margin: var(--space-2) auto 0;
+  padding: var(--space-3) var(--layout-gutter-mobile);
+  background-color: var(--color-surface-glass);
+  border: 1px solid var(--color-border-glow);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  -webkit-backdrop-filter: var(--backdrop-glass);
+  backdrop-filter: var(--backdrop-glass);
+}
+
+/* The language switch and the theme toggle, side by side as in the studio top bar. */
+.topBarControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.topBar::after {
+  content: '';
+  position: absolute;
+  left: var(--space-5);
+  right: var(--space-5);
+  bottom: -1px;
+  height: 1px;
+  background: var(--gradient-rail);
+  pointer-events: none;
+}
+
+.main {
+  flex: 1;
+  display: grid;
+  align-items: center;
+  width: 100%;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: var(--space-10) var(--layout-gutter-mobile) var(--space-12);
+}
+
+/*
+ * One column below 1024px, ordered intro, card, facts, so the form stays near the top on a phone.
+ * From 1024px: intro and facts on the left, the card centred on the right across both rows.
+ */
+.hero {
+  display: grid;
+  grid-template-areas:
+    'intro'
+    'card'
+    'facts';
+  gap: var(--space-8);
+  width: 100%;
+  max-width: var(--layout-dialog-width);
+  margin: 0 auto;
+}
+
+.intro {
+  grid-area: intro;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.banner {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+
+/* Light banner by default; the dark one follows a forced dark theme or a dark system theme. */
+.bannerDark {
+  display: none;
+}
+
+:global(html[data-theme='dark']) .bannerLight {
+  display: none;
+}
+
+:global(html[data-theme='dark']) .bannerDark {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(html:not([data-theme='light'])) .bannerLight {
+    display: none;
+  }
+
+  :global(html:not([data-theme='light'])) .bannerDark {
+    display: block;
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-overline);
+  color: var(--color-text);
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    var(--gradient-brand) border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-glow);
+}
+
+.led {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  background-color: var(--color-success);
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 var(--space-2) var(--color-success);
+  animation: led-pulse var(--duration-pulse) var(--ease-standard) infinite;
+}
+
+/* The local API did not answer: the light turns amber and stops pulsing. */
+.ledOffline {
+  background-color: var(--color-warning);
+  box-shadow: 0 0 var(--space-2) var(--color-warning);
+  animation: none;
+}
+
+@keyframes led-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(var(--font-size-3xl), 5vw, calc(var(--font-size-3xl) * 2));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: calc(var(--letter-spacing-display) * 1.5);
+  color: var(--color-text);
+  text-wrap: balance;
+}
+
+/* Primary to accent stay at or above 3:1 on the page in both themes (large text). */
+.gradientText {
+  color: var(--color-primary);
+  background-image: linear-gradient(120deg, var(--color-primary) 10%, var(--color-accent) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lead {
+  max-width: 52ch;
+  margin: 0;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-muted);
+}
+
+.facts {
+  grid-area: facts;
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  background-color: var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Label and value side by side in rows, like the landing page `.kv` list. */
+.fact {
+  display: grid;
+  grid-template-columns: calc(var(--space-16) + var(--space-6)) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  background-color: var(--color-surface);
+}
+
+.factLabel {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-eyebrow);
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.factValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  color: var(--color-text);
+}
+
+.cardColumn {
+  grid-area: card;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+/* Gradient edge drawn as a masked ring over the Card border, and a soft halo behind it. */
+.cardFrame {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float), var(--shadow-glow);
+}
+
+.cardFrame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--gradient-brand);
+  -webkit-mask:
+    linear-gradient(var(--mask-solid) 0 0) content-box,
+    linear-gradient(var(--mask-solid) 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(var(--mask-solid) 0 0) content-box,
+    linear-gradient(var(--mask-solid) 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.cardFrame::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--space-8) * -1);
+  z-index: -1;
+  background: radial-gradient(closest-side, var(--color-glow), transparent);
+  filter: blur(var(--space-6));
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* The card owns the page's single h1; the shared Card caps its title at h2. */
+.cardHeading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.cardDescription {
+  margin: 0;
+}
+
+.footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0 var(--space-1);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-subtle);
+}
+
+.footnote svg {
+  flex: none;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (min-width: 768px) {
+  .topBar {
+    min-height: var(--layout-topbar-height);
+    padding: 0 var(--layout-gutter-desktop);
+  }
+
+  .lead {
+    font-size: var(--font-size-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .main {
+    padding: var(--space-12) var(--layout-gutter-desktop) var(--space-16);
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr) var(--layout-auth-card-width);
+    grid-template-areas:
+      'intro card'
+      'facts card';
+    column-gap: var(--space-16);
+    row-gap: var(--space-10);
+    align-items: center;
+    max-width: none;
+  }
+
+  .intro {
+    align-self: end;
+  }
+
+  .facts {
+    align-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora::before,
+  .aurora::after,
+  .led {
+    animation: none;
+  }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ReactElement } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { Button } from '../button/Button';
 import { Dialog } from '../dialog/Dialog';
@@ -19,6 +20,7 @@ export interface RunControlsProps {
 
 /** Pause, resume and stop. Stop asks for confirmation first. */
 export function RunControls({ available, pendingAction, onAction, className }: RunControlsProps): ReactElement {
+  const { ui } = useI18n();
   const [confirmingStop, setConfirmingStop] = useState(false);
   const busy = pendingAction !== undefined;
 
@@ -28,52 +30,50 @@ export function RunControls({ available, pendingAction, onAction, className }: R
   }
 
   return (
-    <div role="group" aria-label="Controles da execução" className={classNames(styles.controls, className)}>
+    <div role="group" aria-label={ui.runs.controlsLabel} className={classNames(styles.controls, className)}>
       {available.pause && (
         <Button
           variant="secondary"
           loading={pendingAction === 'pause'}
-          loadingLabel="Pausando…"
+          loadingLabel={ui.runs.pausing}
           disabled={busy}
           onClick={() => onAction('pause')}
         >
-          Pausar
+          {ui.runs.pause}
         </Button>
       )}
       {available.resume && (
-        <Button loading={pendingAction === 'resume'} loadingLabel="Retomando…" disabled={busy} onClick={() => onAction('resume')}>
-          Retomar
+        <Button loading={pendingAction === 'resume'} loadingLabel={ui.runs.resuming} disabled={busy} onClick={() => onAction('resume')}>
+          {ui.runs.resume}
         </Button>
       )}
       {available.stop && (
         <Button
           variant="ghost"
           loading={pendingAction === 'stop'}
-          loadingLabel="Parando…"
+          loadingLabel={ui.runs.stopping}
           disabled={busy}
           onClick={() => setConfirmingStop(true)}
           className={styles.stop}
         >
-          Parar
+          {ui.runs.stop}
         </Button>
       )}
       <Dialog
         open={confirmingStop}
         onClose={() => setConfirmingStop(false)}
         role="alertdialog"
-        title="Parar a execução?"
+        title={ui.runs.stopTitle}
         description={
-          <p>
-            A execução termina depois do passo atual. Os arquivos já gerados continuam na pasta da execução.
-          </p>
+          <p>{ui.runs.stopDescription}</p>
         }
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmingStop(false)}>
-              Continuar executando
+              {ui.runs.keepRunning}
             </Button>
             <Button variant="danger" onClick={confirmStop}>
-              Parar execução
+              {ui.runs.stopRun}
             </Button>
           </>
         }

@@ -1,4 +1,7 @@
-import type { ReactElement } from 'react';
+'use client';
+
+import type { ReactElement, ReactNode } from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import { StatusBadge } from '../status/StatusBadge';
 import type { StepStatus } from '../status/status-types';
@@ -37,14 +40,17 @@ export interface StepTimelineProps {
   phases: readonly TimelinePhase[];
   /** Stage and step that `now.json` reports; the stage opens and the step gets `aria-current="step"`. */
   current?: { stageId: string; stepId: string };
+  /** Shown under the current step, inside its row: what the run waits for at that step and its answer buttons. */
+  currentStepContent?: ReactNode;
   label?: string;
   className?: string;
 }
 
 /** Run timeline: phases, then stages (expandable), then the seven fixed steps with their status. */
-export function StepTimeline({ phases, current, label = 'Linha do tempo da execução', className }: StepTimelineProps): ReactElement {
+export function StepTimeline({ phases, current, currentStepContent, label, className }: StepTimelineProps): ReactElement {
+  const { ui } = useI18n();
   return (
-    <div role="region" aria-label={label} className={classNames(styles.timeline, className)}>
+    <div role="region" aria-label={label ?? ui.runs.timelineLabel} className={classNames(styles.timeline, className)}>
       {phases.map((phase) => (
         <section key={phase.id} aria-labelledby={`phase-${phase.id}`} className={styles.phase}>
           <h3 id={`phase-${phase.id}`} className={classNames('overline', styles.phaseTitle)}>
@@ -62,7 +68,7 @@ export function StepTimeline({ phases, current, label = 'Linha do tempo da execu
                       <StatusBadge kind="step" status={stage.status} />
                       {stage.costLabel && <span className={classNames('caption', styles.cost)}>{stage.costLabel}</span>}
                     </summary>
-                    <ol className={styles.steps} aria-label={`Passos de ${stage.label}`}>
+                    <ol className={styles.steps} aria-label={ui.runs.stepsOf(stage.label)}>
                       {stage.steps.map((step) => {
                         const isCurrentStep = isCurrentStage && current?.stepId === step.id;
                         return (
@@ -76,6 +82,9 @@ export function StepTimeline({ phases, current, label = 'Linha do tempo da execu
                             <StatusBadge kind="step" status={step.status} />
                             {step.durationLabel && <span className="caption">{step.durationLabel}</span>}
                             {step.detail && <span className={classNames('caption', styles.stepDetail)}>{step.detail}</span>}
+                            {isCurrentStep && currentStepContent !== undefined && currentStepContent !== null && (
+                              <div className={styles.stepSlot}>{currentStepContent}</div>
+                            )}
                           </li>
                         );
                       })}

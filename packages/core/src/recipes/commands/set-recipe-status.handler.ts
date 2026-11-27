@@ -36,13 +36,13 @@ export class SetRecipeStatusHandler implements ICommandHandler<SetRecipeStatusCo
       const row = await this.versions.findVersion(recipeId, version, transaction);
       if (row === null) throw new RecipeVersionNotFoundError(ref);
       const current = toRecipeVersionView(row);
-      if (current.recipe.status === status) return { version: current, replaced: null };
+      if (current.recipe.status === status) return { version: current };
       assertRecipeStatusTransition(ref, current.recipe.status, status);
       const updated = await this.versions.updateStatus(row.id, status, transaction);
-      return { version: toRecipeVersionView(updated), replaced: null };
+      return { version: toRecipeVersionView(updated) };
     });
 
-    this.logger.log({ event: 'recipes.status-changed', ref, status: result.version.recipe.status, replacedRef: null });
+    this.logger.log({ event: 'recipes.status-changed', ref, status: result.version.recipe.status });
     return result;
   }
 }

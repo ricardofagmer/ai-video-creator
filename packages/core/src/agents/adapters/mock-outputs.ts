@@ -1,4 +1,5 @@
 import {
+  ANALYST_ROLE,
   CAPTURE_VISUAL,
   DIRECTOR_ROLE,
   EVALUATOR_ROLE,
@@ -9,6 +10,7 @@ import {
   WRITER_ROLE,
   type AgentOutput,
   type AgentPacket,
+  type AnalystPacket,
   type DirectorPacket,
   type ModelRoleName,
   type PlanOutput,
@@ -19,8 +21,10 @@ import {
   type ReviewVerdict,
   type ScenesOutput,
   type ScriptOutput,
+  type SiteAnalysis,
   type WriterPacket,
 } from '@studio/shared/agents';
+import { type Brief } from '@studio/shared/recipes';
 import { PhaseIdSchema, stagePhase } from '@studio/shared/run-format';
 
 /**
@@ -60,7 +64,8 @@ function mockNarration(sceneNumber: number, topic: string, wordCount: number): s
   for (let index = 0; words.length < wordCount; index += 1) {
     words.push(FILLER_WORDS[index % FILLER_WORDS.length] ?? 'texto');
   }
-  return `${words.join(' ')}.`;
+  // A long topic makes the opening alone exceed the budget; trim so the mock voice keeps the target.
+  return `${words.slice(0, wordCount).join(' ')}.`;
 }
 
 /** One scene per verified claim (at least one), each citing its claim. */
@@ -103,7 +108,14 @@ function mockScenes(packet: DirectorPacket): ScenesOutput {
         : { type: CAPTURE_VISUAL, captureId: capture.captureId, inMs: 0, outMs: capture.durationMs };
     return { sceneId: scene.sceneId, visual, cameraMove, transition };
   });
-  return { scenes, citedRefs: [] };
+  // Naming the first candidate lets a mock run exercise the music stage's pick path end to end.
+  const firstCandidate = packet.inputs.music?.candidates[0];
+  if (firstCandidate === undefined) return { scenes, citedRefs: [] };
+  return {
+    scenes,
+    citedRefs: [],
+    musicPick: { ref: firstCandidate.ref, reason: `${SIMULATED_LABEL}: primeira faixa candidata.` },
+  };
 }
 
 /** Scores every rubric criterion 4 with evidence and recommends no retry. */
@@ -133,6 +145,37 @@ function mockRecovery(packet: RecoveryPacket): RecoveryAction {
   };
 }
 
+const SIMULATED_LABEL = 'Simulado';
+const ANALYSIS_LINE_MAX_CHARS = 300;
+const ANALYSIS_KEY_POINTS_MAX = 8;
+const ANALYSIS_SUGGESTIONS_MAX = 5;
+
+function simulatedLine(text: string): string {
+  return `${SIMULATED_LABEL}: ${text}`.slice(0, ANALYSIS_LINE_MAX_CHARS);
+}
+
+/**
+ * A stand-in site analysis built from the brief only: no page, no screenshot, no connection.
+ * Every free-text field says it is simulated, so a mock analysis can never pass for a read page.
+ * Exported because the research stage writes it in mock mode without an agent call.
+ */
+export function mockSiteAnalysis(brief: Brief): SiteAnalysis {
+  return {
+    summary: `Análise simulada do site para ${brief.topic}; nenhuma página foi lida.`.slice(0, 800),
+    product: simulatedLine(brief.topic),
+    audience: simulatedLine('público do brief'),
+    keyPoints: brief.keyMessages.slice(0, ANALYSIS_KEY_POINTS_MAX).map(simulatedLine),
+    tone: simulatedLine('tom neutro').slice(0, 200),
+    visualStyle: simulatedLine('nenhuma captura de tela foi vista').slice(0, 400),
+    suggestedKeyMessages: brief.keyMessages.slice(0, ANALYSIS_SUGGESTIONS_MAX).map(simulatedLine),
+    cautions: [],
+  };
+}
+
+function mockAnalysis(packet: AnalystPacket): SiteAnalysis {
+  return mockSiteAnalysis(packet.inputs.brief);
+}
+
 type MockResponders = { [Role in ModelRoleName]: (packet: AgentPacket<Role>) => AgentOutput<Role> };
 
 export const mockResponders: MockResponders = {
@@ -141,4 +184,5 @@ export const mockResponders: MockResponders = {
   [DIRECTOR_ROLE]: mockScenes,
   [EVALUATOR_ROLE]: mockVerdict,
   [RECOVERY_ROLE]: mockRecovery,
+  [ANALYST_ROLE]: mockAnalysis,
 };

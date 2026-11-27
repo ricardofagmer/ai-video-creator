@@ -1,3 +1,4 @@
+import { cliText } from '../i18n/messages.js';
 import { CliError } from './cli.errors.js';
 
 export type ServiceName = 'api' | 'web';
@@ -10,7 +11,7 @@ export class ServiceNotBuiltError extends CliError {
     readonly service: ServiceName,
     readonly entryPath: string,
   ) {
-    super(`O ${service} não está compilado (${entryPath} não existe); rode a instalação ou "pnpm build".`);
+    super(cliText().errors.service.notBuilt(service, entryPath));
     this.name = 'ServiceNotBuiltError';
   }
 }
@@ -23,7 +24,7 @@ export class ServicePortInUseError extends CliError {
     readonly service: ServiceName,
     readonly port: number,
   ) {
-    super(`A porta ${port} do ${service} já está em uso por outro processo; libere a porta ou mude a configuração.`);
+    super(cliText().errors.service.portInUse(service, port));
     this.name = 'ServicePortInUseError';
   }
 }
@@ -39,7 +40,7 @@ export class ServiceProcessMismatchError extends CliError {
     readonly service: ServiceName,
     readonly pid: number,
   ) {
-    super(`O processo ${pid} registrado para o ${service} não é o que o studio iniciou; nenhum sinal foi enviado.`);
+    super(cliText().errors.service.processMismatch(service, pid));
     this.name = 'ServiceProcessMismatchError';
   }
 }
@@ -51,7 +52,7 @@ export class ServiceStillRunningError extends CliError {
     readonly service: ServiceName,
     readonly pid: number,
   ) {
-    super(`O ${service} (pid ${pid}) não terminou após o pedido de parada.`);
+    super(cliText().errors.service.stillRunning(service, pid));
     this.name = 'ServiceStillRunningError';
   }
 }
@@ -64,7 +65,7 @@ export class ServiceExitedOnStartError extends CliError {
     readonly service: ServiceName,
     readonly logFile: string,
   ) {
-    super(`O ${service} encerrou logo ao iniciar; veja ${logFile}.`);
+    super(cliText().errors.service.exitedOnStart(service, logFile));
     this.name = 'ServiceExitedOnStartError';
   }
 }

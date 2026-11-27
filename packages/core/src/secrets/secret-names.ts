@@ -66,14 +66,14 @@ export const KEYCHAIN_ACCOUNTS: Readonly<Record<SecretName, string>> = {
 
 /** Keychain item label shown in Keychain Access; descriptive text only. */
 export const KEYCHAIN_LABELS: Readonly<Record<SecretName, string>> = {
-  'anthropic-api-key': 'Video Studio - Anthropic API key',
-  'elevenlabs-api-key': 'Video Studio - ElevenLabs API key',
-  'youtube-oauth-client-id': 'Video Studio - YouTube OAuth client id',
-  'youtube-oauth-client-secret': 'Video Studio - YouTube OAuth client secret',
-  'instagram-app-id': 'Video Studio - Instagram app id',
-  'instagram-app-secret': 'Video Studio - Instagram app secret',
-  'tiktok-client-key': 'Video Studio - TikTok client key',
-  'tiktok-client-secret': 'Video Studio - TikTok client secret',
+  'anthropic-api-key': 'EngineOS Video Creator - Anthropic API key',
+  'elevenlabs-api-key': 'EngineOS Video Creator - ElevenLabs API key',
+  'youtube-oauth-client-id': 'EngineOS Video Creator - YouTube OAuth client id',
+  'youtube-oauth-client-secret': 'EngineOS Video Creator - YouTube OAuth client secret',
+  'instagram-app-id': 'EngineOS Video Creator - Instagram app id',
+  'instagram-app-secret': 'EngineOS Video Creator - Instagram app secret',
+  'tiktok-client-key': 'EngineOS Video Creator - TikTok client key',
+  'tiktok-client-secret': 'EngineOS Video Creator - TikTok client secret',
 };
 
 /**

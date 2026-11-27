@@ -9,6 +9,7 @@ import {
   type UsageQuantity,
 } from '@studio/shared/ports';
 import { ProviderModeService } from '../providers/provider-mode.service';
+import { KeyedMutex } from '../runtime/keyed-mutex';
 import { CostFileCurationMismatchError, CostSessionPriceMismatchError } from './costs.errors';
 import { appendCurationCostSession } from './curation-cost-file';
 import { curationCostSessionKey, usageOfCurationCostSession } from './curation-cost.mapper';
@@ -32,7 +33,8 @@ function assertCount(value: number, field: string): void {
 export class CurationCostLedger implements CurationCostPort {
   readonly priceTableVersion = PRICE_TABLE.version;
   private readonly logger = new Logger(CurationCostLedger.name);
-  private readonly curationQueues = new Map<string, Promise<unknown>>();
+  /** cost.json is read-modify-written; two sessions of one curation must not interleave. */
+  private readonly curationFiles = new KeyedMutex();
 
   constructor(private readonly modes: ProviderModeService) {}
 
@@ -48,7 +50,7 @@ export class CurationCostLedger implements CurationCostPort {
       throw new CostSessionPriceMismatchError(key.sessionId, key.callIndex);
     }
 
-    await this.serializedPerCuration(curationId, async () => {
+    await this.curationFiles.run(curationId, async () => {
       const existing = await readCurationCost(location);
       const result = appendCurationCostSession({
         existing: existing.status === 'present' ? existing.value : null,
@@ -92,18 +94,5 @@ export class CurationCostLedger implements CurationCostPort {
   private priceUsd(usage: UsageQuantity): number {
     if (!this.modes.isLive('claude')) return 0;
     return priceUsage(PRICE_TABLE, usage);
-  }
-
-  /** cost.json is read-modify-written; two sessions of one curation must not interleave. */
-  private async serializedPerCuration<T>(curationId: string, work: () => Promise<T>): Promise<T> {
-    const previous = this.curationQueues.get(curationId) ?? Promise.resolve();
-    // The previous call's failure was already delivered to its own caller.
-    const current = previous.catch(() => undefined).then(work);
-    this.curationQueues.set(curationId, current);
-    try {
-      return await current;
-    } finally {
-      if (this.curationQueues.get(curationId) === current) this.curationQueues.delete(curationId);
-    }
   }
 }

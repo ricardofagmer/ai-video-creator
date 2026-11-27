@@ -1,5 +1,5 @@
-import { isDeepStrictEqual } from 'node:util';
 import { sumSessionUsd, type CostFile, type CostSession, type RunId } from '@studio/shared/run-format';
+import { appendSessionToFile, type AppendSessionResult } from './cost-file-append';
 import { costSessionKey } from './cost-session.mapper';
 import { CostFileRunMismatchError, CostSessionConflictError, PriceTableVersionMismatchError } from './costs.errors';
 
@@ -12,10 +12,7 @@ export interface AppendCostSessionInput {
   now: Date;
 }
 
-export type AppendCostSessionResult =
-  | { outcome: 'appended'; file: CostFile }
-  /** The identical session was already in the file: recording is idempotent (crash resume). */
-  | { outcome: 'already-recorded'; file: CostFile };
+export type AppendCostSessionResult = AppendSessionResult<CostFile>;
 
 /**
  * Pure: the next cost.json content. `totalUsd` is recomputed as the sum of every session on
@@ -28,21 +25,16 @@ export function appendCostSession(input: AppendCostSessionInput): AppendCostSess
     throw new PriceTableVersionMismatchError(runId, existing.priceTableVersion, priceTableVersion);
   }
 
-  const previous = existing?.sessions ?? [];
   const key = costSessionKey(session);
-  const sameKey = previous.find((recorded) => {
-    const recordedKey = costSessionKey(recorded);
-    return recordedKey.sessionId === key.sessionId && recordedKey.callIndex === key.callIndex;
-  });
-  if (sameKey !== undefined && existing !== null) {
-    if (isDeepStrictEqual(sameKey, session)) return { outcome: 'already-recorded', file: existing };
-    throw new CostSessionConflictError(runId, key.sessionId, key.callIndex);
-  }
-
-  const sessions = [...previous, session];
-  return {
-    outcome: 'appended',
-    file: {
+  return appendSessionToFile<CostSession, CostFile>({
+    existing,
+    session,
+    hasSameKey: (recorded) => {
+      const recordedKey = costSessionKey(recorded);
+      return recordedKey.sessionId === key.sessionId && recordedKey.callIndex === key.callIndex;
+    },
+    conflictError: () => new CostSessionConflictError(runId, key.sessionId, key.callIndex),
+    buildFile: (sessions) => ({
       format: 1,
       runId,
       currency: 'USD',
@@ -50,6 +42,6 @@ export function appendCostSession(input: AppendCostSessionInput): AppendCostSess
       updatedAt: input.now.toISOString(),
       sessions,
       totalUsd: sumSessionUsd(sessions),
-    },
-  };
+    }),
+  });
 }
