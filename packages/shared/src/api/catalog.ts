@@ -91,14 +91,12 @@ export const AssetVersionPageSchema = pageOf(AssetVersionViewSchema);
 export type AssetVersionPageView = z.infer<typeof AssetVersionPageSchema>;
 
 /**
- * `PUT /catalog/assets/:assetId/versions/:version/status` response. Rev 3: the route only
- * deprecates; `replaced` is kept for the rev 2 shape and is null.
+ * `PUT /catalog/assets/:assetId/versions/:version/status` response: the version after the call. The
+ * route only deprecates; activation is `POST .../promotion`.
  */
 export const SetAssetStatusResponseSchema = z
   .object({
     version: AssetVersionViewSchema,
-    /** Rev 2: the previously active version when this call promoted another one; rev 3: null. */
-    replaced: AssetVersionViewSchema.nullable(),
   })
   .strict();
 export type SetAssetStatusResponse = z.infer<typeof SetAssetStatusResponseSchema>;
@@ -322,11 +320,11 @@ export function mimeTypeForFileName(name: string): string | null {
 }
 
 /**
- * `PUT .../status` body for asset and recipe versions; nothing is ever deleted. Rev 3 (**breaking**,
- * SPEC 0003 L6): `status: 'active'` still parses but answers 422 `promotion-approval-required`;
- * a version becomes `active` only through `POST .../promotion` (`PromoteVersionRequest`).
+ * `PUT .../status` body for asset and recipe versions; nothing is ever deleted. The route only
+ * deprecates, so `deprecated` is the only accepted value; any other status answers 400 `validation`.
+ * A version becomes `active` only through `POST .../promotion` (`PromoteVersionRequest`).
  */
-export const SetVersionStatusRequestSchema = z.object({ status: AssetStatusSchema }).strict();
+export const SetVersionStatusRequestSchema = z.object({ status: z.literal('deprecated') }).strict();
 export type SetVersionStatusRequest = z.infer<typeof SetVersionStatusRequestSchema>;
 
 /**

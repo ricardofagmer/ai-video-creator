@@ -10,8 +10,6 @@ export interface SetRecipeStatusInput {
 
 export interface SetRecipeStatusResult {
   version: RecipeVersionView;
-  /** Kept for the rev 2 result shape; always null since rev 3, because this command never activates. */
-  replaced: RecipeVersionView | null;
 }
 
 /**

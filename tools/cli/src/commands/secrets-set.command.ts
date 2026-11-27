@@ -2,6 +2,7 @@ import {
   ALL_SECRET_NAMES,
   KeychainWriter,
   SECRET_ENVIRONMENT_VARIABLES,
+  assertStoredSecretWellFormed,
   isPlatformClientSecretName,
   isSecretName,
   secretValuePattern,
@@ -26,9 +27,11 @@ function secretValueRuleText(name: SecretName): string {
  * the six platform app credentials in the macOS Keychain through core
  * `KeychainWriter.promptAndStore`. `/usr/bin/security` prompts for the value on the inherited
  * terminal, so this process never receives, holds, prints or logs it, and it never reaches argv.
- * The shape rule of each name (`secretValuePattern(name)`) is printed before the prompt and enforced
- * by core whenever the value is loaded. `KeychainWriter` has no dependencies, so no Nest context
- * (and no database) is needed here.
+ * The shape rule of each name (`secretValuePattern(name)`) is printed before the prompt, checked on
+ * the stored item right after the prompt (`assertStoredSecretWellFormed`: a bad value is a
+ * `MalformedSecretError`, exit 2, instead of a later api/watcher boot failure) and enforced by core
+ * whenever the value is loaded. `KeychainWriter` has no dependencies, so no Nest context (and no
+ * database) is needed here.
  */
 export async function secretsSetCommand(name: string, dependencies: CommandDependencies): Promise<number> {
   if (!isSecretName(name)) throw new CliUsageError(cliText().usage.unknownSecretName(ALL_SECRET_NAMES.join(', ')));
@@ -38,6 +41,7 @@ export async function secretsSetCommand(name: string, dependencies: CommandDepen
   printer.line(text.storing(kind, name, secretValueRuleText(name)));
   printer.line(text.typeWhenAsked);
   await new KeychainWriter().promptAndStore(name);
+  await assertStoredSecretWellFormed(name);
   printer.line(text.stored(name));
   const variable = SECRET_ENVIRONMENT_VARIABLES[name];
   if (settings.keyVariablesSet.includes(variable)) printer.error(text.envOverrides(variable));

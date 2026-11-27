@@ -28,6 +28,7 @@ import {
   delimitUntrusted,
   packetBaseFor,
   packetLearnings,
+  skillTextsField,
   type AssetText,
   type BoundAssetSummary,
   type BriefLearnings,
@@ -88,8 +89,11 @@ function referenceAnalysesField(referenceAnalyses: readonly ReferenceAnalysisEnt
   };
 }
 
-/** How many of the run's references reach the writer and the director. */
-export const OWNER_REFERENCES_MAX = 8;
+/**
+ * How many of the run's references reach the writer and the director. Raised from 8 when the wizard
+ * began adding prompts, skills and media beside the references; the block is still cut by size.
+ */
+export const OWNER_REFERENCES_MAX = 16;
 /** Longest content of one text reference that reaches a packet. */
 export const OWNER_REFERENCE_TEXT_MAX_CHARS = 6000;
 
@@ -178,7 +182,7 @@ export function buildWriterPacket(source: WriterPacketSource): WriterPacket {
       })),
       templateInputSchema: source.templateInputSchema,
       promptText: delimitAssetText(source.prompt),
-      ...(source.skills === undefined || source.skills.length === 0 ? {} : { skillTexts: source.skills.map((skill) => delimitAssetText(skill)) }),
+      ...skillTextsField(source.skills),
       ...(source.brandVoice === undefined ? {} : { brandVoice: delimitAssetText(source.brandVoice) }),
       targetDurationSec: writerTargetSec(source.brief.targetDurationSec, source.narrationCeilingSec),
       language: source.brief.language,
@@ -234,6 +238,8 @@ export interface DirectorPacketSource {
    * (docs/specs/2026-11-25-ai-music-choice-design.md, implementation amendments).
    */
   readonly music?: { readonly categories: readonly MusicCategory[]; readonly candidates: readonly MusicCandidate[] };
+  /** Bound skill texts for the director (its slot, else every skill of the recipe); absent when none. */
+  readonly skills?: readonly AssetText[];
 }
 
 /**
@@ -280,6 +286,7 @@ export function buildDirectorPacket(source: DirectorPacketSource): DirectorPacke
       ...referenceAnalysesField(source.referenceAnalyses),
       ...ownerReferencesField(source.ownerReferences),
       ...musicField(source.music),
+      ...skillTextsField(source.skills),
     },
     constraints: {
       citeOnlyOfferedRefs: true,

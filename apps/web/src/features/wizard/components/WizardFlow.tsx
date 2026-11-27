@@ -18,11 +18,13 @@ import { useWizardDraft } from '../hooks/useWizardDraft';
 import { type WizardDraft } from '../wizard-draft';
 import { type WizardSlot } from '../wizard-recipe';
 import { reviewOf } from '../wizard-review';
+import { choicesWithPipelinePins, runReferencesOf } from '../wizard-pipeline';
 import { startWizardRun, wizardRunHref, type WizardStartCalls } from '../wizard-start';
-import { nextDraftStep, previousDraftStep, type DraftStep } from '../wizard-steps';
+import { draftSteps, nextDraftStep, previousDraftStep, type DraftStep } from '../wizard-steps';
 import styles from '../wizard.module.css';
 import { WizardIdeaStep } from './WizardIdeaStep';
 import { WizardRecipeStep } from './WizardRecipeStep';
+import { WizardPipelineStep } from './WizardPipelineStep';
 import { WizardReferencesStep } from './WizardReferencesStep';
 import { WizardReviewStep } from './WizardReviewStep';
 import { WizardStepList } from './WizardStepList';
@@ -93,7 +95,9 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
   }, [draft.values.recipeRef, defaultRecipe, update]);
 
   const base = recipes.find((view) => view.ref === draft.values.recipeRef);
-  const review = reviewOf(draft, recipes, options, t.runs.brief.errors);
+  // Templates, brand kits and music added in "Add to pipeline" fill the preset pins the owner left alone.
+  const pinnedDraft = { ...draft, choices: choicesWithPipelinePins(draft.choices, draft.pipelineItems) };
+  const review = reviewOf(pinnedDraft, recipes, options, t.runs.brief.errors);
 
   function goTo(step: DraftStep): void {
     update((current) => ({ ...current, step }));
@@ -143,6 +147,19 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
     if (stepIsReady(draft.step)) goTo(nextDraftStep(draft.step));
   }
 
+  /** A step clicked in the list: back at once; forward only past steps that are ready, else stop at the first that is not. */
+  function jumpTo(target: DraftStep): void {
+    const from = draftSteps.indexOf(draft.step);
+    const to = draftSteps.indexOf(target);
+    for (const step of draftSteps.slice(from, to)) {
+      if (!stepIsReady(step)) {
+        goTo(step);
+        return;
+      }
+    }
+    goTo(target);
+  }
+
   function startOver(): void {
     reset();
     setIdeaErrors({});
@@ -160,7 +177,7 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
       composed: review.composed,
       brief: review.brief.brief,
       instructions: draft.instructions,
-      references: draft.references,
+      references: runReferencesOf(draft.references, draft.pipelineItems),
       saved: draft.saved,
     });
     if (outcome.kind === 'started' || outcome.kind === 'start-failed') {
@@ -185,7 +202,7 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
 
   return (
     <div className={layout.stack}>
-      <WizardStepList current={draft.step} texts={texts} />
+      <WizardStepList current={draft.step} texts={texts} onSelect={jumpTo} />
       {restored && (
         <Alert
           variant="info"
@@ -216,6 +233,13 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
             cartReferencesAdded={cartReferencesAdded}
           />
         )}
+        {draft.step === 'pipeline' && (
+          <WizardPipelineStep
+            items={draft.pipelineItems}
+            referenceCount={draft.references.length}
+            onChange={(pipelineItems) => update((current) => ({ ...current, pipelineItems }))}
+          />
+        )}
         {draft.step === 'recipe' && (
           <WizardRecipeStep
             recipes={recipes}
@@ -229,7 +253,7 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
         {draft.step === 'style' && base !== undefined && review.kind === 'ready' && (
           <WizardStyleStep
             base={base.recipe}
-            choices={draft.choices}
+            choices={pinnedDraft.choices}
             musicChoice={draft.musicChoice}
             options={options}
             changed={review.composed.changed}
@@ -241,7 +265,7 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
         {draft.step === 'review' && review.kind === 'ready' && (
           <WizardReviewStep
             review={review}
-            draft={draft}
+            draft={pinnedDraft}
             options={options}
             serverConflicts={serverConflicts}
             starting={starting}

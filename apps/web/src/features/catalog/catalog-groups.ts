@@ -17,13 +17,13 @@ import { type WebMessages } from '@/messages';
  * The category of a catalog card inside its kind tab (design/telas/02). There is no `category` field
  * in C1, so it comes from the kind's own subtype in `details`; the other five kinds have none.
  */
-export type CatalogCategory =
+export type CatalogSubtype =
   | { kind: 'template'; value: AspectRatio }
   | { kind: 'ai-model'; value: AiModelDetails['modelType'] }
   | { kind: 'reference'; value: ReferenceDetails['subKind'] }
   | { kind: 'image'; value: ImageDetails['purpose'] };
 
-export function categoryOf(version: AssetVersionView): CatalogCategory | null {
+export function categoryOf(version: AssetVersionView): CatalogSubtype | null {
   switch (version.kind) {
     case 'template':
       return { kind: 'template', value: version.details.aspect };
@@ -53,7 +53,7 @@ export interface CatalogGroup {
   /** DOM-safe id of the section heading. */
   id: string;
   kind: AssetKind;
-  category: CatalogCategory | null;
+  category: CatalogSubtype | null;
   versions: AssetVersionView[];
 }
 

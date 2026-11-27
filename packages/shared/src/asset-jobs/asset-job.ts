@@ -149,7 +149,7 @@ export const AssetJobEgressLineSchema = z
   .object({
     at: IsoDateTimeSchema,
     /** A platform name means one request for that platform's own post (a link reference's video). */
-    provider: z.enum(['claude', 'elevenlabs', 'instagram', 'youtube', 'tiktok']),
+    provider: z.enum(['claude', 'elevenlabs', 'instagram', 'youtube', 'tiktok', 'vimeo', 'dailymotion', 'facebook', 'x', 'twitch']),
     /** `purpose-text`: the purpose writer's message (ADR 0012), counted in characters. */
     what: z.enum(['reference-frames', 'tts-text', 'video-download', 'purpose-text']),
     /** Frames or characters sent; 1 for a video download. */

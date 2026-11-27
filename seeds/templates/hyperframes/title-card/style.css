@@ -90,7 +90,10 @@ body {
   color: rgba(245, 245, 247, 0.82);
   opacity: 0;
   transform: translateY(24px);
-  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+  /* The hook and the title open the video and leave as the second scene starts (see header-out). */
+  animation:
+    rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards,
+    header-out 0.6s ease-in calc(var(--scene2starts, 600) * 1s - 0.6s) forwards;
 }
 
 .hook:empty {
@@ -105,7 +108,9 @@ body {
   overflow-wrap: break-word;
   opacity: 0;
   transform: translateY(40px);
-  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
+  animation:
+    rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards,
+    header-out 0.6s ease-in calc(var(--scene2starts, 600) * 1s - 0.6s) forwards;
 }
 
 /*
@@ -168,7 +173,27 @@ body {
 
 .scene-6 {
   animation-delay: calc(var(--scene6starts, 600) * 1s);
-  animation-duration: calc((var(--durations, 600) - var(--scene6starts, 600)) * 1s);
+  animation-duration: calc((var(--scene7starts, 600) - var(--scene6starts, 600)) * 1s);
+}
+
+.scene-7 {
+  animation-delay: calc(var(--scene7starts, 600) * 1s);
+  animation-duration: calc((var(--scene8starts, 600) - var(--scene7starts, 600)) * 1s);
+}
+
+.scene-8 {
+  animation-delay: calc(var(--scene8starts, 600) * 1s);
+  animation-duration: calc((var(--scene9starts, 600) - var(--scene8starts, 600)) * 1s);
+}
+
+.scene-9 {
+  animation-delay: calc(var(--scene9starts, 600) * 1s);
+  animation-duration: calc((var(--scene10starts, 600) - var(--scene9starts, 600)) * 1s);
+}
+
+.scene-10 {
+  animation-delay: calc(var(--scene10starts, 600) * 1s);
+  animation-duration: calc((var(--durations, 600) - var(--scene10starts, 600)) * 1s);
 }
 
 @keyframes bar-in {
@@ -201,6 +226,21 @@ body {
     transform: translateY(0);
   }
   100% {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+}
+
+/*
+ * Later scenes often show a full app screen or page, which a lasting header would cover. With one
+ * scene, scene2StartS is the narration length, so the header stays to the end.
+ */
+@keyframes header-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
     opacity: 0;
     transform: translateY(-24px);
   }

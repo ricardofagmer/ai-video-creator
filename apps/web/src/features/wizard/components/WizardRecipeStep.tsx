@@ -1,7 +1,7 @@
 'use client';
 
 import { type RecipeVersionView } from '@studio/shared/api';
-import { Button, Card, Dialog, RadioGroup, useI18n } from '@studio/ui';
+import { Button, Card, Dialog, FormField, Select, useI18n } from '@studio/ui';
 import { useState, type ReactElement } from 'react';
 import { languageLabels } from '@/features/recipes/recipe-labels';
 import { RunReferencesPicker } from '@/features/runs/components/RunReferencesPicker';
@@ -18,24 +18,27 @@ interface WizardRecipeStepProps {
   onReferencesChange: (refs: string[]) => void;
 }
 
+const RECIPE_FIELD_ID = 'criar-receita';
+
 /**
- * Step 2 "Receita": the base recipe, with its format, language and duration range under each name.
- * A button opens the step 1 reference picker in a dialog, so a reference remembered while composing
- * does not cost a trip back.
+ * Step 2 "Receita": the base recipe in one combobox, since the version list grows with every save;
+ * the chosen recipe's format, language and duration range show under it. A button opens the step 1
+ * reference picker in a dialog, so a reference remembered while composing does not cost a trip back.
  */
 export function WizardRecipeStep({ recipes, selectedRef, error, onChoose, references, onReferencesChange }: WizardRecipeStepProps): ReactElement {
   const t = useWebMessages();
   const { ui } = useI18n();
   const texts = t.wizard.recipe;
   const [pickingReferences, setPickingReferences] = useState(false);
-  const options = recipes.map((view) => {
-    const { format } = view.recipe;
-    return {
-      value: view.ref,
-      label: texts.option(view.recipe.name, view.recipe.version, ui.status.asset[view.recipe.status]),
-      description: texts.facts(format.aspect, languageLabels[format.language], format.duration.minSec, format.duration.maxSec),
-    };
-  });
+  const options = recipes.map((view) => ({
+    value: view.ref,
+    label: texts.option(view.recipe.name, view.recipe.version, ui.status.asset[view.recipe.status]),
+  }));
+  const chosen = recipes.find((view) => view.ref === selectedRef)?.recipe.format;
+  const facts =
+    chosen === undefined
+      ? undefined
+      : texts.facts(chosen.aspect, languageLabels[chosen.language], chosen.duration.minSec, chosen.duration.maxSec);
   return (
     <>
       <Card
@@ -47,14 +50,18 @@ export function WizardRecipeStep({ recipes, selectedRef, error, onChoose, refere
           </Button>
         }
       >
-        <RadioGroup
-          name="criar-receita"
-          legend={texts.legend}
-          options={options}
-          value={selectedRef === '' ? null : selectedRef}
-          onChange={onChoose}
-          error={error}
-        />
+        <FormField id={RECIPE_FIELD_ID} label={texts.legend} help={facts} error={error}>
+          {({ invalid, ...control }) => (
+            <Select
+              {...control}
+              invalid={invalid}
+              options={options}
+              placeholder={selectedRef === '' ? texts.required : undefined}
+              value={selectedRef}
+              onChange={(event) => onChoose(event.currentTarget.value)}
+            />
+          )}
+        </FormField>
       </Card>
       <Dialog
         open={pickingReferences}

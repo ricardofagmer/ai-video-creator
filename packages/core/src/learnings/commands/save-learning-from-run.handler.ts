@@ -11,12 +11,13 @@ import {
   type LearningNote,
 } from '@studio/shared/catalog';
 import { newUlid, readRunManifest } from '@studio/shared/run-files';
-import { RunIdSchema, type RunStatus } from '@studio/shared/run-format';
+import { RunIdSchema } from '@studio/shared/run-format';
 import { AssetVersionRepository } from '../../catalog/asset-version.repository';
 import { AssetVersionNotFoundError } from '../../catalog/catalog.errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedactorService } from '../../redaction/redactor.service';
 import { ReviewRunAccess, type LoadedRun } from '../../review/review-run-access';
+import { REVIEWABLE_RUN_STATUSES } from '../../review/reviewable-run-statuses';
 import { RunLocks } from '../../review/run-locks';
 import { parseLearningInput } from '../learning-input';
 import { toLearningNote } from '../learning-note.mapper';
@@ -42,9 +43,6 @@ const SaveLearningInputSchema = z
   .strict();
 type SaveLearningInput = z.output<typeof SaveLearningInputSchema>;
 
-/** The statuses whose outputs are final (section 5.5; the same list promote-from-run uses). */
-const reviewedStatuses: readonly RunStatus[] = ['review', 'approved', 'rejected'];
-
 /**
  * Section 5.5 steps 1-7, in order: run status and no live watcher; the ref is in the run's
  * manifest; not biometric; normalized length; the R1 redactor finds nothing; fewer than 20 active
@@ -68,7 +66,7 @@ export class SaveLearningFromRunHandler implements ICommandHandler<SaveLearningF
     const input = parseLearningInput(SaveLearningInputSchema, command.input);
     const loaded = await this.runs.load(input.runId);
     const status = loaded.run.state.status;
-    if (!reviewedStatuses.includes(status)) throw new LearningRunNotReviewedError(input.runId, status);
+    if (!REVIEWABLE_RUN_STATUSES.includes(status)) throw new LearningRunNotReviewedError(input.runId, status);
     await this.runs.assertNoLiveWatcher(loaded);
     const pinnedBiometric = await this.assertRefUsed(loaded, input.ref);
 

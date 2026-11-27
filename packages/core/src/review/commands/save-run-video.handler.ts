@@ -2,15 +2,12 @@ import { Logger } from '@nestjs/common';
 import { CommandBus, CommandHandler, QueryBus, type ICommandHandler } from '@nestjs/cqrs';
 import { z } from 'zod';
 import { PRESET_VIDEO_TAG, RUN_FINAL_VIDEO_PATH } from '@studio/shared/api';
-import { formatAssetRef, type Provenance } from '@studio/shared/catalog';
-import { RunIdSchema, type RunStatus } from '@studio/shared/run-format';
-import { hashFile } from '../../asset-store';
+import { formatAssetRef } from '@studio/shared/catalog';
+import { RunIdSchema } from '@studio/shared/run-format';
 import { AssetAlreadyExistsError, CreateAssetCommand, ListAssetVersionsQuery, MAX_STORED_BYTES_BY_KIND } from '../../catalog';
-import { BiometricRunGuard } from '../biometric-guard';
 import { parseReviewInput } from '../review-input';
-import { ReviewRunAccess, type LoadedRun } from '../review-run-access';
-import { ArtifactChangedError, ReviewNotAllowedError } from '../review.errors';
-import { mimeTypeOfArtifact, resolveRecordedArtifact } from '../run-artifact';
+import { type LoadedRun } from '../review-run-access';
+import { RunArtifactSaver } from '../run-artifact-saver';
 import { SaveRunVideoCommand, type SaveRunVideoResult } from './save-run-video.command';
 
 const SaveRunVideoInputSchema = z
@@ -19,9 +16,6 @@ const SaveRunVideoInputSchema = z
     decidedBy: z.string().trim().min(1).max(100),
   })
   .strict();
-
-/** The video is final once the run reached the review gate; earlier statuses may still rewrite it. */
-const savableStatuses: readonly RunStatus[] = ['review', 'approved', 'rejected'];
 
 const NAME_MAX = 200;
 
@@ -39,34 +33,20 @@ export class SaveRunVideoHandler implements ICommandHandler<SaveRunVideoCommand,
   private readonly logger = new Logger(SaveRunVideoHandler.name);
 
   constructor(
-    private readonly runs: ReviewRunAccess,
-    private readonly biometricGuard: BiometricRunGuard,
+    private readonly saver: RunArtifactSaver,
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) {}
 
   async execute(command: SaveRunVideoCommand): Promise<SaveRunVideoResult> {
     const input = parseReviewInput(SaveRunVideoInputSchema, command.input, '');
-    const loaded = await this.runs.load(input.runId);
-    await this.runs.assertNoLiveWatcher(loaded);
-    if (!savableStatuses.includes(loaded.run.state.status)) {
-      throw new ReviewNotAllowedError(input.runId, loaded.run.state.status, 'status');
-    }
-    // Before the video is resolved or hashed: a run that used biometric material saves nothing.
-    await this.biometricGuard.assertNoBiometricInputs(loaded);
+    const loaded = await this.saver.loadSavableRun(input.runId);
 
     const assetId = videoAssetIdOf(input.runId);
     const recipeRef = loaded.run.recipe.ref;
-    const mimeType = mimeTypeOfArtifact(RUN_FINAL_VIDEO_PATH);
-    const artifact = await resolveRecordedArtifact(loaded, RUN_FINAL_VIDEO_PATH);
-    const hashed = await hashFile(artifact.absolutePath, { maxBytes: MAX_STORED_BYTES_BY_KIND.reference });
-    if (hashed.contentHash !== artifact.contentHash) throw new ArtifactChangedError(input.runId, RUN_FINAL_VIDEO_PATH, null);
+    const checked = await this.saver.checkedArtifact(loaded, RUN_FINAL_VIDEO_PATH, MAX_STORED_BYTES_BY_KIND.reference);
 
-    const provenance: Provenance = {
-      source: { type: 'run', runId: input.runId },
-      author: input.decidedBy,
-      capturedAt: artifact.recordedAt,
-    };
+    const provenance = this.saver.provenanceOf(loaded, checked, input.decidedBy);
     try {
       const saved = await this.commandBus.execute(
         new CreateAssetCommand({
@@ -81,12 +61,11 @@ export class SaveRunVideoHandler implements ICommandHandler<SaveRunVideoCommand,
             sensitivity: 'normal',
             details: { subKind: 'video', referenceNotes: `Final video of run ${input.runId}, made with preset ${recipeRef}.` },
           },
-          content: { source: 'import-file', absolutePath: artifact.absolutePath, mimeType },
+          content: { source: 'import-file', absolutePath: checked.artifact.absolutePath, mimeType: checked.mimeType },
         }),
       );
       const savedRef = formatAssetRef({ assetId, version: saved.version });
-      // The store hashed the bytes it copied; a mismatch means the file changed after the check above.
-      if (saved.contentHash !== artifact.contentHash) throw new ArtifactChangedError(input.runId, RUN_FINAL_VIDEO_PATH, savedRef);
+      this.saver.assertStoredUnchanged(loaded, checked, { contentHash: saved.contentHash, savedRef });
       this.logger.log({ event: 'review.run-video-saved', runId: input.runId, ref: savedRef, recipeRef });
       return { assetId, version: saved.version, recipeRef };
     } catch (error) {

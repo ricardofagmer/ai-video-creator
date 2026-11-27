@@ -42,13 +42,13 @@ export class SetAssetStatusHandler implements ICommandHandler<SetAssetStatusComm
       const row = await this.versions.findVersion(assetId, version, transaction);
       if (row === null) throw new AssetVersionNotFoundError(ref);
       const current = toAssetVersion(row);
-      if (current.status === status) return { result: { version: current, replaced: null }, changed: false };
+      if (current.status === status) return { result: { version: current }, changed: false };
       assertStatusTransition(ref, current.status, status);
       const updated = await this.versions.updateStatus(row.id, status, transaction);
-      return { result: { version: toAssetVersion(updated), replaced: null }, changed: true };
+      return { result: { version: toAssetVersion(updated) }, changed: true };
     });
 
-    this.logger.log({ event: 'catalog.status-changed', ref, status: result.version.status, replacedRef: null });
+    this.logger.log({ event: 'catalog.status-changed', ref, status: result.version.status });
     // Guided-creation design section 2: a deprecated voice keeps no sample clip. After the commit,
     // best effort: it never throws, so the status change is reported exactly as before.
     if (changed && result.version.kind === 'ai-model' && result.version.status === 'deprecated') {

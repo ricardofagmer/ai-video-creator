@@ -3,8 +3,7 @@ import { existsSync } from 'node:fs';
 import { symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, describe, it } from 'node:test';
-import { type ChromeMissingDetail } from '@studio/hyperframes';
-import { hyperframesPaths, type HyperframesRefusalReason } from '@studio/shared/hyperframes';
+import { type HyperframesRefusalReason } from '@studio/shared/hyperframes';
 import { hyperframesRefusalText } from '../shared/stage-texts';
 import {
   DEFAULT_TEMPLATE_FILES,
@@ -13,22 +12,21 @@ import {
   createCompositionHarness,
   eventRecords,
   needsPersonOf,
-  readyEngineFiles,
   type CompositionHarness,
   type CompositionHarnessOptions,
 } from './composition-stage.harness.test';
 
 /*
- * SPEC 0008 revision 2 refusals (section 17.5, 17.6, 17.8) through the real composition executor
- * in live mode with a HyperFrames template bound. Each stops the stage as `needs-person` with its
- * section 5.7 text, sends no tool-runner request (the runner is the only way a process starts),
- * records no cost and logs exactly one `hyperframes.render-refused` event naming the reason
- * (AC 89, 91, 96). The child environment's keys (AC 89, last sentence; twelve since section 18.6) are covered by
- * `stages/process/runner/hyperframes.handlers.test.ts` ("gives the child exactly the eleven
- * environment keys and none of the parent sentinels").
+ * SPEC 0008 revision 2 refusals around the staged copy (section 17.8) through the real composition
+ * executor in live mode with a HyperFrames template bound. Each stops the stage as `needs-person`
+ * with its section 5.7 text, sends no tool-runner request (the runner is the only way a process
+ * starts), records no cost and logs exactly one `hyperframes.render-refused` event naming the
+ * reason (AC 96). The render runtime gate's own checks (sections 17.5, 17.6, 18.3, 18.5; AC 89,
+ * 91, 100, 102) and their order are tested once, at the gate, in `@studio/hyperframes`
+ * (docs/specs/2026-11-25-render-runtime-gate-design.md decision 9). The child environment's keys
+ * are covered by `stages/process/runner/hyperframes.handlers.test.ts` ("gives the child exactly the
+ * eleven environment keys and none of the parent sentinels").
  */
-
-const CHROME_VERIFY_FAILURES: readonly ChromeMissingDetail[] = ['changed', 'unreadable'];
 
 async function assertRefusedBeforeAnyStart(harness: CompositionHarness, reason: HyperframesRefusalReason): Promise<void> {
   const failure = needsPersonOf(await harness.execute());
@@ -60,98 +58,24 @@ describe('composition HyperFrames rev 2 refusals stop before any start', () => {
     return harness;
   }
 
-  describe('sandbox parameters that cannot be resolved (AC 89, section 17.5)', () => {
-    it('refuses sandbox-unavailable when ffmpeg cannot be resolved on the stage PATH', async () => {
+  describe('the render runtime gate answers before the staged copy (section 5.2 check 1)', () => {
+    it('asks the gate once with the stage settings', async () => {
       const current = await open();
-      current.ports.unresolvableExecutables.add('ffmpeg');
-
-      await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
-    });
-
-    it('refuses sandbox-unavailable when ffprobe cannot be resolved on the stage PATH', async () => {
-      const current = await open();
-      current.ports.unresolvableExecutables.add('ffprobe');
-
-      await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
-    });
-
-    for (const folder of ['cacheDir', 'configDir', 'homeDir'] as const) {
-      it(`refuses runtime-not-prepared when the hyperframes ${folder} folder is missing`, async () => {
-        const current = await open();
-        current.ports.missingFolders.add(hyperframesPaths(current.dataHomeRoot)[folder]);
-
-        await assertRefusedBeforeAnyStart(current, 'runtime-not-prepared');
-        // AC 100: the folders answer before Chrome is verified (SPEC 0008 section 18.3).
-        assert.deepEqual(current.ports.chromeVerifications, []);
-      });
-    }
-
-    // AC 102: a media program the sandbox could have replaced never runs outside it (section 18.5).
-    it('refuses sandbox-unavailable when ffmpeg resolves inside the hyperframes cache folder', async () => {
-      const current = await open();
-      current.ports.resolvedExecutables.set('ffmpeg', join(hyperframesPaths(current.dataHomeRoot).cacheDir, 'ffmpeg'));
-
-      await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
-    });
-
-    it('refuses sandbox-unavailable when ffprobe resolves anywhere under the data home', async () => {
-      const current = await open();
-      current.ports.resolvedExecutables.set('ffprobe', join(current.dataHomeRoot, 'runs', 'ffprobe'));
-
-      await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
-    });
-
-    for (const folder of ['configDir', 'homeDir'] as const) {
-      it(`refuses sandbox-unavailable when ffmpeg resolves inside a ${folder} symlinked outside the data home`, async () => {
-        const current = await open();
-        const outside = join('/elsewhere', `hyperframes-${folder}`);
-        current.ports.redirectedFolders.set(hyperframesPaths(current.dataHomeRoot)[folder], outside);
-        current.ports.resolvedExecutables.set('ffmpeg', join(outside, 'bin', 'ffmpeg'));
-
-        await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
-      });
-    }
-
-    it('refuses sandbox-unavailable when the studio api port is below 1024', async () => {
-      const current = await open({ studioPorts: { api: 80, web: 4310 } });
-
-      await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
-    });
-
-    it('refuses sandbox-unavailable when the studio web port is above 65535', async () => {
-      const current = await open({ studioPorts: { api: 4311, web: 65536 } });
-
-      await assertRefusedBeforeAnyStart(current, 'sandbox-unavailable');
-    });
-  });
-
-  describe('the Chrome binary is verified before every render (AC 91, section 17.6)', () => {
-    for (const detail of CHROME_VERIFY_FAILURES) {
-      it(`refuses chrome-missing when the gate files are ready but the binary is ${detail}`, async () => {
-        const current = await open();
-        current.ports.chromeVerifyFailure = detail;
-
-        await assertRefusedBeforeAnyStart(current, 'chrome-missing');
-      });
-    }
-
-    it('verifies the binary chrome.json records against the hyperframes cache folder', async () => {
-      const current = await open();
-      const chromeRecord = readyEngineFiles(current.dataHomeRoot).chrome;
-      if (chromeRecord.status !== 'present') return assert.fail('the ready gate files record a Chrome binary');
-      current.ports.chromeVerifyFailure = 'changed';
 
       await current.execute();
 
-      assert.deepEqual(current.ports.chromeVerifications, [{ recorded: chromeRecord.value, cacheDir: hyperframesPaths(current.dataHomeRoot).cacheDir }]);
+      assert.deepEqual(
+        current.ports.runtimeSettings.map((settings) => ({ home: settings.home, path: settings.path, studioPorts: settings.studioPorts })),
+        [{ home: current.ownerHome, path: '/usr/bin:/bin', studioPorts: { api: 4311, web: 4310 } }],
+      );
     });
 
-    it('never stages the template copy when the Chrome binary fails verification', async () => {
+    it('never lists or stages the template copy when the gate refuses', async () => {
       const current = await open();
-      current.ports.chromeVerifyFailure = 'changed';
+      current.ports.refusal = 'chrome-missing';
 
       await assertRefusedBeforeAnyStart(current, 'chrome-missing');
-      assert.equal(current.ports.calls.includes('listTemplateFiles'), false);
+      assert.deepEqual(current.ports.calls, ['renderRuntime']);
     });
   });
 

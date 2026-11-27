@@ -109,10 +109,11 @@ export class RecoveryPolicy implements StepFailurePolicy {
     if (failure.origin === 'guard') return wait(failure.cause, failure);
     if (failure.origin === 'executor' && failure.failure.class === 'authentication') {
       const provider = failure.failure.provider;
-      return wait(
-        { kind: 'authentication', provider },
-        { reason: ownerTexts.authenticationReason(provider), whatToDo: ownerTexts.authenticationWhatToDo(provider) },
-      );
+      const texts =
+        failure.failure.refusal === 'quota-exceeded'
+          ? { reason: ownerTexts.quotaExceededReason(provider), whatToDo: ownerTexts.quotaExceededWhatToDo(provider) }
+          : { reason: ownerTexts.authenticationReason(provider), whatToDo: ownerTexts.authenticationWhatToDo(provider) };
+      return wait({ kind: 'authentication', provider }, texts);
     }
     if (failure.origin === 'executor' && failure.failure.class === 'needs-person') {
       return wait(failure.failure.cause, { reason: failure.failure.message, whatToDo: failure.failure.whatToDo });

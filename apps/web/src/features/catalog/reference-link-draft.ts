@@ -6,7 +6,16 @@ export const REFERENCE_NAME_MAX = 120;
 export const REFERENCE_OWNER_MAX = 100;
 export const REFERENCE_AUTHOR_MAX = 80;
 
-const ASSET_ID_PREFIXES: Readonly<Record<VideoPlatform, string>> = { instagram: 'ig', youtube: 'yt', tiktok: 'tt' };
+const ASSET_ID_PREFIXES: Readonly<Record<VideoPlatform, string>> = {
+  instagram: 'ig',
+  youtube: 'yt',
+  tiktok: 'tt',
+  vimeo: 'vm',
+  dailymotion: 'dm',
+  facebook: 'fb',
+  x: 'x',
+  twitch: 'tw',
+};
 
 /** What the Save as reference form collects; the post comes from the parsed link, never from the form. */
 export interface ReferenceLinkInput {

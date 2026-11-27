@@ -3,8 +3,9 @@ import { BriefSchema } from '../recipes/brief';
 import { StageEstimateSchema } from '../run-format/stage-record';
 import { CheckIdSchema, PhaseIdSchema, StageIdSchema } from '../run-format/vocabulary';
 import { packetBaseShape } from './packet-base';
-import { BindingSummarySchema, PriceTableSummarySchema, RecipeSummarySchema } from './packet-parts';
+import { BindingSummarySchema, PriceTableSummarySchema, RecipeSummarySchema, UntrustedTextSchema } from './packet-parts';
 import { OutputContractSchema, PLAN_RUN_TASK } from './protocol';
+import { WRITER_SKILLS_MAX } from './writer';
 
 /**
  * Planner packet (topology section 5). Absent by construction: asset bytes, biometric rows,
@@ -23,6 +24,8 @@ export const PlannerPacketSchema = z
         limits: z
           .object({ costPerRunUsd: z.number(), costPerMonthUsd: z.number(), monthToDateUsd: z.number() })
           .strict(),
+        /** Bound skill asset versions (the role's `skill:planner` slot, else every skill of the recipe), one delimited block each. */
+        skillTexts: z.array(UntrustedTextSchema).min(1).max(WRITER_SKILLS_MAX).optional(),
       })
       .strict(),
     constraints: z

@@ -76,6 +76,10 @@ export const ownerTexts = {
   authenticationReason: (provider: ProviderName): string => `O provedor ${provider} recusou a autenticação.`,
   authenticationWhatToDo: (provider: ProviderName): string =>
     `Confira a chave do provedor ${provider} com "studio secrets set" e retome a execução.`,
+  quotaExceededReason: (provider: ProviderName): string =>
+    `A chave do provedor ${provider} é válida, mas a conta não tem mais cota.`,
+  quotaExceededWhatToDo: (provider: ProviderName): string =>
+    `Aguarde a renovação da cota do provedor ${provider}, mude de plano ou troque o modo da etapa, e retome a execução.`,
   gateSkipped: (label: string): string => `Sem resposta para "${label}"; a execução segue sem aprovação.`,
   gateAnswered: (gate: string, outcome: string): string => `Portão ${gate} respondido: ${outcome}.`,
   planGateLabel: 'aprovação do plano',
@@ -111,9 +115,8 @@ export const ownerTexts = {
   biometricReason: (ref: string, cause: string): string =>
     `A etapa usa o ativo biométrico ${ref} e falhou (${cause}); nada com voz clonada é repetido automaticamente.`,
   biometricWhatToDo: 'Confira a narração e o ativo de voz; quando quiser tentar de novo, retome a execução você mesmo.',
-  licenseDoubtReason: (ref: string): string => `O ativo ${ref} é de terceiros e não tem licença registrada.`,
-  licenseDoubtWhatToDo: (ref: string): string =>
-    `Registre a licença e a procedência de ${ref} no catálogo, ou troque o ativo na receita, e retome a execução.`,
+  licenseDoubtWarning: (ref: string): string =>
+    `O ativo ${ref} é de terceiros e não tem licença registrada; a execução segue mesmo assim.`,
   costRunReason: (estimateUsd: number, limitUsd: number): string =>
     `O custo previsto da execução (${usd(estimateUsd)}) passa do teto por execução (${usd(limitUsd)}); a execução segue mesmo assim.`,
   costMonthReason: (totalUsd: number, limitUsd: number): string =>

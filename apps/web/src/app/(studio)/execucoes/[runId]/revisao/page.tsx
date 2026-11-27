@@ -23,6 +23,7 @@ export const dynamic = 'force-dynamic';
 
 interface ReviewPageProps {
   params: Promise<{ runId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 type FinalDecision = Extract<GateDecision, { kind: 'final' }>;
@@ -38,8 +39,10 @@ export async function generateMetadata({ params }: ReviewPageProps): Promise<Met
 }
 
 /** design/telas/09: `/execucoes/[runId]/revisao`, the final human gate (D14). */
-export default async function ReviewPage({ params }: ReviewPageProps) {
+export default async function ReviewPage({ params, searchParams }: ReviewPageProps) {
   const { runId } = await params;
+  // Set by the run page when it redirects here as the run finishes, so the outcome plays at once.
+  const autoPlay = (await searchParams).reproduzir === '1';
   const data = await loadReviewData(runId);
   const { t } = await getI18n();
 
@@ -104,7 +107,7 @@ export default async function ReviewPage({ params }: ReviewPageProps) {
       {header}
       <div className={styles.reviewGrid}>
         <div className={styles.video}>
-          <ReviewVideoCard runId={runId} aspect={run.recipe.definition.format.aspect} video={data.video} qa={data.qa} />
+          <ReviewVideoCard runId={runId} aspect={run.recipe.definition.format.aspect} video={data.video} qa={data.qa} autoPlay={autoPlay} />
         </div>
         <div className={styles.review}>
           <Card title={t.runs.review.yourReview}>

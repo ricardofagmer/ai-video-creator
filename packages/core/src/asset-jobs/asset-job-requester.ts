@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ASSET_JOB_QUEUE_MAX, type AssetJobKind } from '@studio/shared/asset-jobs';
 import { AssetJobOpenError } from '@studio/shared/asset-jobs/files';
 import { type AssetRef } from '@studio/shared/catalog';
+import { SerialMutex } from '../runtime/keyed-mutex';
 import { AssetJobStore, type AssetJobFileOf } from './asset-job-store';
 import { AssetJobFileCorruptError, AssetJobQueueFullError } from './asset-jobs.errors';
 
@@ -26,15 +27,13 @@ export interface AssetJobRequest<Kind extends AssetJobKind> {
 @Injectable()
 export class AssetJobRequester {
   private readonly logger = new Logger(AssetJobRequester.name);
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly requests = new SerialMutex();
 
   constructor(private readonly store: AssetJobStore) {}
 
   request<Kind extends AssetJobKind>(request: AssetJobRequest<Kind>): Promise<AssetJobFileOf[Kind]> {
-    const run = this.tail.then(() => this.requestNow(request));
-    // The chain only orders the requests; each caller still receives its own result or error.
-    this.tail = run.catch(() => undefined);
-    return run;
+    // The mutex only orders the requests; each caller still receives its own result or error.
+    return this.requests.run(() => this.requestNow(request));
   }
 
   private async requestNow<Kind extends AssetJobKind>(request: AssetJobRequest<Kind>): Promise<AssetJobFileOf[Kind]> {

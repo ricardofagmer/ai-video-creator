@@ -3,10 +3,8 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 import { HYPERFRAMES_FOLDER_NAME, type HyperframesRefusalReason } from '@studio/shared/hyperframes';
-import { readHyperframesEngineFiles } from '@studio/shared/hyperframes/files';
 import { hyperframesRefusalText } from '../shared/stage-texts';
 import {
-  CHROME_SHA256,
   DEFAULT_TEMPLATE_FILES,
   HYPERFRAMES_TEMPLATE_REF,
   STEP_KEY,
@@ -14,8 +12,6 @@ import {
   eventRecords,
   hyperframesDetails,
   needsPersonOf,
-  readyEngineFiles,
-  readyTrace,
   type CompositionHarness,
   type CompositionHarnessOptions,
 } from './composition-stage.harness.test';
@@ -24,7 +20,10 @@ import {
  * The pre-start checks of SPEC 0008 section 5.2, through the real composition executor in live
  * mode with a HyperFrames template bound. Each first failure stops the stage as `needs-person`
  * with its section 5.7 text, sends no tool-runner request (nothing is spawned), records no cost and
- * logs one `hyperframes.render-refused` event naming the reason (AC 70, 78, 80).
+ * logs one `hyperframes.render-refused` event naming the reason (AC 70, 78, 80). Check 1, the render
+ * runtime gate, is scripted here by its answer: which files or tools give which reason, and in
+ * what order, is tested once at the gate in `@studio/hyperframes`
+ * (docs/specs/2026-11-25-render-runtime-gate-design.md decision 9).
  */
 
 interface RefusalCase {
@@ -33,6 +32,17 @@ interface RefusalCase {
   options?: CompositionHarnessOptions;
   arrange?: (harness: CompositionHarness) => void;
 }
+
+/** Every reason the render runtime gate can answer (SPEC 0008 section 4.5 and 5.2 check 1). */
+const GATE_REASONS: readonly HyperframesRefusalReason[] = [
+  'engine-disabled',
+  'trace-missing',
+  'trace-stale',
+  'pin-mismatch',
+  'chrome-missing',
+  'runtime-not-prepared',
+  'sandbox-unavailable',
+];
 
 const nestedObjectSchema = {
   type: 'object',
@@ -49,110 +59,15 @@ const requiredTaglineSchema = {
 };
 
 const refusals: readonly RefusalCase[] = [
-  {
-    name: 'refuses engine-disabled when engine.json is absent',
-    reason: 'engine-disabled',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), engine: { status: 'absent' } });
-    },
-  },
-  {
-    name: 'refuses engine-disabled when engine.json says disabled',
-    reason: 'engine-disabled',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({
-        ...readyEngineFiles(root),
-        engine: { status: 'present', value: { format: 1, state: 'disabled', updatedAt: '2026-11-20T10:05:00.000Z', updatedBy: 'owner' } },
-      });
-    },
-  },
-  {
-    name: 'refuses engine-disabled when engine.json is invalid',
-    reason: 'engine-disabled',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), engine: { status: 'invalid' } });
-    },
-  },
-  {
-    name: 'refuses chrome-missing when chrome.json is absent',
-    reason: 'chrome-missing',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), chrome: { status: 'absent' }, chromeBinaryPresent: false });
-    },
-  },
-  {
-    name: 'refuses chrome-missing when the binary chrome.json names is gone',
-    reason: 'chrome-missing',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), chromeBinaryPresent: false });
-    },
-  },
-  {
-    name: 'refuses runtime-not-prepared when config/config.json was never seeded',
-    reason: 'runtime-not-prepared',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), configSeeded: false });
-    },
-  },
-  {
-    name: 'refuses trace-missing when no trace.json exists',
-    reason: 'trace-missing',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), trace: { status: 'absent' } });
-    },
-  },
-  {
-    name: 'refuses trace-stale when the recorded trace failed',
-    reason: 'trace-stale',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), trace: { status: 'present', value: { ...readyTrace(), result: 'fail' } } });
-    },
-  },
-  {
-    name: 'refuses trace-stale when the trace was taken for another pin (AC 70)',
-    reason: 'trace-stale',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), trace: { status: 'present', value: { ...readyTrace(), pin: '0.9.71' } } });
-    },
-  },
-  {
-    name: 'refuses trace-stale when the trace names another Chrome hash (AC 70)',
-    reason: 'trace-stale',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({
-        ...readyEngineFiles(root),
-        trace: { status: 'present', value: { ...readyTrace(), chromeSha256: CHROME_SHA256.replace(/^a/, '0') } },
-      });
-    },
-  },
-  {
-    name: 'refuses trace-stale when the sandbox profile changed after the trace (AC 70)',
-    reason: 'trace-stale',
-    arrange: (harness) => {
-      harness.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), trace: { status: 'present', value: { ...readyTrace(), profileSha256: '9'.repeat(64) } } });
-    },
-  },
-  {
-    name: 'refuses pin-mismatch when the installed hyperframes package is not the approved version',
-    reason: 'pin-mismatch',
-    arrange: (harness) => {
-      harness.ports.pinMismatch = true;
-    },
-  },
-  {
-    name: 'refuses sandbox-unavailable when the macOS sandbox tool is missing',
-    reason: 'sandbox-unavailable',
-    arrange: (harness) => {
-      harness.ports.sandboxToolPresent = false;
-    },
-  },
-  {
-    name: 'refuses sandbox-unavailable when the sandbox profile cannot be read',
-    reason: 'sandbox-unavailable',
-    arrange: (harness) => {
-      harness.ports.profileUnreadable = true;
-    },
-  },
+  ...GATE_REASONS.map(
+    (reason): RefusalCase => ({
+      name: `turns the render runtime gate's ${reason} into its needs-person stop`,
+      reason,
+      arrange: (harness) => {
+        harness.ports.refusal = reason;
+      },
+    }),
+  ),
   {
     name: 'refuses template-not-flat when the template declares a scene schema',
     reason: 'template-not-flat',
@@ -272,10 +187,10 @@ describe('composition HyperFrames refusals stop as needs-person with zero runner
     });
   }
 
-  it('stops a live run at composition with the engine-disabled text when the data home has no hyperframes folder (AC 70)', async () => {
+  it('stops a live run at composition with the engine-disabled text and writes nothing under the hyperframes folder (AC 70)', async () => {
     const current = await createCompositionHarness();
     harness = current;
-    current.ports.engineFiles = readHyperframesEngineFiles;
+    current.ports.refusal = 'engine-disabled';
 
     const failure = needsPersonOf(await current.execute());
 
@@ -286,10 +201,10 @@ describe('composition HyperFrames refusals stop as needs-person with zero runner
     assert.equal(existsSync(join(current.dataHomeRoot, HYPERFRAMES_FOLDER_NAME)), false, 'the watcher writes nothing under <data home>/hyperframes/');
   });
 
-  it('checks the engine before the template, so a disabled engine wins over a non-flat template', async () => {
+  it('asks the render runtime gate before the template, so a disabled engine wins over a non-flat template', async () => {
     const current = await createCompositionHarness({ template: hyperframesDetails({ sceneSchema: { type: 'object' } }) });
     harness = current;
-    current.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), engine: { status: 'absent' } });
+    current.ports.refusal = 'engine-disabled';
 
     await assertRefused(current, 'engine-disabled');
   });

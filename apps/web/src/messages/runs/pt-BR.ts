@@ -100,6 +100,8 @@ export const runsPtBR = {
     },
   },
   references: {
+    emptyCategory: 'Nenhuma imagem nesta categoria.',
+    recent: 'Recentes',
     searchLabel: 'Buscar no catálogo',
     search: 'Buscar',
     searching: 'Buscando no catálogo',
@@ -109,6 +111,15 @@ export const runsPtBR = {
     add: 'Adicionar',
     selectedLabel: 'Referências escolhidas',
     remove: 'Remover',
+    noPictures: 'Ainda não há imagens nem clipes no catálogo. Envie ou cole uma.',
+    uploadImage: 'Enviar imagem',
+    uploadHelp: 'Ou cole uma imagem (Cmd+V) em qualquer lugar desta página. PNG, JPEG ou WebP, até 50 MB. Ela é salva no catálogo.',
+    uploading: 'Salvando a imagem no catálogo',
+    uploadWrongType: 'Só imagens PNG, JPEG ou WebP podem ser adicionadas aqui.',
+    uploadTooLarge: 'A imagem está vazia ou passa de 50 MB.',
+    uploadUnreadable: 'Não foi possível ler a imagem. Tente outro arquivo.',
+    uploadOwner: 'proprietário',
+    uploadDefaultName: 'Imagem colada',
   },
   /** Owner instructions per run (docs/specs/2026-11-23-images-prompts-and-run-instructions-design.md). */
   instructions: {
@@ -183,6 +194,21 @@ export const runsPtBR = {
     risks: 'Riscos apontados',
     runCost: 'Custo da execução',
   },
+  /** Edit and delete a stopped run, under "Agora". */
+  manage: {
+    edit: 'Editar',
+    delete: 'Excluir',
+    editTitle: 'Editar e retomar',
+    editDescription: 'Mude o briefing e as instruções. A execução continua de onde parou com o texto novo.',
+    saveAndResume: 'Salvar e retomar',
+    saving: 'Salvando…',
+    cancel: 'Cancelar',
+    deleteTitle: 'Excluir esta execução?',
+    deleteDescription: (title: string): string =>
+      `"${title}" será apagada de vez: a pasta da execução, os arquivos gerados e o vídeo. Isso não pode ser desfeito.`,
+    deleteConfirm: 'Excluir para sempre',
+    deleting: 'Excluindo…',
+  },
   waiting: {
     plannerQuestions: 'Perguntas do planejador',
     resume: 'Retomar',
@@ -247,6 +273,7 @@ export const runsPtBR = {
     'review-run-not-found': 'Execução não encontrada.',
     'run-status-conflict': 'A execução mudou de status enquanto você agia. Confira o estado atual.',
     'run-owned-by-watcher': 'O watcher está trabalhando nesta execução. Tente de novo em alguns segundos.',
+    'run-not-deletable': 'Esta execução não pode ser excluída agora: ela está na fila ou rodando, já foi revisada ou faz parte de uma comparação.',
     'review-not-allowed': 'A execução não aceita esta ação agora. Confira o estado atual e tente de novo.',
     'invalid-run-input': 'Alguns campos não foram aceitos.',
     'invalid-review-input': 'Alguns campos não foram aceitos.',

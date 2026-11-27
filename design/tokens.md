@@ -18,9 +18,9 @@ sistema operacional, e `data-theme="light"` ou `data-theme="dark"` em `<html>` f
 
 ### 1.1 Escala de tinta (cinzas neutros)
 
-Neutros sem matiz, para que só o gradiente carregue cor. O tema claro usa fundo e superfícies em
-off-white no mesmo tom dos cinzas (seção 1.4), sem branco puro, para não ofuscar: a página fica
-em torno de L* 91 e os cards um degrau mais claros; o escuro, quase preto neutro.
+Neutros sem matiz, para que só o gradiente carregue cor. O tema claro usa uma página quase branca
+no tom levemente frio dos cinzas e cards em branco puro sobre ela (seção 1.4); o escuro, quase
+preto neutro.
 
 | Token | Valor | Uso |
 | --- | --- | --- |
@@ -97,18 +97,18 @@ em torno de L* 91 e os cards um degrau mais claros; o escuro, quase preto neutro
 | `--color-info-soft` | `#E8EAF7` | `#14173A` | Fundo informativo |
 | `--color-info-border` | `#C1C6EF` | `#2E3592` | Borda informativa |
 
-No claro, os fundos `-soft` ficam em L* 93, entre a página e o card, para que alertas e badges
-nunca pareçam mais claros que os cards; cada `-border` desce junto com o seu fundo.
+No claro, os fundos `-soft` ficam em L* 93, um degrau abaixo da página e do card branco, para que
+alertas e badges nunca pareçam mais claros que os cards; cada `-border` desce junto com o seu fundo.
 
 ### 1.4 Tokens semânticos (os componentes usam só estes e os da seção 1.3)
 
 | Token | Claro | Escuro | Uso |
 | --- | --- | --- | --- |
-| `--color-bg` | `#E6E6E9` | `--color-gray-950` | Fundo da página |
-| `--color-surface` | `#EFEFF2` | `--color-gray-850` | Cards, campos, diálogos |
-| `--color-surface-muted` | `#E3E3E7` | `--color-gray-800` | Cabeçalho de tabela, hover, badge neutro |
-| `--color-surface-glass` | `rgba(239, 239, 242, 0.8)` | `rgba(10, 10, 11, 0.62)` | Top bar de vidro |
-| `--color-border` | `#D1D1D6` | `--color-gray-700` | Bordas de card e divisores (decorativos) |
+| `--color-bg` | `#F7F7FA` | `--color-gray-950` | Fundo da página |
+| `--color-surface` | `--color-white` | `--color-gray-850` | Cards, campos, diálogos |
+| `--color-surface-muted` | `#F1F1F4` | `--color-gray-800` | Cabeçalho de tabela, hover, badge neutro |
+| `--color-surface-glass` | `rgba(255, 255, 255, 0.8)` | `rgba(10, 10, 11, 0.62)` | Top bar de vidro |
+| `--color-border` | `#E0E0E6` | `--color-gray-700` | Bordas de card e divisores (decorativos) |
 | `--color-border-strong` | `--color-gray-500` | `--color-gray-500` | Borda de campo e botão secundário (≥ 3:1) |
 | `--color-border-glow` | `rgba(214, 41, 118, 0.22)` | `rgba(245, 96, 155, 0.28)` | Borda rosada da top bar e do diálogo |
 | `--color-text` | `--color-ink-text` | `--color-ink-text-dark` | Texto principal |
@@ -132,10 +132,10 @@ nunca pareçam mais claros que os cards; cada `-border` desce junto com o seu fu
 | `--color-glow-cyan` | `rgba(250, 126, 30, 0.08)` | `rgba(150, 47, 191, 0.16)` | Halo laranja (roxo no escuro) da página (nome mantido) |
 | `--color-grid-line` | `rgba(214, 41, 118, 0.04)` | `rgba(245, 96, 155, 0.05)` | Linhas da grade do fundo |
 
-No claro, fundo, superfícies e borda são off-whites no mesmo tom levemente frio dos cinzas, sem
-branco puro: a página (`#E6E6E9`, L* 91) fica um degrau mais escura que o card (`#EFEFF2`),
-`--color-surface-muted` (`#E3E3E7`) fica logo abaixo da página e a borda (`#D1D1D6`) escurece
-na mesma proporção, para manter as camadas sem ofuscar.
+No claro, a página é quase branca (`#F7F7FA`) no tom levemente frio dos cinzas e o card é branco
+puro (decisão do dono em 2026-11-27: os cinzas do corte de brilho anterior pareciam prateados e
+datados). O card se separa da página pela borda (`#E0E0E6`) e pela sombra, não por um fundo cinza;
+`--color-surface-muted` (`#F1F1F4`) fica logo abaixo da página.
 Sobre essas superfícies, `--color-text-subtle` (`#64646C`) e `--color-primary` (`#BC2468`) ficam
 um tom abaixo de `--color-gray-500` e `--color-primary-600`, e `--color-warning` (`#AB4F09`) um
 tom abaixo do âmbar original, para manter 4,5:1 (seção 11.1); o gradiente, a seleção e o contorno

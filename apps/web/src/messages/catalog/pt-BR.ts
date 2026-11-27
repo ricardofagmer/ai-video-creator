@@ -195,16 +195,16 @@ export const catalogPtBR = {
     openSaved: 'Abrir item',
     remaining: (left: number): string => `${left} caracteres restantes`,
   },
-  /** The References section's link box: the platform's own embed (Instagram, YouTube, TikTok); saving keeps only the link. */
+  /** The References section's link box: the platform's own embed (Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X, Twitch); saving keeps only the link. */
   linkBox: {
     title: 'Ver um vídeo de referência',
     label: 'Cole o link do vídeo',
-    placeholder: 'https://www.instagram.com/reel/…, https://youtu.be/… ou https://www.tiktok.com/@…',
+    placeholder: 'https://www.instagram.com/reel/…, https://youtu.be/…, https://vimeo.com/… ou outro link de vídeo',
     submit: 'Mostrar',
     clear: 'Limpar',
-    help: 'O vídeo é exibido direto do Instagram, YouTube ou TikTok. Ao salvar, o estúdio baixa o vídeo por um instante para a IA analisar o estilo e apaga em seguida: ficam guardados só o link e o texto da análise.',
-    unsupported: 'Por enquanto, só são aceitos links de posts e reels do Instagram, vídeos e Shorts do YouTube e vídeos do TikTok.',
-    platforms: { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok' } satisfies Record<VideoPlatform, string>,
+    help: 'O vídeo é exibido direto da plataforma (Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X ou Twitch). Ao salvar, o estúdio baixa o vídeo por um instante para a IA analisar o estilo e apaga em seguida: ficam guardados só o link e o texto da análise.',
+    unsupported: 'Use o link de um post de vídeo do Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X (Twitter) ou Twitch (clipe ou transmissão passada).',
+    platforms: { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', vimeo: 'Vimeo', dailymotion: 'Dailymotion', facebook: 'Facebook', x: 'X', twitch: 'Twitch' } satisfies Record<VideoPlatform, string>,
     embedTitle: (platform: string, id: string) => `Vídeo do ${platform} ${id}`,
     save: {
       title: 'Salvar como referência',
@@ -402,6 +402,17 @@ export const catalogPtBR = {
     showAll: 'Mostrar todas as versões',
     onlyScored: 'Só versões com nota',
     empty: 'Nenhuma versão com nota ainda.',
+  },
+
+  deleteItem: {
+    label: 'Excluir',
+    labelHidden: (name: string): string => `Excluir ${name}`,
+    deleting: 'Excluindo…',
+    confirmTitle: (name: string): string => `Excluir ${name}?`,
+    confirmDescription:
+      'Todas as versões deste item ficam descontinuadas e o item sai das listas do catálogo. Presets e execuções antigas continuam usando o item. Para trazê-lo de volta, filtre o catálogo pelo status "Descontinuado" e ative uma versão.',
+    cancel: 'Cancelar',
+    failed: (reason: string): string => `O item não foi excluído por completo. ${reason}`,
   },
 
   /** design/telas/03 header actions. */
@@ -774,7 +785,7 @@ export const catalogPtBR = {
     byAi: 'Escrito pela IA a partir do vídeo. Suas notas ficam separadas e não mudam.',
     mock: 'Simulado',
     frames: (count: number): string => `${count} quadros analisados`,
-    linkOnly: 'Este link não é de um post do Instagram, YouTube ou TikTok. Anexe o arquivo do vídeo para a IA analisar.',
+    linkOnly: 'Este link não é de um post de vídeo de uma plataforma aceita (Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X ou Twitch). Anexe o arquivo do vídeo para a IA analisar.',
     attachFile: 'Anexar o arquivo numa nova versão',
     biometric: 'Esta referência é biométrica; a IA não analisa vídeos com dados biométricos.',
     notAVideo: 'Só referências de vídeo com arquivo são analisadas.',

@@ -352,19 +352,7 @@
       ],
       "origin": "ai-creator-engine",
       "skillIds": [
-        "fagmer-video-analytics-loop",
-        "fagmer-video-demo-capture",
-        "fagmer-video-fact-check",
-        "fagmer-video-hook",
-        "fagmer-video-producer",
-        "fagmer-video-publish-review",
-        "fagmer-video-quality-gate",
-        "fagmer-video-scene-generator",
-        "fagmer-video-script",
-        "fagmer-video-seo-package",
-        "fagmer-video-tiktok-render",
-        "fagmer-video-trend-research",
-        "fagmer-video-voiceover"
+        "fagmer-video-seo-package"
       ]
     },
     {

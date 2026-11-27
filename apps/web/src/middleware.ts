@@ -11,8 +11,8 @@ const ROUTE_HANDLER_PREFIX = '/api/';
  * scripts load. Every page is rendered per request (the layouts read the session cookie), so each
  * one gets a fresh nonce. Styles keep `'unsafe-inline'`: React writes `style` attributes
  * (`CostMeter`), which a nonce cannot cover, and injected CSS is a far smaller risk than script.
- * `frame-src` admits any `https:` page: the official embeds of Instagram, YouTube (privacy-enhanced host) and
- * TikTok (docs/specs/2026-11-23-catalog-sections-and-link-embed-design.md) and the saved websites of the Sites
+ * `frame-src` admits any `https:` page: the official embeds of the allowlisted video platforms (YouTube on its
+ * privacy-enhanced host; docs/specs/2026-11-23-catalog-sections-and-link-embed-design.md) and the saved websites of the Sites
  * section, which the viewer's browser loads straight from the owner's link in a sandboxed frame (SiteEmbed).
  * `frame-ancestors 'none'` still keeps every studio page out of other sites' frames.
  * Development adds what `next dev` needs: `eval` for React Refresh and the HMR websocket.

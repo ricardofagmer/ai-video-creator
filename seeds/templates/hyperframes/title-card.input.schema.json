@@ -73,6 +73,38 @@
     "scene6StartS": {
       "type": "number",
       "default": 600
+    },
+    "scene7Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene7StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene8Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene8StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene9Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene9StartS": {
+      "type": "number",
+      "default": 600
+    },
+    "scene10Text": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "scene10StartS": {
+      "type": "number",
+      "default": 600
     }
   }
 }

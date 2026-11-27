@@ -33,6 +33,100 @@ export const skillsEs: Messages<typeof skillsPtBR> = {
     savedNotice: 'Skill guardada como borrador.',
     openSaved: 'Abrir la skill',
     truncated: 'Se muestran las 100 versiones más recientes; las skills más antiguas no aparecen aquí.',
+    searchLabel: 'Buscar skills',
+    searchPlaceholder: 'Buscar skills',
+    searchSubmit: 'Buscar',
+    searchClear: 'Borrar búsqueda',
+    searchEmpty: 'Ninguna skill coincide con esa búsqueda. Prueba con una palabra más corta.',
+  },
+  cases: {
+    label: 'Caso real',
+    source: (runId) => `De la ejecución ${runId} (proveedores simulados)`,
+    none: 'Todavía no hay un caso registrado para esta skill.',
+    items: {
+      'fagmer-video-producer': {
+        request: 'Hacer un vídeo de TikTok sobre "Mock smoke test: automate meeting notes".',
+        steps: [
+          'Investigó el tema y verificó 2 afirmaciones en 2 fuentes',
+          'Escribió un guion de 192 palabras en 6 escenas con la plantilla Automation Blueprint',
+          'Narró, renderizó y ejecutó 15 comprobaciones de calidad (14 pasaron)',
+        ],
+        result: 'La ejecución llegó a Revisión con un vídeo de 81,6 s en 1080x1920; coste de US$ 0.',
+      },
+      'fagmer-video-trend-research': {
+        request: 'Encontrar un ángulo con fuentes para "automate meeting notes".',
+        steps: [
+          'Eligió el pilar Flujo de automatización',
+          'Definió el ángulo: convertir la grabación de una reunión en notas y tareas sin copiar y pegar',
+          'Registró 2 fuentes (fixtures de prueba)',
+        ],
+        result: 'research.json escrito; la ejecución pasó a la verificación.',
+      },
+      'fagmer-video-fact-check': {
+        request: 'Comprobar cada afirmación de la investigación antes del guion.',
+        steps: [
+          'Listó 2 afirmaciones materiales',
+          'c1: el flujo publica las acciones en un tablero de tareas',
+          'c2: un equipo dejó de escribir notas a mano',
+        ],
+        result: 'claims.json: 2 de 2 afirmaciones con evidencia; la ejecución pasó a Verificada.',
+      },
+      'fagmer-video-script': {
+        request: 'Escribir el guion de la ejecución ya verificada.',
+        steps: [
+          'Gancho: "You still write meeting notes by hand?"',
+          'Narración de 192 palabras (rango de 165 a 205)',
+          'Storyboard de 6 escenas en Automation Blueprint, CTA "Follow for part two"',
+        ],
+        result: 'script.json con el título "Stop writing meeting notes"; ejecución en Guionizada.',
+      },
+      'fagmer-video-scene-generator': {
+        request: 'Preparar las escenas que no son capturas de pantalla.',
+        steps: [
+          'Planificó 6 escenas: gancho, resumen, paso 1, paso 2, resultado y CTA',
+          'Cada escena pasó a ser una tarjeta de título generada por ace',
+          'Registró origen y licencia de cada recurso',
+        ],
+        result: 'assets.json: 6 recursos, todos con licencia "original".',
+      },
+      'fagmer-video-voiceover': {
+        request: 'Narrar el guion aprobado de 192 palabras.',
+        steps: [
+          'Generó el audio (voz simulada en esta ejecución)',
+          'Marcó el tiempo de las 192 palabras y de las 6 escenas',
+          'Comprobó la duración contra el rango de 69 a 90 s',
+        ],
+        result: 'narration.json: 80 s de audio, dentro del rango.',
+      },
+      'fagmer-video-tiktok-render': {
+        request: 'Renderizar la ejecución narrada para TikTok.',
+        steps: ['Renderizó la plantilla Automation Blueprint', 'Exportó en 1080x1920 a 30 fps', 'Guardó video.mp4 y thumbnail.png'],
+        result: 'Vídeo de 81,6 s, renderizado en 58 s.',
+      },
+      'fagmer-video-quality-gate': {
+        request: 'Revisar la ejecución renderizada antes de la aprobación humana.',
+        steps: [
+          'Revisión editorial: gancho, veracidad y avisos aprobados',
+          'Marcó el contenido visual (solo tarjetas de título)',
+          'Ejecutó las comprobaciones técnicas: duración, resolución, fps, códecs, silencio y fotogramas negros',
+        ],
+        result: 'qa.json: veredicto aprobado, 14 de 15 comprobaciones pasaron.',
+      },
+      'fagmer-video-seo-package': {
+        request: 'Escribir título, descripción y hashtags de TikTok para la ejecución.',
+        steps: [
+          'Título: "Stop writing meeting notes"',
+          'Hashtags: #automation #productivity',
+          'Avisos: voz generada por IA; prueba simulada, no publicar',
+        ],
+        result: 'Paquete de SEO guardado en editorial.json con el CTA "Follow for part two".',
+      },
+    },
+  },
+  usage: {
+    runs: (count) => (count === 1 ? 'Usada en 1 ejecución reciente' : `Usada en ${count} ejecuciones recientes`),
+    latest: 'Última:',
+    none: 'Todavía no se usó en una ejecución reciente.',
   },
   form: {
     idLabel: 'Identificador',

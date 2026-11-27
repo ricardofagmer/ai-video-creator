@@ -1,9 +1,9 @@
 /**
- * Toolbox error taxonomy. The CLI layer (cli/execute.ts) is the only place that
- * catches these and maps them to exit codes and run.json state changes:
- * - BlockedError (from @studio/shared/ace): exit 2, run moves to BLOCKED.
- * - InputError and subclasses: exit 1, run.json untouched (fix the input, re-run).
- * - anything else thrown inside a started stage: exit 1, run moves to FAILED.
+ * Toolbox error taxonomy. The watcher's tool runner (apps/watcher tool-runner.main.ts)
+ * tells these apart by class, so the subclass is the contract:
+ * - InputError and subclasses: the caller's input is wrong; nothing was written.
+ * - ProviderError: a voice or media provider failed.
+ * - ExternalToolError: ffmpeg, ffprobe or Chromium is missing or failed.
  */
 
 /** The caller's input or the run's preconditions are wrong; nothing was changed. */

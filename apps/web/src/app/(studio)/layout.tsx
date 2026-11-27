@@ -1,5 +1,5 @@
 import type { SessionResponse } from '@studio/shared/api';
-import { AppShell, Icon, Logo, THEME_COOKIE_NAME, ThemeToggle, formatDateTime, parseThemePreference } from '@studio/ui';
+import { AppShell, Logo, THEME_COOKIE_NAME, ThemeToggle, formatDateTime, parseThemePreference } from '@studio/ui';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -33,7 +33,7 @@ interface StudioLayoutProps {
 export default async function StudioLayout({ children, watcher }: StudioLayoutProps) {
   const session = await requireSession();
   const themePreference = parseThemePreference((await cookies()).get(THEME_COOKIE_NAME)?.value);
-  const { locale, t, ui } = await getI18n();
+  const { locale, t } = await getI18n();
 
   return (
     <AppShell
@@ -49,12 +49,10 @@ export default async function StudioLayout({ children, watcher }: StudioLayoutPr
           {watcher}
           <CartButton />
           <HelpButton />
+          <LanguageControl />
+          <ThemeToggle initialPreference={themePreference} />
         </>
       }
-      preferences={[
-        { id: 'language', label: ui.language.groupLabel, icon: <Icon name="globe" />, control: <LanguageControl /> },
-        { id: 'theme', label: ui.theme.groupLabel, icon: <Icon name="moon" />, control: <ThemeToggle initialPreference={themePreference} /> },
-      ]}
       account={{
         name: t.shell.account.name,
         detail: t.shell.account.sessionUntil(formatDateTime(session.expiresAt, locale)),

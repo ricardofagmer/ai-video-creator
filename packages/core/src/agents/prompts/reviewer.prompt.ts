@@ -1,5 +1,5 @@
 import { OutputContractSchema, PacketTypeSchema, type ReviewPacket } from '@studio/shared/agents';
-import { guardSection, renderPacketBody, type RolePrompt } from './prompt-common';
+import { guardSection, renderPacketBody, skillsStableBlock, withSkillsMoved, type RolePrompt } from './prompt-common';
 
 const contract = OutputContractSchema.enum.ReviewVerdict;
 
@@ -11,9 +11,10 @@ const contract = OutputContractSchema.enum.ReviewVerdict;
  * evaluator@4 (2026-11-24) scores the draft carried in inputs.draft, which is not yet a run artifact.
  * evaluator@5 (2026-11-24) a missing, vague or unsupported main message is never a blocking issue on
  * its own: the work is judged on everything else it was given (owner decision: never stop).
+ * evaluator@6 (2026-11-26) the owner's bound skills, in the stable block, are part of what is judged.
  */
 export const reviewerPrompt: RolePrompt<ReviewPacket> = {
-  version: 'evaluator@5',
+  version: 'evaluator@6',
   system: [
     'You are the Reviewer of a video studio. You score generated work against a rubric and give evidence.',
     'Task:',
@@ -25,7 +26,11 @@ export const reviewerPrompt: RolePrompt<ReviewPacket> = {
     '- The brief\'s key messages (the main message) may be missing, vague (a placeholder such as a single word or the topic repeated) or unsupported by verified claims. Then the work is right to build its message from everything else it was given: the site analysis, the verified claims, the references and the owner\'s instructions. Never report the main message as not delivered in that case, never make it a blocking issue on its own, and score how well the work uses the rest.',
     '- You never decide pass or fail; the engine does (constraints.passDecisionIsEngines). Report blocking issues plainly.',
     '- Set retryRecommended only when a revision would clearly fix a blocking issue, and then give one concrete, actionable retryInstruction. Otherwise leave retryInstruction empty.',
+    '- inputs.skillTexts, when present, are the skills the owner chose for this recipe (the bound skill block above). Judge whether the work follows their method and rules, and cite the gap as evidence when it does not.',
     guardSection(contract),
   ].join('\n'),
-  render: (packet) => ({ stablePrefix: null, body: renderPacketBody(PacketTypeSchema.enum.ReviewPacket, packet) }),
+  render: (packet) => ({
+    stablePrefix: skillsStableBlock(packet.inputs.skillTexts, 'The work under review must follow their method and rules.'),
+    body: renderPacketBody(PacketTypeSchema.enum.ReviewPacket, withSkillsMoved(packet)),
+  }),
 };

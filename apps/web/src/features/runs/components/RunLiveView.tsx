@@ -15,7 +15,8 @@ import {
 } from '@studio/ui';
 import { type RunStateResponse } from '@studio/shared/api';
 import Link from 'next/link';
-import { useState, type ReactElement, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { StudioHero } from '@/features/common/components/StudioHero';
 import layout from '@/features/common/layout.module.css';
 import { useWebMessages } from '@/lib/i18n/client';
@@ -112,6 +113,16 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
   // The waiting notice sits under the step the run stopped at; with no position it stays on top.
   const position = currentPosition(run, live.state.now);
   const waitingNotice = state.status === 'waiting' ? <RunWaitingNotice run={run} state={state} onChanged={live.refresh} /> : null;
+  const router = useRouter();
+  // Only a run that finishes while this page watches it redirects; one opened already finished
+  // stays here, so its timeline and events remain reachable.
+  const watchedUnfinished = useRef(!hasReview(initialState.run.state));
+  const finished = hasReview(state);
+  useEffect(() => {
+    if (!finished || !watchedUnfinished.current) return;
+    watchedUnfinished.current = false;
+    router.push(`/execucoes/${runId}/revisao?reproduzir=1`);
+  }, [finished, router, runId]);
 
   return (
     <div className={layout.page}>
@@ -164,6 +175,7 @@ export function RunLiveView({ runId, initialState, startFailed, scheduleOrigin, 
             state={live.state}
             freshness={live.polling ? { lastUpdatedAtMs: live.lastUpdatedAtMs, checkedAtMs: live.checkedAtMs } : null}
             onChanged={live.refresh}
+            deletedHref="/execucoes"
           />
         </div>
         <div className={styles.cost}>

@@ -63,7 +63,7 @@ describe('toolbox test isolation (SPEC 2026-11-21 section 8.3)', () => {
   it('finds the toolbox test files of this ticket', async () => {
     const names = (await testFilesUnder(SOURCE_ROOT)).map((file) => relative(SOURCE_ROOT, file));
 
-    for (const expected of ['__tests__/hashing.test.ts', '__tests__/isolation.test.ts', '__tests__/srt.test.ts']) {
+    for (const expected of ['__tests__/isolation.test.ts', '__tests__/srt.test.ts', '__tests__/wav-encoder.test.ts']) {
       assert.ok(names.includes(expected), expected);
     }
   });

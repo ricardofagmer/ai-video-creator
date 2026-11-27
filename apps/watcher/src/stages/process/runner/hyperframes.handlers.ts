@@ -88,8 +88,11 @@ type Background = NonNullable<HyperframesRenderRequest['background']>;
 /** Still images are opened by their own demuxers; the guard of `ffmpeg-input.ts` admits media containers only. */
 const IMAGE_INPUT_GUARD_ARGS: readonly string[] = ['-protocol_whitelist', 'file', '-format_whitelist', 'image2,png_pipe,jpeg_pipe,webp_pipe'];
 const BLANK_COLOR = '0x0b0b0f';
-/** A still drifts in by this much over its stretch, so an image scene is not a frozen frame. */
-const STILL_ZOOM_END = 1.12;
+/**
+ * A still drifts in by this much over its stretch, so an image scene is not a frozen frame. Kept
+ * small because stills are often full app screens or pages, and a deeper zoom crops their edges.
+ */
+const STILL_ZOOM_END = 1.04;
 
 function seconds(value: number): string {
   return value.toFixed(3);

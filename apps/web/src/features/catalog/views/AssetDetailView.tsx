@@ -7,6 +7,7 @@ import { cartItemOf } from '@/features/cart/cart-item';
 import { cartKindArtwork } from '@/features/cart/cart-kind-artwork';
 import { CartToggleButton } from '@/features/cart/components/CartToggleButton';
 import { AssetVersionDetails } from '@/features/catalog/components/AssetVersionDetails';
+import { DiscontinueAssetButton } from '@/features/catalog/components/DiscontinueAssetButton';
 import { SiteEmbed } from '@/features/catalog/components/SiteEmbed';
 import { VideoEmbed } from '@/features/catalog/components/VideoEmbed';
 import { siteLinkOf } from '@/features/catalog/site-link-draft';
@@ -248,6 +249,7 @@ export async function AssetDetailView({ assetId, query, presentation }: AssetDet
               activeLearnings={activeLearnings}
               evidenceComparisonId={comparison.success ? comparison.data : null}
             />
+            <DiscontinueAssetButton assetId={current.id} name={current.name} size="md" afterHref="/catalogo" />
           </>
         }
       />

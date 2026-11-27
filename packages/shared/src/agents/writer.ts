@@ -14,7 +14,7 @@ export const SceneIdSchema = z
   .string()
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/, 'expected a scene id: a letter or digit, then letters, digits, - or _, at most 64');
 
-/** Most `skill:writer` texts one writer packet carries: each may be a full delimited block. */
+/** Most bound skill texts one agent packet carries: each may be a full delimited block. */
 export const WRITER_SKILLS_MAX = 5;
 
 /** Scriptwriter answer (topology section 5). */
@@ -66,7 +66,7 @@ export const WriterPacketSchema = z
         templateInputSchema: JsonObjectSchema,
         /** Bound prompt asset version, delimited. */
         promptText: UntrustedTextSchema,
-        /** Bound `skill:writer` asset versions, one delimited block each; absent when none is bound. */
+        /** Bound skill asset versions (`skill:writer`, else every skill of the recipe), one delimited block each; absent when none is bound. */
         skillTexts: z.array(UntrustedTextSchema).min(1).max(WRITER_SKILLS_MAX).optional(),
         /** Brand-kit tone section, delimited. */
         brandVoice: UntrustedTextSchema.optional(),

@@ -1,3 +1,4 @@
+export { DeleteRunCommand, type DeleteRunInput, type DeleteRunResult } from './commands/delete-run.command';
 export { PromoteFromRunCommand, type PromoteFromRunInput, type PromoteFromRunResult } from './commands/promote-from-run.command';
 export { RecordGateDecisionCommand, type GateDecisionResult, type RecordGateDecisionInput } from './commands/record-gate-decision.command';
 export {
@@ -26,9 +27,11 @@ export {
   ReviewNotAllowedError,
   ReviewRunMismatchError,
   ReviewRunNotFoundError,
+  RunNotDeletableError,
   UnsafeArtifactPathError,
   type BiometricRefusalReason,
   type ReviewErrorCategory,
   type ReviewRefusalReason,
+  type RunDeleteRefusalReason,
 } from './review.errors';
 export { ReviewModule } from './review.module';

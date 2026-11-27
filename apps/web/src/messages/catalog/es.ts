@@ -182,12 +182,12 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
   linkBox: {
     title: 'Ver un video de referencia',
     label: 'Pega el enlace del video',
-    placeholder: 'https://www.instagram.com/reel/…, https://youtu.be/… o https://www.tiktok.com/@…',
+    placeholder: 'https://www.instagram.com/reel/…, https://youtu.be/…, https://vimeo.com/… u otro enlace de video',
     submit: 'Mostrar',
     clear: 'Limpiar',
-    help: 'El video se reproduce directamente desde Instagram, YouTube o TikTok. Al guardar, el estudio descarga el video por un momento para que la IA analice su estilo y luego lo borra: solo se conservan el enlace y el texto del análisis.',
-    unsupported: 'Por ahora solo se aceptan publicaciones y reels de Instagram, videos y Shorts de YouTube y videos de TikTok.',
-    platforms: { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok' },
+    help: 'El video se reproduce directamente desde la plataforma (Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X o Twitch). Al guardar, el estudio descarga el video por un momento para que la IA analice su estilo y luego lo borra: solo se conservan el enlace y el texto del análisis.',
+    unsupported: 'Usa el enlace de una publicación de video en Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X (Twitter) o Twitch (clip o transmisión pasada).',
+    platforms: { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', vimeo: 'Vimeo', dailymotion: 'Dailymotion', facebook: 'Facebook', x: 'X', twitch: 'Twitch' },
     embedTitle: (platform: string, id: string) => `Video de ${platform} ${id}`,
     save: {
       title: 'Guardar como referencia',
@@ -380,6 +380,17 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     showAll: 'Mostrar todas las versiones',
     onlyScored: 'Solo versiones con nota',
     empty: 'Ninguna versión tiene nota todavía.',
+  },
+
+  deleteItem: {
+    label: 'Eliminar',
+    labelHidden: (name: string): string => `Eliminar ${name}`,
+    deleting: 'Eliminando…',
+    confirmTitle: (name: string): string => `¿Eliminar ${name}?`,
+    confirmDescription:
+      'Todas las versiones de este elemento quedan descontinuadas y el elemento sale de las listas del catálogo. Los presets y las ejecuciones anteriores lo siguen usando. Para recuperarlo, filtra el catálogo por el estado "Descontinuado" y activa una versión.',
+    cancel: 'Cancelar',
+    failed: (reason: string): string => `El elemento no se eliminó por completo. ${reason}`,
   },
 
   statusControls: {
@@ -733,7 +744,7 @@ export const catalogEs: Messages<typeof catalogPtBR> = {
     byAi: 'Escrito por la IA a partir del video. Tus notas quedan aparte y no cambian.',
     mock: 'Simulado',
     frames: (count) => `${count} cuadros analizados`,
-    linkOnly: 'Este enlace no es de una publicación de Instagram, YouTube o TikTok. Adjunta el archivo del video para que la IA lo analice.',
+    linkOnly: 'Este enlace no es de una publicación de video en una plataforma aceptada (Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X o Twitch). Adjunta el archivo del video para que la IA lo analice.',
     attachFile: 'Adjuntar el archivo en una nueva versión',
     biometric: 'Esta referencia es biométrica; la IA no analiza videos con datos biométricos.',
     notAVideo: 'Solo se analizan referencias de video con archivo.',

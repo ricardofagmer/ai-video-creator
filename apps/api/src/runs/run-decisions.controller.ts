@@ -1,6 +1,7 @@
-import { Body, Controller, HttpCode, Param, Post, Res } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, Param, Post, Res } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import {
+  DeleteRunCommand,
   PromoteFromRunCommand,
   RecordGateDecisionCommand,
   RecordReviewDecisionCommand,
@@ -22,6 +23,7 @@ import {
   type ReviewDecisionResponse,
   type RunControlRequest,
   type RunControlResponse,
+  type RunDeleteResponse,
   type SaveRunVideoResponse,
 } from '@studio/shared/api';
 import { formatAssetRef } from '@studio/shared/catalog';
@@ -38,8 +40,9 @@ type RunParams = z.output<typeof RunParamsSchema>;
 
 /**
  * Human decisions on a run (ADR 0003 "Who writes what"): control.json requests, gate answers,
- * the final review and promote-from-run, all through the core review module (R1-17). The decider
- * and the time come from the session and the server clock, never from the body.
+ * the final review, promote-from-run and deleting a stopped run, all through the core review
+ * module (R1-17). The decider and the time come from the session and the server clock, never from
+ * the body.
  */
 @Controller(apiRouteSegments.runs)
 export class RunDecisionsController {
@@ -58,6 +61,14 @@ export class RunDecisionsController {
   ): Promise<RunControlResponse> {
     const result = await this.commandBus.execute(new RequestRunControlCommand({ runId: params.runId, request: body }));
     return { runId: result.runId, requested: body.kind };
+  }
+
+  /** Removes a stopped run's folder and index row for good; 409 `run-not-deletable` otherwise. */
+  @Delete(':runId')
+  @HttpCode(200)
+  async remove(@Param(new ZodValidationPipe(RunParamsSchema)) params: RunParams): Promise<RunDeleteResponse> {
+    const result = await this.commandBus.execute(new DeleteRunCommand({ runId: params.runId }));
+    return { runId: result.runId, deleted: true };
   }
 
   @Post(':runId/gate-decisions')

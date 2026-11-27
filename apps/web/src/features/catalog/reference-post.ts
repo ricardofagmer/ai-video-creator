@@ -5,7 +5,7 @@ import { videoLinkFrom, videoPostUrl, type VideoPost } from './video-link';
 export const VIDEO_THUMBNAIL_PATH = '/api/miniaturas';
 
 /**
- * The Instagram, YouTube or TikTok post a saved reference points at (docs/specs/2026-11-23-reference-link-save-and-categories-design.md
+ * The video post (on one of the allowlisted platforms) a saved reference points at (docs/specs/2026-11-23-reference-link-save-and-categories-design.md
  * T4): only a `reference` whose provenance URL passes the same allowlist parser as the link box.
  */
 export function referencePostOf(version: AssetVersionView): VideoPost | null {

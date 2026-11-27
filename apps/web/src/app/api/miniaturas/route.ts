@@ -38,7 +38,7 @@ async function hasSession(): Promise<boolean> {
 }
 
 /**
- * `GET /api/miniaturas?link=<post URL>`: the thumbnail of a saved Instagram, YouTube or TikTok
+ * `GET /api/miniaturas?link=<post URL>`: the thumbnail of a saved video
  * reference, fetched by the server from the platform and served from this origin, so the page CSP
  * keeps `img-src 'self'`. The link passes the same allowlist parser as the catalog's link box.
  */

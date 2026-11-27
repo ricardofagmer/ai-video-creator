@@ -6,6 +6,7 @@ import { RunFileError, newUlid } from '@studio/shared/run-files';
 import { PrismaService, type PrismaTransaction } from '../../prisma';
 import { PLATFORM_FILE_ROOT } from '../../platforms/platform-runtime';
 import { QualityScoreService } from '../../quality';
+import { SerialMutex } from '../../runtime/keyed-mutex';
 import { MetricImportRepository } from '../metric-import.repository';
 import { planMetricImport } from '../metric-import.planner';
 import { type ParsedMetricRow } from '../metric-rows.parser';
@@ -39,7 +40,7 @@ type BatchOutcome = { status: 'ingested'; importId: string; wroteSnapshots: bool
 @CommandHandler(IngestMetricBatchCommand)
 export class IngestMetricBatchHandler implements ICommandHandler<IngestMetricBatchCommand, MetricBatchIngestSummary> {
   private readonly logger = new Logger(IngestMetricBatchHandler.name);
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly passes = new SerialMutex();
 
   constructor(
     @Inject(PLATFORM_FILE_ROOT) private readonly platformRoot: string,
@@ -52,10 +53,8 @@ export class IngestMetricBatchHandler implements ICommandHandler<IngestMetricBat
 
   async execute(command: IngestMetricBatchCommand): Promise<MetricBatchIngestSummary> {
     const input = parseMetricsInput(IngestMetricBatchInputSchema, command.input, '');
-    const run = this.tail.then(() => this.ingestAll(input.batchId, input.correlationId));
-    // The chain only orders the passes; each caller still receives its own result or error.
-    this.tail = run.catch(() => undefined);
-    const summary = await run;
+    // The mutex only orders the passes; each caller still receives its own result or error.
+    const summary = await this.passes.run(() => this.ingestAll(input.batchId, input.correlationId));
     const scoreRecomputed = summary.scoreRecomputed
       ? await this.quality.recomputeAfterMetrics({ change: 'metrics-batch-ingested', correlationId: input.correlationId })
       : false;

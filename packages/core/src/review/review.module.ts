@@ -3,34 +3,42 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { CatalogModule } from '../catalog/catalog.module';
 import { OutcomesModule } from '../outcomes/outcomes.module';
 import { PathsModule } from '../paths/paths.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { QualityModule } from '../quality/quality.module';
 import { BiometricRunGuard } from './biometric-guard';
+import { DeleteRunHandler } from './commands/delete-run.handler';
 import { PromoteFromRunHandler } from './commands/promote-from-run.handler';
 import { RecordGateDecisionHandler } from './commands/record-gate-decision.handler';
 import { RecordReviewDecisionHandler } from './commands/record-review-decision.handler';
 import { RequestRunControlHandler } from './commands/request-run-control.handler';
 import { SaveRunVideoHandler } from './commands/save-run-video.handler';
 import { ReviewRunAccess } from './review-run-access';
+import { RunArtifactSaver } from './run-artifact-saver';
 import { RunLocks } from './run-locks';
+import { RunRemovalRepository } from './run-removal.repository';
 
 /**
  * Human decisions on a run (R1-17, ADR 0003 "Who writes what"), for the api and the CLI only:
  * gate answers and the final review in approval.json, `review` -> `approved` / `rejected`,
- * control.json requests and promote-from-run. Nothing is exported; callers go through the CQRS
- * buses (the composition root registers `CqrsModule.forRoot()`). The watcher never imports it.
+ * control.json requests, promote-from-run and deleting a stopped run. Nothing is exported; callers
+ * go through the CQRS buses (the composition root registers `CqrsModule.forRoot()`). The watcher
+ * never imports it.
  * A recorded final review rescores the catalog through `QualityModule` (SPEC 0003 section 5.1).
  */
 @Module({
-  imports: [CqrsModule, PathsModule, CatalogModule, OutcomesModule, QualityModule],
+  imports: [CqrsModule, PathsModule, PrismaModule, CatalogModule, OutcomesModule, QualityModule],
   providers: [
     BiometricRunGuard,
     ReviewRunAccess,
+    RunArtifactSaver,
     RunLocks,
+    RunRemovalRepository,
     RecordReviewDecisionHandler,
     RecordGateDecisionHandler,
     RequestRunControlHandler,
     PromoteFromRunHandler,
     SaveRunVideoHandler,
+    DeleteRunHandler,
   ],
 })
 export class ReviewModule {}

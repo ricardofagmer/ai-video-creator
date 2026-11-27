@@ -3,11 +3,11 @@ import { type RunState } from '@studio/shared/run-format';
 import { hasReview } from '@/features/runs/run-labels';
 
 /** The steps of "Criar vídeo" in order (guided-creation spec section 5); the index is the step number. */
-export const wizardSteps = ['idea', 'references', 'recipe', 'style', 'review', 'production', 'result'] as const;
+export const wizardSteps = ['idea', 'references', 'pipeline', 'recipe', 'style', 'review', 'production', 'result'] as const;
 export type WizardStep = (typeof wizardSteps)[number];
 
 /** Steps answered in the browser before the run exists; the draft remembers only these. */
-export const draftSteps = ['idea', 'references', 'recipe', 'style', 'review'] as const satisfies readonly WizardStep[];
+export const draftSteps = ['idea', 'references', 'pipeline', 'recipe', 'style', 'review'] as const satisfies readonly WizardStep[];
 export type DraftStep = (typeof draftSteps)[number];
 
 export function stepNumber(step: WizardStep): number {

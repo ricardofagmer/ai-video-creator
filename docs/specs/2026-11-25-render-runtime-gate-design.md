@@ -78,8 +78,10 @@ Check order for purpose `render` (unchanged from `engineRuntime` today):
 
 1. Gate files and engine state (skipped for purpose `trace`).
 2. `chrome.json` present.
-3. `config/`, `cache/` and `home/` as real folders, before Chrome, so a missing `cache/` answers
-   `runtime-not-prepared` (SPEC 0008 section 18.3).
+3. `config/`, `cache/` and `home/` as real folders, before the Chrome binary check, so a missing
+   `config/` or `home/` answers `runtime-not-prepared` (SPEC 0008 section 18.3). A missing
+   `cache/` answers `chrome-missing`: the Chrome binary lives inside `cache/`, so step 1 (purpose
+   `render`) or step 2 already finds it absent. Amended 2026-11-26, owner decision.
 4. Chrome binary unchanged (section 17.6).
 5. Pin, then `sandbox-exec`.
 6. Chrome folder and browser real paths; the browser inside `<cache>/chrome`.

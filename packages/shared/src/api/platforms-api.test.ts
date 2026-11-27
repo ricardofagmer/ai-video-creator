@@ -37,9 +37,9 @@ function platformView(overrides: Partial<PlatformView> = {}): PlatformView {
   };
 }
 
-describe('rev 7 contract revision and reasons', () => {
-  it('is revision 7', () => {
-    assert.equal(API_CONTRACT_REVISION, 7);
+describe('contract revision and rev 7 reasons', () => {
+  it('is revision 8', () => {
+    assert.equal(API_CONTRACT_REVISION, 8);
   });
 
   it('maps every rev 7 reason to the status section 4.4 names', () => {

@@ -15,7 +15,7 @@ normalized path) or the command's `sourceRoot` input.
 
 | Path | Owner | Content |
 |---|---|---|
-| `catalog.seed.json` | R1-07 | Templates, brand kit, the 13 skills, ElevenLabs config by names, the cloned voice by path reference, the Spesia music with its license |
+| `catalog.seed.json` | R1-07 | Templates, brand kit, the `fagmer-video-seo-package` skill (the other 12 `ace` stage skills were retired 2026-11-25), ElevenLabs config by names, the cloned voice by path reference, the Spesia music with its license |
 | `templates/*.schema.json` | R1-07 | JSON Schema of the composition props, mirroring `@studio/shared/ace`; becomes `details.inputSchema` / `sceneSchema` |
 | `skills/<id>/` | R1-01 | One `skill` asset per folder; name and description come from `SKILL.md` front matter |
 | `prompts/*.prompt.json` | R1-15 | One `prompt` asset per file (format below); optional folder |

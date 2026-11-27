@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { ALLOWED_FILE_MIME_TYPES_BY_KIND } from './catalog.limits';
-import { UNSIGNED_MIME_TYPES, contentMatchesMimeType, folderEntryMimeType, hasContentSignature } from './content-signature';
+import { UNSIGNED_MIME_TYPES, contentMatchesMimeType, folderEntryMimeType } from './content-signature';
 
 /* Baseline review: the declared upload MIME type is checked against the leading bytes. */
 
@@ -33,7 +33,8 @@ describe('content signatures', () => {
     const allowlisted = new Set(Object.values(ALLOWED_FILE_MIME_TYPES_BY_KIND).flat());
     for (const mimeType of allowlisted) {
       if (UNSIGNED_MIME_TYPES.includes(mimeType)) continue;
-      assert.ok(hasContentSignature(mimeType), `no signature for allowlisted ${mimeType}`);
+      // A type without a signature accepts any bytes, so refusing NUL-only bytes proves one exists.
+      assert.equal(contentMatchesMimeType(mimeType, Buffer.alloc(16)), false, `no signature for allowlisted ${mimeType}`);
       assert.ok(SAMPLES[mimeType] !== undefined, `no test sample for ${mimeType}`);
     }
   });

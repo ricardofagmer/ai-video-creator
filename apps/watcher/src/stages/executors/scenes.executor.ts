@@ -4,7 +4,7 @@ import type { StageExecutionContext, StageExecutionResult, StageFailure, StagePl
 import { type CheckId, type DeclaredOutput, type ModelUse, type StageEstimate } from '@studio/shared/run-format';
 import { callAgent } from '../agents/agent-call';
 import { runEvaluatorLoop, type GeneratorAttempt } from '../agents/evaluator-loop';
-import { boundTemplate, brandKitSummary, buildPacket, coordinatesOf } from '../agents/packet-sources';
+import { boundSkillTexts, boundTemplate, brandKitSummary, buildPacket, coordinatesOf, unreadableSkillStop } from '../agents/packet-sources';
 import { reviewCaveat, reviewerScoreEvidence } from '../agents/review-evidence';
 import { reviewSubject } from '../agents/reviewer';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
@@ -20,6 +20,7 @@ import { directorMusicField } from '../music/director-music';
 import { sceneRefsEvidence } from './scene-refs';
 
 const JSON_MIME = 'application/json';
+const DIRECTOR_SKILL_SLOT = 'skill:director';
 
 /**
  * `scenes`: Scene director with the evaluator loop (topology section 7) over the approved script
@@ -103,6 +104,8 @@ export class ScenesExecutor extends BaseStageExecutor {
     if (template === null) return ownerStop(stageTexts.templateNotBound, stageTexts.templateNotBoundWhatToDo);
     const brandKit = await brandKitSummary(context, catalog);
     if (brandKit === null) return ownerStop(stageTexts.brandKitNotBound, stageTexts.brandKitNotBoundWhatToDo);
+    const skills = await boundSkillTexts(context, catalog, DIRECTOR_SKILL_SLOT);
+    if (skills.status === 'unreadable') return unreadableSkillStop(context, skills.ref, DIRECTOR_SKILL_SLOT);
     const captures = await readOptionalStageInput(context, 'captures-index', CapturesIndexSchema);
     return {
       coordinates: coordinatesOf(context),
@@ -118,6 +121,7 @@ export class ScenesExecutor extends BaseStageExecutor {
       learnings: context.stageBrief.learnings ?? [],
       ...(context.brief.instructions === undefined ? {} : { ownerInstructions: context.brief.instructions }),
       ...siteAnalysisField(siteAnalysis),
+      ...(skills.skills.length === 0 ? {} : { skills: skills.skills }),
     };
   }
 }

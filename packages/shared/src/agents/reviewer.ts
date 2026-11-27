@@ -3,8 +3,9 @@ import { QaMetricsSchema } from '../run-format/qa';
 import { ReviewSubjectSchema } from '../run-format/vocabulary';
 import { ScenesOutputSchema } from './director';
 import { packetBaseShape } from './packet-base';
+import { UntrustedTextSchema } from './packet-parts';
 import { OutputContractSchema, REVIEW_TASK, RunArtifactIdSchema } from './protocol';
-import { ScriptOutputSchema } from './writer';
+import { ScriptOutputSchema, WRITER_SKILLS_MAX } from './writer';
 
 /**
  * Reviewer packet (topology section 5). Evidence only: the engine postcondition decides pass.
@@ -37,6 +38,8 @@ export const ReviewPacketSchema = z
         draft: z.union([ScriptOutputSchema, ScenesOutputSchema]).optional(),
         /** Render only: loudness, duration, caption timing. */
         qaMetrics: QaMetricsSchema.optional(),
+        /** Bound skill asset versions (the role's `skill:evaluator` slot, else every skill of the recipe): the method the work must follow. */
+        skillTexts: z.array(UntrustedTextSchema).min(1).max(WRITER_SKILLS_MAX).optional(),
       })
       .strict(),
     constraints: z

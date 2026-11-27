@@ -1,11 +1,5 @@
 import { type MetricImport, type Prisma, type RunPublication } from '@prisma/client';
-import {
-  MetricImportViewSchema,
-  type MetricImportView,
-  type MetricSnapshotView,
-  type PublicationPollingView,
-  type PublicationView,
-} from '@studio/shared/api';
+import { type MetricSnapshotView, type PublicationPollingView, type PublicationView } from '@studio/shared/api';
 import {
   MetricImportOriginSchema,
   MetricSnapshotSchema,
@@ -97,25 +91,5 @@ export function toMetricSnapshot(row: SnapshotRow): MetricSnapshot {
     recordedAt: row.recordedAt.toISOString(),
   });
   if (!parsed.success) throw corrupt();
-  return parsed.data;
-}
-
-export function toMetricImportView(row: MetricImport): MetricImportView {
-  const parsed = MetricImportViewSchema.safeParse({
-    importId: row.id,
-    platform: row.platform,
-    asOfDate: row.asOfDate,
-    fileBytes: row.fileBytes,
-    rows: row.rows,
-    matched: row.matched,
-    created: row.created,
-    updated: row.updated,
-    unchanged: row.unchanged,
-    unmatched: row.unmatched,
-    issues: row.issues,
-    importedBy: row.importedBy,
-    importedAt: row.importedAt.toISOString(),
-  });
-  if (!parsed.success) throw new MetricsRowCorruptError('metric_imports', row.id);
   return parsed.data;
 }

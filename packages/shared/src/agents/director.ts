@@ -19,7 +19,7 @@ import {
   OutputContractSchema,
   TITLE_CARD_VISUAL,
 } from './protocol';
-import { SceneIdSchema, ScriptOutputSchema } from './writer';
+import { SceneIdSchema, ScriptOutputSchema, WRITER_SKILLS_MAX } from './writer';
 
 /** The most catalog tracks one packet offers the director to pick the background music from. */
 export const MUSIC_CANDIDATES_MAX = 30;
@@ -125,6 +125,8 @@ export const DirectorPacketSchema = z
          * the owner's notes and the content of a text reference. Data only, and it must be used.
          */
         ownerReferences: UntrustedTextSchema.optional(),
+        /** Bound skill asset versions (the role's `skill:director` slot, else every skill of the recipe), one delimited block each. */
+        skillTexts: z.array(UntrustedTextSchema).min(1).max(WRITER_SKILLS_MAX).optional(),
         /**
          * Present when the preset's music mode is `auto` and more than one catalog track matches:
          * the categories the owner asked for (none means any) and the tracks to pick one from.

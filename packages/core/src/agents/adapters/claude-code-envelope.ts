@@ -33,12 +33,12 @@ const AUTHENTICATION_PATTERN = /sign.?in|log.?in|authenticat|unauthori[sz]ed|inv
 
 function failureFromText(text: string): ProviderFailure {
   if (RATE_LIMIT_PATTERN.test(text)) return { class: 'rate-limit', provider: PROVIDER, retryAfterMs: null };
-  if (AUTHENTICATION_PATTERN.test(text)) return { class: 'authentication', provider: PROVIDER };
+  if (AUTHENTICATION_PATTERN.test(text)) return { class: 'authentication', provider: PROVIDER, refusal: 'credential' };
   return { class: 'transient', provider: PROVIDER, reason: 'server-error' };
 }
 
 function failureFromStatus(status: number): ProviderFailure | null {
-  if (AUTHENTICATION_STATUSES.has(status)) return { class: 'authentication', provider: PROVIDER };
+  if (AUTHENTICATION_STATUSES.has(status)) return { class: 'authentication', provider: PROVIDER, refusal: 'credential' };
   if (RATE_LIMIT_STATUSES.has(status)) return { class: 'rate-limit', provider: PROVIDER, retryAfterMs: null };
   if (status >= 500) return { class: 'transient', provider: PROVIDER, reason: 'server-error' };
   if (status >= 400) return { class: 'fatal', provider: PROVIDER, reason: 'rejected-request' };

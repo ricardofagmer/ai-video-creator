@@ -615,7 +615,7 @@ describe('stage executors under mock ports (ticket 03 criterion 1)', () => {
     });
 
     it('fails with the claude authentication failure when the planner credential is refused', async () => {
-      world.agents.failures.set(PLANNER_ROLE, { kind: 'provider', failure: { class: 'authentication', provider: 'claude' } });
+      world.agents.failures.set(PLANNER_ROLE, { kind: 'provider', failure: { class: 'authentication', provider: 'claude', refusal: 'credential' } });
 
       const failure = failureOf(await execute(world, 'plan'));
 

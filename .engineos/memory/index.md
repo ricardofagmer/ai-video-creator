@@ -1,6 +1,6 @@
 # Project Index
 
-Generated facts at commit `66c663bd3ede` (2026-11-24T14:07:18.249Z). Detail and sources: [index.json](index.json).
+Generated facts at commit `6ebb6b7ffcf4` (2026-11-25T20:05:04.511Z). Detail and sources: [index.json](index.json).
 Regenerate with `engineos index refresh`. Narrative and rationale live in the docs linked at the end.
 
 ## Start here (6)
@@ -70,7 +70,7 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `apps/shell/src/test-support`
 - ... 114 more in index.json
 
-## Routes (101)
+## Routes (106)
 
 - `GET /` in `apps/api/src/catalog/catalog.controller.ts`
 - `GET /` in `apps/api/src/comparisons/comparisons.controller.ts`
@@ -92,9 +92,9 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - `POST /` in `apps/api/src/recipes/recipes.controller.ts`
 - `POST /` in `apps/api/src/runs/runs.controller.ts`
 - `POST /` in `apps/api/src/schedules/schedules.controller.ts`
-- ... 81 more in index.json
+- ... 86 more in index.json
 
-## Data models and migrations (28)
+## Data models and migrations (30)
 
 - migration `migration` in `packages/core/prisma/migrations/20261118000000_init/migration.sql`
 - migration `migration` in `packages/core/prisma/migrations/20261118120000_r2_improvement_loop/migration.sql`
@@ -105,13 +105,13 @@ Regenerate with `engineos index refresh`. Narrative and rationale live in the do
 - migration `migration` in `packages/core/prisma/migrations/20261120180000_r4_publish_metadata_hash/migration.sql`
 - migration `migration` in `packages/core/prisma/migrations/20261123120000_install_pairing/migration.sql`
 - migration `migration` in `packages/core/prisma/migrations/20261123180000_asset_job_cost_source/migration.sql`
+- migration `migration` in `packages/core/prisma/migrations/20261125120000_music_cost_kind/migration.sql`
+- migration `migration` in `packages/core/prisma/migrations/20261125130000_asset_purpose/migration.sql`
 - schema `Asset` in `packages/core/prisma/schema.prisma`
 - schema `AssetLearningNote` in `packages/core/prisma/schema.prisma`
 - schema `AssetVersion` in `packages/core/prisma/schema.prisma`
 - schema `Comparison` in `packages/core/prisma/schema.prisma`
-- schema `CostEntry` in `packages/core/prisma/schema.prisma`
-- schema `CurationDecision` in `packages/core/prisma/schema.prisma`
-- ... 13 more in index.json
+- ... 15 more in index.json
 
 ## Environment variable names (8)
 

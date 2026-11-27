@@ -49,46 +49,94 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Skills grid: smaller cards, as many per row as fit (one column at phone width). */
+/* Skills grid: one card per skill, as many per row as fit (one column at phone width). */
 .compactGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* PosterCard is shared with other pages, so the Skills page trims it from outside: cover first, body last. */
+/* PosterCard is shared with other pages, so the Skills page sizes its animated cover from outside. */
 .compactGrid article > :first-child {
-  height: 2.75rem;
-  padding: 0 var(--space-3);
+  height: 6.5rem;
 }
 
-/* Perforations hug the cover edges so the icon sits whole between the two rows. */
-.compactGrid article > :first-child::before {
-  top: var(--space-0-5);
+/* Search on the left, Import and New skill on the right; they stack at phone width. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
-.compactGrid article > :first-child::after {
-  bottom: var(--space-0-5);
+.searchForm {
+  display: flex;
+  flex: 1 1 18rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 32rem;
 }
 
-/* The icon circle (the cover's only span) shrinks to fit the short cover. */
-.compactGrid article > :first-child > span {
-  z-index: 2;
-  width: 1.625rem;
-  height: 1.625rem;
+.searchForm > [role='search'] {
+  flex: 1 1 12rem;
 }
 
-.compactGrid article > :first-child > span > svg {
-  width: var(--space-4);
-  height: var(--space-4);
+/* Real case: what was asked, what the skill did, what came out. */
+.case {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
-.compactGrid article > :first-child > svg {
-  width: 3.5rem;
-  height: 3.5rem;
+.case p,
+.caseNone,
+.usage {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.caseLabel {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.caseRequest {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.caseSteps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  margin: 0;
+  padding-left: var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.caseResult {
+  padding-top: var(--space-1);
+  color: var(--color-text);
+  border-top: 1px solid var(--color-border);
+}
+
+.caseSource,
+.caseNone,
+.usage {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .tagGroups {

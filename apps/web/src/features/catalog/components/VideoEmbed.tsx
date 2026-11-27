@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
 import styles from '../catalog.module.css';
 import { videoEmbedShape, videoEmbedUrl, type VideoPost } from '../video-link';
 
@@ -13,6 +13,18 @@ const SHAPE_CLASSES = {
   vertical: styles.embedVertical,
   landscape: styles.embedLandscape,
 } as const;
+
+function subscribeToNothing(): () => void {
+  return () => undefined;
+}
+
+function currentHost(): string {
+  return window.location.hostname;
+}
+
+function noHostOnServer(): null {
+  return null;
+}
 
 function parsedMessage(data: unknown): unknown {
   if (typeof data !== 'string') return data;
@@ -39,11 +51,12 @@ function measuredHeightOf(data: unknown): number | null {
  * The platform's official embed in a sandboxed iframe: its script runs in the platform's origin, never in
  * the studio's, and the CSP admits only these embed hosts. Only the parsed post id reaches the `src`.
  * Instagram's post card sizes itself, so its frame takes the height the embed reports and never scrolls;
- * YouTube and TikTok players fill a 16:9 or 9:16 box.
+ * every other player fills a 16:9 or 9:16 box.
  */
 export function VideoEmbed({ post, title }: { post: VideoPost; title: string }): ReactElement {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
+  const parentHost = useSyncExternalStore(subscribeToNothing, currentHost, noHostOnServer);
   const shape = videoEmbedShape(post);
 
   useEffect(() => {
@@ -61,7 +74,8 @@ export function VideoEmbed({ post, title }: { post: VideoPost; title: string }):
     <div className={`${styles.embedFrame} ${SHAPE_CLASSES[shape]}`}>
       <iframe
         ref={frameRef}
-        src={videoEmbedUrl(post)}
+        // Twitch needs the page's host, known only in the browser; the frame stays blank until then.
+        src={parentHost === null ? undefined : videoEmbedUrl(post, parentHost)}
         title={title}
         loading="lazy"
         referrerPolicy="strict-origin-when-cross-origin"

@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { Injectable } from '@nestjs/common';
-import { KEYCHAIN_ACCOUNTS, KEYCHAIN_LABELS, KEYCHAIN_SERVICE, type SecretName } from './secret-names';
-import { KeychainUnavailableError, KeychainWriteNeedsTerminalError } from './secrets.errors';
+import { KEYCHAIN_ACCOUNTS, KEYCHAIN_LABELS, KEYCHAIN_SERVICE, secretValuePattern, type SecretName } from './secret-names';
+import { KeychainUnavailableError, KeychainWriteNeedsTerminalError, MalformedSecretError } from './secrets.errors';
 
 /** Absolute path: never resolved through PATH, so a planted `security` binary is not run. */
 export const SECURITY_TOOL_PATH = '/usr/bin/security';
@@ -115,4 +115,16 @@ export class KeychainWriter {
       });
     });
   }
+}
+
+/**
+ * Reads the item `promptAndStore` just wrote and checks only its shape, with the same trim and
+ * pattern the api and watcher apply at boot. Without it a short or empty value is accepted at
+ * `secrets set` and only surfaces later as a boot failure. The value is held for this check alone:
+ * it is never returned, printed or attached to the error, which names the secret only.
+ */
+export async function assertStoredSecretWellFormed(name: SecretName, reader: Pick<KeychainReader, 'read'> = new KeychainReader()): Promise<void> {
+  const lookup = await reader.read(name);
+  const wellFormed = lookup.status === 'found' && secretValuePattern(name).test(lookup.value.trim());
+  if (!wellFormed) throw new MalformedSecretError(name, 'keychain');
 }

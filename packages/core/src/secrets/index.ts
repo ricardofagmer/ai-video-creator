@@ -12,7 +12,7 @@ export {
   type ProviderSecretName,
   type SecretName,
 } from './secret-names';
-export { KeychainWriter, SECURITY_TOOL_PATH } from './keychain';
+export { KeychainWriter, SECURITY_TOOL_PATH, assertStoredSecretWellFormed } from './keychain';
 export { REDACTED_TEXT, Secret, type RedactableValue, type RevealedRedactableValue, type SecretSource } from './secret';
 export {
   KeychainUnavailableError,

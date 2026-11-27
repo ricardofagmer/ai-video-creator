@@ -46,10 +46,8 @@ const HARNESS_FILES: ReadonlySet<string> = new Set(['test-support/isolation.test
 const GRANDFATHERED: ReadonlyMap<string, ReadonlySet<string>> = new Map([
   // Passes the parent's PATH into a runtime request built for the test (finding: not through the harness).
   ['stages/process/runner/hyperframes.handlers.test.ts', new Set(['environment'])],
-  // Comment only: describes the sandbox argument builder's independence from the environment.
-  ['hyperframes-runtime/sandbox-args.test.ts', new Set(['environment'])],
   // Sets and restores parent environment keys around one action (finding: not through the harness).
-  ['hyperframes-runtime/hyperframes-runtime.fixtures.harness.test.ts', new Set(['environment'])],
+  ['stages/process/runner/hyperframes-runtime.fixtures.harness.test.ts', new Set(['environment'])],
 ]);
 
 interface Violation {
@@ -141,8 +139,8 @@ describe('isolation scan on planted files (ticket 01 criterion 3)', () => {
   });
 
   it('tolerates only the grandfathered pattern of a legacy file', async () => {
-    await plant('hyperframes-runtime/sandbox-args.test.ts', "const path = process.env['PATH'];\nimport { spawn } from 'node:child_process';\n");
+    await plant('stages/process/runner/hyperframes.handlers.test.ts', "const path = process.env['PATH'];\nimport { spawn } from 'node:child_process';\n");
 
-    assert.deepEqual(await findViolations(plantRoot), [{ file: 'hyperframes-runtime/sandbox-args.test.ts', pattern: 'child-process' }]);
+    assert.deepEqual(await findViolations(plantRoot), [{ file: 'stages/process/runner/hyperframes.handlers.test.ts', pattern: 'child-process' }]);
   });
 });

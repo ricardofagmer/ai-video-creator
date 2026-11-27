@@ -7,6 +7,7 @@ export const wizardPtBR = {
   steps: {
     idea: 'Ideia',
     references: 'Referências',
+    pipeline: 'Adicionar ao pipeline',
     recipe: 'Preset',
     style: 'Voz e estilo',
     review: 'Revisão',
@@ -35,6 +36,19 @@ export const wizardPtBR = {
     loading: 'Carregando a referência',
     loadFailed: 'Não foi possível ler esta referência no catálogo.',
     notVideo: 'Esta referência não é um vídeo; a IA só analisa vídeos.',
+  },
+  pipeline: {
+    card: 'Adicionar ao pipeline',
+    description: 'Sites, skills, templates de vídeo, prompts, modelos de IA, músicas e kits de marca que os agentes usam neste vídeo. Opcional.',
+    tabsLabel: 'O que adicionar',
+    tabs: { sites: 'Sites', skills: 'Skills', templates: 'Templates de vídeo', prompts: 'Prompts', 'ai-writing': 'IA e escrita', 'media-brand': 'Mídia e marca' },
+    chosenTitle: 'Adicionados ao pipeline',
+    none: 'Nada adicionado. Esta etapa é opcional.',
+    remove: 'Remover',
+    loading: 'Carregando o catálogo',
+    empty: 'Ainda não há nada deste tipo no catálogo.',
+    full: 'Este vídeo já tem 50 itens com as referências.',
+    pinNote: 'O primeiro template, kit de marca e música adicionados entram no preset, a menos que você mude em Voz e estilo.',
   },
   recipe: {
     legend: 'Preset base',

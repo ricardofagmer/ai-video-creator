@@ -177,6 +177,10 @@ export const RunControlResponseSchema = z
   .strict();
 export type RunControlResponse = z.infer<typeof RunControlResponseSchema>;
 
+/** `DELETE /runs/:runId`: the run folder and its index row are gone. */
+export const RunDeleteResponseSchema = z.object({ runId: RunIdSchema, deleted: z.literal(true) }).strict();
+export type RunDeleteResponse = z.infer<typeof RunDeleteResponseSchema>;
+
 /**
  * Fields the api sets from the session and the server clock, never from the request body:
  * `decidedBy`, `decidedAt` and `correlationId` (from `x-request-id`).

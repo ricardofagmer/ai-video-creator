@@ -14,7 +14,7 @@ export function boundBiometricAsset(assets: readonly BoundAsset[]): BoundAsset |
 
 /**
  * PRD 7.3 "license or rights doubt": a third-party asset without a recorded licence (criterion 7
- * keeps such a version out of `active`, but a recipe may still pin it). Never retried; `waiting`.
+ * keeps such a version out of `active`, but a recipe may still pin it). Preflight warns and goes on.
  */
 export function licenseDoubtAsset(assets: readonly BoundAsset[]): BoundAsset | undefined {
   return assets.find((bound) => bound.asset.sensitivity === 'third-party' && bound.asset.license === null);

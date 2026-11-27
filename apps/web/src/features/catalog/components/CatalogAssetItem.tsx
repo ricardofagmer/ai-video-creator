@@ -10,6 +10,8 @@ import poster from '@/features/common/poster-card.module.css';
 import { FavoriteToggleButton } from '@/features/favorites/components/FavoriteToggleButton';
 import { MusicPreviewButton } from '@/features/music/components/MusicPreviewButton';
 import { QualityScore } from '@/features/quality/components/QualityScore';
+import { SkillStage } from '@/features/skills/components/SkillStage';
+import { skillStageOf } from '@/features/skills/skill-stage';
 import { VoiceSampleButton } from '@/features/voices/components/VoiceSampleButton';
 import { isVoiceVersion } from '@/features/voices/voice-asset';
 import { type WebMessages } from '@/messages';
@@ -20,6 +22,7 @@ import { imageLinkOf } from '../image-link-draft';
 import { referencePostOf, videoThumbnailHref } from '../reference-post';
 import { siteLinkOf } from '../site-link-draft';
 import { CatalogPreviewHover } from './CatalogPreviewHover';
+import { DiscontinueAssetButton } from './DiscontinueAssetButton';
 import { SiteEmbed } from './SiteEmbed';
 import { TemplatePreviewHover } from './TemplatePreviewHover';
 import { templateCategoryOf } from '../template-categories';
@@ -77,6 +80,9 @@ export function CatalogAssetItem({ version, linkToVersion, detail, t, locale, he
       <Link href={href} tabIndex={-1} aria-hidden="true">
         <SiteEmbed href={siteLink.href} title={t.siteLink.embedTitle(siteLink.hostname)} mode="preview" />
       </Link>
+    ) : version.kind === 'skill' ? (
+      // Decoration only, so the card's own stretched link stays the one way in.
+      <SkillStage kind={skillStageOf(version)} />
     ) : undefined;
   const ui = uiMessages[locale].catalog;
   const Heading = headingLevel;
@@ -150,6 +156,8 @@ export function CatalogAssetItem({ version, linkToVersion, detail, t, locale, he
           <Link href={editHrefOf(version)} className={buttonClassName({ variant: 'secondary', size: 'sm' })} aria-label={t.list.editHidden(version.name)}>
             {t.list.edit}
           </Link>
+          {/* Per asset, like the star: it deprecates every version, not only the one on the card. */}
+          <DiscontinueAssetButton assetId={version.id} name={version.name} />
         </div>
     </PosterCard>
   );

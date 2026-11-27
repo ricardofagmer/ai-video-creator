@@ -1,7 +1,7 @@
 'use client';
 
-import { classNames, useI18n, type VideoAspect } from '@studio/ui';
-import { type MouseEvent, type ReactElement } from 'react';
+import { classNames, startPlayback, useI18n, type VideoAspect } from '@studio/ui';
+import { useEffect, useRef, type MouseEvent, type ReactElement } from 'react';
 import styles from '../review.module.css';
 
 interface BiometricVideoPlayerProps {
@@ -10,6 +10,8 @@ interface BiometricVideoPlayerProps {
   title: string;
   aspect: VideoAspect;
   caption?: string;
+  /** Starts playback on mount, muted when the browser refuses sound without a user gesture. */
+  autoPlay?: boolean;
 }
 
 /** Hides the browser's "save video" menu entry; the native controls stay keyboard reachable. */
@@ -24,17 +26,22 @@ function preventContextMenu(event: MouseEvent<HTMLVideoElement>): void {
  * shared `VideoPlayer`, nothing here points at the artifact route except the media source itself.
  * Known limit accepted by the owner: `nodownload` does not stop the owner saving what plays.
  */
-export function BiometricVideoPlayer({ src, title, aspect, caption }: BiometricVideoPlayerProps): ReactElement {
+export function BiometricVideoPlayer({ src, title, aspect, caption, autoPlay = false }: BiometricVideoPlayerProps): ReactElement {
   const { ui } = useI18n();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (autoPlay && videoRef.current !== null) startPlayback(videoRef.current);
+  }, [autoPlay]);
   return (
     <figure className={classNames(styles.playerFigure, aspect === '9:16' ? styles.playerPortrait : styles.playerLandscape)}>
       <div className={styles.playerFrame}>
         <video
+          ref={videoRef}
           controls
           controlsList="nodownload"
           disablePictureInPicture
           disableRemotePlayback
-          preload="metadata"
+          preload={autoPlay ? 'auto' : 'metadata'}
           aria-label={title}
           className={styles.playerVideo}
           onContextMenu={preventContextMenu}

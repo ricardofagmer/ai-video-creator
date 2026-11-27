@@ -20,13 +20,15 @@ interface WizardResultProps {
   runId: string;
   data: Extract<ReviewPageData, { kind: 'ready' }>;
   texts: WebMessages['wizard']['result'];
+  /** `?reproduzir=1`: the run just finished in step 5, so the video starts on its own. */
+  autoPlay?: boolean;
 }
 
 /**
  * Step 6 "Resultado": the final video and the owner's decision, from the review page's own
  * pieces. QA, cost, manifest and learnings stay on the full review page, one link away.
  */
-export function WizardResult({ runId, data, texts }: WizardResultProps): ReactElement {
+export function WizardResult({ runId, data, texts, autoPlay = false }: WizardResultProps): ReactElement {
   const { run, approval } = data.state;
   const checklist = run.recipe.definition.checklist;
   const decision = approval === null ? undefined : latestDecision(approval, 'final');
@@ -36,7 +38,7 @@ export function WizardResult({ runId, data, texts }: WizardResultProps): ReactEl
     <>
       <div className={reviewStyles.reviewGrid}>
         <div className={reviewStyles.video}>
-          <ReviewVideoCard runId={runId} aspect={run.recipe.definition.format.aspect} video={data.video} qa={data.qa} />
+          <ReviewVideoCard runId={runId} aspect={run.recipe.definition.format.aspect} video={data.video} qa={data.qa} autoPlay={autoPlay} />
         </div>
         <div className={reviewStyles.review}>
           <Card title={texts.reviewCard}>

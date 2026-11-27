@@ -267,7 +267,8 @@
 }
 
 .cardCompact .links {
-  margin: var(--space-2) calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+  /* Top stays `auto`: a fixed top margin here would unpin the footer on cards with less text than their row. */
+  margin: auto calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
   padding: var(--space-3) var(--space-5);
   background-image: linear-gradient(
     120deg,

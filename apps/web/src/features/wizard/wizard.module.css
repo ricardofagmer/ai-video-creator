@@ -1,6 +1,6 @@
 /* "Criar vídeo": the step list and the rows of the wizard. Tokens from @studio/ui only. */
 
-/* A plain numbered list of where the owner is; it is not a control, so it has no hover or focus look. */
+/* The numbered list of where the owner is; in the draft flow the browser steps are buttons that jump there. */
 .steps {
   display: flex;
   flex-wrap: wrap;
@@ -40,6 +40,34 @@
 
 .stepDone .stepNumber {
   border-color: var(--color-text-muted);
+}
+
+.stepButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.stepButton:hover .stepNumber {
+  border-color: var(--color-text);
+}
+
+.stepButton:hover .stepLabel {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.stepButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .rows {
@@ -90,4 +118,14 @@
   flex-wrap: wrap;
   gap: var(--space-3);
   margin-left: auto;
+}
+
+.pipelineRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: var(--radius-md, 8px);
 }

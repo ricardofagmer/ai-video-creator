@@ -90,6 +90,7 @@ const rows: readonly RouteRow[] = [
   { id: 'runs.list', method: 'GET', pattern: 'runs', query: true },
   { id: 'runs.create', method: 'POST', pattern: 'runs', body: 'json' },
   { id: 'runs.state', method: 'GET', pattern: 'runs/:runId' },
+  { id: 'runs.delete', method: 'DELETE', pattern: 'runs/:runId' },
   { id: 'runs.start', method: 'POST', pattern: 'runs/:runId/start' },
   { id: 'runs.events', method: 'GET', pattern: 'runs/:runId/events', query: true },
   { id: 'runs.artifact', method: 'GET', pattern: 'runs/:runId/artifact', query: true, range: true },

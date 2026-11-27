@@ -4,7 +4,7 @@ import type { StageExecutionContext, StageExecutionResult, StageFailure, StagePl
 import { type CheckId, type DeclaredOutput, type ModelUse, type StageEstimate } from '@studio/shared/run-format';
 import { callAgent } from '../agents/agent-call';
 import { runEvaluatorLoop, type GeneratorAttempt } from '../agents/evaluator-loop';
-import { boundPromptText, boundSkillTexts, boundTemplate, brandVoiceText, buildPacket, coordinatesOf } from '../agents/packet-sources';
+import { boundPromptText, boundSkillTexts, boundTemplate, brandVoiceText, buildPacket, coordinatesOf, unreadableSkillStop } from '../agents/packet-sources';
 import { reviewCaveat, reviewerScoreEvidence } from '../agents/review-evidence';
 import { reviewSubject } from '../agents/reviewer';
 import { BaseStageExecutor } from '../shared/base-stage.executor';
@@ -105,13 +105,7 @@ export class ScriptExecutor extends BaseStageExecutor {
       );
     }
     const skills = await boundSkillTexts(context, this.dependencies.catalog, WRITER_SKILL_SLOT);
-    if (skills.status === 'unreadable') {
-      return needsPerson(
-        { kind: 'needs-person', stepKey: context.stepKey },
-        `A skill ${skills.ref} vinculada ao roteirista (skill:writer) não pôde ser lida.`,
-        'Confira o arquivo de entrada da skill no catálogo ou tire a skill da receita e retome a execução.',
-      );
-    }
+    if (skills.status === 'unreadable') return unreadableSkillStop(context, skills.ref, WRITER_SKILL_SLOT);
     const claims = await readOptionalStageInput(context, 'claims', ClaimsArtifactSchema);
     const template = await boundTemplate(context, this.dependencies.catalog);
     const brandVoice = await brandVoiceText(context, this.dependencies.catalog);

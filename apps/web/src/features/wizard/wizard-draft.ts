@@ -1,4 +1,4 @@
-import { AssetRefSchema, MusicCategoryListSchema } from '@studio/shared/catalog';
+import { AssetKindSchema, AssetRefSchema, MusicCategoryListSchema, type AssetKind } from '@studio/shared/catalog';
 import { BRIEF_INSTRUCTIONS_MAX, RecipeRefSchema, type MusicChoice } from '@studio/shared/recipes';
 import { z } from 'zod';
 import { type NewRunFormValues } from '@/features/runs/new-run-model';
@@ -17,12 +17,20 @@ export interface SavedComposition {
   ref: string;
 }
 
+/** One catalog item added in the "Add to pipeline" step; the kind decides whether it also fills a preset pin. */
+export interface PipelineItem {
+  ref: string;
+  kind: AssetKind;
+}
+
 /** What the owner answered so far; nothing here is a secret, and the api validates all of it again. */
 export interface WizardDraft {
   step: DraftStep;
   values: NewRunFormValues;
   instructions: string;
   references: readonly string[];
+  /** Sites, skills, templates, prompts, models and media added after the references. */
+  pipelineItems: readonly PipelineItem[];
   choices: WizardChoices;
   /** "Choose the song" or "AI decides" with its categories; null keeps the base preset's choice. */
   musicChoice: MusicChoice | null;
@@ -54,6 +62,11 @@ const WizardDraftSchema = z
       .strict(),
     instructions: z.string().max(BRIEF_INSTRUCTIONS_MAX),
     references: z.array(AssetRefSchema).max(MAX_DRAFT_REFERENCES),
+    // Drafts saved before the pipeline step existed have no key: they start with none.
+    pipelineItems: z
+      .array(z.object({ ref: AssetRefSchema, kind: AssetKindSchema }).strict())
+      .max(MAX_DRAFT_REFERENCES)
+      .default([]),
     choices: z
       .object({ voice: refOrEmpty.optional(), template: refOrEmpty.optional(), 'brand-kit': refOrEmpty.optional(), music: refOrEmpty.optional() })
       .strict(),
@@ -69,6 +82,7 @@ export function emptyDraft(recipeRef: string): WizardDraft {
     values: { recipeRef, topic: '', sourceUrl: '', siteCapture: '', keyMessages: '', targetDurationSec: '' },
     instructions: '',
     references: [],
+    pipelineItems: [],
     choices: {},
     musicChoice: null,
     saved: null,

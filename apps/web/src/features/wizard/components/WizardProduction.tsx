@@ -4,7 +4,7 @@ import { type RunStateResponse } from '@studio/shared/api';
 import { Alert, Button, Card, CostMeter, EventLog, StepTimeline, buttonClassName, useI18n } from '@studio/ui';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import layout from '@/features/common/layout.module.css';
 import { MonthSpendMeter } from '@/features/runs/components/MonthSpendMeter';
 import { RunNowCard } from '@/features/runs/components/RunNowCard';
@@ -40,10 +40,19 @@ export function WizardProduction({ runId, initialState, startFailed }: WizardPro
   const { run, displayedStatus } = live.state;
   const state = run.state;
   const reviewReady = hasReview(state);
+  // A run that finishes while this step watches it opens step 6 with the video playing; one
+  // loaded already finished only re-reads the page.
+  const watchedUnfinished = useRef(!hasReview(initialState.run.state));
 
   useEffect(() => {
-    if (reviewReady) router.refresh();
-  }, [reviewReady, router]);
+    if (!reviewReady) return;
+    if (watchedUnfinished.current) {
+      watchedUnfinished.current = false;
+      router.replace(`/criar?execucao=${encodeURIComponent(runId)}&reproduzir=1`);
+      return;
+    }
+    router.refresh();
+  }, [reviewReady, router, runId]);
 
   // The waiting notice sits under the step the run stopped at; with no position it stays on top.
   const position = currentPosition(run, live.state.now);
@@ -72,6 +81,7 @@ export function WizardProduction({ runId, initialState, startFailed }: WizardPro
             state={live.state}
             freshness={live.polling ? { lastUpdatedAtMs: live.lastUpdatedAtMs, checkedAtMs: live.checkedAtMs } : null}
             onChanged={live.refresh}
+            deletedHref="/criar"
           />
         </div>
         <div className={runStyles.cost}>

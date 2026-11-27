@@ -32,20 +32,22 @@ export async function boundPromptText(context: StageExecutionContext, preferredS
 }
 
 /**
- * Entry texts of every skill bound to `slot` (e.g. `skill:writer`), in binding order and at most
- * `WRITER_SKILLS_MAX`. Biometric versions are never read. A bound skill whose entry file cannot be
- * read is reported by ref, so the stage stops instead of running without guidance the owner chose.
+ * Entry texts of the skills bound to `slot` (e.g. `skill:writer`), in binding order and at most
+ * `WRITER_SKILLS_MAX`. With none on that slot, every skill bound to the recipe is used, once per
+ * ref: the owner's skills guide every generating stage, not only the one whose slot they named.
+ * Biometric versions are never read. A bound skill whose entry file cannot be read is reported by
+ * ref, so the stage stops instead of running without guidance the owner chose.
  */
 export async function boundSkillTexts(
   context: StageExecutionContext,
   catalog: CatalogLookup,
   slot: string,
 ): Promise<{ status: 'read'; skills: AssetText[] } | { status: 'unreadable'; ref: string }> {
-  const bound = boundAssets(context)
-    .filter((candidate) => candidate.slot === slot && candidate.asset.kind === 'skill' && candidate.asset.sensitivity !== 'biometric')
-    .slice(0, WRITER_SKILLS_MAX);
+  const allSkills = boundAssets(context).filter((candidate) => candidate.asset.kind === 'skill' && candidate.asset.sensitivity !== 'biometric');
+  const onSlot = allSkills.filter((candidate) => candidate.slot === slot);
+  const chosen = onSlot.length > 0 ? onSlot : allSkills.filter((candidate, index) => allSkills.findIndex((other) => other.asset.ref === candidate.asset.ref) === index);
   const skills: AssetText[] = [];
-  for (const { asset } of bound) {
+  for (const { asset } of chosen.slice(0, WRITER_SKILLS_MAX)) {
     try {
       skills.push({ ref: asset.ref, text: await catalog.skillEntryText(asset.ref) });
     } catch (error) {
@@ -54,6 +56,15 @@ export async function boundSkillTexts(
     }
   }
   return { status: 'read', skills };
+}
+
+/** The owner stop for a bound skill whose entry file cannot be read. */
+export function unreadableSkillStop(context: StageExecutionContext, ref: string, slot: string): StageFailure {
+  return needsPerson(
+    { kind: 'needs-person', stepKey: context.stepKey },
+    `A skill ${ref} vinculada à receita (${slot}) não pôde ser lida.`,
+    'Confira o arquivo de entrada da skill no catálogo ou tire a skill da receita e retome a execução.',
+  );
 }
 
 export async function brandVoiceText(context: StageExecutionContext, catalog: CatalogLookup): Promise<AssetText | undefined> {

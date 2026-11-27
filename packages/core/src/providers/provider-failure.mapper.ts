@@ -12,7 +12,9 @@ export function toStageFailure(failure: ProviderFailure): StageFailure {
   const { provider } = failure;
   switch (failure.class) {
     case 'authentication':
-      return { class: 'authentication', provider, message: `Provider ${provider} rejected the credential` };
+      return failure.refusal === 'quota-exceeded'
+        ? { class: 'authentication', provider, message: `Provider ${provider} has no quota left on this account`, refusal: 'quota-exceeded' }
+        : { class: 'authentication', provider, message: `Provider ${provider} rejected the credential` };
     case 'rate-limit':
       return { class: 'retryable', kind: 'rate-limit', message: `Provider ${provider} is rate limited or overloaded` };
     case 'transient':

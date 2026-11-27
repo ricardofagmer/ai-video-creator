@@ -29,7 +29,17 @@ function Header({ t, facts }: { t: WebMessages; facts?: readonly string[] }): Re
 }
 
 /** Steps 5 and 6 for `?execucao=<runId>`: the step follows the run's state, so a reload resumes there. */
-async function RunSteps({ runId, startFailed, t }: { runId: string; startFailed: boolean; t: WebMessages }): Promise<ReactElement> {
+async function RunSteps({
+  runId,
+  startFailed,
+  autoPlay,
+  t,
+}: {
+  runId: string;
+  startFailed: boolean;
+  autoPlay: boolean;
+  t: WebMessages;
+}): Promise<ReactElement> {
   const data = await loadReviewData(runId);
   if (data.kind === 'missing') {
     return (
@@ -54,7 +64,7 @@ async function RunSteps({ runId, startFailed, t }: { runId: string; startFailed:
         </p>
       </div>
       {data.kind === 'ready' ? (
-        <WizardResult runId={runId} data={data} texts={t.wizard.result} />
+        <WizardResult runId={runId} data={data} texts={t.wizard.result} autoPlay={autoPlay} />
       ) : (
         <WizardProduction runId={runId} initialState={data.state} startFailed={startFailed} />
       )}
@@ -76,7 +86,7 @@ export default async function CreateVideoPage({ searchParams }: CreateVideoPageP
     return (
       <div className={layout.page}>
         <Header t={t} />
-        <RunSteps runId={runId} startFailed={query.aviso === 'inicio-falhou'} t={t} />
+        <RunSteps runId={runId} startFailed={query.aviso === 'inicio-falhou'} autoPlay={query.reproduzir === '1'} t={t} />
       </div>
     );
   }

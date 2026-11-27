@@ -18,13 +18,14 @@ import {
   CurationQueueFullError,
 } from '../curation.errors';
 import { RequestCurationInputSchema, parseCurationInput } from '../curation.input';
+import { SerialMutex } from '../../runtime/keyed-mutex';
 import { RequestCurationCommand } from './request-curation.command';
 
 @CommandHandler(RequestCurationCommand)
 export class RequestCurationHandler implements ICommandHandler<RequestCurationCommand, CurationView> {
   private readonly logger = new Logger(RequestCurationHandler.name);
   /** The queue count and the folder creation must not interleave within this api process. */
-  private tail: Promise<unknown> = Promise.resolve();
+  private readonly requests = new SerialMutex();
 
   constructor(
     private readonly selector: CurationSubjectSelector,
@@ -35,11 +36,9 @@ export class RequestCurationHandler implements ICommandHandler<RequestCurationCo
 
   async execute(command: RequestCurationCommand): Promise<CurationView> {
     const { request, correlationId } = parseCurationInput(RequestCurationInputSchema, command.input, '');
-    const run = this.tail.then(() => this.request(request, correlationId));
-    // The chain only orders the requests; each caller still receives its own result or error.
-    this.tail = run.catch(() => undefined);
     try {
-      return await run;
+      // The mutex only orders the requests; each caller still receives its own result or error.
+      return await this.requests.run(() => this.request(request, correlationId));
     } catch (error) {
       if (error instanceof CurationError) {
         this.logger.log({ event: 'curation.refused-request', correlationId, reason: error.reason });

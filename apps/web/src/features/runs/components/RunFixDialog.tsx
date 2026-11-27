@@ -48,7 +48,8 @@ export function presetHref(ref: string): string {
   return `/receitas/${encodeURIComponent(ref.split('@')[0] ?? ref)}`;
 }
 
-function valuesOf(run: RunFile): NewRunFormValues {
+/** The run's current brief as form values, for the fix and edit windows. */
+export function briefValuesOf(run: RunFile): NewRunFormValues {
   return {
     recipeRef: run.recipe.ref,
     topic: run.brief.topic,
@@ -78,7 +79,7 @@ export function RunFixDialog({ run, cause, fix, open, onClose, onChanged }: RunF
   const t = useWebMessages();
   const texts = t.runs.waiting;
   const recipe = run.recipe.definition;
-  const [values, setValues] = useState<NewRunFormValues>(() => valuesOf(run));
+  const [values, setValues] = useState<NewRunFormValues>(() => briefValuesOf(run));
   const [errors, setErrors] = useState<NewRunErrors>({});
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);

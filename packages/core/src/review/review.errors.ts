@@ -202,3 +202,25 @@ export class PromoteSensitivityUnknownError extends ReviewError {
     this.name = 'PromoteSensitivityUnknownError';
   }
 }
+
+/**
+ * Why a run cannot be deleted:
+ * - `live-watcher`: a watcher pid is alive, so the watcher still owns the run folder;
+ * - `status`: the run is queued or running, so a watcher may take it at any moment;
+ * - `reviewed`: the run has a recorded outcome, which publications and learnings point at;
+ * - `comparison-arm`: the run is one arm of an A/B comparison, which needs both arms.
+ */
+export type RunDeleteRefusalReason = 'live-watcher' | 'status' | 'reviewed' | 'comparison-arm';
+
+export class RunNotDeletableError extends ReviewError {
+  override readonly category = 'conflict';
+
+  constructor(
+    readonly runId: string,
+    readonly status: RunStatus,
+    readonly reason: RunDeleteRefusalReason,
+  ) {
+    super(`Run ${runId} (${status}) cannot be deleted: ${reason}`);
+    this.name = 'RunNotDeletableError';
+  }
+}

@@ -363,6 +363,9 @@ importers:
       '@types/node':
         specifier: ^22.15.0
         version: 22.20.5
+      tsx:
+        specifier: ^4.20.0
+        version: 4.23.15
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -394,15 +397,9 @@ importers:
 
   packages/toolbox:
     dependencies:
-      '@ace/video':
-        specifier: workspace:*
-        version: link:../video
       '@studio/shared':
         specifier: workspace:*
         version: link:../shared
-      commander:
-        specifier: ^14.0.0
-        version: 14.0.3
       dotenv:
         specifier: ^17.2.0
         version: 17.4.2

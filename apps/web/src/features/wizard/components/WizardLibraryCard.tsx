@@ -8,6 +8,8 @@ import { referencePostOf, videoThumbnailHref } from '@/features/catalog/referenc
 import { PosterCard } from '@/features/common/components/PosterCard';
 import poster from '@/features/common/poster-card.module.css';
 import { QualityScore } from '@/features/quality/components/QualityScore';
+import { SkillStage } from '@/features/skills/components/SkillStage';
+import { skillStageOf } from '@/features/skills/skill-stage';
 import { type WebMessages } from '@/messages';
 
 interface WizardLibraryCardProps {
@@ -38,6 +40,8 @@ export function WizardLibraryCard({ version, added, full, onAdd, t, locale }: Wi
         loading="lazy"
         decoding="async"
       />
+    ) : version.kind === 'skill' ? (
+      <SkillStage kind={skillStageOf(version)} />
     ) : undefined;
   return (
     <PosterCard artwork={cartKindArtwork[version.kind]} media={media} density="compact">

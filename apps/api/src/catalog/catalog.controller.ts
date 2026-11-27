@@ -199,9 +199,8 @@ export class CatalogController {
   }
 
   /**
-   * Rev 3 (**breaking**, SPEC 0003 L6, R2-AC-18): core refuses `status: 'active'` with
-   * `PromotionApprovalRequiredError`, answered 422 `promotion-approval-required`; activation is
-   * `POST .../promotion` only. `replaced` stays null.
+   * Deprecation only (SPEC 0003 L6, R2-AC-18): the body accepts `deprecated` alone, so any other
+   * status answers 400 `validation` before core runs; activation is `POST .../promotion` only.
    */
   @Put(':assetId/versions/:version/status')
   async setStatus(
@@ -209,10 +208,7 @@ export class CatalogController {
     @Body(new ZodValidationPipe(SetVersionStatusRequestSchema)) body: SetVersionStatusRequest,
   ): Promise<SetAssetStatusResponse> {
     const result = await this.commandBus.execute(new SetAssetStatusCommand({ ref: `${params.assetId}@${params.version}`, status: body.status }));
-    return {
-      version: await this.views.one(result.version),
-      replaced: result.replaced === null ? null : await this.views.one(result.replaced),
-    };
+    return { version: await this.views.one(result.version) };
   }
 
   private async saved(response: Response, version: AssetVersion, purpose: PurposeOnSave = 'enqueue'): Promise<AssetVersionView> {

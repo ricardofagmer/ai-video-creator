@@ -9,6 +9,7 @@ export const wizardEn: Messages<typeof wizardPtBR> = {
   steps: {
     idea: 'Idea',
     references: 'References',
+    pipeline: 'Add to pipeline',
     recipe: 'Preset',
     style: 'Voice and style',
     review: 'Review',
@@ -37,6 +38,19 @@ export const wizardEn: Messages<typeof wizardPtBR> = {
     loading: 'Loading the reference',
     loadFailed: 'Could not read this reference in the catalog.',
     notVideo: 'This reference is not a video; the AI only analyses videos.',
+  },
+  pipeline: {
+    card: 'Add to the pipeline',
+    description: 'Sites, skills, video templates, prompts, AI models, music and brand kits the agents use for this video. Optional.',
+    tabsLabel: 'What to add',
+    tabs: { sites: 'Sites', skills: 'Skills', templates: 'Video templates', prompts: 'Prompts', 'ai-writing': 'AI & writing', 'media-brand': 'Media & brand' },
+    chosenTitle: 'Added to the pipeline',
+    none: 'Nothing added. This step is optional.',
+    remove: 'Remove',
+    loading: 'Loading the catalog',
+    empty: 'Nothing of this kind in the catalog yet.',
+    full: 'This video already holds 50 items with its references.',
+    pinNote: 'The first template, brand kit and music added fill the preset unless you change them in Voice and style.',
   },
   recipe: {
     legend: 'Base preset',

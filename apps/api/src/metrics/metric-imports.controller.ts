@@ -1,13 +1,7 @@
-import { Controller, Get, HttpCode, Inject, Logger, Post, Query, Req } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ImportMetricsCommand, ListMetricImportsQuery, MetricImportRefusedError } from '@studio/core/metrics';
-import {
-  ListMetricImportsQuerySchema,
-  MetricImportQuerySchema,
-  apiRouteSegments,
-  type MetricImportPageView,
-  type MetricImportReport,
-} from '@studio/shared/api';
+import { Controller, HttpCode, Inject, Logger, Post, Query, Req } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
+import { ImportMetricsCommand, MetricImportRefusedError } from '@studio/core/metrics';
+import { MetricImportQuerySchema, apiRouteSegments, type MetricImportReport } from '@studio/shared/api';
 import { decodeCsvBytes, type Platform } from '@studio/shared/metrics';
 import { type z } from 'zod';
 import { CurrentPrincipal } from '../auth/auth.decorators';
@@ -19,16 +13,10 @@ import { receiveMetricImport, type ReceivedMetricImport } from './metric-import.
 import { MetricsResponseAssembler } from './metrics-response.assembler';
 
 type ImportQuery = z.output<typeof MetricImportQuerySchema>;
-type ListImportsQuery = z.output<typeof ListMetricImportsQuerySchema>;
 
 /** The one command this controller dispatches (the command bus satisfies it). */
 export interface MetricImportCommandPort {
   execute(command: ImportMetricsCommand): Promise<MetricImportReport>;
-}
-
-/** The one query this controller dispatches (the query bus satisfies it). */
-export interface MetricImportQueryPort {
-  execute(query: ListMetricImportsQuery): Promise<MetricImportPageView>;
 }
 
 /**
@@ -45,7 +33,6 @@ export class MetricImportsController {
 
   constructor(
     @Inject(CommandBus) private readonly commands: MetricImportCommandPort,
-    @Inject(QueryBus) private readonly queries: MetricImportQueryPort,
     private readonly context: RequestContext,
     private readonly views: MetricsResponseAssembler,
   ) {}
@@ -73,12 +60,6 @@ export class MetricImportsController {
       }),
     );
     return this.views.importReport(report);
-  }
-
-  /** Applied imports, newest first; rules/backend.md pagination (default 20, max 100). */
-  @Get()
-  async list(@Query(new ZodValidationPipe(ListMetricImportsQuerySchema)) query: ListImportsQuery): Promise<MetricImportPageView> {
-    return this.views.importPage(await this.queries.execute(new ListMetricImportsQuery({ limit: query.limit, cursor: query.cursor })));
   }
 
   /** The receive and decode stages; a refusal is logged once here and nothing reaches core. */

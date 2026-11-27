@@ -17,7 +17,7 @@ import {
 import { type Brief, type RubricCriterion } from '@studio/shared/recipes';
 import { type QaMetrics, type ReviewSubject, type StageId, type StepName } from '@studio/shared/run-format';
 import { runArtifactSources } from '../tools/run-artifact.sources';
-import { delimitUntrusted, packetBaseFor, type PacketCoordinates } from './packet-support';
+import { delimitUntrusted, packetBaseFor, skillTextsField, type AssetText, type PacketCoordinates } from './packet-support';
 
 const BRIEF_SUMMARY_MAX_CHARS = 1000;
 const FAILURE_REASON_MAX_CHARS = 2000;
@@ -33,6 +33,8 @@ export interface ReviewPacketSource {
   readonly qaMetrics?: QaMetrics;
   /** Script and scenes reviews: the unrecorded draft the loop is judging. */
   readonly draft?: ScriptOutput | ScenesOutput;
+  /** Bound skill texts the work must follow (the evaluator's slot, else every skill of the recipe). */
+  readonly skills?: readonly AssetText[];
 }
 
 function briefSummary(brief: Brief): string {
@@ -70,6 +72,7 @@ export function buildReviewPacket(source: ReviewPacketSource): ReviewPacket {
       artifactIds: source.artifactIds.filter((artifactId) => readable.includes(artifactId) && !producedHere(artifactId)),
       ...(source.draft === undefined ? {} : { draft: source.draft }),
       ...(source.qaMetrics === undefined ? {} : { qaMetrics: source.qaMetrics }),
+      ...skillTextsField(source.skills),
     },
     constraints: { evidenceRequired: true, passDecisionIsEngines: true },
     outputContract: OutputContractSchema.enum.ReviewVerdict,

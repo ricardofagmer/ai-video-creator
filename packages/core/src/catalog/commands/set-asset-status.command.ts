@@ -10,8 +10,6 @@ export interface SetAssetStatusInput {
 
 export interface SetAssetStatusResult {
   version: AssetVersion;
-  /** Kept for the rev 2 result shape; always null since rev 3, because this command never activates. */
-  replaced: AssetVersion | null;
 }
 
 /**

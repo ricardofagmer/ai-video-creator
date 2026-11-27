@@ -16,6 +16,8 @@ interface ReviewVideoCardProps {
   aspect: AspectRatio;
   video: VideoAccess;
   qa: ArtifactRead<QaSummary>;
+  /** The run page redirected here as the run finished: the video starts on its own. */
+  autoPlay?: boolean;
 }
 
 type VideoTexts = WebMessages['runs']['review']['video'];
@@ -49,14 +51,14 @@ function videoCaption(qa: ArtifactRead<QaSummary>, locale: Locale): string | und
  * 13.5): `playable` uses the shared player; `playable-biometric` uses a player with no download
  * control or link and a notice; `withheld` renders no `video` element, only refs and hashes.
  */
-export async function ReviewVideoCard({ runId, aspect, video, qa }: ReviewVideoCardProps): Promise<ReactElement> {
+export async function ReviewVideoCard({ runId, aspect, video, qa, autoPlay = false }: ReviewVideoCardProps): Promise<ReactElement> {
   const { t, locale } = await getI18n();
   const texts = t.runs.review.video;
   const title = texts.playerTitle(runId);
   return (
     <Card title={texts.card}>
       {video.kind === 'playable' && (
-        <VideoPlayer src={runArtifactUrl(runId, FINAL_VIDEO_PATH)} title={title} aspect={playerAspect(aspect)} caption={videoCaption(qa, locale)} />
+        <VideoPlayer src={runArtifactUrl(runId, FINAL_VIDEO_PATH)} title={title} aspect={playerAspect(aspect)} caption={videoCaption(qa, locale)} autoPlay={autoPlay} />
       )}
       {video.kind === 'playable-biometric' && (
         <div className={layout.stack}>
@@ -68,6 +70,7 @@ export async function ReviewVideoCard({ runId, aspect, video, qa }: ReviewVideoC
             title={title}
             aspect={playerAspect(aspect)}
             caption={videoCaption(qa, locale)}
+            autoPlay={autoPlay}
           />
         </div>
       )}

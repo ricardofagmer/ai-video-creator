@@ -1,4 +1,3 @@
-import { isDeepStrictEqual } from 'node:util';
 import {
   CURATION_FORMAT_VERSION,
   sumCurationSessionUsd,
@@ -6,6 +5,7 @@ import {
   type CurationCostSession,
   type CurationId,
 } from '@studio/shared/curation';
+import { appendSessionToFile, type AppendSessionResult } from './cost-file-append';
 import { CostFileCurationMismatchError, CostSessionConflictError, PriceTableVersionMismatchError } from './costs.errors';
 import { curationCostSessionKey } from './curation-cost.mapper';
 
@@ -18,15 +18,12 @@ export interface AppendCurationCostSessionInput {
   now: Date;
 }
 
-export type AppendCurationCostSessionResult =
-  | { outcome: 'appended'; file: CurationCostFile }
-  /** The identical session was already in the file: recording is idempotent. */
-  | { outcome: 'already-recorded'; file: CurationCostFile };
+export type AppendCurationCostSessionResult = AppendSessionResult<CurationCostFile>;
 
 /**
  * Pure: the next curation cost.json content (SPEC 0005 section 5.8). `totalUsd` is recomputed as
  * the sum of every session on each append, never accumulated by hand; the shared schema re-checks
- * it on write. Mirrors `appendCostSession` for run folders.
+ * it on write. Like a run's cost.json, the file holds one price table version.
  */
 export function appendCurationCostSession(input: AppendCurationCostSessionInput): AppendCurationCostSessionResult {
   const { existing, curationId, priceTableVersion, session } = input;
@@ -35,18 +32,13 @@ export function appendCurationCostSession(input: AppendCurationCostSessionInput)
     throw new PriceTableVersionMismatchError(curationId, existing.priceTableVersion, priceTableVersion);
   }
 
-  const previous = existing?.sessions ?? [];
   const key = curationCostSessionKey(session);
-  const sameKey = previous.find((recorded) => recorded.sessionId === key.sessionId && recorded.callIndex === key.callIndex);
-  if (sameKey !== undefined && existing !== null) {
-    if (isDeepStrictEqual(sameKey, session)) return { outcome: 'already-recorded', file: existing };
-    throw new CostSessionConflictError(curationId, key.sessionId, key.callIndex);
-  }
-
-  const sessions = [...previous, session];
-  return {
-    outcome: 'appended',
-    file: {
+  return appendSessionToFile<CurationCostSession, CurationCostFile>({
+    existing,
+    session,
+    hasSameKey: (recorded) => recorded.sessionId === key.sessionId && recorded.callIndex === key.callIndex,
+    conflictError: () => new CostSessionConflictError(curationId, key.sessionId, key.callIndex),
+    buildFile: (sessions) => ({
       format: CURATION_FORMAT_VERSION,
       curationId,
       currency: 'USD',
@@ -54,6 +46,6 @@ export function appendCurationCostSession(input: AppendCurationCostSessionInput)
       updatedAt: input.now.toISOString(),
       sessions,
       totalUsd: sumCurationSessionUsd(sessions),
-    },
-  };
+    }),
+  });
 }

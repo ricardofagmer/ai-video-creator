@@ -8,8 +8,8 @@ export interface ThumbnailImage {
 }
 
 /** Thumbnails only ever come from these hosts, the start URL and every redirect alike. */
-const EXACT_HOSTS = new Set(['www.instagram.com', 'i.ytimg.com', 'www.tiktok.com']);
-const HOST_SUFFIXES = ['.cdninstagram.com', '.fbcdn.net', '.tiktokcdn.com', '.tiktokcdn-us.com'];
+const EXACT_HOSTS = new Set(['www.instagram.com', 'i.ytimg.com', 'www.tiktok.com', 'vimeo.com', 'i.vimeocdn.com', 'www.dailymotion.com']);
+const HOST_SUFFIXES = ['.cdninstagram.com', '.fbcdn.net', '.tiktokcdn.com', '.tiktokcdn-us.com', '.dmcdn.net'];
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -22,7 +22,7 @@ const FAILURE_TTL_MS = 10 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 300;
 const USER_AGENT = 'Mozilla/5.0 (compatible; VideoStudio/1.0)';
 
-const TikTokOEmbedSchema = z.object({ thumbnail_url: z.string().max(2048) });
+const OEmbedThumbnailSchema = z.object({ thumbnail_url: z.string().max(2048) });
 
 interface CacheEntry {
   image: ThumbnailImage | null;
@@ -99,29 +99,42 @@ async function fetchImage(url: string): Promise<ThumbnailImage> {
   return { bytes: await readCapped(response, MAX_IMAGE_BYTES), contentType };
 }
 
-/** TikTok has no stable thumbnail URL; its public oEmbed answer names a signed CDN image. */
-async function tiktokThumbnailUrl(post: VideoPost): Promise<string> {
-  const oembed = `https://www.tiktok.com/oembed?url=${encodeURIComponent(videoPostUrl(post))}`;
+/** TikTok and Vimeo have no stable thumbnail URL; their public oEmbed answer names a CDN image. */
+async function oembedThumbnailUrl(endpoint: string, post: VideoPost): Promise<string> {
+  const oembed = `${endpoint}?url=${encodeURIComponent(videoPostUrl(post))}`;
   const response = await fetchFromAllowedHosts(oembed, 'application/json');
   if (!response.ok) throw new ThumbnailFetchError(`oEmbed status ${response.status}`);
   const body: unknown = JSON.parse(new TextDecoder().decode(await readCapped(response, MAX_OEMBED_BYTES)));
-  return TikTokOEmbedSchema.parse(body).thumbnail_url;
+  return OEmbedThumbnailSchema.parse(body).thumbnail_url;
 }
 
-async function sourceImageUrl(post: VideoPost): Promise<string> {
+/**
+ * The image to fetch, or null for platforms with no thumbnail reachable without an API key or a
+ * login (Facebook, X, Twitch); the page then shows the placeholder.
+ */
+async function sourceImageUrl(post: VideoPost): Promise<string | null> {
   switch (post.platform) {
     case 'instagram':
       return `https://www.instagram.com/${post.format}/${post.id}/media/?size=m`;
     case 'youtube':
       return `https://i.ytimg.com/vi/${post.id}/hqdefault.jpg`;
     case 'tiktok':
-      return tiktokThumbnailUrl(post);
+      return oembedThumbnailUrl('https://www.tiktok.com/oembed', post);
+    case 'vimeo':
+      return oembedThumbnailUrl('https://vimeo.com/api/oembed.json', post);
+    case 'dailymotion':
+      return `https://www.dailymotion.com/thumbnail/video/${post.id}`;
+    case 'facebook':
+    case 'x':
+    case 'twitch':
+      return null;
   }
 }
 
 async function loadFromSource(post: VideoPost): Promise<ThumbnailImage | null> {
   try {
-    return await fetchImage(await sourceImageUrl(post));
+    const source = await sourceImageUrl(post);
+    return source === null ? null : await fetchImage(source);
   } catch (error) {
     // A missing thumbnail is not an error for the page: the route answers with a placeholder.
     console.warn(`[thumbnails] ${videoPostKey(post)}: ${error instanceof Error ? error.message : 'unknown failure'}`);

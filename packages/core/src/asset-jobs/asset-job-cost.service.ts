@@ -10,11 +10,13 @@ import { CostLedgerService } from '../costs/cost-ledger.service';
 import { AssetJobCostUsageUnsupportedError, CostSessionPriceMismatchError } from '../costs/costs.errors';
 import { PRICE_TABLE } from '../costs/price-table';
 import { DataHome } from '../paths/data-home';
+import { KeyedMutex } from '../runtime/keyed-mutex';
 
 /**
  * C6 `AssetJobCostPort` (spec Amendment 3), bound by the watcher. `record` writes only
  * `asset-jobs/<kind>/<ref>/cost.json` through the shared helper and never SQLite (ADR 0003); the
- * api and the CLI index the file with `IndexAssetJobCostCommand`, exactly as for curations.
+ * api indexes the file with `IndexAssetJobCostCommand` once it observes a settled job
+ * (`AssetJobCostIndexSync`), as `CurationCostIndexSync` does for curations.
  * Pricing and the month spend are `CostLedgerService`'s, so a mock provider costs $0 and an
  * unreadable spend throws (the caller refuses the job: fails closed). `monthToDateUsd` also counts
  * cost.json sessions the api has not indexed yet. The month ceiling is the owner's monthly limit.
@@ -22,7 +24,8 @@ import { DataHome } from '../paths/data-home';
 @Injectable()
 export class AssetJobCostService implements AssetJobCostPort {
   private readonly logger = new Logger(AssetJobCostService.name);
-  private readonly jobQueues = new Map<string, Promise<unknown>>();
+  /** cost.json is read-modify-written; two calls of one job must not interleave. */
+  private readonly jobFiles = new KeyedMutex();
 
   constructor(
     private readonly dataHome: DataHome,
@@ -54,7 +57,7 @@ export class AssetJobCostService implements AssetJobCostPort {
     });
     const location = this.locationOf(request.kind, request.ref);
 
-    await this.serializedPerJob(location, async () => {
+    await this.jobFiles.run(`${location.kind}/${location.ref}`, async () => {
       const existing = await readAssetJobCost(location);
       const result = appendAssetJobCostSession({
         existing: existing.status === 'present' ? existing.value : null,
@@ -88,19 +91,5 @@ export class AssetJobCostService implements AssetJobCostPort {
 
   private locationOf(kind: AssetJobKind, ref: AssetRef): AssetJobLocation {
     return { assetJobsRoot: this.dataHome.assetJobs, kind, ref };
-  }
-
-  /** cost.json is read-modify-written; two calls of one job must not interleave. */
-  private async serializedPerJob<T>(location: AssetJobLocation, work: () => Promise<T>): Promise<T> {
-    const queueKey = `${location.kind}/${location.ref}`;
-    const previous = this.jobQueues.get(queueKey) ?? Promise.resolve();
-    // The previous call's failure was already delivered to its own caller.
-    const current = previous.catch(() => undefined).then(work);
-    this.jobQueues.set(queueKey, current);
-    try {
-      return await current;
-    } finally {
-      if (this.jobQueues.get(queueKey) === current) this.jobQueues.delete(queueKey);
-    }
   }
 }

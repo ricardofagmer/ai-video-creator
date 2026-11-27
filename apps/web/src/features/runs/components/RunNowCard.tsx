@@ -9,6 +9,7 @@ import { useWebMessages } from '@/lib/i18n/client';
 import { type WebMessages } from '@/messages';
 import { availableRunActions } from '../run-labels';
 import { browserRunsApi } from '../runs-api';
+import { RunManageActions } from './RunManageActions';
 
 /** design/telas/08: above 5 s without fresh data the update line turns to warning. */
 const STALE_AFTER_MS = 5000;
@@ -18,6 +19,8 @@ interface RunNowCardProps {
   /** Null when the page is not polling (terminal status or hidden tab). */
   freshness: { lastUpdatedAtMs: number; checkedAtMs: number } | null;
   onChanged: () => void;
+  /** Where "Excluir" leads once the run is gone. */
+  deletedHref: string;
 }
 
 /** The latest activity line of now.json (redacted engine text, rendered as React text). */
@@ -57,7 +60,7 @@ function updatedLabel(freshness: RunNowCardProps['freshness'], t: WebMessages['r
 }
 
 /** "Agora" (design/telas/08): position, live message, freshness and RunControls through C10. */
-export function RunNowCard({ state, freshness, onChanged }: RunNowCardProps): ReactElement {
+export function RunNowCard({ state, freshness, onChanged, deletedHref }: RunNowCardProps): ReactElement {
   const { run, now, displayedStatus } = state;
   const t = useWebMessages();
   const { ui, locale } = useI18n();
@@ -114,7 +117,8 @@ export function RunNowCard({ state, freshness, onChanged }: RunNowCardProps): Re
           hasActions ? <RunControls available={actions} pendingAction={pendingAction} onAction={(action) => void act(action)} /> : undefined
         }
       />
-      {showPauseNotice && <Alert variant="info">{nowTexts.pauseRequested}</Alert>}
+      <RunManageActions run={run} status={displayedStatus} onChanged={onChanged} deletedHref={deletedHref} />
+      {showPauseNotice &&<Alert variant="info">{nowTexts.pauseRequested}</Alert>}
       {now !== null && now.notice !== null && (
         <Alert variant="info">
           <span lang={locale === 'pt-BR' ? undefined : 'pt-BR'}>{now.notice}</span>

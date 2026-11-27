@@ -15,7 +15,18 @@ export interface ProviderErrorSignal {
   networkCode: string | null;
   /** The step's AbortSignal fired (step timeout or `stop`). */
   aborted: boolean;
+  /**
+   * The provider's own refusal code on a 401/403 (ElevenLabs `detail.status`), already checked
+   * against a fixed shape by the adapter; never free text from the body.
+   */
+  refusalCode?: string | null;
 }
+
+/** Why an `authentication` failure happened: a bad key, or a valid key on an account with no quota left. */
+export type AuthenticationRefusal = 'credential' | 'quota-exceeded';
+
+/** Provider refusal codes that mean the account ran out of quota, not that the key is wrong. */
+const QUOTA_REFUSAL_CODES: ReadonlySet<string> = new Set(['quota_exceeded']);
 
 /**
  * Typed failure classes the engine acts on (criterion 16, ADR 0002 "Retries"):
@@ -26,7 +37,7 @@ export interface ProviderErrorSignal {
  * - `fatal`: the request itself is wrong; repeating it unchanged cannot succeed.
  */
 export type ProviderFailure =
-  | { class: 'authentication'; provider: ProviderName }
+  | { class: 'authentication'; provider: ProviderName; refusal: AuthenticationRefusal }
   | { class: 'rate-limit'; provider: ProviderName; retryAfterMs: number | null }
   | { class: 'transient'; provider: ProviderName; reason: 'server-error' | 'network' }
   | { class: 'cancelled'; provider: ProviderName }
@@ -71,7 +82,10 @@ export function classifyProviderFailure(signal: ProviderErrorSignal, now: Date):
   const { provider, httpStatus } = signal;
   if (signal.aborted) return { class: 'cancelled', provider };
   if (httpStatus !== null) {
-    if (AUTHENTICATION_STATUSES.has(httpStatus)) return { class: 'authentication', provider };
+    if (AUTHENTICATION_STATUSES.has(httpStatus)) {
+      const refusal = QUOTA_REFUSAL_CODES.has(signal.refusalCode ?? '') ? 'quota-exceeded' : 'credential';
+      return { class: 'authentication', provider, refusal };
+    }
     if (RATE_LIMIT_STATUSES.has(httpStatus)) {
       return { class: 'rate-limit', provider, retryAfterMs: parseRetryAfterMs(signal.retryAfter, now) };
     }

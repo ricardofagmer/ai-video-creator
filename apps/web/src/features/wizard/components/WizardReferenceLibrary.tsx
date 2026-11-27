@@ -12,6 +12,7 @@ import catalogStyles from '@/features/catalog/catalog.module.css';
 import { CatalogFilterBar } from '@/features/catalog/components/CatalogFilterBar';
 import { SaveReferenceLinkForm } from '@/features/catalog/components/SaveReferenceLinkForm';
 import { VideoEmbed } from '@/features/catalog/components/VideoEmbed';
+import { listedAssetStatuses } from '@/features/catalog/discontinue-asset';
 import { CUSTOM_CATEGORIES_COOKIE, customCategoriesFromCookie, customCategoryLabels, type CustomCategory } from '@/features/catalog/custom-categories';
 import { categoryLabelOf, countTemplateCategories, templateCategoryOf, type CatalogCategory } from '@/features/catalog/template-categories';
 import { videoLinkFrom, videoPostKey, type VideoLink } from '@/features/catalog/video-link';
@@ -87,7 +88,7 @@ export function WizardReferenceLibrary({ selected, onChange }: WizardReferenceLi
       .searchAssets({
         text: filters.text === '' ? undefined : filters.text,
         kinds: [...kindsOfSection(SECTION)],
-        statuses: filters.status === null ? undefined : [filters.status],
+        statuses: filters.status === null ? listedAssetStatuses : [filters.status],
         // A run cannot take a biometric item as a reference, so the dialog does not list them.
         sensitivity: 'exclude-biometric',
         sort: byScore ? 'quality' : undefined,

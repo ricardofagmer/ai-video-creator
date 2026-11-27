@@ -90,7 +90,7 @@ export { WatcherIndicator } from './components/runs/WatcherIndicator';
 export type { WatcherIndicatorProps } from './components/runs/WatcherIndicator';
 export { WaitingNotice } from './components/runs/WaitingNotice';
 export type { WaitingNoticeProps } from './components/runs/WaitingNotice';
-export { VideoPlayer } from './components/review/VideoPlayer';
+export { VideoPlayer, startPlayback } from './components/review/VideoPlayer';
 export type { VideoAspect, VideoPlayerProps } from './components/review/VideoPlayer';
 export { RatingInput } from './components/review/RatingInput';
 export type { RatingInputProps, RatingValue } from './components/review/RatingInput';

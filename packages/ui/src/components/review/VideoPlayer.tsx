@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactElement, ReactNode } from 'react';
+import { useEffect, useRef, type ReactElement, type ReactNode } from 'react';
 import { useI18n } from '../../i18n/I18nProvider';
 import { classNames } from '../../utils/class-names';
 import styles from './VideoPlayer.module.css';
@@ -20,6 +20,19 @@ export interface VideoPlayerProps {
   /** Text under the player (duration, resolution, loudness). */
   caption?: ReactNode;
   className?: string;
+  /** Starts playback on mount, muted when the browser refuses sound without a user gesture. */
+  autoPlay?: boolean;
+}
+
+/**
+ * Plays the element once. Browsers refuse unmuted playback without a user gesture, so a refusal
+ * retries muted; a second refusal leaves the controls for the viewer to press play.
+ */
+export function startPlayback(video: HTMLVideoElement): void {
+  video.play().catch(() => {
+    video.muted = true;
+    video.play().catch(() => undefined);
+  });
 }
 
 /** Native video player for the review screen; keyboard and captions come from the browser. */
@@ -32,12 +45,17 @@ export function VideoPlayer({
   captionsLabel,
   caption,
   className,
+  autoPlay = false,
 }: VideoPlayerProps): ReactElement {
   const { ui } = useI18n();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (autoPlay && videoRef.current !== null) startPlayback(videoRef.current);
+  }, [autoPlay]);
   return (
     <figure className={classNames(styles.figure, aspect === '9:16' ? styles.portrait : styles.landscape, className)}>
       <div className={styles.frame}>
-        <video controls preload="metadata" poster={poster} aria-label={title} className={styles.video}>
+        <video ref={videoRef} controls preload={autoPlay ? 'auto' : 'metadata'} poster={poster} aria-label={title} className={styles.video}>
           <source src={src} type="video/mp4" />
           {captionsSrc && <track kind="captions" src={captionsSrc} srcLang="pt-BR" label={captionsLabel ?? ui.review.captionsLabel} default />}
           <p>

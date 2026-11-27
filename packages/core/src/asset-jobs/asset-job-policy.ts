@@ -27,7 +27,7 @@ export function voiceSampleProviderOf(version: VoiceVersion): VoiceSampleProvide
 }
 
 /**
- * The Instagram, YouTube or TikTok post a link-only video reference points at; null for a stored
+ * The allowlisted video post a link-only video reference points at; null for a stored
  * file and for any other link. The provenance URL is untrusted text: only the parts the shared
  * allowlist parser returns are used (docs/specs/2026-11-24-link-reference-analysis-design.md).
  */

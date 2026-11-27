@@ -1,5 +1,6 @@
 import { classifyProviderFailure, type ProviderErrorSignal, type ProviderFailure } from '@studio/core/providers';
 import { type Secret } from '@studio/core/secrets';
+import { elevenLabsRefusalCode } from '../shared/elevenlabs-refusal-code';
 
 /**
  * ElevenLabs Music "Compose music" (https://elevenlabs.io/docs/api-reference/music/compose, read
@@ -32,7 +33,7 @@ export type ElevenLabsMusicOutcome = { status: 'ok'; audio: Uint8Array } | { sta
 /**
  * One ElevenLabs music generation (live mode only; the caller priced it and recorded egress
  * first). The key is revealed only into the request header. Failures are classified from the HTTP
- * status and network code alone; the body is never read on error, logged or returned.
+ * status, the network code and the short refusal code of a 401/403; the error body is never logged, stored or returned.
  */
 export async function composeWithElevenLabs(request: ElevenLabsMusicRequest): Promise<ElevenLabsMusicOutcome> {
   let response: Response;
@@ -53,8 +54,8 @@ export async function composeWithElevenLabs(request: ElevenLabsMusicRequest): Pr
     return failed(request, { httpStatus: null, retryAfter: null, networkCode: networkCodeOf(error) });
   }
   if (!response.ok) {
-    await response.body?.cancel();
-    return failed(request, { httpStatus: response.status, retryAfter: response.headers.get('retry-after'), networkCode: null });
+    const refusalCode = await elevenLabsRefusalCode(response);
+    return failed(request, { httpStatus: response.status, retryAfter: response.headers.get('retry-after'), networkCode: null, refusalCode });
   }
   if (!isMpegContentType(response.headers.get('content-type'))) {
     await response.body?.cancel();
@@ -91,7 +92,7 @@ function unrecognized(): ElevenLabsMusicOutcome {
 
 function failed(
   request: ElevenLabsMusicRequest,
-  observed: { httpStatus: number | null; retryAfter: string | null; networkCode: string | null },
+  observed: { httpStatus: number | null; retryAfter: string | null; networkCode: string | null; refusalCode?: string | null },
 ): ElevenLabsMusicOutcome {
   const signal: ProviderErrorSignal = { provider: 'elevenlabs', aborted: request.signal.aborted, ...observed };
   return { status: 'failed', failure: classifyProviderFailure(signal, request.now()) };

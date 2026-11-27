@@ -24,7 +24,6 @@ import {
   failureOf,
   hyperframesDetails,
   onlyRequest,
-  readyEngineFiles,
   remotionDetails,
   scriptFixture,
   type CompositionHarness,
@@ -113,7 +112,7 @@ describe('composition dispatch by template engine (AC 71)', () => {
 
   it('does not fall back to Remotion when a ToolDemo-labelled hyperframes template is refused', async () => {
     const current = await open({ template: hyperframesDetails({ compositionId: 'ToolDemo' }) });
-    current.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), engine: { status: 'absent' } });
+    current.ports.refusal = 'engine-disabled';
 
     const result = await current.execute();
 
@@ -158,7 +157,7 @@ describe('mock mode renders the slate for either engine (AC 74)', () => {
   it('renders the slate and reads no HyperFrames file for a hyperframes template while the engine is disabled', async () => {
     const current = await createCompositionHarness({ renderLive: false, template: hyperframesDetails() });
     harness = current;
-    current.ports.engineFiles = async (root) => ({ ...readyEngineFiles(root), engine: { status: 'absent' } });
+    current.ports.refusal = 'engine-disabled';
 
     await assertSlateOnly(current);
     assert.deepEqual(current.ports.calls, []);
@@ -198,7 +197,7 @@ describe('a ready HyperFrames render (SPEC 0008 section 5.2)', () => {
     harness = null;
   });
 
-  it('stages the template copy in scratch and sends one hyperframes-render request the runner protocol accepts', async () => {
+  it('stages the template copy in scratch and sends the ready runtime in one hyperframes-render request the runner protocol accepts', async () => {
     const current = await createCompositionHarness();
     harness = current;
     const script = scriptFixture();
@@ -230,7 +229,7 @@ describe('a ready HyperFrames render (SPEC 0008 section 5.2)', () => {
         homeDir: paths.homeDir,
         sandboxProfilePath: FAKE_PROFILE.path,
         ownerConfigDir: join(current.ownerHome, '.hyperframes'),
-        // SPEC 0008 section 17.5 (rev 2): the nine sandbox inputs, real paths from the harness ports.
+        // SPEC 0008 section 17.5 (rev 2): the nine sandbox inputs, as the scripted ready gate answers them.
         ownerHomeDir: current.ownerHome,
         studioRoot: FAKE_STUDIO_ROOT,
         dataHomeRoot: current.dataHomeRoot,

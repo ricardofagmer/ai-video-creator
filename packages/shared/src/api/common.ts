@@ -17,8 +17,11 @@ import { COMPOSITION_CONFLICTS_MAX, CompositionConflictSchema } from '../recipes
  * Revision 7 (SPEC 0007 section 4.4, owner R4-01) adds the platform connection, gate and publish
  * routes, `apiRev7ErrorReasons`, and the optional fields `origin`, `attemptId` and `polling` on a
  * publication and `origin` on a snapshot; every addition is additive and a rev 6 body still parses.
+ * Revision 8 (business logic review Waves 1+2) is **breaking**: the recipe and catalog version
+ * `PUT .../status` bodies accept only `deprecated`, their responses drop the always-null
+ * `replaced` field, and `GET /metrics/imports` is removed.
  */
-export const API_CONTRACT_REVISION = 7;
+export const API_CONTRACT_REVISION = 8;
 
 /** Request header the api copies into `correlationId`; echoed on every response. */
 export const REQUEST_ID_HEADER = 'x-request-id';

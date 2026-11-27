@@ -8,8 +8,9 @@
  * SPEC 0002 rev 4 (section 13.2, `API_CONTRACT_REVISION = 2`); neither by-reference route clashes
  * with a rev 3 route (`versions/by-reference` sits beside `versions/from-previous`). Rows marked
  * "R2" are contract revision 3 (SPEC 0003 section 4.3, `API_CONTRACT_REVISION = 3`); "R2 breaking"
- * marks the one behaviour change: both `PUT .../status` routes answer 422
- * `promotion-approval-required` to `status: 'active'`. `/catalog/search` is its own controller
+ * marks the one behaviour change: both `PUT .../status` routes stopped activating. Their body now
+ * accepts `status: 'deprecated'` only, so `active` (or any other value) answers 400 `validation`
+ * and the response carries `version` alone. `/catalog/search` is its own controller
  * base, so it does not clash with `/catalog/assets`.
  *
  * | Method | Path | Body / query | Success |
@@ -54,6 +55,7 @@
  * | GET | /runs | ListRunsQuery | 200 RunIndexPageView |
  * | POST | /runs | CreateRunRequest | 201 RunDraftResponse |
  * | GET | /runs/:runId | - | 200 RunStateResponse |
+ * | DELETE | /runs/:runId | - | 200 RunDeleteResponse, 409 `run-not-deletable` while a watcher owns it |
  * | POST | /runs/:runId/start | - | 200 RunDraftResponse |
  * | GET | /runs/:runId/events | RunEventsQuery | 200 RunEventsResponse |
  * | GET | /runs/:runId/artifact | RunArtifactQuery, optional Range | 200/206 bytes |
@@ -77,7 +79,6 @@
  * | DELETE | /runs/:runId/publications/:publicationId | - | 200 RemovePublicationResponse, 409 with snapshots (R3) |
  * | PUT | /runs/:runId/publications/:publicationId/metrics/:asOfDate | SaveMetricSnapshotRequest | 200 MetricSnapshotView, source `form` (R3) |
  * | POST | /metrics/imports | multipart MetricImportFields + `file`; MetricImportQuery | 200 MetricImportReport (R3) |
- * | GET | /metrics/imports | ListMetricImportsQuery | 200 MetricImportPageView (R3) |
  * | GET | /schedules | - | 200 ScheduleListView, never `deleted` (R3) |
  * | POST | /schedules | CreateScheduleRequest | 201 ScheduleView (R3) |
  * | GET | /schedules/:scheduleId | - | 200 ScheduleView (R3) |
@@ -175,7 +176,7 @@ export const apiRouteSegments = {
   publications: 'publications',
   /** R3 (rev 5): segment of the form metrics route, after `publications/:publicationId`. */
   metrics: 'metrics',
-  /** R3 (rev 5): controller base of `POST` and `GET /metrics/imports`. */
+  /** R3 (rev 5): controller base of `POST /metrics/imports`. */
   metricImports: 'metrics/imports',
   /** R3 (rev 5): controller base of the schedule routes. */
   schedules: 'schedules',

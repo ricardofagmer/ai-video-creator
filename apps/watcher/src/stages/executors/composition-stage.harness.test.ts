@@ -11,23 +11,10 @@ import { CqrsModule, QueryBus, QueryHandler, type IQueryHandler } from '@nestjs/
 import { type z } from 'zod';
 import { type FolderFileSource, type FolderVersionSource } from '@studio/core/asset-store';
 import { GetAssetVersionQuery } from '@studio/core/catalog';
-import {
-  HyperframesChromeMissingError,
-  HyperframesPinMismatchError,
-  HyperframesSandboxUnavailableError,
-  type ChromeMissingDetail,
-  type RecordedChromeBinary,
-} from '@studio/hyperframes';
+import { type CheckedRenderRuntime, type RenderRuntimeAnswer } from '@studio/hyperframes';
 import { type AgentsPort, type ScenesOutput, type ScriptOutput } from '@studio/shared/agents';
 import { type AssetVersion, type JsonObject, type TemplateDetails } from '@studio/shared/catalog';
-import {
-  HYPERFRAMES_CHROME_VERSION,
-  HYPERFRAMES_FORMAT_VERSION,
-  HYPERFRAMES_PIN,
-  hyperframesPaths,
-  type HyperframesEngineFiles,
-  type HyperframesTraceFile,
-} from '@studio/shared/hyperframes';
+import { hyperframesPaths, type HyperframesRefusalReason } from '@studio/shared/hyperframes';
 import type {
   AssetResolverPort,
   CostLedgerPort,
@@ -46,7 +33,7 @@ import type {
 import { readRunFile, resolveInsideRun } from '@studio/shared/run-files';
 import { type Activity, type ProviderName, type StageInput, type StageLocation } from '@studio/shared/run-format';
 import { RunManifestBuilder } from '../../adapters/manifest/run-manifest.builder';
-import { type HyperframesStagePorts, type RealFolder } from '../composition/hyperframes-stage.ports';
+import { type EngineRuntimeSettings, type HyperframesStagePorts } from '../composition/hyperframes-stage.ports';
 import { ToolRunner, type ToolRunOutcome } from '../process/tool-runner.client';
 import { type RunnerErrorKind, type ToolRunnerRequest } from '../process/tool-runner.protocol';
 import { CatalogLookup } from '../shared/catalog-lookup';
@@ -59,8 +46,8 @@ import { CompositionExecutor } from './composition.executor';
  * runs against an `fs.mkdtemp` world: a run folder with the narration, script and scenes inputs,
  * a scratch root, a template folder and a data home root with no `hyperframes/` folder. Doubles sit
  * at the boundaries only: the tool runner (records every request, writes a fake output, never
- * starts a process), the HyperFrames stage ports (record every call; never the real pinned
- * package, the sandbox tool or the owner's home), the cost ledger, the provider modes, the clock
+ * starts a process), the HyperFrames stage ports (record every call and answer the render runtime
+ * gate as scripted; the gate's own checks are tested in `@studio/hyperframes`), the cost ledger, the provider modes, the clock
  * and SQLite (a real CQRS bus whose one query handler answers the catalog rows). Nest's logger is
  * captured for the K12 sentinel assertions (AC 81).
  */
@@ -75,10 +62,9 @@ export const BRAND_KIT_REF = 'studio-brand@1';
 export const BRAND_ACCENT = '#123abc';
 export const FAKE_BIN_PATH = '/opt/studio-test/node_modules/hyperframes/bin/hyperframes.mjs';
 export const FAKE_PROFILE = { path: '/opt/studio-test/sandbox/render.sb', sha256: 'b'.repeat(64) };
-/** SPEC 0008 section 17.5 (rev 2): the monorepo root and the folder the fake resolves ffmpeg and ffprobe in. */
+/** SPEC 0008 section 17.5 (rev 2): the monorepo root and the folder the fake runtime names ffmpeg and ffprobe in. */
 export const FAKE_STUDIO_ROOT = '/opt/studio-test';
 export const FAKE_TOOLS_DIR = '/opt/studio-test/tools';
-export const CHROME_SHA256 = 'a'.repeat(64);
 export const RENDER_SECONDS = 12.5;
 export const PRICE_PER_RENDER_SECOND = 0.01;
 export const NARRATION_AUDIO_PATH = 'stages/07-narration/narration.wav';
@@ -187,44 +173,30 @@ export function chromeExecutablePath(dataHomeRoot: string): string {
   return `${hyperframesPaths(dataHomeRoot).cacheDir}/chrome/headless-binary`;
 }
 
-export function readyTrace(): HyperframesTraceFile {
+/**
+ * The runtime a ready gate answers for this data home and these settings: every path already real,
+ * so the request's paths equal the harness's own folders.
+ */
+export function readyRenderRuntime(dataHomeRoot: string, settings: EngineRuntimeSettings): CheckedRenderRuntime {
+  const paths = hyperframesPaths(dataHomeRoot);
+  const ownerHomeDir = settings.home ?? '/opt/studio-test/owner-home';
   return {
-    format: HYPERFRAMES_FORMAT_VERSION,
-    result: 'pass',
-    at: '2026-11-20T10:00:00.000Z',
-    by: 'owner',
-    pin: HYPERFRAMES_PIN,
-    chromeSha256: CHROME_SHA256,
-    profileSha256: FAKE_PROFILE.sha256,
-    templateContentHash: 'e'.repeat(64),
-    controlDenied: true,
-    renderExitCode: 0,
-    outputOk: true,
-    deniedNetwork: 0,
-    ownerConfigDirDenied: 0,
-    findings: [],
-  };
-}
-
-/** Every gate file present and consistent with the fake pin, Chrome hash and profile hash. */
-export function readyEngineFiles(dataHomeRoot: string): HyperframesEngineFiles {
-  return {
-    engine: { status: 'present', value: { format: HYPERFRAMES_FORMAT_VERSION, state: 'enabled', updatedAt: '2026-11-20T10:05:00.000Z', updatedBy: 'owner' } },
-    chrome: {
-      status: 'present',
-      value: {
-        format: HYPERFRAMES_FORMAT_VERSION,
-        version: HYPERFRAMES_CHROME_VERSION,
-        executablePath: chromeExecutablePath(dataHomeRoot),
-        sha256: CHROME_SHA256,
-        sizeBytes: 195_000_000,
-        installedAt: '2026-11-20T09:00:00.000Z',
-        installedBy: 'owner',
-      },
-    },
-    chromeBinaryPresent: true,
-    configSeeded: true,
-    trace: { status: 'present', value: readyTrace() },
+    binPath: FAKE_BIN_PATH,
+    browserPath: chromeExecutablePath(dataHomeRoot),
+    configDir: paths.configDir,
+    cacheDir: paths.cacheDir,
+    homeDir: paths.homeDir,
+    sandboxProfilePath: FAKE_PROFILE.path,
+    ownerConfigDir: join(ownerHomeDir, '.hyperframes'),
+    ownerHomeDir,
+    studioRoot: FAKE_STUDIO_ROOT,
+    dataHomeRoot,
+    hyperframesRoot: paths.root,
+    chromeDir: join(paths.cacheDir, 'chrome'),
+    ffmpegBin: join(FAKE_TOOLS_DIR, settings.ffmpegPath),
+    ffprobeBin: join(FAKE_TOOLS_DIR, settings.ffprobePath),
+    apiPort: settings.studioPorts.api,
+    webPort: settings.studioPorts.web,
   };
 }
 
@@ -343,91 +315,28 @@ async function listFolder(folder: string): Promise<FolderFileSource[]> {
   return files;
 }
 
-/** The SPEC 0008 stage ports with every member answered in memory and every call recorded. */
+/** The SPEC 0008 stage ports with both members answered in memory and every call recorded. */
 export class RecordingHyperframesPorts implements HyperframesStagePorts {
   readonly calls: string[] = [];
-  engineFiles: (dataHomeRoot: string) => Promise<HyperframesEngineFiles> = async (dataHomeRoot) => readyEngineFiles(dataHomeRoot);
-  pinMismatch = false;
-  sandboxToolPresent = true;
-  profileUnreadable = false;
+  /** The settings of every `renderRuntime` call, in order. */
+  readonly runtimeSettings: EngineRuntimeSettings[] = [];
+  /** When set, the render runtime gate refuses with this reason instead of answering a ready runtime. */
+  refusal: HyperframesRefusalReason | null = null;
   /** Changes the folder listing (the manifest the copy is checked against) before it is returned. */
   listingEdit: (files: FolderFileSource[]) => FolderFileSource[] = (files) => files;
-  /** SPEC 0008 section 17.6: when set, `verifyChromeBinary` refuses the recorded binary with this detail. */
-  chromeVerifyFailure: ChromeMissingDetail | null = null;
-  /** The arguments of every `verifyChromeBinary` call, in order. */
-  readonly chromeVerifications: { recorded: RecordedChromeBinary; cacheDir: string }[] = [];
-  /** Section 17.5: settings values (bare names or absolute paths) `resolveExecutable` finds nothing for. */
-  readonly unresolvableExecutables = new Set<string>();
-  /** Section 18.5: the real path `resolveExecutable` answers for a settings value, when scripted. */
-  readonly resolvedExecutables = new Map<string, string>();
-  /** Section 17.5: folders `realFolder` answers as `missing`. */
-  readonly missingFolders = new Set<string>();
-  /** Section 18.5: folders whose real path is elsewhere (a symlink), keyed by the requested path. */
-  readonly redirectedFolders = new Map<string, string>();
 
   constructor(readonly dataHomeRoot: string) {}
 
-  async readEngineFiles(dataHomeRoot: string): Promise<HyperframesEngineFiles> {
-    this.calls.push('readEngineFiles');
-    return this.engineFiles(dataHomeRoot);
-  }
-
-  pinnedBinPath(): string {
-    this.calls.push('pinnedBinPath');
-    if (this.pinMismatch) throw new HyperframesPinMismatchError('other-version');
-    return FAKE_BIN_PATH;
-  }
-
-  sandboxProfile(): { path: string; sha256: string } {
-    this.calls.push('sandboxProfile');
-    if (this.profileUnreadable) throw Object.assign(new Error('sandbox profile unreadable'), { code: 'ENOENT' });
-    return { ...FAKE_PROFILE };
-  }
-
-  sandboxExecExists(): boolean {
-    this.calls.push('sandboxExecExists');
-    return this.sandboxToolPresent;
+  async renderRuntime(settings: EngineRuntimeSettings): Promise<RenderRuntimeAnswer<CheckedRenderRuntime>> {
+    this.calls.push('renderRuntime');
+    this.runtimeSettings.push(settings);
+    if (this.refusal !== null) return { status: 'refused', reason: this.refusal };
+    return { status: 'ready', runtime: readyRenderRuntime(this.dataHomeRoot, settings) };
   }
 
   async listTemplateFiles(source: FolderVersionSource): Promise<FolderFileSource[]> {
     this.calls.push('listTemplateFiles');
     return this.listingEdit(await listFolder(source.absolutePath));
-  }
-
-  /*
-   * SPEC 0008 sections 17.5 and 17.6 (rev 2): the Chrome re-hash and the real-path resolution.
-   * In memory: by default Chrome matches `chrome.json` and every path is already real, so the
-   * request's paths equal the harness's own folders. `chromeVerifyFailure`,
-   * `unresolvableExecutables` and `missingFolders` script the refusals.
-   */
-  async verifyChromeBinary(recorded: RecordedChromeBinary, options: { cacheDir: string }): Promise<void> {
-    this.calls.push('verifyChromeBinary');
-    this.chromeVerifications.push({ recorded, cacheDir: options.cacheDir });
-    if (this.chromeVerifyFailure !== null) throw new HyperframesChromeMissingError(this.chromeVerifyFailure);
-  }
-
-  async resolveExecutable(nameOrPath: string): Promise<string> {
-    if (this.unresolvableExecutables.has(nameOrPath)) throw new HyperframesSandboxUnavailableError();
-    const scripted = this.resolvedExecutables.get(nameOrPath);
-    if (scripted !== undefined) return scripted;
-    return nameOrPath.startsWith('/') ? nameOrPath : join(FAKE_TOOLS_DIR, nameOrPath);
-  }
-
-  async realPathOfExistingPrefix(path: string): Promise<string> {
-    return path;
-  }
-
-  async realPath(path: string): Promise<string> {
-    return path;
-  }
-
-  async realFolder(path: string): Promise<RealFolder> {
-    if (this.missingFolders.has(path)) return { status: 'missing' };
-    return { status: 'present', realPath: this.redirectedFolders.get(path) ?? path };
-  }
-
-  studioRoot(): string {
-    return FAKE_STUDIO_ROOT;
   }
 }
 
@@ -585,8 +494,6 @@ export interface CompositionHarnessOptions {
   /** Folder names under the temp root; tests put sentinel strings in them (AC 81). */
   scratchDirName?: string;
   dataHomeDirName?: string;
-  /** The studio ports in the stage settings (default api 4311, web 4310; SPEC 0008 section 17.5). */
-  studioPorts?: StageSettings['studioPorts'];
 }
 
 export interface CompositionHarness {
@@ -687,7 +594,7 @@ export async function createCompositionHarness(options: CompositionHarnessOption
     ytDlpPath: 'yt-dlp',
     localVoice: null,
     elevenLabs: { voiceId: null, modelId: 'eleven_multilingual_v2' },
-    studioPorts: options.studioPorts ?? { api: 4311, web: 4310 },
+    studioPorts: { api: 4311, web: 4310 },
   };
   const runner = new RecordingToolRunner(settings);
   const ports = new RecordingHyperframesPorts(dataHomeRoot);

@@ -13,6 +13,7 @@ import { ImageLinkBox } from '@/features/catalog/components/ImageLinkBox';
 import { NewPromptForm, type PromptEditing } from '@/features/catalog/components/NewPromptForm';
 import { PurposeBackfillButton } from '@/features/catalog/components/PurposeBackfillButton';
 import { PROMPT_EDIT_PARAM, addHrefOf } from '@/features/catalog/catalog-edit-href';
+import { listedAssetStatuses } from '@/features/catalog/discontinue-asset';
 import { SiteLinkBox } from '@/features/catalog/components/SiteLinkBox';
 import { catalogGroupLabel, countCatalogKinds, groupCatalogVersions, type CatalogKindCounts } from '@/features/catalog/catalog-groups';
 import {
@@ -31,6 +32,7 @@ import { TEMPLATE_CATEGORY_PANEL_ID } from '@/features/catalog/template-categori
 import { videoLinkFrom, type VideoLink } from '@/features/catalog/video-link';
 import { SkillsCatalogPanel } from '@/features/skills/components/SkillsCatalogPanel';
 import { skillCategoryFrom } from '@/features/skills/skill-categories';
+import { SKILL_SEARCH_PARAM, skillSearchFrom } from '@/features/skills/skill-list';
 import {
   CUSTOM_CATEGORIES_COOKIE,
   customCategoriesFromCookie,
@@ -80,7 +82,8 @@ async function loadLexicalCatalog(filters: CatalogFilters): Promise<LexicalCatal
   const client = serverStudioClient();
   const query: AssetSearchParams = {
     text: filters.text === '' ? undefined : filters.text,
-    statuses: filters.status === null ? undefined : [filters.status],
+    // No picked status hides deprecated versions, so a deleted item leaves the list (see `discontinueAsset`).
+    statuses: filters.status === null ? listedAssetStatuses : [filters.status],
     // The owner's view lists biometric rows too, by path and hash only (PRD 12).
     sensitivity: 'any',
     sort: filters.sort === 'quality' ? 'quality' : undefined,
@@ -202,7 +205,7 @@ async function LexicalCatalog({
           byScore={byScore}
           t={t.catalog}
           locale={locale}
-          // Images read as a picture library: small tiles under their category (logo, still, background…).
+          // Images read as a picture library: small tiles under their `cat.*` category tag, No category last.
           appearance={filters.section === 'images' ? 'library' : 'cards'}
         />
       )}
@@ -279,7 +282,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
   // Each mode puts the mode switch right under its own search input.
   const content = skillsTab ? (
-    <SkillsCatalogPanel category={skillCategoryFrom(typeof parameters.categoria === 'string' ? parameters.categoria : undefined)} savedAssetId={savedAssetId} />
+    <SkillsCatalogPanel
+      category={skillCategoryFrom(typeof parameters.categoria === 'string' ? parameters.categoria : undefined)}
+      savedAssetId={savedAssetId}
+      search={skillSearchFrom(parameters[SKILL_SEARCH_PARAM])}
+    />
   ) : lexical === null ? (
       <SemanticSearchPanel
         status={indexStatus}

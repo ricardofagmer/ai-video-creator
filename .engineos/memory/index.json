@@ -1,43 +1,43 @@
 {
-  "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+  "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
   "conventions": [
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "id": "colocated-tests",
       "source": "apps/api/src/__tests__/authorization.test.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "id": "eslint",
       "source": "apps/api/eslint.config.mjs"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "id": "github-actions",
       "source": ".github/workflows/ci.yml"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "id": "nestjs-modules",
       "source": "apps/api/src/app.module.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "id": "pnpm-workspace",
       "source": "pnpm-workspace.yaml"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "id": "prisma",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "id": "turborepo",
       "source": "turbo.json"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "id": "typescript",
       "source": "apps/api/tsconfig.build.json"
     }
@@ -93,7 +93,7 @@
       "source": "apps/portal/.env.example"
     }
   ],
-  "generatedAt": "2026-11-24T14:07:18.249Z",
+  "generatedAt": "2026-11-25T20:05:04.511Z",
   "models": [
     {
       "commit": "ecbdc4c2d628e3e00516ffc0ce31af7feb20ffeb",
@@ -150,115 +150,127 @@
       "source": "packages/core/prisma/migrations/20261123180000_asset_job_cost_source/migration.sql"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
+      "kind": "migration",
+      "name": "migration",
+      "source": "packages/core/prisma/migrations/20261125120000_music_cost_kind/migration.sql"
+    },
+    {
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
+      "kind": "migration",
+      "name": "migration",
+      "source": "packages/core/prisma/migrations/20261125130000_asset_purpose/migration.sql"
+    },
+    {
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "Asset",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "AssetLearningNote",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "AssetVersion",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "Comparison",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "CostEntry",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "CurationDecision",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "InstallPairCode",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "InstallToken",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "MetricImport",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "PlatformMetricSnapshot",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "PromotionApproval",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "PublicationAttempt",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "Recipe",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "RecipeVersion",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "RunIndexEntry",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "RunOutcome",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "RunOutcomeAsset",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "RunPublication",
       "source": "packages/core/prisma/schema.prisma"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "kind": "schema",
       "name": "Setting",
       "source": "packages/core/prisma/schema.prisma"
@@ -284,7 +296,7 @@
       "source": "apps/api/src/auth"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/api/src/catalog",
       "purpose": "",
       "source": "apps/api/src/catalog"
@@ -356,7 +368,7 @@
       "source": "apps/api/src/recipes"
     },
     {
-      "commit": "56e091a50f7a2447562ed4d1726e69fd16c6c9ae",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/api/src/runs",
       "purpose": "",
       "source": "apps/api/src/runs"
@@ -512,7 +524,7 @@
       "source": "apps/watcher/src/adapters"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/watcher/src/asset-jobs",
       "purpose": "",
       "source": "apps/watcher/src/asset-jobs"
@@ -524,7 +536,7 @@
       "source": "apps/watcher/src/curation"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/watcher/src/daemon",
       "purpose": "Error taxonomy category (rules/observability.md), as in `engine.errors.ts`.",
       "source": "apps/watcher/src/daemon/daemon.errors.ts"
@@ -536,7 +548,7 @@
       "source": "apps/watcher/src/dev"
     },
     {
-      "commit": "bffdab4ad0d42c10e431b03d578924613765b77c",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/watcher/src/engine",
       "purpose": "Injected time source (rules/architecture.md: inject the clock), so tests can fix instants.",
       "source": "apps/watcher/src/engine/clock.ts"
@@ -566,19 +578,19 @@
       "source": "apps/watcher/src/platforms"
     },
     {
-      "commit": "4cfccad2ff8daa5fb0456c1a4e13617fd34f9e3f",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/watcher/src/schedules",
       "purpose": "",
       "source": "apps/watcher/src/schedules"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/watcher/src/stages",
       "purpose": "",
       "source": "apps/watcher/src/stages"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/watcher/src/test-support",
       "purpose": "Process identity stub of SPEC 2026-11-21-r1-r2-curator-coverage section 8.2 (rev 1).",
       "source": "apps/watcher/src/test-support/process-identity.ts"
@@ -602,19 +614,19 @@
       "source": "apps/web/src/lib"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "apps/web/src/messages",
       "purpose": "",
       "source": "apps/web/src/messages"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "design",
       "purpose": "Referência de design do EngineOS Video Creator",
       "source": "design/README.md"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "docs",
       "purpose": "",
       "source": "docs"
@@ -626,13 +638,13 @@
       "source": "packages"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/core/src/agents",
       "purpose": "",
       "source": "packages/core/src/agents"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/core/src/asset-jobs",
       "purpose": "",
       "source": "packages/core/src/asset-jobs"
@@ -644,7 +656,7 @@
       "source": "packages/core/src/asset-store/asset-store.errors.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/core/src/catalog",
       "purpose": "",
       "source": "packages/core/src/catalog"
@@ -656,7 +668,7 @@
       "source": "packages/core/src/comparisons"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/core/src/costs",
       "purpose": "",
       "source": "packages/core/src/costs"
@@ -728,7 +740,7 @@
       "source": "packages/core/src/promotion"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/core/src/providers",
       "purpose": "",
       "source": "packages/core/src/providers"
@@ -752,13 +764,13 @@
       "source": "packages/core/src/redaction"
     },
     {
-      "commit": "bffdab4ad0d42c10e431b03d578924613765b77c",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/core/src/review",
       "purpose": "",
       "source": "packages/core/src/review"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/core/src/runs",
       "purpose": "",
       "source": "packages/core/src/runs"
@@ -800,25 +812,25 @@
       "source": "packages/shared/src/ace"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/agents",
       "purpose": "",
       "source": "packages/shared/src/agents"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/api",
       "purpose": "",
       "source": "packages/shared/src/api"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/asset-jobs",
       "purpose": "Browser-safe asset job contracts; the node-only file helpers are `@studio/shared/asset-jobs/files`.",
       "source": "packages/shared/src/asset-jobs/index.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/catalog",
       "purpose": "",
       "source": "packages/shared/src/catalog"
@@ -836,7 +848,7 @@
       "source": "packages/shared/src/curation/index.ts"
     },
     {
-      "commit": "ffe93b22fe559e08b54897755764b2c264ce77da",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/hyperframes",
       "purpose": "HyperFrames protocol (SPEC 0008 sections 4.2 to 4.5 and 5.3, `@studio/shared/hyperframes`): constants, the three file schemas of `<data home>/hyperframes/`,...",
       "source": "packages/shared/src/hyperframes/index.ts"
@@ -854,25 +866,25 @@
       "source": "packages/shared/src/platforms/index.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/ports",
       "purpose": "",
       "source": "packages/shared/src/ports"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/recipes",
       "purpose": "",
       "source": "packages/shared/src/recipes"
     },
     {
-      "commit": "bffdab4ad0d42c10e431b03d578924613765b77c",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/run-files",
       "purpose": "",
       "source": "packages/shared/src/run-files"
     },
     {
-      "commit": "bffdab4ad0d42c10e431b03d578924613765b77c",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/shared/src/run-format",
       "purpose": "",
       "source": "packages/shared/src/run-format"
@@ -980,7 +992,7 @@
       "source": "packages/ui/src/i18n/locale.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/ui/src/styles",
       "purpose": "",
       "source": "packages/ui/src/styles"
@@ -1010,7 +1022,7 @@
       "source": "packages/video/src/hooks"
     },
     {
-      "commit": "bffdab4ad0d42c10e431b03d578924613765b77c",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "packages/video/src/render",
       "purpose": "",
       "source": "packages/video/src/render"
@@ -1034,7 +1046,7 @@
       "source": "scripts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "seeds",
       "purpose": "Seed input",
       "source": "seeds/README.md"
@@ -1058,7 +1070,7 @@
       "source": "tools/cli/src/catalog"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "tools/cli/src/commands",
       "purpose": "",
       "source": "tools/cli/src/commands"
@@ -1082,7 +1094,7 @@
       "source": "tools/cli/src/errors"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "path": "tools/cli/src/hyperframes",
       "purpose": "",
       "source": "tools/cli/src/hyperframes"
@@ -1200,7 +1212,7 @@
         "test": "turbo run test",
         "typecheck": "turbo run typecheck"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": ".",
       "entryPoints": [],
       "framework": null,
@@ -1219,7 +1231,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "apps/api",
       "entryPoints": [
         "apps/api/src/main.ts"
@@ -1246,7 +1258,7 @@
         "lint": "eslint .",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "apps/portal",
       "entryPoints": [
         "apps/portal/src/app/layout.tsx",
@@ -1266,7 +1278,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "apps/shell",
       "entryPoints": [
         "apps/shell/dist/main.js",
@@ -1295,7 +1307,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "apps/watcher",
       "entryPoints": [
         "apps/watcher/src/main.ts"
@@ -1331,7 +1343,7 @@
         "start": "next start -H 127.0.0.1 -p ${ENGINEOS_VIDEO_CREATOR_WEB_PORT:-4310}",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "apps/web",
       "entryPoints": [
         "apps/web/src/app/layout.tsx",
@@ -1354,7 +1366,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "packages/core",
       "entryPoints": [],
       "framework": "nestjs",
@@ -1400,7 +1412,7 @@
     },
     {
       "commands": {},
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "packages/eslint-config",
       "entryPoints": [],
       "framework": null,
@@ -1413,7 +1425,7 @@
         "build": "tsc -p tsconfig.build.json",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "packages/hyperframes",
       "entryPoints": [
         "packages/hyperframes/dist/index.js",
@@ -1431,7 +1443,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "packages/shared",
       "entryPoints": [],
       "framework": null,
@@ -1460,7 +1472,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "packages/toolbox",
       "entryPoints": [
         "packages/toolbox/dist/cli.js",
@@ -1475,7 +1487,7 @@
     },
     {
       "commands": {},
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "packages/tsconfig",
       "entryPoints": [],
       "framework": null,
@@ -1489,7 +1501,7 @@
         "lint": "eslint .",
         "typecheck": "tsc --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "packages/ui",
       "entryPoints": [
         "packages/ui/src/index.ts"
@@ -1505,7 +1517,7 @@
         "studio": "remotion studio src/index.ts",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "packages/video",
       "entryPoints": [
         "packages/video/dist/render/index.js",
@@ -1523,7 +1535,7 @@
         "test": "node --import tsx --test \"src/**/*.test.ts\"",
         "typecheck": "tsc -p tsconfig.json --noEmit"
       },
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "dir": "tools/cli",
       "entryPoints": [
         "tools/cli/dist/main.js",
@@ -1550,7 +1562,7 @@
   ],
   "routes": [
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "GET",
       "path": "/",
       "source": "apps/api/src/catalog/catalog.controller.ts"
@@ -1628,7 +1640,7 @@
       "source": "apps/web/src/app/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "POST",
       "path": "/",
       "source": "apps/api/src/catalog/catalog.controller.ts"
@@ -1676,43 +1688,61 @@
       "source": "apps/api/src/search/search.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
+      "method": "GET",
+      "path": "/${templatePreviewPath}/${apiRouteSegments.templatePreviewClip}",
+      "source": "apps/api/src/catalog/asset-jobs.controller.ts"
+    },
+    {
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
+      "method": "GET",
+      "path": "/${templatePreviewPath}/${apiRouteSegments.templatePreviewPoster}",
+      "source": "apps/api/src/catalog/asset-jobs.controller.ts"
+    },
+    {
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "GET",
       "path": "/${voiceSamplePath}/${apiRouteSegments.voiceSampleAudio}",
       "source": "apps/api/src/catalog/asset-jobs.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "GET",
       "path": "/:assetId/versions",
       "source": "apps/api/src/catalog/catalog.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "POST",
       "path": "/:assetId/versions",
       "source": "apps/api/src/catalog/catalog.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "POST",
       "path": "/:assetId/versions/${apiRouteSegments.byReference}",
       "source": "apps/api/src/catalog/catalog.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "GET",
       "path": "/:assetId/versions/:version",
       "source": "apps/api/src/catalog/catalog.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
+      "method": "GET",
+      "path": "/:assetId/versions/:version/${apiRouteSegments.audio}",
+      "source": "apps/api/src/catalog/catalog.controller.ts"
+    },
+    {
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "GET",
       "path": "/:assetId/versions/:version/${apiRouteSegments.entryFile}",
       "source": "apps/api/src/catalog/catalog.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "GET",
       "path": "/:assetId/versions/:version/${apiRouteSegments.image}",
       "source": "apps/api/src/catalog/catalog.controller.ts"
@@ -1730,13 +1760,13 @@
       "source": "apps/api/src/catalog/catalog-version-decisions.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PUT",
       "path": "/:assetId/versions/:version/status",
       "source": "apps/api/src/catalog/catalog.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "POST",
       "path": "/:assetId/versions/from-previous",
       "source": "apps/api/src/catalog/catalog.controller.ts"
@@ -1874,7 +1904,7 @@
       "source": "apps/api/src/runs/runs.controller.ts"
     },
     {
-      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "POST",
       "path": "/:runId/control",
       "source": "apps/api/src/runs/run-decisions.controller.ts"
@@ -1886,21 +1916,27 @@
       "source": "apps/api/src/runs/runs.controller.ts"
     },
     {
-      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "POST",
       "path": "/:runId/gate-decisions",
       "source": "apps/api/src/runs/run-decisions.controller.ts"
     },
     {
-      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "POST",
       "path": "/:runId/promote",
       "source": "apps/api/src/runs/run-decisions.controller.ts"
     },
     {
-      "commit": "0c424e522368eefeeb9756efbc5af84c6efea492",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "POST",
       "path": "/:runId/review",
+      "source": "apps/api/src/runs/run-decisions.controller.ts"
+    },
+    {
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
+      "method": "POST",
+      "path": "/:runId/save-video",
       "source": "apps/api/src/runs/run-decisions.controller.ts"
     },
     {
@@ -1922,16 +1958,22 @@
       "source": "apps/api/src/schedules/schedules.controller.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/agendamentos",
       "source": "apps/web/src/app/(studio)/agendamentos/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/agendamentos/[scheduleId]",
       "source": "apps/web/src/app/(studio)/agendamentos/[scheduleId]/page.tsx"
+    },
+    {
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
+      "method": "GET",
+      "path": "/api/enquadramento",
+      "source": "apps/web/src/app/api/enquadramento/route.ts"
     },
     {
       "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
@@ -1976,7 +2018,7 @@
       "source": "apps/web/src/app/(studio)/catalogo/@modal/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/catalogo",
       "source": "apps/web/src/app/(studio)/catalogo/page.tsx"
@@ -2012,43 +2054,43 @@
       "source": "apps/web/src/app/(studio)/catalogo/novo/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/comparacoes",
       "source": "apps/web/src/app/(studio)/comparacoes/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/comparacoes/[comparisonId]",
       "source": "apps/web/src/app/(studio)/comparacoes/[comparisonId]/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/comparacoes/nova",
       "source": "apps/web/src/app/(studio)/comparacoes/nova/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/contas",
       "source": "apps/web/src/app/(studio)/contas/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/criar",
       "source": "apps/web/src/app/(studio)/criar/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/curadorias/[curationId]",
       "source": "apps/web/src/app/(studio)/curadorias/[curationId]/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/execucoes",
       "source": "apps/web/src/app/(studio)/execucoes/page.tsx"
@@ -2060,19 +2102,19 @@
       "source": "apps/web/src/app/(studio)/execucoes/[runId]/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/execucoes/[runId]/revisao",
       "source": "apps/web/src/app/(studio)/execucoes/[runId]/revisao/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/execucoes/nova",
       "source": "apps/web/src/app/(studio)/execucoes/nova/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/indicadores",
       "source": "apps/web/src/app/(studio)/indicadores/page.tsx"
@@ -2090,25 +2132,25 @@
       "source": "apps/web/src/app/login/dev/route.ts"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/metricas/importar",
       "source": "apps/web/src/app/(studio)/metricas/importar/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/receitas",
       "source": "apps/web/src/app/(studio)/receitas/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/receitas/[recipeId]",
       "source": "apps/web/src/app/(studio)/receitas/[recipeId]/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/receitas/nova",
       "source": "apps/web/src/app/(studio)/receitas/nova/page.tsx"
@@ -2120,7 +2162,7 @@
       "source": "apps/web/src/app/(studio)/skills/@modal/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/skills",
       "source": "apps/web/src/app/(studio)/skills/page.tsx"
@@ -2150,7 +2192,7 @@
       "source": "apps/web/src/app/(studio)/skills/[assetId]/editar/page.tsx"
     },
     {
-      "commit": "66c663bd3ede48b778b24eac0a7c747b74eed13a",
+      "commit": "6ebb6b7ffcf4eb1a763b5b883e13efb99870e24d",
       "method": "PAGE",
       "path": "/skills/novo",
       "source": "apps/web/src/app/(studio)/skills/novo/page.tsx"

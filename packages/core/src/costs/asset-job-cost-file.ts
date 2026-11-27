@@ -1,4 +1,3 @@
-import { isDeepStrictEqual } from 'node:util';
 import {
   ASSET_JOB_COST_FORMAT_VERSION,
   ASSET_JOB_COST_SESSIONS_MAX,
@@ -8,6 +7,7 @@ import {
   type AssetJobKind,
 } from '@studio/shared/asset-jobs';
 import { type AssetRef } from '@studio/shared/catalog';
+import { appendSessionToFile, type AppendSessionResult } from './cost-file-append';
 import { AssetJobCostFileMismatchError, AssetJobCostSessionsFullError, CostSessionConflictError } from './costs.errors';
 
 export interface AppendAssetJobCostSessionInput {
@@ -20,16 +20,11 @@ export interface AppendAssetJobCostSessionInput {
   now: Date;
 }
 
-export type AppendAssetJobCostSessionResult =
-  | { outcome: 'appended'; file: AssetJobCostFile }
-  /** The identical session was already in the file: recording is idempotent. */
-  | { outcome: 'already-recorded'; file: AssetJobCostFile };
+export type AppendAssetJobCostSessionResult = AppendSessionResult<AssetJobCostFile>;
 
 /**
- * Pure: the next asset job cost.json content (spec Amendment 3). Mirrors
- * `appendCurationCostSession`: `totalUsd` is recomputed from every session, a repeated identical
- * session is a no-op and the same `sessionId` with other values is a conflict. Unlike a curation, the
- * file outlives app updates, so each session keeps the table version that priced it and a table
+ * Pure: the next asset job cost.json content (spec Amendment 3). Unlike a curation, the file
+ * outlives app updates, so each session keeps the table version that priced it and a table
  * upgrade never stops recording. Past `ASSET_JOB_COST_SESSIONS_MAX` the session is refused
  * rather than dropped, so spend is never lost silently.
  */
@@ -39,18 +34,15 @@ export function appendAssetJobCostSession(input: AppendAssetJobCostSessionInput)
     throw new AssetJobCostFileMismatchError(kind, ref);
   }
 
-  const previous = existing?.sessions ?? [];
-  const sameKey = previous.find((recorded) => recorded.sessionId === session.sessionId);
-  if (sameKey !== undefined && existing !== null) {
-    if (isDeepStrictEqual(sameKey, session)) return { outcome: 'already-recorded', file: existing };
-    throw new CostSessionConflictError(ref, session.sessionId, 1);
-  }
-  if (previous.length >= ASSET_JOB_COST_SESSIONS_MAX) throw new AssetJobCostSessionsFullError(kind, ref);
-
-  const sessions = [...previous, session];
-  return {
-    outcome: 'appended',
-    file: {
+  return appendSessionToFile<AssetJobCostSession, AssetJobCostFile>({
+    existing,
+    session,
+    hasSameKey: (recorded) => recorded.sessionId === session.sessionId,
+    conflictError: () => new CostSessionConflictError(ref, session.sessionId, 1),
+    assertAppendable: (previous) => {
+      if (previous.length >= ASSET_JOB_COST_SESSIONS_MAX) throw new AssetJobCostSessionsFullError(kind, ref);
+    },
+    buildFile: (sessions) => ({
       format: ASSET_JOB_COST_FORMAT_VERSION,
       kind,
       ref,
@@ -59,6 +51,6 @@ export function appendAssetJobCostSession(input: AppendAssetJobCostSessionInput)
       updatedAt: input.now.toISOString(),
       sessions,
       totalUsd: sumAssetJobSessionUsd(sessions),
-    },
-  };
+    }),
+  });
 }

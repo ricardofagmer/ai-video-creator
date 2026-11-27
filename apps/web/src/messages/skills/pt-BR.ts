@@ -1,3 +1,4 @@
+import type { SkillCaseId, SkillCaseTexts } from '@/features/skills/skill-cases';
 import type { SkillCategory } from '@/features/skills/skill-categories';
 
 /** Skills page (docs/specs/2026-11-23-skills-page-design.md). pt-BR is the source of truth for the group's type. */
@@ -33,6 +34,104 @@ export const skillsPtBR = {
     savedNotice: 'Skill salva como rascunho.',
     openSaved: 'Abrir a skill',
     truncated: 'Mostrando as 100 versões mais recentes; skills mais antigas não aparecem aqui.',
+    searchLabel: 'Buscar skills',
+    searchPlaceholder: 'Buscar skills',
+    searchSubmit: 'Buscar',
+    searchClear: 'Limpar busca',
+    searchEmpty: 'Nenhuma skill corresponde a essa busca. Tente uma palavra mais curta.',
+  },
+  cases: {
+    label: 'Caso real',
+    source: (runId: string): string => `Da execução ${runId} (provedores simulados)`,
+    none: 'Ainda não há caso registrado para esta skill.',
+    items: {
+      'fagmer-video-producer': {
+        request: 'Fazer um vídeo de TikTok sobre "Mock smoke test: automate meeting notes".',
+        steps: [
+          'Pesquisou o tema e verificou 2 afirmações em 2 fontes',
+          'Escreveu um roteiro de 192 palavras em 6 cenas no template Automation Blueprint',
+          'Narrou, renderizou e rodou 15 verificações de qualidade (14 passaram)',
+        ],
+        result: 'A execução chegou a Revisão com um vídeo de 81,6 s em 1080x1920; custo de US$ 0.',
+      },
+      'fagmer-video-trend-research': {
+        request: 'Achar um ângulo com fontes para "automate meeting notes".',
+        steps: [
+          'Escolheu o pilar Fluxo de automação',
+          'Definiu o ângulo: transformar a gravação de uma reunião em notas e tarefas sem copiar e colar',
+          'Registrou 2 fontes (fixtures de teste)',
+        ],
+        result: 'research.json gravado; a execução seguiu para a verificação.',
+      },
+      'fagmer-video-fact-check': {
+        request: 'Conferir cada afirmação da pesquisa antes do roteiro.',
+        steps: [
+          'Listou 2 afirmações materiais',
+          'c1: o fluxo publica os itens de ação em um quadro de tarefas',
+          'c2: uma equipe parou de escrever notas à mão',
+        ],
+        result: 'claims.json: 2 de 2 afirmações com evidência; a execução passou a Verificada.',
+      },
+      'fagmer-video-script': {
+        request: 'Escrever o roteiro da execução já verificada.',
+        steps: [
+          'Gancho: "You still write meeting notes by hand?"',
+          'Narração de 192 palavras (faixa de 165 a 205)',
+          'Storyboard de 6 cenas no Automation Blueprint, CTA "Follow for part two"',
+        ],
+        result: 'script.json com o título "Stop writing meeting notes"; execução em Roteirizada.',
+      },
+      'fagmer-video-scene-generator': {
+        request: 'Preparar as cenas que não são captura de tela.',
+        steps: [
+          'Planejou 6 cenas: gancho, visão geral, passo 1, passo 2, resultado e CTA',
+          'Cada cena virou um cartão de título gerado pelo ace',
+          'Registrou origem e licença de cada item',
+        ],
+        result: 'assets.json: 6 itens, todos com licença "original".',
+      },
+      'fagmer-video-voiceover': {
+        request: 'Narrar o roteiro aprovado de 192 palavras.',
+        steps: [
+          'Gerou o áudio (voz simulada nesta execução)',
+          'Marcou o tempo das 192 palavras e das 6 cenas',
+          'Conferiu a duração contra a faixa de 69 a 90 s',
+        ],
+        result: 'narration.json: 80 s de áudio, dentro da faixa.',
+      },
+      'fagmer-video-tiktok-render': {
+        request: 'Renderizar a execução narrada para o TikTok.',
+        steps: [
+          'Renderizou o template Automation Blueprint',
+          'Exportou em 1080x1920 a 30 fps',
+          'Salvou video.mp4 e thumbnail.png',
+        ],
+        result: 'Vídeo de 81,6 s, renderizado em 58 s.',
+      },
+      'fagmer-video-quality-gate': {
+        request: 'Revisar a execução renderizada antes da aprovação humana.',
+        steps: [
+          'Revisão editorial: gancho, veracidade e avisos aprovados',
+          'Marcou o conteúdo visual (só cartões de título)',
+          'Rodou as verificações técnicas: duração, resolução, fps, codecs, silêncio e quadros pretos',
+        ],
+        result: 'qa.json: veredito aprovado, 14 de 15 verificações passaram.',
+      },
+      'fagmer-video-seo-package': {
+        request: 'Escrever título, legenda e hashtags do TikTok para a execução.',
+        steps: [
+          'Título: "Stop writing meeting notes"',
+          'Hashtags: #automation #productivity',
+          'Avisos: voz gerada por IA; teste simulado, não publicar',
+        ],
+        result: 'Pacote de SEO salvo em editorial.json com o CTA "Follow for part two".',
+      },
+    } satisfies Record<SkillCaseId, SkillCaseTexts>,
+  },
+  usage: {
+    runs: (count: number): string => (count === 1 ? 'Usada em 1 execução recente' : `Usada em ${count} execuções recentes`),
+    latest: 'Última:',
+    none: 'Ainda não usada em uma execução recente.',
   },
   form: {
     idLabel: 'Identificador',

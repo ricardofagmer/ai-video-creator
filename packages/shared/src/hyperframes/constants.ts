@@ -53,11 +53,19 @@ export const studioTemplateVariables = {
   scene5StartS: 'number',
   scene6Text: 'string',
   scene6StartS: 'number',
+  scene7Text: 'string',
+  scene7StartS: 'number',
+  scene8Text: 'string',
+  scene8StartS: 'number',
+  scene9Text: 'string',
+  scene9StartS: 'number',
+  scene10Text: 'string',
+  scene10StartS: 'number',
 } as const satisfies Record<string, HyperframesVariableType>;
 export type StudioTemplateVariable = keyof typeof studioTemplateVariables;
 
-/** Scene slots of the vocabulary above (`scene1…` to `scene6…`). */
-export const HYPERFRAMES_SCENE_SLOTS = 6;
+/** Scene slots of the vocabulary above (`scene1…` to `scene10…`). */
+export const HYPERFRAMES_SCENE_SLOTS = 10;
 
 /**
  * The clip a template may play behind its text. The file is not part of the template folder: the

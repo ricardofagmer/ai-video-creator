@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IsoDateSchema, IsoDateTimeSchema, MetricImportIdSchema, PublicationIdSchema, PublishAttemptIdSchema, RunIdSchema } from '../common/ids';
+import { IsoDateSchema, MetricImportIdSchema, PublicationIdSchema, PublishAttemptIdSchema, RunIdSchema } from '../common/ids';
 import { METRIC_HISTORY_SHOWN, metricsBounds, platformVideoIdPatterns } from '../metrics/constants';
 import {
   MetricRowIssueSchema,
@@ -11,7 +11,7 @@ import {
 import { PublicationSchema } from '../metrics/publication';
 import { MetricSnapshotSchema, PlatformMetricsSchema } from '../metrics/snapshot';
 import { PollStopReasonSchema } from '../platforms/enums';
-import { PageLimitQuerySchema, pageOf, type ApiRev5ErrorReason } from './common';
+import { type ApiRev5ErrorReason } from './common';
 
 /*
  * C10 rev 5 metrics routes (SPEC 0006 sections 4.4, 5.1 to 5.3). `recordedBy`, `importedBy` and
@@ -196,38 +196,6 @@ export const MetricImportReportSchema = z
     });
   });
 export type MetricImportReport = z.infer<typeof MetricImportReportSchema>;
-
-/** `GET /metrics/imports` query: newest first. */
-export const ListMetricImportsQuerySchema = z
-  .object({
-    limit: PageLimitQuerySchema.optional(),
-    cursor: MetricImportIdSchema.optional(),
-  })
-  .strict();
-export type ListMetricImportsQuery = z.input<typeof ListMetricImportsQuerySchema>;
-
-/** One `metric_imports` row as listed. No file name and no cell is ever stored. */
-export const MetricImportViewSchema = z
-  .object({
-    importId: MetricImportIdSchema,
-    platform: PlatformSchema,
-    asOfDate: IsoDateSchema,
-    fileBytes: z.number().int().nonnegative().max(metricsBounds.maxFileBytes),
-    rows: z.number().int().nonnegative(),
-    matched: z.number().int().nonnegative(),
-    created: z.number().int().nonnegative(),
-    updated: z.number().int().nonnegative(),
-    unchanged: z.number().int().nonnegative(),
-    unmatched: z.number().int().nonnegative(),
-    issues: z.number().int().nonnegative(),
-    importedBy: z.string().min(1).max(100),
-    importedAt: IsoDateTimeSchema,
-  })
-  .strict();
-export type MetricImportView = z.infer<typeof MetricImportViewSchema>;
-
-export const MetricImportPageViewSchema = pageOf(MetricImportViewSchema);
-export type MetricImportPageView = z.infer<typeof MetricImportPageViewSchema>;
 
 /**
  * The `ApiError.reason` for each import refusal, so the api and the CLI answer the same: the

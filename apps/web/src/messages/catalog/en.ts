@@ -182,12 +182,12 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
   linkBox: {
     title: 'View a reference video',
     label: 'Paste a video link',
-    placeholder: 'https://www.instagram.com/reel/…, https://youtu.be/… or https://www.tiktok.com/@…',
+    placeholder: 'https://www.instagram.com/reel/…, https://youtu.be/…, https://vimeo.com/… or another video post link',
     submit: 'Show',
     clear: 'Clear',
-    help: 'The video plays straight from Instagram, YouTube or TikTok. On save, the studio downloads the video for a moment so the AI can analyse its style, then deletes it: only the link and the analysis text are kept.',
-    unsupported: 'For now only Instagram posts and reels, YouTube videos and Shorts, and TikTok videos are supported.',
-    platforms: { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok' },
+    help: 'The video plays straight from the platform (Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X or Twitch). On save, the studio downloads the video for a moment so the AI can analyse its style, then deletes it: only the link and the analysis text are kept.',
+    unsupported: 'Use a link to one video post on Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X (Twitter) or Twitch (clip or past broadcast).',
+    platforms: { instagram: 'Instagram', youtube: 'YouTube', tiktok: 'TikTok', vimeo: 'Vimeo', dailymotion: 'Dailymotion', facebook: 'Facebook', x: 'X', twitch: 'Twitch' },
     embedTitle: (platform: string, id: string) => `${platform} video ${id}`,
     save: {
       title: 'Save as reference',
@@ -379,6 +379,17 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     showAll: 'Show all versions',
     onlyScored: 'Only versions with a score',
     empty: 'No version has a score yet.',
+  },
+
+  deleteItem: {
+    label: 'Delete',
+    labelHidden: (name: string): string => `Delete ${name}`,
+    deleting: 'Deleting…',
+    confirmTitle: (name: string): string => `Delete ${name}?`,
+    confirmDescription:
+      'Every version of this item becomes deprecated and the item leaves the catalog lists. Presets and past runs keep using it. To bring it back, filter the catalog by the status "Deprecated" and activate a version.',
+    cancel: 'Cancel',
+    failed: (reason: string): string => `The item was not fully deleted. ${reason}`,
   },
 
   statusControls: {
@@ -731,7 +742,7 @@ export const catalogEn: Messages<typeof catalogPtBR> = {
     byAi: 'Written by the AI from the video. Your own notes stay separate and unchanged.',
     mock: 'Simulated',
     frames: (count) => `${count} frames analysed`,
-    linkOnly: 'This link is not an Instagram, YouTube or TikTok post. Attach the video file for the AI to analyse.',
+    linkOnly: 'This link is not a video post on a supported platform (Instagram, YouTube, TikTok, Vimeo, Dailymotion, Facebook, X or Twitch). Attach the video file for the AI to analyse.',
     attachFile: 'Attach the file in a new version',
     biometric: 'This reference is biometric; the AI does not analyse videos with biometric data.',
     notAVideo: 'Only video references with a file are analysed.',

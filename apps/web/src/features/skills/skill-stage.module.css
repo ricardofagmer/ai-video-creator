@@ -1,0 +1,577 @@
+/* Animated cover of a skill card (components/SkillStage.tsx). Marks take the card's poster tone; tokens come from @studio/ui. */
+
+/* The stage is a surface of the theme washed with the card's tone, never a black band: near-white on the light theme, deep on the dark one. */
+.stage {
+  --stage-accent: var(--poster-tone-start, var(--color-primary-500));
+  --stage-second: var(--poster-tone-end, var(--color-yellow-300));
+  --stage-third: var(--color-blue-violet-400);
+  --stage-base: light-dark(var(--color-white), var(--color-gray-900));
+  --stage-fg: var(--color-text);
+  --stage-dim: color-mix(in srgb, var(--color-text) 18%, transparent);
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-image: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--stage-accent) 12%, var(--stage-base)),
+    color-mix(in srgb, var(--stage-second) 12%, var(--stage-base))
+  );
+}
+
+/* Clear of the cover's film perforations at the top and bottom. */
+.scene {
+  position: absolute;
+  inset: var(--space-5) var(--space-4);
+  display: flex;
+}
+
+.scene i,
+.scene span {
+  display: block;
+}
+
+.accent {
+  background-color: var(--stage-accent);
+}
+
+.second {
+  background-color: var(--stage-second);
+}
+
+.third {
+  background-color: var(--stage-third);
+}
+
+.accentFill {
+  fill: var(--stage-accent);
+}
+
+.secondFill {
+  fill: var(--stage-second);
+}
+
+.thirdFill {
+  fill: var(--stage-third);
+}
+
+/* Timeline: three tracks of clips and a playhead. */
+.timeline {
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.track {
+  display: flex;
+  gap: var(--space-1);
+  height: var(--space-3);
+}
+
+.clip {
+  flex: var(--stage-size) 1 0;
+  border-radius: var(--radius-sm);
+}
+
+.clip:not(.accent, .second, .third) {
+  background-color: var(--stage-dim);
+}
+
+.playhead {
+  position: absolute;
+  top: calc(-1 * var(--space-1));
+  bottom: calc(-1 * var(--space-1));
+  left: 30%;
+  width: var(--space-0-5);
+  background-color: var(--stage-fg);
+}
+
+/* Waveform: equaliser bars. */
+.wave {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.waveBar {
+  width: var(--space-1);
+  height: 100%;
+  background-color: var(--stage-accent);
+  border-radius: var(--radius-full);
+  transform: scaleY(calc(0.25 + var(--stage-order) * 0.1));
+}
+
+/* Captions: a picture and four words lit one after the other. */
+.captions {
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.frame {
+  flex: 1;
+  margin: 0 20%;
+  background-image: linear-gradient(135deg, var(--stage-third), var(--stage-second) 60%, var(--stage-accent));
+  border-radius: var(--radius-sm);
+}
+
+.scene .words {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.word {
+  width: var(--space-6);
+  height: var(--space-2);
+  background-color: var(--stage-dim);
+  border-radius: var(--radius-full);
+}
+
+/* Lines of text, on the stage or on a sheet of paper. */
+.lines,
+.paper {
+  flex-direction: column;
+  justify-content: center;
+}
+
+.lines {
+  gap: var(--space-2);
+}
+
+.paper {
+  inset: var(--space-4) 30%;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  /* A sheet is white in both themes; the border and shadow tell it from the light stage. */
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.line {
+  width: var(--stage-size);
+  height: var(--space-1);
+  background-color: var(--stage-dim);
+  border-radius: var(--radius-full);
+  transform-origin: left;
+}
+
+.paper .line {
+  background-color: var(--color-gray-700);
+}
+
+/* Checklist: three rows ticked in turn. */
+.checklist {
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.scene .checkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.checkBox {
+  flex: none;
+  width: var(--space-3);
+  height: var(--space-3);
+  background-color: var(--stage-accent);
+  border: 1px solid var(--stage-fg);
+  border-radius: var(--radius-xs);
+}
+
+.checkLine {
+  flex: 1;
+  height: var(--space-1);
+  background-color: var(--stage-dim);
+  border-radius: var(--radius-full);
+}
+
+/* Canvas: a wide picture settling into a vertical frame. */
+.canvas {
+  align-items: center;
+  justify-content: center;
+}
+
+.scene .canvasFrame {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  aspect-ratio: 9 / 16;
+  border: 1px dashed var(--stage-fg);
+  border-radius: var(--radius-xs);
+}
+
+.canvasPicture {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-image: linear-gradient(135deg, var(--stage-second), var(--stage-accent));
+  border-radius: var(--radius-xs);
+}
+
+/* Bars: a chart breathing. */
+.bars {
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.bar {
+  flex: 1;
+  height: var(--stage-size);
+  background-color: var(--stage-accent);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  transform-origin: bottom;
+}
+
+.bar:nth-child(even) {
+  background-color: var(--stage-second);
+}
+
+/* Graph: four connected nodes. */
+.graph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.edge {
+  stroke: var(--stage-fg);
+  stroke-width: 1.5;
+  stroke-dasharray: 60;
+}
+
+/* Chat: three bubbles, the middle one an answer. */
+.chat {
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.bubble {
+  width: var(--stage-size);
+  height: var(--space-3);
+  background-color: var(--stage-dim);
+  border-radius: var(--radius-full);
+}
+
+.bubble:nth-child(2) {
+  align-self: flex-end;
+  background-color: var(--stage-accent);
+}
+
+/* One picture in the middle of the stage: graded, branded, faded or captured. */
+.picture {
+  flex-direction: column;
+}
+
+/* Grade: colour sweeping over the same picture, still dull. The dull half is the picture's own tones sunk into the stage, never a grey. */
+.scene .gradeFrame {
+  position: relative;
+  flex: 1;
+  margin: 0 20%;
+  overflow: hidden;
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--stage-third) 26%, var(--stage-base)),
+    color-mix(in srgb, var(--stage-second) 26%, var(--stage-base)) 60%,
+    color-mix(in srgb, var(--stage-accent) 26%, var(--stage-base))
+  );
+  border-radius: var(--radius-sm);
+}
+
+.gradeSweep {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 60%;
+  background-image: linear-gradient(135deg, var(--stage-third), var(--stage-second) 60%, var(--stage-accent));
+  border-right: 1px solid var(--stage-fg);
+}
+
+/* Logo: a mark landing on the picture's corner. */
+.logoMark {
+  position: absolute;
+  top: var(--space-1);
+  right: calc(20% + var(--space-1));
+  width: var(--space-4);
+  height: var(--space-4);
+  background-color: var(--color-white);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Sheet: a grid of cells lit in turn. */
+.sheet {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: 1fr;
+  gap: var(--space-1);
+}
+
+.cell {
+  background-color: var(--stage-dim);
+  border-radius: var(--radius-xs);
+}
+
+/* Diff: one line taken out, one put in. */
+.diff .line:nth-child(2) {
+  background-color: var(--color-danger);
+}
+
+.diff .line:nth-child(3) {
+  background-color: var(--color-success);
+}
+
+/* Capture: a screen being recorded, with the pointer moving on it. */
+.scene .screen {
+  position: relative;
+  flex: 1;
+  margin: 0 16%;
+  background-color: color-mix(in srgb, var(--stage-accent) 22%, var(--stage-base));
+  border: 1px solid color-mix(in srgb, var(--stage-accent) 60%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.recordDot,
+.pointer {
+  position: absolute;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.recordDot {
+  top: var(--space-1);
+  left: var(--space-1);
+  background-color: var(--color-danger);
+}
+
+.pointer {
+  top: 60%;
+  left: 30%;
+  background-color: var(--stage-fg);
+}
+
+/* Every scene reads as a still picture; motion is added only when the reader allows it. */
+@media (prefers-reduced-motion: no-preference) {
+  .bubble {
+    animation: stage-pop 4s infinite;
+    animation-delay: calc(var(--stage-order) * 1s);
+  }
+
+  .gradeSweep {
+    animation: stage-sweep 2.6s ease-in-out infinite alternate;
+  }
+
+  .logoMark {
+    animation: stage-pop 3s infinite;
+  }
+
+  .fadePicture,
+  .diff .line:nth-child(2) {
+    animation: stage-fade 2.6s ease-in-out infinite;
+  }
+
+  .cell {
+    animation: stage-lit 3s infinite;
+    animation-delay: calc(var(--stage-order) * 0.19s);
+  }
+
+  .recordDot {
+    animation: stage-fade 1.2s ease-in-out infinite;
+  }
+
+  .pointer {
+    animation: stage-point 3s ease-in-out infinite;
+  }
+
+  .playhead {
+    animation: stage-playhead 3.6s linear infinite;
+  }
+
+  .waveBar {
+    animation: stage-equaliser 1.1s ease-in-out infinite;
+    animation-delay: calc(var(--stage-order) * -0.17s);
+  }
+
+  .word {
+    animation: stage-highlight 3.2s steps(1) infinite;
+    animation-delay: calc(var(--stage-order) * 0.8s);
+  }
+
+  .line {
+    animation: stage-grow 3s ease-out infinite;
+    animation-delay: calc(var(--stage-order) * 0.2s);
+  }
+
+  .checkBox {
+    animation: stage-tick 3.6s infinite;
+    animation-delay: calc(var(--stage-order) * 0.6s);
+  }
+
+  .canvasPicture {
+    animation: stage-fit 3s ease-in-out infinite;
+  }
+
+  .bar {
+    animation: stage-rise 1.8s ease-in-out infinite alternate;
+    animation-delay: calc(var(--stage-order) * -0.3s);
+  }
+
+  .edge {
+    animation: stage-dash 2.4s ease-out infinite;
+  }
+}
+
+@keyframes stage-playhead {
+  from {
+    left: 4%;
+  }
+
+  to {
+    left: 96%;
+  }
+}
+
+@keyframes stage-equaliser {
+  0%,
+  100% {
+    transform: scaleY(0.2);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes stage-highlight {
+  0% {
+    background-color: var(--stage-second);
+  }
+
+  25%,
+  100% {
+    background-color: var(--stage-dim);
+  }
+}
+
+@keyframes stage-grow {
+  0% {
+    transform: scaleX(0);
+  }
+
+  45%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes stage-tick {
+  0%,
+  15% {
+    background-color: transparent;
+  }
+
+  30%,
+  100% {
+    background-color: var(--stage-accent);
+  }
+}
+
+@keyframes stage-fit {
+  0%,
+  18% {
+    transform: scale(1.9);
+  }
+
+  60%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes stage-rise {
+  0% {
+    transform: scaleY(0.15);
+  }
+
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes stage-pop {
+  0%,
+  10% {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  28%,
+  88% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes stage-sweep {
+  0% {
+    width: 4%;
+  }
+
+  100% {
+    width: 100%;
+  }
+}
+
+@keyframes stage-fade {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes stage-lit {
+  0%,
+  100% {
+    background-color: var(--stage-dim);
+  }
+
+  8%,
+  30% {
+    background-color: var(--stage-second);
+  }
+}
+
+@keyframes stage-point {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(400%, -150%);
+  }
+}
+
+@keyframes stage-dash {
+  from {
+    stroke-dashoffset: 60;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}

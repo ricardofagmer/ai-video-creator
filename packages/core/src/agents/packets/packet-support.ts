@@ -96,6 +96,12 @@ export function delimitAssetText(asset: AssetText): string {
   return delimitUntrusted(asset.text, { attributes: { ref: asset.ref }, maxChars: untrustedTextMaxChars, overflow: 'refuse' });
 }
 
+/** Bound skills as one delimited block each, or nothing; the owner's versioned text is never cut. */
+export function skillTextsField(skills: readonly AssetText[] | undefined): { skillTexts?: string[] } {
+  if (skills === undefined || skills.length === 0) return {};
+  return { skillTexts: skills.map(delimitAssetText) };
+}
+
 /** `StageBrief.learnings` as the brief step wrote it: per ref, capped and cut off (R2-07). */
 export type BriefLearnings = NonNullable<StageBrief['learnings']>;
 

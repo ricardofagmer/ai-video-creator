@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { QUALITY_SCORE_FORMULA_VERSION } from '@studio/shared/catalog';
 import { PrismaService, type PrismaTransaction } from '../prisma';
+import { SerialMutex } from '../runtime/keyed-mutex';
 import { scoreCatalog, type VersionScore } from './catalog-scores';
 import { runPlatformSignals } from './platform-signals';
 import { toQualityScoreRun } from './quality-outcome.mapper';
@@ -62,7 +63,7 @@ function errorName(error: unknown): string {
 @Injectable()
 export class QualityScoreService {
   private readonly logger = new Logger(QualityScoreService.name);
-  private tail: Promise<void> = Promise.resolve();
+  private readonly passes = new SerialMutex();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -190,12 +191,7 @@ export class QualityScoreService {
   }
 
   /** Orders passes in this process; a failed pass reaches its own caller and frees the next one. */
-  private async serialized<T>(work: () => Promise<T>): Promise<T> {
-    const result = this.tail.then(work);
-    this.tail = result.then(
-      () => undefined,
-      () => undefined,
-    );
-    return result;
+  private serialized<T>(work: () => Promise<T>): Promise<T> {
+    return this.passes.run(work);
   }
 }

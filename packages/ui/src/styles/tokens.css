@@ -54,8 +54,8 @@
 
   /* 1.3 Semantic colours (feedback and status) */
   --color-success: light-dark(#047857, #34D399);
-  /* Light tints sit at L* 93, between the page and the card, so alerts and badges never read
-     brighter than cards; each -border moves with its tint. */
+  /* Light tints sit at L* 93, a step under the page and the white card, so alerts and badges
+     never read brighter than cards; each -border moves with its tint. */
   --color-success-soft: light-dark(#DEEFE7, #04231A);
   --color-success-border: light-dark(#99E5C2, #065F46);
   --color-warning: light-dark(#AB4F09, #FBBF24);
@@ -70,14 +70,15 @@
   --color-info-border: light-dark(#C1C6EF, #2E3592);
 
   /* 1.4 Semantic surface and text tokens (components use only these and 1.3) */
-  /* Light surfaces are off-whites on the zinc hue, the page at L* 91 and cards a step above it,
-     to cut glare; the subtle text, the primary and the warning are a shade deeper so they keep
-     4.5:1 on them. */
-  --color-bg: light-dark(#E6E6E9, var(--color-gray-950));
-  --color-surface: light-dark(#EFEFF2, var(--color-gray-850));
-  --color-surface-muted: light-dark(#E3E3E7, var(--color-gray-800));
-  --color-surface-glass: light-dark(rgba(239, 239, 242, 0.8), rgba(10, 10, 11, 0.62));
-  --color-border: light-dark(#D1D1D6, var(--color-gray-700));
+  /* Light theme: a near-white page with white cards on it (owner decision 2026-11-27; the greys of
+     the earlier glare cut read as silver). Cards are told from the page by their border and
+     shadow, not by a grey fill. The subtle text, the primary and the warning stay a shade deeper
+     than the scale, which keeps them above 4.5:1 here too. */
+  --color-bg: light-dark(#F7F7FA, var(--color-gray-950));
+  --color-surface: light-dark(var(--color-white), var(--color-gray-850));
+  --color-surface-muted: light-dark(#F1F1F4, var(--color-gray-800));
+  --color-surface-glass: light-dark(rgba(255, 255, 255, 0.8), rgba(10, 10, 11, 0.62));
+  --color-border: light-dark(#E0E0E6, var(--color-gray-700));
   --color-border-strong: light-dark(var(--color-gray-500), var(--color-gray-500));
   --color-border-glow: light-dark(rgba(214, 41, 118, 0.22), rgba(245, 96, 155, 0.28));
   --color-text: light-dark(var(--color-ink-text), var(--color-ink-text-dark));

@@ -2,21 +2,14 @@
   "name": "@ace/toolbox",
   "version": "0.1.0",
   "private": true,
-  "description": "ace CLI: run folders, manifest validation, capture, narration, render, QA and review for the AI Creator Engine",
-  "main": "dist/cli.js",
-  "bin": {
-    "ace": "dist/cli.js"
-  },
+  "description": "Media, capture, narration and voice helpers that the watcher imports from dist/ by path",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "ace": "tsx src/cli.ts"
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "@ace/video": "workspace:*",
     "@studio/shared": "workspace:*",
-    "commander": "^14.0.0",
     "dotenv": "^17.2.0",
     "playwright": "^1.56.0",
     "zod": "^4.6.7"
