@@ -16,6 +16,7 @@ import { browserStudioClient } from '@/lib/api';
 import { useWebMessages } from '@/lib/i18n/client';
 import { useWizardDraft } from '../hooks/useWizardDraft';
 import { type WizardDraft } from '../wizard-draft';
+import { resolveFormat, type WizardFormat } from '../wizard-format';
 import { type WizardSlot } from '../wizard-recipe';
 import { reviewOf } from '../wizard-review';
 import { choicesWithPipelinePins, runReferencesOf } from '../wizard-pipeline';
@@ -127,6 +128,11 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
     update((current) => ({ ...current, musicChoice }));
   }
 
+  function chooseFormat(format: WizardFormat): void {
+    setServerConflicts([]);
+    update((current) => ({ ...current, format }));
+  }
+
   /** Only what the step itself can tell; the brief against the recipe is checked at review. */
   function stepIsReady(step: DraftStep): boolean {
     if (step === 'idea') {
@@ -138,6 +144,11 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
     }
     if (step === 'recipe' && base === undefined) {
       setRecipeError(texts.recipe.required);
+      return false;
+    }
+    // A typed size that fits no accepted aspect stays on this step; the field shows why.
+    if (step === 'style' && draft.format !== null && resolveFormat(draft.format).kind === 'invalid') {
+      document.getElementById('criar-formato-largura')?.focus();
       return false;
     }
     return true;
@@ -255,10 +266,13 @@ export function WizardFlow({ recipes, options }: WizardFlowProps): ReactElement 
             base={base.recipe}
             choices={pinnedDraft.choices}
             musicChoice={draft.musicChoice}
+            format={draft.format}
+            composedFormat={review.composed.recipe.format}
             options={options}
             changed={review.composed.changed}
             onChoose={chooseSlot}
             onMusicChoiceChange={chooseMusic}
+            onFormatChange={chooseFormat}
           />
         )}
         {draft.step === 'style' && base === undefined && <Alert variant="warning">{texts.recipe.required}</Alert>}

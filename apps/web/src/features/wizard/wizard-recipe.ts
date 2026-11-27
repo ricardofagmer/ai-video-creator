@@ -4,6 +4,7 @@ import { musicChoiceOf, withMusicChoice, type Binding, type MusicChoice, type Re
 import { type StageId } from '@studio/shared/run-format';
 import { type BindingOption } from '@/features/recipes/recipe-form-model';
 import { slotSpecs, type SlotSpec } from '@/features/recipes/recipe-slots';
+import { sameFormat, type ResolvedFormat } from './wizard-format';
 
 /** The pins step 3 offers (guided-creation spec section 5): one voice, one template, optional brand kit and music. */
 export const wizardSlotIds = ['voice', 'template', 'brand-kit', 'music'] as const;
@@ -61,6 +62,8 @@ export interface WizardAnswers {
   choices: WizardChoices;
   /** null keeps the base recipe's music choice. */
   musicChoice: MusicChoice | null;
+  /** null keeps the base recipe's canvas, aspect and fps. */
+  format: ResolvedFormat | null;
 }
 
 export interface ComposedRecipe {
@@ -104,9 +107,12 @@ export function composeRecipe(base: Recipe, answers: WizardAnswers, options: rea
   }
   // A new pin must be of a kind the recipe accepts, or core refuses the version.
   const allowedKinds = [...new Set<AssetKind>([...base.allowedKinds, ...addedKinds])];
-  if (sameMusicChoice(music, baseMusic)) return { recipe: { ...base, bindings, allowedKinds }, changed };
+  const newFormat = answers.format !== null && !sameFormat(answers.format, base.format);
+  const format = newFormat && answers.format !== null ? { ...base.format, ...answers.format } : base.format;
+  if (newFormat) changed = true;
+  if (sameMusicChoice(music, baseMusic)) return { recipe: { ...base, bindings, allowedKinds, format }, changed };
   const stages = base.graph.stages.map((stage) => (stage.stageId === 'music' ? { ...stage, params: withMusicChoice(stage.params, music) } : stage));
-  return { recipe: { ...base, graph: { ...base.graph, stages }, bindings, allowedKinds }, changed: true };
+  return { recipe: { ...base, graph: { ...base.graph, stages }, bindings, allowedKinds, format }, changed: true };
 }
 
 /**
@@ -133,11 +139,12 @@ export function definitionOf(recipe: Recipe): RecipeDefinitionInput {
   };
 }
 
-/** Identifies one composed set of pins and music choice on one base version, so a retry reuses the version it already saved. */
-export function compositionKeyOf(baseRef: string, recipe: Pick<Recipe, 'bindings' | 'graph'>): string {
+/** Identifies one composed set of pins, music choice and format on one base version, so a retry reuses the version it already saved. */
+export function compositionKeyOf(baseRef: string, recipe: Pick<Recipe, 'bindings' | 'graph' | 'format'>): string {
   const pins = wizardSlotIds.map((slot) => `${slot}=${basePinOf(recipe, slot)?.ref ?? ''}`);
   const music = musicChoiceOfRecipe(recipe);
   // "Choose the song" adds nothing, so keys remembered before the music choice existed still match.
   const musicKey = music.mode === 'track' ? '' : `|music=auto:${music.categories.join('+')}`;
-  return `${baseRef}|${pins.join(',')}${musicKey}`;
+  const { canvas, fps } = recipe.format;
+  return `${baseRef}|${pins.join(',')}${musicKey}|format=${canvas.width}x${canvas.height}@${fps}`;
 }

@@ -27,7 +27,7 @@ type CatalogList = { status: 'loading' } | { status: 'failed'; message: string }
 const PANEL_ID = 'wizard-pipeline-panel';
 
 function isPipelineTab(key: string): key is PipelineTab {
-  return (pipelineTabs as readonly string[]).includes(key);
+  return pipelineTabs.some((tab) => tab === key);
 }
 
 /**

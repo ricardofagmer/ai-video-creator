@@ -5,6 +5,7 @@ import { type BindingOption } from '@/features/recipes/recipe-form-model';
 import { buildBrief, type BriefErrorTexts, type BriefResult } from '@/features/runs/new-run-model';
 import { newRunConflicts, type TemplateDetailsByRef } from '@/features/runs/run-composition';
 import { type WizardDraft } from './wizard-draft';
+import { resolveFormat } from './wizard-format';
 import { composeRecipe, type ComposedRecipe } from './wizard-recipe';
 
 /** Everything step 4 shows and "Iniciar" needs, derived from the draft on every render. */
@@ -40,7 +41,10 @@ export function reviewOf(
 ): WizardReview {
   const base = recipes.find((view) => view.ref === draft.values.recipeRef);
   if (base === undefined) return { kind: 'no-recipe' };
-  const composed = composeRecipe(base.recipe, { choices: draft.choices, musicChoice: draft.musicChoice }, options);
+  // A format still being typed is held at the style step; until it is valid the preset's stays.
+  const typed = draft.format === null ? null : resolveFormat(draft.format);
+  const format = typed?.kind === 'valid' ? typed.format : null;
+  const composed = composeRecipe(base.recipe, { choices: draft.choices, musicChoice: draft.musicChoice, format }, options);
   return {
     kind: 'ready',
     base,

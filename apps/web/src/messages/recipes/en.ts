@@ -91,6 +91,8 @@ export const recipesEn: Messages<typeof recipesPtBR> = {
   },
   format: {
     title: 'Format',
+    preset: 'Suggested format',
+    presetHelp: 'Fills width, height and FPS. Typing a size switches to Custom.',
     width: 'Width',
     height: 'Height',
     fps: 'FPS',

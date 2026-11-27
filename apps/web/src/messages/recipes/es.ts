@@ -91,6 +91,8 @@ export const recipesEs: Messages<typeof recipesPtBR> = {
   },
   format: {
     title: 'Formato',
+    preset: 'Formato sugerido',
+    presetHelp: 'Rellena ancho, alto y FPS. Escribir un tamaño cambia a Personalizado.',
     width: 'Ancho',
     height: 'Alto',
     fps: 'FPS',

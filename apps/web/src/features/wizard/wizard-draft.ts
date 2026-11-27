@@ -3,6 +3,7 @@ import { BRIEF_INSTRUCTIONS_MAX, RecipeRefSchema, type MusicChoice } from '@stud
 import { z } from 'zod';
 import { type NewRunFormValues } from '@/features/runs/new-run-model';
 import { draftSteps, type DraftStep } from './wizard-steps';
+import { formatPresetIds, type WizardFormat } from './wizard-format';
 import { type WizardChoices } from './wizard-recipe';
 
 /** sessionStorage key of the answers of steps 0 to 4 (guided-creation spec section 5). */
@@ -34,6 +35,8 @@ export interface WizardDraft {
   choices: WizardChoices;
   /** "Choose the song" or "AI decides" with its categories; null keeps the base preset's choice. */
   musicChoice: MusicChoice | null;
+  /** Canvas and fps for this video, from a suggested format or typed; null keeps the base preset's. */
+  format: WizardFormat | null;
   saved: SavedComposition | null;
 }
 
@@ -72,6 +75,12 @@ const WizardDraftSchema = z
       .strict(),
     // Drafts saved before the music choice existed have no key: they keep the preset's choice.
     musicChoice: MusicChoiceDraftSchema.nullable().default(null),
+    // Drafts saved before the format choice existed have no key: they keep the preset's format.
+    format: z
+      .object({ preset: z.enum(formatPresetIds), width: z.string().max(10), height: z.string().max(10), fps: z.string().max(10) })
+      .strict()
+      .nullable()
+      .default(null),
     saved: z.object({ key: z.string().max(2000), ref: RecipeRefSchema }).strict().nullable(),
   })
   .strict();
@@ -85,6 +94,7 @@ export function emptyDraft(recipeRef: string): WizardDraft {
     pipelineItems: [],
     choices: {},
     musicChoice: null,
+    format: null,
     saved: null,
   };
 }
@@ -105,5 +115,5 @@ export function parseDraft(text: string | null): WizardDraft | null {
 /** The draft with a base recipe that no longer runs dropped, so the owner chooses again. */
 export function draftForRecipes(draft: WizardDraft, runnableRefs: readonly string[]): WizardDraft {
   if (draft.values.recipeRef === '' || runnableRefs.includes(draft.values.recipeRef)) return draft;
-  return { ...draft, values: { ...draft.values, recipeRef: '' }, choices: {}, musicChoice: null, saved: null };
+  return { ...draft, values: { ...draft.values, recipeRef: '' }, choices: {}, musicChoice: null, format: null, saved: null };
 }

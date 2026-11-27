@@ -93,6 +93,8 @@ export const recipesPtBR = {
   },
   format: {
     title: 'Formato',
+    preset: 'Formato sugerido',
+    presetHelp: 'Preenche largura, altura e FPS. Digitar um tamanho muda para Personalizado.',
     width: 'Largura',
     height: 'Altura',
     fps: 'FPS',
